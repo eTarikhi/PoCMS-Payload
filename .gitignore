@@ -47,3 +47,8 @@ pids/
 
 # OS
 Thumbs.db
+.env.example
+/media
+/src/migrations
+package-lock.json
+.env.example

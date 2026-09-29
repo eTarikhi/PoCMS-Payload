@@ -1,67 +1,39 @@
-import { buildConfig } from 'payload/config';
-import { postgresAdapter } from '@payloadcms/db-postgres';
-import { lexicalEditor } from '@payloadcms/richtext-lexical';
+import { vercelPostgresAdapter } from '@payloadcms/db-vercel-postgres'
+import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import path from 'path'
+import { buildConfig } from 'payload'
+import { fileURLToPath } from 'url'
+import { Users } from './collections/Users'
+import { Media } from './collections/Media'
+// import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 
-const postgresUrl =
-  process.env.POSTGRES_URL ||
-  process.env.DATABASE_URL ||
-  process.env.NEON_DATABASE_URL ||
-  '';
+const filename = fileURLToPath(import.meta.url)
+const dirname = path.dirname(filename)
 
 export default buildConfig({
   admin: {
-    user: 'users',
+    user: Users.slug,
+    importMap: {
+      baseDir: path.resolve(dirname),
+    },
   },
-  collections: [
-    {
-      slug: 'users',
-      auth: true,
-      admin: {
-        useAsTitle: 'email',
-      },
-      fields: [
-        {
-          name: 'name',
-          type: 'text',
-        },
-      ],
-    },
-    {
-      slug: 'portfolio-items',
-      admin: {
-        useAsTitle: 'title',
-      },
-      fields: [
-        {
-          name: 'title',
-          type: 'text',
-          required: true,
-        },
-        {
-          name: 'slug',
-          type: 'text',
-          required: true,
-          unique: true,
-        },
-        {
-          name: 'content',
-          type: 'richText',
-        },
-      ],
-    },
-  ],
+  collections: [Users, Media],
   editor: lexicalEditor(),
-  db: postgresAdapter({
+  secret: process.env.PAYLOAD_SECRET || '',
+  typescript: {
+    outputFile: path.resolve(dirname, 'payload-types.ts'),
+  },
+  db: vercelPostgresAdapter({
     pool: {
-      connectionString: postgresUrl,
-      ssl:
-        process.env.NODE_ENV === 'production'
-          ? { rejectUnauthorized: false }
-          : undefined,
+      connectionString: process.env.POSTGRES_URL || '',
     },
   }),
-  secret: process.env.PAYLOAD_SECRET || 'replace-me-with-a-strong-secret',
-  typescript: {
-    outputFile: './src/payload-types.ts',
-  },
-});
+  // storage: [
+  //   vercelBlobStorage({
+  //     collections: {
+  //       media: true,
+  //     },
+  //     token: process.env.BLOB_READ_WRITE_TOKEN || '',
+  //   }),
+  // ],
+})
