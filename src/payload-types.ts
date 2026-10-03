@@ -68,6 +68,15 @@ export interface Config {
   blocks: {};
   collections: {
     users: User;
+    about: About;
+    header: Header;
+    articles: Article;
+    certificates: Certificate;
+    educations: Education;
+    experiences: Experience;
+    projects: Project;
+    services: Service;
+    skills: Skill;
     media: Media;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -77,6 +86,15 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
+    about: AboutSelect<false> | AboutSelect<true>;
+    header: HeaderSelect<false> | HeaderSelect<true>;
+    articles: ArticlesSelect<false> | ArticlesSelect<true>;
+    certificates: CertificatesSelect<false> | CertificatesSelect<true>;
+    educations: EducationsSelect<false> | EducationsSelect<true>;
+    experiences: ExperiencesSelect<false> | ExperiencesSelect<true>;
+    projects: ProjectsSelect<false> | ProjectsSelect<true>;
+    services: ServicesSelect<false> | ServicesSelect<true>;
+    skills: SkillsSelect<false> | SkillsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -87,8 +105,12 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    footer: Footer;
+  };
+  globalsSelect: {
+    footer: FooterSelect<false> | FooterSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
@@ -145,6 +167,37 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "about".
+ */
+export interface About {
+  id: number;
+  title: string;
+  experience: {
+    years: number;
+    title: string;
+    description: string;
+  };
+  workPermit: {
+    title: string;
+    description: string;
+  };
+  uploadImages?: (number | Media)[] | null;
+  images?:
+    | {
+        imageUrl: string;
+        id?: string | null;
+      }[]
+    | null;
+  interests: {
+    title: string;
+    description: string;
+    areas?: string[] | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media".
  */
 export interface Media {
@@ -161,6 +214,182 @@ export interface Media {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "header".
+ */
+export interface Header {
+  id: number;
+  sureName: string;
+  profileImage?: (number | null) | Media;
+  imageUrl?: string | null;
+  /**
+   * Link behind the "Request CV" button.
+   */
+  requestCV?: string | null;
+  /**
+   * Job titles shown in the hero section.
+   */
+  professionTexts: string[];
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "articles".
+ */
+export interface Article {
+  id: number;
+  title: string;
+  excerpt: string;
+  description?: string | null;
+  /**
+   * If checked, the article expert will be featured on the homepage.
+   */
+  featured?: boolean | null;
+  category?: ('articles' | 'others') | null;
+  publishedAt: string;
+  /**
+   * Minutes. Render as "{n} min" in the frontend.
+   */
+  readTime?: number | null;
+  image?: (number | null) | Media;
+  imageUrl?: string | null;
+  /**
+   * Where the article is published (LinkedIn, Medium, ...).
+   */
+  link: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "certificates".
+ */
+export interface Certificate {
+  id: number;
+  title: string;
+  issuer: string;
+  issuedAt: string;
+  image?: (number | null) | Media;
+  imageUrl?: string | null;
+  /**
+   * Public credential URL.
+   */
+  link?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "educations".
+ */
+export interface Education {
+  id: number;
+  /**
+   * Lower numbers appear first.
+   */
+  order?: number | null;
+  title: string;
+  institution: string;
+  location?: string | null;
+  /**
+   * Display text, e.g. "2001 - 2007".
+   */
+  date: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "experiences".
+ */
+export interface Experience {
+  id: number;
+  /**
+   * Lower numbers appear first.
+   */
+  order?: number | null;
+  title: string;
+  date: string;
+  company: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "projects".
+ */
+export interface Project {
+  id: number;
+  /**
+   * Lower numbers appear first.
+   */
+  order?: number | null;
+  title: string;
+  /**
+   * The thumbnail is generated automatically (media.sizes.thumbnail).
+   */
+  image?: (number | null) | Media;
+  src?: string | null;
+  placeHolder?: string | null;
+  /**
+   * Live site or case-study URL.
+   */
+  url?: string | null;
+  /**
+   * URL for the "Read More" link.
+   */
+  readMoreUrl?: string | null;
+  categories: ('front-end' | 'back-end' | 'cms-crm')[];
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "services".
+ */
+export interface Service {
+  id: number;
+  /**
+   * Lower numbers appear first.
+   */
+  order?: number | null;
+  category: string;
+  /**
+   * Font Awesome icon name used by the frontend, e.g. faCode.
+   */
+  iconFont?: string | null;
+  /**
+   * One entry per bullet point.
+   */
+  descriptions: string[];
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "skills".
+ */
+export interface Skill {
+  id: number;
+  /**
+   * Lower numbers appear first.
+   */
+  order?: number | null;
+  label: string;
+  group: 'frontend' | 'backend';
+  /**
+   * Proficiency, 0-100.
+   */
+  value: number;
+  /**
+   * Bootstrap contextual color of the progress bar.
+   */
+  color: 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'danger';
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -189,6 +418,42 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'users';
         value: number | User;
+      } | null)
+    | ({
+        relationTo: 'about';
+        value: number | About;
+      } | null)
+    | ({
+        relationTo: 'header';
+        value: number | Header;
+      } | null)
+    | ({
+        relationTo: 'articles';
+        value: number | Article;
+      } | null)
+    | ({
+        relationTo: 'certificates';
+        value: number | Certificate;
+      } | null)
+    | ({
+        relationTo: 'educations';
+        value: number | Education;
+      } | null)
+    | ({
+        relationTo: 'experiences';
+        value: number | Experience;
+      } | null)
+    | ({
+        relationTo: 'projects';
+        value: number | Project;
+      } | null)
+    | ({
+        relationTo: 'services';
+        value: number | Service;
+      } | null)
+    | ({
+        relationTo: 'skills';
+        value: number | Skill;
       } | null)
     | ({
         relationTo: 'media';
@@ -261,6 +526,153 @@ export interface UsersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "about_select".
+ */
+export interface AboutSelect<T extends boolean = true> {
+  title?: T;
+  experience?:
+    | T
+    | {
+        years?: T;
+        title?: T;
+        description?: T;
+      };
+  workPermit?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+      };
+  uploadImages?: T;
+  images?:
+    | T
+    | {
+        imageUrl?: T;
+        id?: T;
+      };
+  interests?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        areas?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "header_select".
+ */
+export interface HeaderSelect<T extends boolean = true> {
+  sureName?: T;
+  profileImage?: T;
+  imageUrl?: T;
+  requestCV?: T;
+  professionTexts?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "articles_select".
+ */
+export interface ArticlesSelect<T extends boolean = true> {
+  title?: T;
+  excerpt?: T;
+  description?: T;
+  featured?: T;
+  category?: T;
+  publishedAt?: T;
+  readTime?: T;
+  image?: T;
+  imageUrl?: T;
+  link?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "certificates_select".
+ */
+export interface CertificatesSelect<T extends boolean = true> {
+  title?: T;
+  issuer?: T;
+  issuedAt?: T;
+  image?: T;
+  imageUrl?: T;
+  link?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "educations_select".
+ */
+export interface EducationsSelect<T extends boolean = true> {
+  order?: T;
+  title?: T;
+  institution?: T;
+  location?: T;
+  date?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "experiences_select".
+ */
+export interface ExperiencesSelect<T extends boolean = true> {
+  order?: T;
+  title?: T;
+  date?: T;
+  company?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "projects_select".
+ */
+export interface ProjectsSelect<T extends boolean = true> {
+  order?: T;
+  title?: T;
+  image?: T;
+  src?: T;
+  placeHolder?: T;
+  url?: T;
+  readMoreUrl?: T;
+  categories?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "services_select".
+ */
+export interface ServicesSelect<T extends boolean = true> {
+  order?: T;
+  category?: T;
+  iconFont?: T;
+  descriptions?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "skills_select".
+ */
+export interface SkillsSelect<T extends boolean = true> {
+  order?: T;
+  label?: T;
+  group?: T;
+  value?: T;
+  color?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media_select".
  */
 export interface MediaSelect<T extends boolean = true> {
@@ -316,6 +728,174 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "footer".
+ */
+export interface Footer {
+  id: number;
+  socialLinks?:
+    | {
+        /**
+         * Select the social media platform for the link.
+         */
+        platform: 'facebook' | 'twitter' | 'instagram' | 'linkedin' | 'github' | 'whatsapp';
+        /**
+         * The URL for the social media link.
+         */
+        url: string;
+        /**
+         * The name of the icon to display for the social media link.
+         */
+        iconName: string;
+        /**
+         * The ARIA label for the social media link.
+         */
+        ariaLabel: string;
+        id?: string | null;
+      }[]
+    | null;
+  roles: {
+    fullName: string;
+    /**
+     * Short role list shown in the footer.
+     */
+    footerRoles?: string[] | null;
+  };
+  profiles?:
+    | {
+        /**
+         * The name of the freelance or marketplace profile.
+         */
+        name: string;
+        /**
+         * The URL for the freelance or marketplace profile.
+         */
+        url: string;
+        id?: string | null;
+      }[]
+    | null;
+  contactInfo?:
+    | {
+        /**
+         * Select the type of contact info item.
+         */
+        type: 'address' | 'email' | 'phone' | 'whatsapp';
+        /**
+         * The name of the icon to display for the contact info item.
+         */
+        iconName: string;
+        /**
+         * The content for the contact info item.
+         */
+        content: string;
+        /**
+         * Check if this contact info item is a link.
+         */
+        isLink?: boolean | null;
+        /**
+         * The URL for the contact info item.
+         */
+        url?: string | null;
+        /**
+         * Bootstrap contextual color of the progress bar.
+         */
+        className?:
+          | (
+              | 'text-white'
+              | 'text-primary'
+              | 'text-secondary'
+              | 'text-success'
+              | 'text-info'
+              | 'text-warning'
+              | 'text-danger'
+            )
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  hiringCta?: {
+    /**
+     * The label for the hiring call-to-action.
+     */
+    label?: string | null;
+    /**
+     * The URL for the hiring call-to-action.
+     */
+    url?: string | null;
+  };
+  copyRight: {
+    /**
+     * The year is generated by the frontend.
+     */
+    year: number;
+    /**
+     * Used in the copyright line, e.g. eTarikhi.com. The year is generated by the frontend.
+     */
+    website?: string | null;
+    /**
+     * Used in the copyright line, e.g. https://vTarikhi.com. The year is generated by the frontend.
+     */
+    url: string;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "footer_select".
+ */
+export interface FooterSelect<T extends boolean = true> {
+  socialLinks?:
+    | T
+    | {
+        platform?: T;
+        url?: T;
+        iconName?: T;
+        ariaLabel?: T;
+        id?: T;
+      };
+  roles?:
+    | T
+    | {
+        fullName?: T;
+        footerRoles?: T;
+      };
+  profiles?:
+    | T
+    | {
+        name?: T;
+        url?: T;
+        id?: T;
+      };
+  contactInfo?:
+    | T
+    | {
+        type?: T;
+        iconName?: T;
+        content?: T;
+        isLink?: T;
+        url?: T;
+        className?: T;
+        id?: T;
+      };
+  hiringCta?:
+    | T
+    | {
+        label?: T;
+        url?: T;
+      };
+  copyRight?:
+    | T
+    | {
+        year?: T;
+        website?: T;
+        url?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

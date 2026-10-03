@@ -17,9 +17,49 @@ import {
   timestamp,
   serial,
   numeric,
+  boolean,
   jsonb,
+  pgEnum,
 } from '@payloadcms/db-vercel-postgres/drizzle/pg-core'
 import { sql, relations } from '@payloadcms/db-vercel-postgres/drizzle'
+export const enum_articles_category = pgEnum('enum_articles_category', ['articles', 'others'])
+export const enum_projects_categories = pgEnum('enum_projects_categories', [
+  'front-end',
+  'back-end',
+  'cms-crm',
+])
+export const enum_skills_group = pgEnum('enum_skills_group', ['frontend', 'backend'])
+export const enum_skills_color = pgEnum('enum_skills_color', [
+  'primary',
+  'secondary',
+  'success',
+  'info',
+  'warning',
+  'danger',
+])
+export const enum_footer_social_links_platform = pgEnum('enum_footer_social_links_platform', [
+  'facebook',
+  'twitter',
+  'instagram',
+  'linkedin',
+  'github',
+  'whatsapp',
+])
+export const enum_footer_contact_info_type = pgEnum('enum_footer_contact_info_type', [
+  'address',
+  'email',
+  'phone',
+  'whatsapp',
+])
+export const enum_footer_contact_info_class_name = pgEnum('enum_footer_contact_info_class_name', [
+  'text-white',
+  'text-primary',
+  'text-secondary',
+  'text-success',
+  'text-info',
+  'text-warning',
+  'text-danger',
+])
 
 export const users_sessions = pgTable(
   'users_sessions',
@@ -76,6 +116,362 @@ export const users = pgTable(
     index('users_updated_at_idx').on(columns.updatedAt),
     index('users_created_at_idx').on(columns.createdAt),
     uniqueIndex('users_email_idx').on(columns.email),
+  ],
+)
+
+export const about_images = pgTable(
+  'about_images',
+  {
+    _order: integer('_order').notNull(),
+    _parentID: integer('_parent_id').notNull(),
+    id: varchar('id').primaryKey(),
+    imageUrl: varchar('image_url').notNull(),
+  },
+  (columns) => [
+    index('about_images_order_idx').on(columns._order),
+    index('about_images_parent_id_idx').on(columns._parentID),
+    foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [about.id],
+      name: 'about_images_parent_id_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
+export const about = pgTable(
+  'about',
+  {
+    id: serial('id').primaryKey(),
+    title: varchar('title').notNull(),
+    experience_years: numeric('experience_years', { mode: 'number' }).notNull(),
+    experience_title: varchar('experience_title').notNull(),
+    experience_description: varchar('experience_description').notNull(),
+    workPermit_title: varchar('work_permit_title').notNull(),
+    workPermit_description: varchar('work_permit_description').notNull(),
+    interests_title: varchar('interests_title').notNull(),
+    interests_description: varchar('interests_description').notNull(),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index('about_updated_at_idx').on(columns.updatedAt),
+    index('about_created_at_idx').on(columns.createdAt),
+  ],
+)
+
+export const about_texts = pgTable(
+  'about_texts',
+  {
+    id: serial('id').primaryKey(),
+    order: integer('order').notNull(),
+    parent: integer('parent_id').notNull(),
+    path: varchar('path').notNull(),
+    text: varchar('text'),
+  },
+  (columns) => [
+    index('about_texts_order_parent').on(columns.order, columns.parent),
+    foreignKey({
+      columns: [columns['parent']],
+      foreignColumns: [about.id],
+      name: 'about_texts_parent_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
+export const about_rels = pgTable(
+  'about_rels',
+  {
+    id: serial('id').primaryKey(),
+    order: integer('order'),
+    parent: integer('parent_id').notNull(),
+    path: varchar('path').notNull(),
+    mediaID: integer('media_id'),
+  },
+  (columns) => [
+    index('about_rels_order_idx').on(columns.order),
+    index('about_rels_parent_idx').on(columns.parent),
+    index('about_rels_path_idx').on(columns.path),
+    index('about_rels_media_id_idx').on(columns.mediaID),
+    foreignKey({
+      columns: [columns['parent']],
+      foreignColumns: [about.id],
+      name: 'about_rels_parent_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [columns['mediaID']],
+      foreignColumns: [media.id],
+      name: 'about_rels_media_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
+export const header = pgTable(
+  'header',
+  {
+    id: serial('id').primaryKey(),
+    sureName: varchar('sure_name').notNull(),
+    profileImage: integer('profile_image_id').references(() => media.id, {
+      onDelete: 'set null',
+    }),
+    imageUrl: varchar('image_url'),
+    requestCV: varchar('request_c_v'),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index('header_profile_image_idx').on(columns.profileImage),
+    index('header_updated_at_idx').on(columns.updatedAt),
+    index('header_created_at_idx').on(columns.createdAt),
+  ],
+)
+
+export const header_texts = pgTable(
+  'header_texts',
+  {
+    id: serial('id').primaryKey(),
+    order: integer('order').notNull(),
+    parent: integer('parent_id').notNull(),
+    path: varchar('path').notNull(),
+    text: varchar('text'),
+  },
+  (columns) => [
+    index('header_texts_order_parent').on(columns.order, columns.parent),
+    foreignKey({
+      columns: [columns['parent']],
+      foreignColumns: [header.id],
+      name: 'header_texts_parent_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
+export const articles = pgTable(
+  'articles',
+  {
+    id: serial('id').primaryKey(),
+    title: varchar('title').notNull(),
+    excerpt: varchar('excerpt').notNull(),
+    description: varchar('description'),
+    featured: boolean('featured'),
+    category: enum_articles_category('category'),
+    publishedAt: timestamp('published_at', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }).notNull(),
+    readTime: numeric('read_time', { mode: 'number' }),
+    image: integer('image_id').references(() => media.id, {
+      onDelete: 'set null',
+    }),
+    imageUrl: varchar('image_url'),
+    link: varchar('link').notNull(),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index('articles_category_idx').on(columns.category),
+    index('articles_published_at_idx').on(columns.publishedAt),
+    index('articles_image_idx').on(columns.image),
+    index('articles_updated_at_idx').on(columns.updatedAt),
+    index('articles_created_at_idx').on(columns.createdAt),
+  ],
+)
+
+export const certificates = pgTable(
+  'certificates',
+  {
+    id: serial('id').primaryKey(),
+    title: varchar('title').notNull(),
+    issuer: varchar('issuer').notNull(),
+    issuedAt: timestamp('issued_at', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }).notNull(),
+    image: integer('image_id').references(() => media.id, {
+      onDelete: 'set null',
+    }),
+    imageUrl: varchar('image_url'),
+    link: varchar('link'),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index('certificates_issued_at_idx').on(columns.issuedAt),
+    index('certificates_image_idx').on(columns.image),
+    index('certificates_updated_at_idx').on(columns.updatedAt),
+    index('certificates_created_at_idx').on(columns.createdAt),
+  ],
+)
+
+export const educations = pgTable(
+  'educations',
+  {
+    id: serial('id').primaryKey(),
+    order: numeric('order', { mode: 'number' }).default(0),
+    title: varchar('title').notNull(),
+    institution: varchar('institution').notNull(),
+    location: varchar('location'),
+    date: varchar('date').notNull(),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index('educations_order_idx').on(columns.order),
+    index('educations_updated_at_idx').on(columns.updatedAt),
+    index('educations_created_at_idx').on(columns.createdAt),
+  ],
+)
+
+export const experiences = pgTable(
+  'experiences',
+  {
+    id: serial('id').primaryKey(),
+    order: numeric('order', { mode: 'number' }).default(0),
+    title: varchar('title').notNull(),
+    date: varchar('date').notNull(),
+    company: varchar('company').notNull(),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index('experiences_order_idx').on(columns.order),
+    index('experiences_updated_at_idx').on(columns.updatedAt),
+    index('experiences_created_at_idx').on(columns.createdAt),
+  ],
+)
+
+export const projects_categories = pgTable(
+  'projects_categories',
+  {
+    order: integer('order').notNull(),
+    parent: integer('parent_id').notNull(),
+    value: enum_projects_categories('value'),
+    id: serial('id').primaryKey(),
+  },
+  (columns) => [
+    index('projects_categories_order_idx').on(columns.order),
+    index('projects_categories_parent_idx').on(columns.parent),
+    foreignKey({
+      columns: [columns['parent']],
+      foreignColumns: [projects.id],
+      name: 'projects_categories_parent_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
+export const projects = pgTable(
+  'projects',
+  {
+    id: serial('id').primaryKey(),
+    order: numeric('order', { mode: 'number' }).default(0),
+    title: varchar('title').notNull(),
+    image: integer('image_id').references(() => media.id, {
+      onDelete: 'set null',
+    }),
+    src: varchar('src'),
+    placeHolder: varchar('place_holder'),
+    url: varchar('url'),
+    readMoreUrl: varchar('read_more_url'),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index('projects_order_idx').on(columns.order),
+    index('projects_image_idx').on(columns.image),
+    index('projects_updated_at_idx').on(columns.updatedAt),
+    index('projects_created_at_idx').on(columns.createdAt),
+  ],
+)
+
+export const services = pgTable(
+  'services',
+  {
+    id: serial('id').primaryKey(),
+    order: numeric('order', { mode: 'number' }).default(0),
+    category: varchar('category').notNull(),
+    iconFont: varchar('icon_font'),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index('services_order_idx').on(columns.order),
+    index('services_updated_at_idx').on(columns.updatedAt),
+    index('services_created_at_idx').on(columns.createdAt),
+  ],
+)
+
+export const services_texts = pgTable(
+  'services_texts',
+  {
+    id: serial('id').primaryKey(),
+    order: integer('order').notNull(),
+    parent: integer('parent_id').notNull(),
+    path: varchar('path').notNull(),
+    text: varchar('text'),
+  },
+  (columns) => [
+    index('services_texts_order_parent').on(columns.order, columns.parent),
+    foreignKey({
+      columns: [columns['parent']],
+      foreignColumns: [services.id],
+      name: 'services_texts_parent_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
+export const skills = pgTable(
+  'skills',
+  {
+    id: serial('id').primaryKey(),
+    order: numeric('order', { mode: 'number' }).default(0),
+    label: varchar('label').notNull(),
+    group: enum_skills_group('group').notNull().default('frontend'),
+    value: numeric('value', { mode: 'number' }).notNull(),
+    color: enum_skills_color('color').notNull().default('primary'),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index('skills_order_idx').on(columns.order),
+    index('skills_group_idx').on(columns.group),
+    index('skills_updated_at_idx').on(columns.updatedAt),
+    index('skills_created_at_idx').on(columns.createdAt),
   ],
 )
 
@@ -144,6 +540,15 @@ export const payload_locked_documents_rels = pgTable(
     parent: integer('parent_id').notNull(),
     path: varchar('path').notNull(),
     usersID: integer('users_id'),
+    aboutID: integer('about_id'),
+    headerID: integer('header_id'),
+    articlesID: integer('articles_id'),
+    certificatesID: integer('certificates_id'),
+    educationsID: integer('educations_id'),
+    experiencesID: integer('experiences_id'),
+    projectsID: integer('projects_id'),
+    servicesID: integer('services_id'),
+    skillsID: integer('skills_id'),
     mediaID: integer('media_id'),
   },
   (columns) => [
@@ -151,6 +556,15 @@ export const payload_locked_documents_rels = pgTable(
     index('payload_locked_documents_rels_parent_idx').on(columns.parent),
     index('payload_locked_documents_rels_path_idx').on(columns.path),
     index('payload_locked_documents_rels_users_id_idx').on(columns.usersID),
+    index('payload_locked_documents_rels_about_id_idx').on(columns.aboutID),
+    index('payload_locked_documents_rels_header_id_idx').on(columns.headerID),
+    index('payload_locked_documents_rels_articles_id_idx').on(columns.articlesID),
+    index('payload_locked_documents_rels_certificates_id_idx').on(columns.certificatesID),
+    index('payload_locked_documents_rels_educations_id_idx').on(columns.educationsID),
+    index('payload_locked_documents_rels_experiences_id_idx').on(columns.experiencesID),
+    index('payload_locked_documents_rels_projects_id_idx').on(columns.projectsID),
+    index('payload_locked_documents_rels_services_id_idx').on(columns.servicesID),
+    index('payload_locked_documents_rels_skills_id_idx').on(columns.skillsID),
     index('payload_locked_documents_rels_media_id_idx').on(columns.mediaID),
     foreignKey({
       columns: [columns['parent']],
@@ -161,6 +575,51 @@ export const payload_locked_documents_rels = pgTable(
       columns: [columns['usersID']],
       foreignColumns: [users.id],
       name: 'payload_locked_documents_rels_users_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [columns['aboutID']],
+      foreignColumns: [about.id],
+      name: 'payload_locked_documents_rels_about_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [columns['headerID']],
+      foreignColumns: [header.id],
+      name: 'payload_locked_documents_rels_header_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [columns['articlesID']],
+      foreignColumns: [articles.id],
+      name: 'payload_locked_documents_rels_articles_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [columns['certificatesID']],
+      foreignColumns: [certificates.id],
+      name: 'payload_locked_documents_rels_certificates_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [columns['educationsID']],
+      foreignColumns: [educations.id],
+      name: 'payload_locked_documents_rels_educations_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [columns['experiencesID']],
+      foreignColumns: [experiences.id],
+      name: 'payload_locked_documents_rels_experiences_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [columns['projectsID']],
+      foreignColumns: [projects.id],
+      name: 'payload_locked_documents_rels_projects_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [columns['servicesID']],
+      foreignColumns: [services.id],
+      name: 'payload_locked_documents_rels_services_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [columns['skillsID']],
+      foreignColumns: [skills.id],
+      name: 'payload_locked_documents_rels_skills_fk',
     }).onDelete('cascade'),
     foreignKey({
       columns: [columns['mediaID']],
@@ -236,6 +695,103 @@ export const payload_migrations = pgTable(
   ],
 )
 
+export const footer_social_links = pgTable(
+  'footer_social_links',
+  {
+    _order: integer('_order').notNull(),
+    _parentID: integer('_parent_id').notNull(),
+    id: varchar('id').primaryKey(),
+    platform: enum_footer_social_links_platform('platform').notNull(),
+    url: varchar('url').notNull(),
+    iconName: varchar('icon_name').notNull(),
+    ariaLabel: varchar('aria_label').notNull(),
+  },
+  (columns) => [
+    index('footer_social_links_order_idx').on(columns._order),
+    index('footer_social_links_parent_id_idx').on(columns._parentID),
+    foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [footer.id],
+      name: 'footer_social_links_parent_id_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
+export const footer_profiles = pgTable(
+  'footer_profiles',
+  {
+    _order: integer('_order').notNull(),
+    _parentID: integer('_parent_id').notNull(),
+    id: varchar('id').primaryKey(),
+    name: varchar('name').notNull(),
+    url: varchar('url').notNull(),
+  },
+  (columns) => [
+    index('footer_profiles_order_idx').on(columns._order),
+    index('footer_profiles_parent_id_idx').on(columns._parentID),
+    foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [footer.id],
+      name: 'footer_profiles_parent_id_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
+export const footer_contact_info = pgTable(
+  'footer_contact_info',
+  {
+    _order: integer('_order').notNull(),
+    _parentID: integer('_parent_id').notNull(),
+    id: varchar('id').primaryKey(),
+    type: enum_footer_contact_info_type('type').notNull(),
+    iconName: varchar('icon_name').notNull(),
+    content: varchar('content').notNull(),
+    isLink: boolean('is_link'),
+    url: varchar('url'),
+    className: enum_footer_contact_info_class_name('class_name').default('text-white'),
+  },
+  (columns) => [
+    index('footer_contact_info_order_idx').on(columns._order),
+    index('footer_contact_info_parent_id_idx').on(columns._parentID),
+    foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [footer.id],
+      name: 'footer_contact_info_parent_id_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
+export const footer = pgTable('footer', {
+  id: serial('id').primaryKey(),
+  roles_fullName: varchar('roles_full_name').notNull(),
+  hiringCta_label: varchar('hiring_cta_label'),
+  hiringCta_url: varchar('hiring_cta_url'),
+  copyRight_year: numeric('copy_right_year', { mode: 'number' }).notNull(),
+  copyRight_website: varchar('copy_right_website'),
+  copyRight_url: varchar('copy_right_url').notNull(),
+  updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 }),
+  createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 }),
+})
+
+export const footer_texts = pgTable(
+  'footer_texts',
+  {
+    id: serial('id').primaryKey(),
+    order: integer('order').notNull(),
+    parent: integer('parent_id').notNull(),
+    path: varchar('path').notNull(),
+    text: varchar('text'),
+  },
+  (columns) => [
+    index('footer_texts_order_parent').on(columns.order, columns.parent),
+    foreignKey({
+      columns: [columns['parent']],
+      foreignColumns: [footer.id],
+      name: 'footer_texts_parent_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
 export const relations_users_sessions = relations(users_sessions, ({ one }) => ({
   _parentID: one(users, {
     fields: [users_sessions._parentID],
@@ -248,6 +804,106 @@ export const relations_users = relations(users, ({ many }) => ({
     relationName: 'sessions',
   }),
 }))
+export const relations_about_images = relations(about_images, ({ one }) => ({
+  _parentID: one(about, {
+    fields: [about_images._parentID],
+    references: [about.id],
+    relationName: 'images',
+  }),
+}))
+export const relations_about_texts = relations(about_texts, ({ one }) => ({
+  parent: one(about, {
+    fields: [about_texts.parent],
+    references: [about.id],
+    relationName: '_texts',
+  }),
+}))
+export const relations_about_rels = relations(about_rels, ({ one }) => ({
+  parent: one(about, {
+    fields: [about_rels.parent],
+    references: [about.id],
+    relationName: '_rels',
+  }),
+  mediaID: one(media, {
+    fields: [about_rels.mediaID],
+    references: [media.id],
+    relationName: 'media',
+  }),
+}))
+export const relations_about = relations(about, ({ many }) => ({
+  images: many(about_images, {
+    relationName: 'images',
+  }),
+  _texts: many(about_texts, {
+    relationName: '_texts',
+  }),
+  _rels: many(about_rels, {
+    relationName: '_rels',
+  }),
+}))
+export const relations_header_texts = relations(header_texts, ({ one }) => ({
+  parent: one(header, {
+    fields: [header_texts.parent],
+    references: [header.id],
+    relationName: '_texts',
+  }),
+}))
+export const relations_header = relations(header, ({ one, many }) => ({
+  profileImage: one(media, {
+    fields: [header.profileImage],
+    references: [media.id],
+    relationName: 'profileImage',
+  }),
+  _texts: many(header_texts, {
+    relationName: '_texts',
+  }),
+}))
+export const relations_articles = relations(articles, ({ one }) => ({
+  image: one(media, {
+    fields: [articles.image],
+    references: [media.id],
+    relationName: 'image',
+  }),
+}))
+export const relations_certificates = relations(certificates, ({ one }) => ({
+  image: one(media, {
+    fields: [certificates.image],
+    references: [media.id],
+    relationName: 'image',
+  }),
+}))
+export const relations_educations = relations(educations, () => ({}))
+export const relations_experiences = relations(experiences, () => ({}))
+export const relations_projects_categories = relations(projects_categories, ({ one }) => ({
+  parent: one(projects, {
+    fields: [projects_categories.parent],
+    references: [projects.id],
+    relationName: 'categories',
+  }),
+}))
+export const relations_projects = relations(projects, ({ one, many }) => ({
+  image: one(media, {
+    fields: [projects.image],
+    references: [media.id],
+    relationName: 'image',
+  }),
+  categories: many(projects_categories, {
+    relationName: 'categories',
+  }),
+}))
+export const relations_services_texts = relations(services_texts, ({ one }) => ({
+  parent: one(services, {
+    fields: [services_texts.parent],
+    references: [services.id],
+    relationName: '_texts',
+  }),
+}))
+export const relations_services = relations(services, ({ many }) => ({
+  _texts: many(services_texts, {
+    relationName: '_texts',
+  }),
+}))
+export const relations_skills = relations(skills, () => ({}))
 export const relations_media = relations(media, () => ({}))
 export const relations_payload_kv = relations(payload_kv, () => ({}))
 export const relations_payload_locked_documents_rels = relations(
@@ -262,6 +918,51 @@ export const relations_payload_locked_documents_rels = relations(
       fields: [payload_locked_documents_rels.usersID],
       references: [users.id],
       relationName: 'users',
+    }),
+    aboutID: one(about, {
+      fields: [payload_locked_documents_rels.aboutID],
+      references: [about.id],
+      relationName: 'about',
+    }),
+    headerID: one(header, {
+      fields: [payload_locked_documents_rels.headerID],
+      references: [header.id],
+      relationName: 'header',
+    }),
+    articlesID: one(articles, {
+      fields: [payload_locked_documents_rels.articlesID],
+      references: [articles.id],
+      relationName: 'articles',
+    }),
+    certificatesID: one(certificates, {
+      fields: [payload_locked_documents_rels.certificatesID],
+      references: [certificates.id],
+      relationName: 'certificates',
+    }),
+    educationsID: one(educations, {
+      fields: [payload_locked_documents_rels.educationsID],
+      references: [educations.id],
+      relationName: 'educations',
+    }),
+    experiencesID: one(experiences, {
+      fields: [payload_locked_documents_rels.experiencesID],
+      references: [experiences.id],
+      relationName: 'experiences',
+    }),
+    projectsID: one(projects, {
+      fields: [payload_locked_documents_rels.projectsID],
+      references: [projects.id],
+      relationName: 'projects',
+    }),
+    servicesID: one(services, {
+      fields: [payload_locked_documents_rels.servicesID],
+      references: [services.id],
+      relationName: 'services',
+    }),
+    skillsID: one(skills, {
+      fields: [payload_locked_documents_rels.skillsID],
+      references: [skills.id],
+      relationName: 'skills',
     }),
     mediaID: one(media, {
       fields: [payload_locked_documents_rels.mediaID],
@@ -299,10 +1000,74 @@ export const relations_payload_preferences = relations(payload_preferences, ({ m
   }),
 }))
 export const relations_payload_migrations = relations(payload_migrations, () => ({}))
+export const relations_footer_social_links = relations(footer_social_links, ({ one }) => ({
+  _parentID: one(footer, {
+    fields: [footer_social_links._parentID],
+    references: [footer.id],
+    relationName: 'socialLinks',
+  }),
+}))
+export const relations_footer_profiles = relations(footer_profiles, ({ one }) => ({
+  _parentID: one(footer, {
+    fields: [footer_profiles._parentID],
+    references: [footer.id],
+    relationName: 'profiles',
+  }),
+}))
+export const relations_footer_contact_info = relations(footer_contact_info, ({ one }) => ({
+  _parentID: one(footer, {
+    fields: [footer_contact_info._parentID],
+    references: [footer.id],
+    relationName: 'contactInfo',
+  }),
+}))
+export const relations_footer_texts = relations(footer_texts, ({ one }) => ({
+  parent: one(footer, {
+    fields: [footer_texts.parent],
+    references: [footer.id],
+    relationName: '_texts',
+  }),
+}))
+export const relations_footer = relations(footer, ({ many }) => ({
+  socialLinks: many(footer_social_links, {
+    relationName: 'socialLinks',
+  }),
+  profiles: many(footer_profiles, {
+    relationName: 'profiles',
+  }),
+  contactInfo: many(footer_contact_info, {
+    relationName: 'contactInfo',
+  }),
+  _texts: many(footer_texts, {
+    relationName: '_texts',
+  }),
+}))
 
 type DatabaseSchema = {
+  enum_articles_category: typeof enum_articles_category
+  enum_projects_categories: typeof enum_projects_categories
+  enum_skills_group: typeof enum_skills_group
+  enum_skills_color: typeof enum_skills_color
+  enum_footer_social_links_platform: typeof enum_footer_social_links_platform
+  enum_footer_contact_info_type: typeof enum_footer_contact_info_type
+  enum_footer_contact_info_class_name: typeof enum_footer_contact_info_class_name
   users_sessions: typeof users_sessions
   users: typeof users
+  about_images: typeof about_images
+  about: typeof about
+  about_texts: typeof about_texts
+  about_rels: typeof about_rels
+  header: typeof header
+  header_texts: typeof header_texts
+  articles: typeof articles
+  certificates: typeof certificates
+  educations: typeof educations
+  experiences: typeof experiences
+  projects_categories: typeof projects_categories
+  projects: typeof projects
+  services: typeof services
+  services_texts: typeof services_texts
+  skills: typeof skills
   media: typeof media
   payload_kv: typeof payload_kv
   payload_locked_documents: typeof payload_locked_documents
@@ -310,8 +1075,28 @@ type DatabaseSchema = {
   payload_preferences: typeof payload_preferences
   payload_preferences_rels: typeof payload_preferences_rels
   payload_migrations: typeof payload_migrations
+  footer_social_links: typeof footer_social_links
+  footer_profiles: typeof footer_profiles
+  footer_contact_info: typeof footer_contact_info
+  footer: typeof footer
+  footer_texts: typeof footer_texts
   relations_users_sessions: typeof relations_users_sessions
   relations_users: typeof relations_users
+  relations_about_images: typeof relations_about_images
+  relations_about_texts: typeof relations_about_texts
+  relations_about_rels: typeof relations_about_rels
+  relations_about: typeof relations_about
+  relations_header_texts: typeof relations_header_texts
+  relations_header: typeof relations_header
+  relations_articles: typeof relations_articles
+  relations_certificates: typeof relations_certificates
+  relations_educations: typeof relations_educations
+  relations_experiences: typeof relations_experiences
+  relations_projects_categories: typeof relations_projects_categories
+  relations_projects: typeof relations_projects
+  relations_services_texts: typeof relations_services_texts
+  relations_services: typeof relations_services
+  relations_skills: typeof relations_skills
   relations_media: typeof relations_media
   relations_payload_kv: typeof relations_payload_kv
   relations_payload_locked_documents_rels: typeof relations_payload_locked_documents_rels
@@ -319,6 +1104,11 @@ type DatabaseSchema = {
   relations_payload_preferences_rels: typeof relations_payload_preferences_rels
   relations_payload_preferences: typeof relations_payload_preferences
   relations_payload_migrations: typeof relations_payload_migrations
+  relations_footer_social_links: typeof relations_footer_social_links
+  relations_footer_profiles: typeof relations_footer_profiles
+  relations_footer_contact_info: typeof relations_footer_contact_info
+  relations_footer_texts: typeof relations_footer_texts
+  relations_footer: typeof relations_footer
 }
 
 declare module '@payloadcms/db-vercel-postgres' {
