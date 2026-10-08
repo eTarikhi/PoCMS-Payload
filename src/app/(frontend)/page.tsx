@@ -7,6 +7,9 @@ import { fileURLToPath } from 'url'
 import config from '@/payload.config'
 import './styles.css'
 
+import { SpeedInsights } from '@vercel/speed-insights/next'
+import { Analytics } from '@vercel/analytics/next'
+
 export default async function HomePage() {
   const headers = await getHeaders()
   const payloadConfig = await config
@@ -27,7 +30,7 @@ export default async function HomePage() {
             width={65}
           />
         </picture>
-        {!user && <h1>Welcome to your new project.</h1>}
+        {!user && <h1>Welcome to Portfolio Content Management System with Payload Headless CMS</h1>}
         {user && <h1>Welcome back, {user.email}</h1>}
         <div className="links">
           <a
@@ -48,12 +51,14 @@ export default async function HomePage() {
           </a>
         </div>
       </div>
-      <div className="footer">
+      {/* <div className="footer">
         <p>Update this page by editing</p>
         <a className="codeLink" href={fileURL}>
           <code>app/(frontend)/page.tsx</code>
         </a>
-      </div>
+      </div> */}
+      <Analytics />
+      <SpeedInsights />
     </div>
   )
 }
