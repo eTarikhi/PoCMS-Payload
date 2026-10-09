@@ -1,6 +1,6 @@
 # Article page: technical specification
 
-Status: **D-A1, D-A4, and D-A10 approved. D-A2, D-A3, and D-A5 to D-A9 are still open (§11).** No runtime code is changed by this document. Implementation follows the same set-by-set approval workflow as the vTarikhi migration (see `docs/migration/03-refactoring-specification.md`, §6).
+Status: **D-A1, D-A2, D-A3, D-A4, and D-A10 approved. D-A5 to D-A9 are still open (§11).** No runtime code is changed by this document. Implementation follows the same set-by-set approval workflow as the vTarikhi migration (see `docs/migration/03-refactoring-specification.md`, §6).
 
 Date: 2026-10-09. Scope: the root Payload app in this repository, branch `arena/33b19b08-pocms-payload`.
 
@@ -259,8 +259,8 @@ The existing Vitest setup covers all of these. The Playwright e2e spec stays unc
 | ID | Question | Recommendation |
 |---|---|---|
 | **D-A1** | Should homepage article cards link to the internal page (`/articles/{slug}`), or keep linking out to LinkedIn and Medium? | **APPROVED: keep linking out** to LinkedIn and Medium. Cards are unchanged. Consequence: the internal page needs its own entry point (D-A10). |
-| **D-A2** | Body source: a new `body` rich-text field, or reuse the existing `description` textarea? | **New `body` rich-text field.** `description` is plain text and can't hold headings, lists, or code. |
-| **D-A3** | Navigation links: `/#section` everywhere (§4.2), or per-page link sets? | **`/#section` everywhere.** One format, no per-page branching. |
+| **D-A2** | Body source: a new `body` rich-text field, or reuse the existing `description` textarea? | **APPROVED: new `body` rich-text field.** `description` is plain text and can't hold headings, lists, or code. |
+| **D-A3** | Navigation links: `/#section` everywhere (§4.2), or per-page link sets? | **APPROVED: `/#section` everywhere.** One format, no per-page branching. |
 | **D-A4** | Which dark blog template should the reading layout follow? | **APPROVED: common dark-blog reading conventions**, as written in §8. No specific template. |
 | **D-A5** | Cover image: reuse `image` (upload) with `imageUrl` kept as a fallback? | **Reuse `image`.** Keep `imageUrl` as a fallback for the legacy seed. |
 | **D-A6** | Fix the homepage's white-on-amber buttons (F-A1) now, or in a separate change? | **Separate change.** It touches the homepage visuals, which this spec does not change. |
