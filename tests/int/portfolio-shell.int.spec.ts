@@ -3,7 +3,7 @@
  *
  * Expected text comes from the baseline text extract of the original home page
  * (`/tmp/parity/vtarikhi-home.text.txt`). Content comes from the shared fixtures, which are built from
- * `vTarikhi/components/database.json`. No database is needed.
+ * `src/app/(frontend)/data/database.json`. No database is needed.
  */
 
 import { existsSync } from 'node:fs'
@@ -12,17 +12,17 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { createElement } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { Footer } from '../../src/components/portfolio/layout/Footer'
-import { Hero } from '../../src/components/portfolio/layout/Hero'
-import { JsonLd } from '../../src/components/portfolio/seo/JsonLd'
-import { mapPortfolioContent } from '../../src/lib/portfolio/mappers'
+import { Footer } from '../../src/app/(frontend)/components/portfolio/layout/Footer'
+import { Hero } from '../../src/app/(frontend)/components/portfolio/layout/Hero'
+import { JsonLd } from '../../src/app/(frontend)/components/portfolio/seo/JsonLd'
+import { mapPortfolioContent } from '../../src/app/(frontend)/lib/portfolio/mappers'
 import {
   buildPersonJsonLd,
   DEFAULT_SITE_URL,
   PROFILE_IMAGE_PATH,
   portfolioMetadata,
   siteUrl,
-} from '../../src/lib/portfolio/seo'
+} from '../../src/app/(frontend)/lib/portfolio/seo'
 import { toPayloadDocs } from '../helpers/portfolio-fixtures'
 
 afterEach(() => {

@@ -2,7 +2,7 @@
  * Parity tests for the portfolio data layer.
  *
  * The original site's text is the oracle. Each Payload-shaped fixture below is built from
- * `vTarikhi/components/database.json` by the same field mapping the seed uses, and the
+ * `src/app/(frontend)/data/database.json` by the same field mapping the seed uses, and the
  * mapped view models are compared against the original strings.
  *
  * These tests do not need a database. They exercise the pure mappers only.
@@ -13,7 +13,7 @@ import { describe, expect, it } from 'vitest'
 
 import { Projects } from '../../src/collections/Projects'
 import { legacy, mediaDoc, toPayloadDocs } from '../helpers/portfolio-fixtures'
-import { formatDisplayDate, formatReadTime, joinDisplay } from '../../src/lib/portfolio/format'
+import { formatDisplayDate, formatReadTime, joinDisplay } from '../../src/app/(frontend)/lib/portfolio/format'
 import {
   mapAbout,
   mapArticles,
@@ -28,7 +28,7 @@ import {
   mapSkills,
   PROJECT_FILTERS,
   type RawPortfolioDocs,
-} from '../../src/lib/portfolio/mappers'
+} from '../../src/app/(frontend)/lib/portfolio/mappers'
 const raw = toPayloadDocs()
 
 describe('display formatting', () => {

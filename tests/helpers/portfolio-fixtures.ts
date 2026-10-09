@@ -1,12 +1,12 @@
 /**
  * Shared Payload-shaped fixtures for the portfolio tests.
  *
- * Built from `vTarikhi/components/database.json` by the same field mapping the seed uses, so the
+ * Built from `src/app/(frontend)/data/database.json` by the same field mapping the seed uses, so the
  * mapper suite and the section suite check against one source of truth.
  */
 
-import database from '../../vTarikhi/components/database.json'
-import type { RawPortfolioDocs } from '../../src/lib/portfolio/mappers'
+import database from '../../src/app/(frontend)/data/database.json'
+import type { RawPortfolioDocs } from '../../src/app/(frontend)/lib/portfolio/mappers'
 import type {
   About,
   Article,

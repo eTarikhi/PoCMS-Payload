@@ -9,6 +9,8 @@ This repository is a personal portfolio site, the Next.js 16 App Router port of 
 The public site is at `/`, and the editor UI is at `/admin`. The home page reads its content through the Payload Local API and is cached.
 Saving content in the admin refreshes the cached home page. See [PAYLOAD.md](PAYLOAD.md) for the sections, the content model, and the caching behaviour.
 
+The frontend lives in `src/app/(frontend)/`: components, lib, styles, and the reference content data. The original `vTarikhi/` folder was removed in Set 8. Its files are in git history at commit `6c9fce5`.
+
 ## Documentation
 
 This project documentation is split across multiple files for easier maintenance:

@@ -32,7 +32,7 @@ not a schema redesign. The exceptions are listed in 03 §4 as decisions.
   Browser  ──GET /──▶ src/app/(frontend)/page.tsx   (Server Component, public, cacheable)                     │
                     │      │                                                                                  │
                     │      ▼                                                                                  │
-                    │  src/lib/portfolio/getPortfolioContent()   ← cached (unstable_cache, tag "portfolio")   │
+                    │  src/app/(frontend)/lib/portfolio/getPortfolioContent()   ← cached (unstable_cache, tag "portfolio")   │
                     │      │                                                                                  │
                     │      ▼                                                                                  │
                     │  payload-source.ts  →  getPayload({ config: @payload-config })  →  Local API find()     │
@@ -41,7 +41,7 @@ not a schema redesign. The exceptions are listed in 03 §4 as decisions.
                     │  mappers.ts  (Payload docs → framework-free view models in types.ts)                    │
                     │      │                                                                                  │
                     │      ▼                                                                                  │
-                    │  src/components/portfolio/*  (presentational; props only; no JSON imports)              │
+                    │  src/app/(frontend)/components/portfolio/*  (presentational; props only; no JSON imports)              │
                     │      │   client islands: Navigation, TypingEffect, ProgressBar, ProjectsGrid,           │
                     │      │                   EmailReveal, BackToTop, BootstrapClient                       │
                     └──────┴──────────────────────────────────────────────────────────────────────────────────┘
@@ -89,7 +89,7 @@ Principles:
   or `{ expire }`. Passing only the tag is a type error.
 - `'use cache'` requires the top-level `cacheComponents` option. Enabling it changes how the whole app, including the
   Payload admin, is rendered. That is a larger risk than the benefit for this site.
-  **Recommendation:** start with `unstable_cache` in `src/lib/portfolio/` (Set 6). Evaluate `'use cache'` separately.
+  **Recommendation:** start with `unstable_cache` in `src/app/(frontend)/lib/portfolio/` (Set 6). Evaluate `'use cache'` separately.
 - Invalidation: Payload global docs describe an `afterChange` hook as the place to "purge caches of your applications".
   Use the same mechanism on each content collection and global:
   - `afterChange` and `afterDelete` call `revalidateTag('portfolio', 'max')`.

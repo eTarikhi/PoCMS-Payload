@@ -33,7 +33,7 @@ vi.mock('next/headers', () => ({
 }))
 
 // The real cache wrapper runs. Only the Payload query is replaced by the fixture in each test.
-vi.mock('../../src/lib/portfolio/payload-source', () => ({
+vi.mock('../../src/app/(frontend)/lib/portfolio/payload-source', () => ({
   getPortfolioContent: cacheMocks.getPortfolioContent,
 }))
 
@@ -41,11 +41,11 @@ vi.mock('../../src/lib/portfolio/payload-source', () => ({
 vi.mock('bootstrap/dist/js/bootstrap.bundle.js', () => ({}))
 
 import { toPayloadDocs } from '../helpers/portfolio-fixtures'
-import { mapPortfolioContent } from '../../src/lib/portfolio/mappers'
-import { portfolioAfterChange, portfolioAfterDelete } from '../../src/lib/portfolio/hooks'
-import { revalidatePortfolio } from '../../src/lib/portfolio/revalidate'
-import { PORTFOLIO_CACHE_TAG } from '../../src/lib/portfolio/revalidate'
-import { getCachedPortfolioContent } from '../../src/lib/portfolio/cache'
+import { mapPortfolioContent } from '../../src/app/(frontend)/lib/portfolio/mappers'
+import { portfolioAfterChange, portfolioAfterDelete } from '../../src/app/(frontend)/lib/portfolio/hooks'
+import { revalidatePortfolio } from '../../src/app/(frontend)/lib/portfolio/revalidate'
+import { PORTFOLIO_CACHE_TAG } from '../../src/app/(frontend)/lib/portfolio/revalidate'
+import { getCachedPortfolioContent } from '../../src/app/(frontend)/lib/portfolio/cache'
 import { Header as HeaderCollection } from '../../src/collections/Header'
 import { About } from '../../src/collections/About'
 import { Articles } from '../../src/collections/Articles'

@@ -25,7 +25,7 @@ const eslintConfig = [
     },
   },
   {
-    ignores: ['.next/', 'vTarikhi/', 'src/payload-types.ts', 'src/payload-generated-schema.ts'],
+    ignores: ['.next/', 'src/payload-types.ts', 'src/payload-generated-schema.ts'],
   },
 ]
 

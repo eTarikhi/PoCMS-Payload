@@ -120,10 +120,10 @@ It is excluded from the root `tsconfig.json` and ESLint (done in Set 1).
 
 ```ts
 // Set 1 — implemented
-// src/lib/portfolio/payload-source.ts
+// src/app/(frontend)/lib/portfolio/payload-source.ts
 export const getPortfolioContent: () => Promise<PortfolioContent>
 
-// src/lib/portfolio/types.ts (summary; full definitions in the file)
+// src/app/(frontend)/lib/portfolio/types.ts (summary; full definitions in the file)
 type PortfolioContent = {
   header: HeaderContent | null
   about: AboutContent | null
@@ -169,10 +169,10 @@ nothing for an empty array.
 ### 4.3 Cache and invalidation contract (Set 6)
 
 ```ts
-// src/lib/portfolio/cache.ts
+// src/app/(frontend)/lib/portfolio/cache.ts
 export const getCachedPortfolioContent: () => Promise<PortfolioContent>  // unstable_cache, tags: ['portfolio']
 
-// src/lib/portfolio/revalidate.ts
+// src/app/(frontend)/lib/portfolio/revalidate.ts
 export const revalidatePortfolio: () => void   // revalidateTag('portfolio', 'max'), errors logged, never thrown
 ```
 
@@ -198,7 +198,7 @@ must be answered before that set starts.
 | **D-11** | Placeholder homepage and auth greeting | Remove the template page and its `payload.auth()` call. Keep the `Analytics` and `SpeedInsights` components. | Keep the template page under another route | Set 6 |
 | **D-12** | Article filters | Show all articles, as the original site does. `category` and `featured` are not rendered. | Filter by `featured` | Set 4 |
 | **D-13** | `ProjectsGrid` owns the title row | `ProjectsGrid` renders the "My Projects" heading and the filter list, because they share one row with the filter state. `ProjectsSection` (Set 4) renders only the section and container wrappers. | Keep the heading in the server shell and pass the filter as a slot | Set 3 (approved) |
-| **D-14** | Bootstrap JS types | A minimal ambient declaration in `src/types/bootstrap.d.ts` for `Collapse` only. No `@types/bootstrap` dependency. | Add `@types/bootstrap` (new dependency, not listed in §6) | Set 3 (applied) |
+| **D-14** | Bootstrap JS types | A minimal ambient declaration in `src/app/(frontend)/types/bootstrap.d.ts` for `Collapse` only. No `@types/bootstrap` dependency. | Add `@types/bootstrap` (new dependency, not listed in §6) | Set 3 (applied) |
 | **D-15** | How Bootstrap JS loads | `Navigation` imports `Collapse` inside its click handler, and `BootstrapClient` imports the bundle inside `useEffect`. Both are the original patterns (`require` in the handler, dynamic `import()` in `useEffect`). The module-scope imports in spec §1 rule 7 are not used. | Keep the module-scope imports. This fails at prerender: Bootstrap's `Alert` setup calls `document` when the module loads, so `next build` stops with `document is not defined`. | Set 6 (applied; **approved**, a deviation from §1 rule 7) |
 
 ## 6. Implementation sets
@@ -214,10 +214,10 @@ config changes needed for the root project to typecheck.
 
 | File | Status |
 | --- | --- |
-| `src/lib/portfolio/types.ts` | created |
-| `src/lib/portfolio/format.ts` | created |
-| `src/lib/portfolio/mappers.ts` | created |
-| `src/lib/portfolio/payload-source.ts` | created |
+| `src/app/(frontend)/lib/portfolio/types.ts` | created |
+| `src/app/(frontend)/lib/portfolio/format.ts` | created |
+| `src/app/(frontend)/lib/portfolio/mappers.ts` | created |
+| `src/app/(frontend)/lib/portfolio/payload-source.ts` | created |
 | `tests/int/portfolio-mappers.int.spec.ts` | created |
 | `tsconfig.json` | `vTarikhi` added to `exclude` |
 | `eslint.config.mjs` | `vTarikhi/` added to `ignores` |
@@ -226,7 +226,7 @@ config changes needed for the root project to typecheck.
 **Acceptance criteria.**
 
 - [x] Root `tsc --noEmit -p tsconfig.json` passes with `strict: true` (before: 49 errors, all in `vTarikhi/`).
-- [x] 24 parity tests pass. Expected strings come from `vTarikhi/components/database.json`.
+- [x] 24 parity tests pass. Expected strings come from `src/app/(frontend)/data/database.json`.
 - [x] The date tests pass under `TZ=America/Los_Angeles` and `TZ=Pacific/Kiritimati`.
 - [x] Mutation check: a wrong education separator is caught (2 tests fail). A local-timezone date bug is caught (1 test fails).
 - [x] Prettier passes on the new files.
@@ -251,7 +251,7 @@ The root lockfile is updated with `pnpm install`.
 
 **Files.**
 
-- `src/styles/vtarikhi/bootstrap.min.css`, `main.css` (copied verbatim).
+- `src/app/(frontend)/styles/vtarikhi/bootstrap.min.css`, `main.css` (copied verbatim).
 - `public/images/**` (copied from `vTarikhi/public/images`).
 - `src/app/(frontend)/layout.tsx`: `<html lang="en">`, `Open_Sans` via `next/font/google` (same weights and subsets),
   global CSS imports in the same order as `_app.js`, FontAwesome `config.autoAddCss = false`,
@@ -320,7 +320,7 @@ and the back-to-top button appears after scrolling past 300px.
 
 **Scope.** The hero, the footer, and the JSON-LD script.
 
-**Files.** `layout/Hero.tsx`, `layout/Footer.tsx`, `seo/JsonLd.tsx`, plus `src/lib/portfolio/seo.ts` (metadata and JSON-LD builder) and the metadata in `(frontend)/layout.tsx`.
+**Files.** `layout/Hero.tsx`, `layout/Footer.tsx`, `seo/JsonLd.tsx`, plus `src/app/(frontend)/lib/portfolio/seo.ts` (metadata and JSON-LD builder) and the metadata in `(frontend)/layout.tsx`.
 
 **Decisions applied.** D-5 (site URL), D-6 (copyright year from the CMS), D-7 (SEO tag cleanup).
 
@@ -349,9 +349,9 @@ and the back-to-top button appears after scrolling past 300px.
 **Files.**
 
 - `src/app/(frontend)/page.tsx`: the composition, in the original order. Calls `getCachedPortfolioContent()`. It does not call `headers()`, `cookies()`, or `payload.auth()`.
-- `src/lib/portfolio/cache.ts`: `getCachedPortfolioContent`, which uses `unstable_cache` with key `['portfolio-content']` and tag `portfolio`.
-- `src/lib/portfolio/revalidate.ts`: `revalidatePortfolio`, which calls `revalidateTag('portfolio', 'max')`. Errors are logged and never thrown.
-- `src/lib/portfolio/hooks.ts`: `portfolioAfterChange` and `portfolioAfterDelete`.
+- `src/app/(frontend)/lib/portfolio/cache.ts`: `getCachedPortfolioContent`, which uses `unstable_cache` with key `['portfolio-content']` and tag `portfolio`.
+- `src/app/(frontend)/lib/portfolio/revalidate.ts`: `revalidatePortfolio`, which calls `revalidateTag('portfolio', 'max')`. Errors are logged and never thrown.
+- `src/app/(frontend)/lib/portfolio/hooks.ts`: `portfolioAfterChange` and `portfolioAfterDelete`.
 - The hooks are attached to the 10 content collections (`header`, `about`, `skills`, `experiences`, `educations`, `certificates`, `articles`, `services`, `projects`, `media`) and the `footer` global (`afterChange` only, since globals have no delete).
 - The Set 1 runtime check of `payload-source.ts` against Postgres is done (see Verification).
 
@@ -374,7 +374,7 @@ and the back-to-top button appears after scrolling past 300px.
 **Known gaps and notes for Set 7.**
 
 - The build needs the database. `/` is prerendered from Postgres, so a build without a reachable `POSTGRES_URL` cannot produce the static page. This follows from R-4 and is not separately tested.
-- Seed data drifts from `vTarikhi/components/database.json` in four places. The parity tests use `database.json`, so they do not catch these. The seed is not changed in Set 6:
+- Seed data drifts from `src/app/(frontend)/data/database.json` in four places. The parity tests use `database.json`, so they do not catch these. The seed is not changed in Set 6:
   1. Four experience `company` values lose the location. `database.json` has `"Tiryaki İlaç LTD. ŞTİ. Istanbul, Turkey"`, and the seed has only `Tiryaki İlaç LTD. ŞTİ.`. The same applies to Proxima, Cadde10, and ARK.
   2. The service text `Ajax, JavaScript, TypeScript` lacks the trailing comma.
   3. The article excerpt "Günümüz yazılım geliştirme dünyasında …" contains replacement characters in the seed (F-15).
@@ -428,6 +428,20 @@ and the back-to-top button appears after scrolling past 300px.
 - Seed uploads still fail in the seed script, because it fetches relative URLs and there is no Blob token. The seed still warns for each image. The legacy fields keep the images working.
 
 **Signed off.** The user signed off Set 7 and chose to keep `vTarikhi/` as the reference copy. Retiring it is a separate decision for later.
+
+### Set 8 — Consolidation and removal of `vTarikhi/` ✅ (user request)
+
+Supersedes the Set 7 decision to keep `vTarikhi/`. The user asked for the front end to live in the Payload app and for `vTarikhi/` to be deleted.
+
+- Moved with `git mv` (history kept):
+  - `src/components/portfolio/` → `src/app/(frontend)/components/portfolio/`
+  - `src/lib/portfolio/` → `src/app/(frontend)/lib/portfolio/`
+  - `src/styles/vtarikhi/` → `src/app/(frontend)/styles/vtarikhi/`
+  - `src/types/bootstrap.d.ts` → `src/app/(frontend)/types/bootstrap.d.ts`
+  - `vTarikhi/components/database.json` and `schema.json` → `src/app/(frontend)/data/`. These are reference data, not runtime imports. The seed reads Payload, and the tests read `database.json` as the oracle.
+- Deleted `vTarikhi/`. This includes the legacy pages, components, sections, `loader.tsx`, `global.css`, `styles/home.module.css`, `package.json`, `package-lock.json`, and the configs. `public/images` was already a verified copy, so it is unchanged in `public/`. The originals are in git history at commit `6c9fce5`.
+- Updated the imports (`@/app/(frontend)/...`, and the relative paths from `src/collections` and `src/globals`), the test paths, `tsconfig.json` (`vTarikhi` removed from `exclude`), and `eslint.config.mjs` (`vTarikhi/` removed from `ignores`).
+- Behaviour is unchanged. No runtime file was edited, only paths.
 
 ## 7. Out of scope
 

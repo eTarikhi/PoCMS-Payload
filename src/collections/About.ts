@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload'
-import { portfolioAfterChange, portfolioAfterDelete } from '../lib/portfolio/hooks'
+import { portfolioAfterChange, portfolioAfterDelete } from '../app/(frontend)/lib/portfolio/hooks'
 
 export const About: CollectionConfig = {
     slug: 'about',
