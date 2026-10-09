@@ -1,8 +1,5 @@
-import { Footer } from '@/app/(frontend)/components/layout/Footer'
 import { Hero } from '@/app/(frontend)/components/layout/Hero'
-import { Navigation } from '@/app/(frontend)/components/layout/Navigation'
-import { BackToTop } from '@/app/(frontend)/components/layout/BackToTop'
-import { BootstrapClient } from '@/app/(frontend)/components/layout/BootstrapClient'
+import { SiteChrome } from '@/app/(frontend)/components/layout/SiteChrome'
 import { AboutSection } from '@/app/(frontend)/components/sections/AboutSection'
 import { ServicesSection } from '@/app/(frontend)/components/sections/ServicesSection'
 import { SkillsSection } from '@/app/(frontend)/components/sections/SkillsSection'
@@ -21,23 +18,21 @@ export default async function HomePage() {
 
   return (
     <>
-      <Navigation />
-      {content.header ? <Hero header={content.header} /> : null}
-      <main data-bs-spy="scroll" data-bs-target=".navbar" data-bs-offset="51">
-        <AboutSection about={content.about} />
-        <ServicesSection services={content.services} />
-        <SkillsSection
-          skills={content.skills}
-          experiences={content.experiences}
-          educations={content.educations}
-        />
-        <CertificatesSection certificates={content.certificates} />
-        <ProjectsSection projects={content.projects} />
-        <ArticlesSection articles={content.articles} />
-      </main>
-      {content.footer ? <Footer footer={content.footer} /> : null}
-      <BackToTop />
-      <BootstrapClient />
+      <SiteChrome footer={content.footer}>
+        {content.header ? <Hero header={content.header} /> : null}
+        <main id="main-content" data-bs-spy="scroll" data-bs-target=".navbar" data-bs-offset="51">
+          <AboutSection about={content.about} />
+          <ServicesSection services={content.services} />
+          <SkillsSection
+            skills={content.skills}
+            experiences={content.experiences}
+            educations={content.educations}
+          />
+          <CertificatesSection certificates={content.certificates} />
+          <ProjectsSection projects={content.projects} />
+          <ArticlesSection articles={content.articles} />
+        </main>
+      </SiteChrome>
       <JsonLd data={buildPersonJsonLd(content.header, content.footer)} />
     </>
   )

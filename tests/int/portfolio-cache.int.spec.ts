@@ -205,4 +205,16 @@ describe('HomePage composition', () => {
     expect(container.querySelector('footer')).toBeNull()
     expect(container.querySelectorAll('main > section').length).toBe(6)
   })
+
+  it('wraps the home page in the shared shell: skip link first, #main-content on <main>, absolute section links', async () => {
+    cacheMocks.getPortfolioContent.mockResolvedValue(mapPortfolioContent(toPayloadDocs()))
+
+    const { default: HomePage } = await import('../../src/app/(frontend)/page')
+    const { container } = render(await HomePage())
+
+    expect(container.firstElementChild?.getAttribute('href')).toBe('#main-content')
+    expect(container.querySelector('main#main-content')).not.toBeNull()
+    expect(container.querySelector('nav a[href="/#about"]')).not.toBeNull()
+    expect(container.querySelector('nav a[href="#about"]')).toBeNull()
+  })
 })

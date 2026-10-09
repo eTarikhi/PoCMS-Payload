@@ -719,3 +719,11 @@ fieldset:disabled .btn {
 .testimonial-carousel .owl-dot.active::after {
     background: var(--primary);
 }
+
+/* Skip link (article page spec D-A9): hidden until it receives keyboard focus, then shown above the navbar. */
+.skip-link:focus {
+    position: fixed;
+    top: 0.5rem;
+    left: 0.5rem;
+    z-index: 1100;
+}

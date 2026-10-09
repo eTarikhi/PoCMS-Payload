@@ -46,16 +46,16 @@ export function Navigation() {
       >
         <div className="navbar-nav ms-auto py-0">
           <Link
-            href="#home"
+            href="/#home"
             className="nav-item text-light nav-link active"
             onClick={hideNavbarCollapse}
           >
             Home
           </Link>
-          <Link href="#about" className="nav-item text-light nav-link" onClick={hideNavbarCollapse}>
+          <Link href="/#about" className="nav-item text-light nav-link" onClick={hideNavbarCollapse}>
             About
           </Link>
-          <Link href="#skill" className="nav-item text-light nav-link" onClick={hideNavbarCollapse}>
+          <Link href="/#skill" className="nav-item text-light nav-link" onClick={hideNavbarCollapse}>
             Skills
           </Link>
         </div>
@@ -64,21 +64,21 @@ export function Navigation() {
         </Link>
         <div className="navbar-nav me-auto py-0">
           <Link
-            href="#service"
+            href="/#service"
             className="nav-item text-light nav-link"
             onClick={hideNavbarCollapse}
           >
             Services
           </Link>
           <Link
-            href="#project"
+            href="/#project"
             className="nav-item text-light nav-link"
             onClick={hideNavbarCollapse}
           >
             Projects
           </Link>
           <Link
-            href="#contact"
+            href="/#contact"
             className="nav-item text-light nav-link"
             onClick={hideNavbarCollapse}
           >

@@ -198,18 +198,18 @@ describe('Navigation', () => {
     })
   })
 
-  it('keeps the original hash targets and points the brand to "/"', () => {
+  it('points every section link at "/#section" so it works from any route, and the brand at "/"', () => {
     const { container } = render(createElement(Navigation))
     const hrefs = Array.from(container.querySelectorAll('a')).map((a) => a.getAttribute('href'))
     expect(hrefs).toEqual([
       '/',
-      '#home',
-      '#about',
-      '#skill',
+      '/#home',
+      '/#about',
+      '/#skill',
       '/',
-      '#service',
-      '#project',
-      '#contact',
+      '/#service',
+      '/#project',
+      '/#contact',
     ])
     expect(container.querySelector('#navbarCollapse')).not.toBeNull()
   })
