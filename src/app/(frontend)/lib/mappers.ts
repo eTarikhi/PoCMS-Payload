@@ -23,6 +23,7 @@ import type {
   Skill,
 } from '@/payload-types'
 
+import { articlePagePath, hasArticlePage } from './article-page'
 import { formatDisplayDate, formatReadTime, joinDisplay } from './format'
 import type {
   AboutContent,
@@ -178,6 +179,7 @@ export const mapArticles = (docs: Article[]): ArticleItem[] =>
     readTime: formatReadTime(doc.readTime),
     imageUrl: resolveMediaUrl(doc.image) ?? withFallback(doc.imageUrl, ''),
     link: doc.link,
+    pagePath: doc.slug && hasArticlePage(doc) ? articlePagePath(doc.slug) : null,
   }))
 
 export const mapServices = (docs: Service[], hiringCta: HiringCta | null): ServicesContent => ({

@@ -21,6 +21,7 @@
     "start:dev": "cross-env pnpm generate:all && pnpm build:all && pnpm start",
     "restart": "cross-env NODE_OPTIONS=--no-deprecation rm -rf .next && pnpm generate:all && pnpm build:all && pnpm start",
     "seed": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/seed/seed.ts",
+    "backfill:article-slugs": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/seed/backfill-article-slugs.ts",
     "test": "pnpm run test:int && pnpm run test:e2e",
     "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" playwright test --config=playwright.config.ts",
     "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts"

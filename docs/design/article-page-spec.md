@@ -321,3 +321,13 @@ tests/int/                             + SiteChrome parity, + nav link format, +
 - Changes to `main.css` and the homepage visuals, including the F-A1 button fix (D-A6).
 - Draft preview.
 - Any change to the existing `vTarikhi` history or the migration docs.
+
+## 15. Set B notes (implementation status)
+
+Set B is implemented and awaiting approval. Set C (reading layer) does not start until it is approved.
+
+- **Delivered.** `slug` field (unique, indexed, sidebar) and `articleSlugBeforeValidate` hook. Backfill script `pnpm backfill:article-slugs`, run against the local database: all 6 seeded articles now have slugs. `fetchArticleBySlug` and `fetchPublishedArticleSlugs`. `getCachedArticleBySlug` and `getCachedArticleSlugs` (tag `portfolio`). `mapArticleDetail`, `splitArticleBody`, `pagePath` on `ArticleItem`. Interim `/articles/[slug]` markup inside `SiteChrome`. "Read on this site" link on cards that have a page.
+- **Open decision.** The six seeded articles still have no `description`, so none has a page yet. Their cards show no "Read on this site" link. Body text must come from the user. Nothing has been invented.
+- **Known framework limitation (Next.js 16.3.8, this app).** `notFound()` thrown from a matched route returns HTTP 404 with an empty `__next_error__` HTML shell. The not-found UI is only in the RSC payload, so it renders after hydration and is blank without JavaScript. This reproduces in dev and production, with or without a segment `not-found.tsx`, a group-level one, or `experimental.globalNotFound`. It is tracked upstream (vercel/next.js #99287, #62228). Unmatched URLs render correctly. Options are listed in the Set B report.
+- **Verified.** tsc, eslint (0 errors), vitest (109 passed), `next build --webpack` (0). Hook behaviour checked through the Local API: suffixes, slug kept on title edit, cleared slug regenerated, own id excluded. A temporary article rendered at `/articles/[slug]` (200, paragraphs, shared chrome) and was then deleted.
+- **Build note.** The default Turbopack build fails on the sandbox's Google Font mock (`NEXT_FONT_GOOGLE_MOCKED_RESPONSES`). `next build --webpack` passes.

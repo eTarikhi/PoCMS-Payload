@@ -203,7 +203,6 @@ export interface About {
 export interface Media {
   id: number;
   alt: string;
-  _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -244,6 +243,13 @@ export interface Article {
   id: number;
   title: string;
   excerpt: string;
+  /**
+   * URL key for /articles/{slug}. Made from the title when left empty. Keep it stable once the article is shared.
+   */
+  slug?: string | null;
+  /**
+   * Article body, as plain text. Separate paragraphs with a blank line. Leave empty and the article links out only (no page).
+   */
   description?: string | null;
   /**
    * If checked, the article expert will be featured on the homepage.
@@ -581,6 +587,7 @@ export interface HeaderSelect<T extends boolean = true> {
 export interface ArticlesSelect<T extends boolean = true> {
   title?: T;
   excerpt?: T;
+  slug?: T;
   description?: T;
   featured?: T;
   category?: T;
@@ -678,7 +685,6 @@ export interface SkillsSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
-  _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;

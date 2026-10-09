@@ -95,6 +95,8 @@ export type ArticleItem = {
   readTime: string
   imageUrl: string
   link: string
+  /** Internal page path, e.g. "/articles/devops-roadmap". Null when the article has no page (D-A10). */
+  pagePath: string | null
 }
 
 export type ServiceItem = {

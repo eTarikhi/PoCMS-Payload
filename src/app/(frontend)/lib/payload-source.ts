@@ -16,6 +16,8 @@
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 
+import type { Article } from '@/payload-types'
+
 import { mapPortfolioContent, type RawPortfolioDocs } from './mappers'
 import type { PortfolioContent } from './types'
 
@@ -81,4 +83,36 @@ export const fetchRawPortfolioDocs = async (): Promise<RawPortfolioDocs> => {
 /** Returns the home-page view model. Not cached here; Set 6 adds the cache wrapper. */
 export const getPortfolioContent = async (): Promise<PortfolioContent> => {
   return mapPortfolioContent(await fetchRawPortfolioDocs())
+}
+
+/**
+ * Fetches one article by slug, for the article page (article page spec §5.1).
+ * Returns null when no article has that slug. `depth: 1` resolves the cover image to a Media object.
+ */
+export const fetchArticleBySlug = async (slug: string): Promise<Article | null> => {
+  const payload = await getPayload({ config: configPromise })
+  const res = await payload.find({
+    collection: 'articles',
+    where: { slug: { equals: slug } },
+    limit: 1,
+    depth: 1,
+  })
+  return res.docs[0] ?? null
+}
+
+/**
+ * Returns the slugs of articles that have a page: a slug, and a non-empty body (`description`).
+ * Used by `generateStaticParams`. Articles without a body only link out, so they get no page.
+ */
+export const fetchPublishedArticleSlugs = async (): Promise<string[]> => {
+  const payload = await getPayload({ config: configPromise })
+  const res = await payload.find({
+    collection: 'articles',
+    pagination: false,
+    depth: 0,
+    sort: 'publishedAt',
+  })
+  return res.docs
+    .filter((doc) => Boolean(doc.slug) && (doc.description ?? '').trim().length > 0)
+    .map((doc) => doc.slug as string)
 }

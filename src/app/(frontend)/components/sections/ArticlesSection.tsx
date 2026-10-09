@@ -66,6 +66,11 @@ function ArticleCard({ article }: { article: ArticleItem }) {
           <p className="text-xs text-muted-foreground">
             Issued: {article.author} • {article.readTime} read
           </p>
+          {article.pagePath ? (
+            <Link href={article.pagePath} className="small">
+              Read on this site
+            </Link>
+          ) : null}
         </div>
       </div>
     </article>
