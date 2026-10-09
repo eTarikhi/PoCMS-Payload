@@ -354,3 +354,10 @@ Set D is implemented and awaiting approval to close the feature.
 - **Verified.** tsc 0. eslint 0 errors (the 7 warnings were there before this set). vitest 142 passed across 12 files. `next build --webpack` 0. A production smoke test (`next start`) checked the homepage (Person JSON-LD only, no canonical, unchanged), the placeholder article (200, canonical, Open Graph, `BlogPosting`), a seeded article with no body (404, `noindex`), and an unknown slug (404, `noindex`).
 - **Known gaps, for the record.** The homepage has no canonical link, because §7 covers articles only. The sitemap is out of scope (§7). The missing-article HTML is still the Next.js 16.3.8 empty shell from Set B. Playwright e2e was not run, because the browser download is blocked in this sandbox, as in earlier sets.
 - **Before closing the feature.** Delete the placeholder article `layout-check-placeholder-text`. Settle the six seeded article bodies and the 404 option (Set B, §15).
+
+## 18. Closing status
+
+Approved on 2026-10-09. Sets A to D are committed (`dc2a51e`, `7334519`, `8a8e079`, `992d61a`).
+
+- **Placeholder removed.** The layout-check article `layout-check-placeholder-text` was deleted from the local database. A restart cleared the cached page, and the URL now returns 404. The six seeded articles are unchanged.
+- **Still open, not decided by the approval.** (1) Body text for the six seeded articles. Until it is supplied, none has a page, and the cards show no "Read on this site" link. (2) The missing-article response. Option A accepts Next.js 16.3.8's empty HTML shell with the correct 404 status (§15). Option B returns a 200 page with `noindex`.
