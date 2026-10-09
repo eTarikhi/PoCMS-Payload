@@ -1,0 +1,134 @@
+/* Article page reading layer (article page spec §8). Every rule is scoped under .article-page,
+   so main.css and the homepage are not affected. Colors reuse the homepage palette:
+   background #0d0f17 (body), text #e7e7e7, accent #da9100, link #ffc448, border #34495e. */
+
+.article-page {
+    padding: 3rem 1.25rem 4rem;
+    color: #e7e7e7;
+    font-size: 1.125rem;
+    line-height: 1.75;
+}
+
+.article-page .article-layout {
+    max-width: 68ch;
+    margin: 0 auto;
+}
+
+.article-page .article-category {
+    display: inline-block;
+    margin: 0 0 1rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    background: #da9100;
+    color: #0d0f17;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1.5;
+}
+
+.article-page .article-title {
+    margin: 0 0 1rem;
+    color: #fff;
+    font-size: 1.875rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+}
+
+@media (min-width: 768px) {
+    .article-page .article-title {
+        font-size: 2.5rem;
+    }
+}
+
+.article-page .article-excerpt {
+    margin: 0 0 1.25rem;
+    color: #ddd;
+    font-size: 1.25rem;
+    line-height: 1.6;
+}
+
+.article-page .article-meta {
+    margin: 0 0 2rem;
+    color: #cfc4ad;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+}
+
+.article-page .article-cover {
+    position: relative;
+    left: 50%;
+    width: min(1140px, calc(100vw - 2.5rem));
+    margin: 0 0 2.5rem;
+    transform: translateX(-50%);
+}
+
+.article-page .article-cover img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+.article-page .article-body p {
+    margin: 0 0 1.25em;
+}
+
+.article-page a {
+    color: #ffc448;
+    text-decoration-thickness: 0.08em;
+    text-underline-offset: 0.2em;
+}
+
+.article-page a:hover {
+    color: #da9100;
+}
+
+.article-page .article-footer-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.5rem;
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #34495e;
+    font-size: 0.9375rem;
+}
+
+.article-page .article-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1100;
+    height: 3px;
+    background: #da9100;
+    transform: scaleX(0);
+    transform-origin: 0 50%;
+    pointer-events: none;
+}
+
+.article-page .article-not-found {
+    text-align: center;
+}
+
+.article-page .article-not-found .article-title {
+    margin-bottom: 1.5rem;
+}
+
+.article-page .article-not-found .article-cta {
+    display: inline-block;
+    margin-top: 1rem;
+    padding: 0.75rem 2rem;
+    border-radius: 4px;
+    background: #da9100;
+    color: #0d0f17;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.article-page .article-not-found .article-cta:hover {
+    background: #ffc448;
+    color: #0d0f17;
+}

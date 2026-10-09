@@ -331,3 +331,15 @@ Set B is implemented and awaiting approval. Set C (reading layer) does not start
 - **Known framework limitation (Next.js 16.3.8, this app).** `notFound()` thrown from a matched route returns HTTP 404 with an empty `__next_error__` HTML shell. The not-found UI is only in the RSC payload, so it renders after hydration and is blank without JavaScript. This reproduces in dev and production, with or without a segment `not-found.tsx`, a group-level one, or `experimental.globalNotFound`. It is tracked upstream (vercel/next.js #99287, #62228). Unmatched URLs render correctly. Options are listed in the Set B report.
 - **Verified.** tsc, eslint (0 errors), vitest (109 passed), `next build --webpack` (0). Hook behaviour checked through the Local API: suffixes, slug kept on title edit, cleared slug regenerated, own id excluded. A temporary article rendered at `/articles/[slug]` (200, paragraphs, shared chrome) and was then deleted.
 - **Build note.** The default Turbopack build fails on the sandbox's Google Font mock (`NEXT_FONT_GOOGLE_MOCKED_RESPONSES`). `next build --webpack` passes.
+
+## 16. Set C notes (implementation status)
+
+Set C is implemented and awaiting approval. Set D (SEO and QA) does not start until it is approved.
+
+- **Delivered.** `components/article/` (ArticleLayout, ArticleHeader, ArticleMeta, ArticleCover, ArticleBody, ArticleFooterNav, ReadingProgress). `styles/article.css`, with every rule scoped under `.article-page`. The page is now SiteChrome plus `<main class="article-page">` plus `ArticleLayout`. `ArticleDetail` gained `publishedAt` (ISO, for `<time dateTime>`) and `coverAlt` (from the media record, falling back to the title).
+- **Deviation from §5.3, for the record.** `ArticleBody` receives `paragraphs` from the mapper, instead of splitting the raw text itself. The split lives in one place, `lib/article-page.ts`, and the mapper's output is the view model (§5.4). Empty paragraphs are still dropped in the component.
+- **Deviation from §9, for the record.** No `<nav>` or `<footer>` elements are used inside the article. Those are reserved for `SiteChrome`, so the navigation and footer stay the only ones on the page.
+- **Reduced motion.** `ReadingProgress` renders nothing when `prefers-reduced-motion: reduce` matches (test plan §10). It reads the preference with `useSyncExternalStore`.
+- **Verified.** tsc 0, eslint 0 errors, vitest 121 passed. `next build --webpack` 0. Headless screenshots at 1366px and 390px show no horizontal overflow. The measure is about 700px (68ch), the title is 40px on desktop and 30px on mobile, the body is 18px, and the cover is 1140px wide on desktop.
+- **Placeholder article in the local database.** `layout-check-placeholder-text` ("Layout check (placeholder text)") exists only so the layout can be reviewed. Its body is placeholder text, not article content. Delete it before the feature closes, or when the real bodies are added.
+- **Still open from Set B.** The six seeded articles still have no body text. The 404 limitation is unchanged.

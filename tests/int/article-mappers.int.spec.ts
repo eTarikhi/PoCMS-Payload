@@ -77,9 +77,11 @@ describe('mapArticleDetail', () => {
       title: 'DevOps Roadmap',
       excerpt: 'A short summary.',
       category: 'articles',
+      publishedAt: '2025-02-02T12:00:00.000Z',
       publishedDisplay: expect.any(String),
       readTimeDisplay: '3 min',
       coverUrl: 'https://example.com/cover.jpg',
+      coverAlt: 'DevOps Roadmap',
       paragraphs: ['First paragraph.', 'Second paragraph.'],
       externalLink: 'https://example.com/post',
     })
