@@ -7,7 +7,7 @@ export const servicesData = (): (Omit<Service, 'id' | 'createdAt' | 'updatedAt'>
     descriptions: [
       'PHP, OOP, MVC, MySQL, PDO',
       'RESTful API, SOAP, GraphQL',
-      'Ajax, JavaScript, TypeScript',
+      'Ajax, JavaScript, TypeScript,',
       'Frameworks ( Laravel, Symfony, .. )',
       'CMS & CRM ( WordPress, Joomla, .. )',
       'Shopify, WooCommerce, OpenCart, Presta',

@@ -1,7 +1,12 @@
 import type { CollectionConfig } from 'payload'
+import { portfolioAfterChange, portfolioAfterDelete } from '../app/(frontend)/lib/hooks'
 
 export const Media: CollectionConfig = {
   slug: 'media',
+  hooks: {
+    afterChange: [portfolioAfterChange],
+    afterDelete: [portfolioAfterDelete],
+  },
   access: {
     read: () => true,
   },

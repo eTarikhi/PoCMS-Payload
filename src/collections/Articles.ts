@@ -1,7 +1,13 @@
 import type { CollectionConfig } from 'payload'
+import { articleSlugBeforeValidate, portfolioAfterChange, portfolioAfterDelete } from '../app/(frontend)/lib/hooks'
 
 export const Articles: CollectionConfig = {
   slug: 'articles',
+  hooks: {
+    beforeValidate: [articleSlugBeforeValidate],
+    afterChange: [portfolioAfterChange],
+    afterDelete: [portfolioAfterDelete],
+  },
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'category', 'publishedAt', 'featured'],
@@ -13,7 +19,21 @@ export const Articles: CollectionConfig = {
   fields: [
     { name: 'title', type: 'text', required: true },
     { name: 'excerpt', type: 'textarea', required: true },
-    { name: 'description', type: 'textarea' },
+    {
+      name: 'slug',
+      type: 'text',
+      unique: true,
+      admin: {
+        description: 'URL key for /articles/{slug}. Made from the title when left empty. Keep it stable once the article is shared.',
+      },
+    },
+    {
+      name: 'description',
+      type: 'textarea',
+      admin: {
+        description: 'Article body, as plain text. Separate paragraphs with a blank line. Leave empty and the article links out only (no page).',
+      },
+    },
     { name: 'featured', type: 'checkbox', admin: { description: 'If checked, the article expert will be featured on the homepage.' } },
     {
       name: 'category',
