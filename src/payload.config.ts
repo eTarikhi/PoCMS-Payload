@@ -1,6 +1,7 @@
 import { vercelPostgresAdapter } from '@payloadcms/db-vercel-postgres'
 import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import { GraphQL } from '@payloadcms/graphql/types'
 import path from 'path'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
@@ -99,4 +100,23 @@ export default buildConfig({
       token: process.env.BLOB_READ_WRITE_TOKEN || '',
     }),
   ],
+  graphQL: {
+    validationRules: (args) => [NoProductionIntrospection],
+    disablePlaygroundInProduction: false,
+  },
+})
+
+const NoProductionIntrospection: GraphQL.ValidationRule = (context) => ({
+  Field(node) {
+    if (process.env.NODE_ENV === 'production') {
+      if (node.name.value === '__schema' || node.name.value === '__type') {
+        context.reportError(
+          new GraphQL.GraphQLError(
+            'GraphQL introspection is not allowed, but the query contained __schema or __type',
+            { nodes: [node] },
+          ),
+        )
+      }
+    }
+  },
 })
