@@ -8,7 +8,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { config } from '@fortawesome/fontawesome-svg-core'
 import { faEye, faLink } from '@fortawesome/free-solid-svg-icons'
 
-import type { ProjectFilter, ProjectItem } from '@/app/(frontend)/lib/portfolio/types'
+import type { ProjectFilter, ProjectItem } from '@/app/(frontend)/lib/types'
 
 // The root layout loads the Font Awesome CSS. Icons in this client bundle must not inject their own copy.
 config.autoAddCss = false

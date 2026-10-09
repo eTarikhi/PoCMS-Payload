@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-import type { ServiceItem as ServiceEntry, ServicesContent } from '@/app/(frontend)/lib/portfolio/types'
+import type { ServiceItem as ServiceEntry, ServicesContent } from '@/app/(frontend)/lib/types'
 import { getServiceIcon } from '../icons'
 
 // Ported from vTarikhi/components/sections/services.tsx. The hiring CTA comes from the footer (D-3).

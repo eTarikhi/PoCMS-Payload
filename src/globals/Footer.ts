@@ -1,5 +1,5 @@
 import type { GlobalConfig } from 'payload'
-import { portfolioAfterChange } from '../app/(frontend)/lib/portfolio/hooks'
+import { portfolioAfterChange } from '../app/(frontend)/lib/hooks'
 
 export const Footer: GlobalConfig = {
   slug: 'footer',

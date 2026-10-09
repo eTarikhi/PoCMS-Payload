@@ -120,10 +120,10 @@ It is excluded from the root `tsconfig.json` and ESLint (done in Set 1).
 
 ```ts
 // Set 1 — implemented
-// src/app/(frontend)/lib/portfolio/payload-source.ts
+// src/app/(frontend)/lib/payload-source.ts
 export const getPortfolioContent: () => Promise<PortfolioContent>
 
-// src/app/(frontend)/lib/portfolio/types.ts (summary; full definitions in the file)
+// src/app/(frontend)/lib/types.ts (summary; full definitions in the file)
 type PortfolioContent = {
   header: HeaderContent | null
   about: AboutContent | null
@@ -169,10 +169,10 @@ nothing for an empty array.
 ### 4.3 Cache and invalidation contract (Set 6)
 
 ```ts
-// src/app/(frontend)/lib/portfolio/cache.ts
+// src/app/(frontend)/lib/cache.ts
 export const getCachedPortfolioContent: () => Promise<PortfolioContent>  // unstable_cache, tags: ['portfolio']
 
-// src/app/(frontend)/lib/portfolio/revalidate.ts
+// src/app/(frontend)/lib/revalidate.ts
 export const revalidatePortfolio: () => void   // revalidateTag('portfolio', 'max'), errors logged, never thrown
 ```
 
@@ -214,10 +214,10 @@ config changes needed for the root project to typecheck.
 
 | File | Status |
 | --- | --- |
-| `src/app/(frontend)/lib/portfolio/types.ts` | created |
-| `src/app/(frontend)/lib/portfolio/format.ts` | created |
-| `src/app/(frontend)/lib/portfolio/mappers.ts` | created |
-| `src/app/(frontend)/lib/portfolio/payload-source.ts` | created |
+| `src/app/(frontend)/lib/types.ts` | created |
+| `src/app/(frontend)/lib/format.ts` | created |
+| `src/app/(frontend)/lib/mappers.ts` | created |
+| `src/app/(frontend)/lib/payload-source.ts` | created |
 | `tests/int/portfolio-mappers.int.spec.ts` | created |
 | `tsconfig.json` | `vTarikhi` added to `exclude` |
 | `eslint.config.mjs` | `vTarikhi/` added to `ignores` |
@@ -251,7 +251,7 @@ The root lockfile is updated with `pnpm install`.
 
 **Files.**
 
-- `src/app/(frontend)/styles/vtarikhi/bootstrap.min.css`, `main.css` (copied verbatim).
+- `src/app/(frontend)/styles/bootstrap.min.css`, `main.css` (copied verbatim).
 - `public/images/**` (copied from `vTarikhi/public/images`).
 - `src/app/(frontend)/layout.tsx`: `<html lang="en">`, `Open_Sans` via `next/font/google` (same weights and subsets),
   global CSS imports in the same order as `_app.js`, FontAwesome `config.autoAddCss = false`,
@@ -320,7 +320,7 @@ and the back-to-top button appears after scrolling past 300px.
 
 **Scope.** The hero, the footer, and the JSON-LD script.
 
-**Files.** `layout/Hero.tsx`, `layout/Footer.tsx`, `seo/JsonLd.tsx`, plus `src/app/(frontend)/lib/portfolio/seo.ts` (metadata and JSON-LD builder) and the metadata in `(frontend)/layout.tsx`.
+**Files.** `layout/Hero.tsx`, `layout/Footer.tsx`, `seo/JsonLd.tsx`, plus `src/app/(frontend)/lib/seo.ts` (metadata and JSON-LD builder) and the metadata in `(frontend)/layout.tsx`.
 
 **Decisions applied.** D-5 (site URL), D-6 (copyright year from the CMS), D-7 (SEO tag cleanup).
 
@@ -349,9 +349,9 @@ and the back-to-top button appears after scrolling past 300px.
 **Files.**
 
 - `src/app/(frontend)/page.tsx`: the composition, in the original order. Calls `getCachedPortfolioContent()`. It does not call `headers()`, `cookies()`, or `payload.auth()`.
-- `src/app/(frontend)/lib/portfolio/cache.ts`: `getCachedPortfolioContent`, which uses `unstable_cache` with key `['portfolio-content']` and tag `portfolio`.
-- `src/app/(frontend)/lib/portfolio/revalidate.ts`: `revalidatePortfolio`, which calls `revalidateTag('portfolio', 'max')`. Errors are logged and never thrown.
-- `src/app/(frontend)/lib/portfolio/hooks.ts`: `portfolioAfterChange` and `portfolioAfterDelete`.
+- `src/app/(frontend)/lib/cache.ts`: `getCachedPortfolioContent`, which uses `unstable_cache` with key `['portfolio-content']` and tag `portfolio`.
+- `src/app/(frontend)/lib/revalidate.ts`: `revalidatePortfolio`, which calls `revalidateTag('portfolio', 'max')`. Errors are logged and never thrown.
+- `src/app/(frontend)/lib/hooks.ts`: `portfolioAfterChange` and `portfolioAfterDelete`.
 - The hooks are attached to the 10 content collections (`header`, `about`, `skills`, `experiences`, `educations`, `certificates`, `articles`, `services`, `projects`, `media`) and the `footer` global (`afterChange` only, since globals have no delete).
 - The Set 1 runtime check of `payload-source.ts` against Postgres is done (see Verification).
 
@@ -434,13 +434,18 @@ and the back-to-top button appears after scrolling past 300px.
 Supersedes the Set 7 decision to keep `vTarikhi/`. The user asked for the front end to live in the Payload app and for `vTarikhi/` to be deleted.
 
 - Moved with `git mv` (history kept):
-  - `src/components/portfolio/` → `src/app/(frontend)/components/portfolio/`
-  - `src/lib/portfolio/` → `src/app/(frontend)/lib/portfolio/`
-  - `src/styles/vtarikhi/` → `src/app/(frontend)/styles/vtarikhi/`
+  - `src/components/portfolio/` → `src/app/(frontend)/components/`
+  - `src/lib/portfolio/` → `src/app/(frontend)/lib/`
+  - `src/styles/vtarikhi/` → `src/app/(frontend)/styles/`
   - `src/types/bootstrap.d.ts` → `src/app/(frontend)/types/bootstrap.d.ts`
   - `vTarikhi/components/database.json` and `schema.json` → `src/app/(frontend)/data/`. These are reference data, not runtime imports. The seed reads Payload, and the tests read `database.json` as the oracle.
 - Deleted `vTarikhi/`. This includes the legacy pages, components, sections, `loader.tsx`, `global.css`, `styles/home.module.css`, `package.json`, `package-lock.json`, and the configs. `public/images` was already a verified copy, so it is unchanged in `public/`. The originals are in git history at commit `6c9fce5`.
 - Updated the imports (`@/app/(frontend)/...`, and the relative paths from `src/collections` and `src/globals`), the test paths, `tsconfig.json` (`vTarikhi` removed from `exclude`), and `eslint.config.mjs` (`vTarikhi/` removed from `ignores`).
+- Follow-up: the `portfolio` and `vtarikhi` subfolders were flattened, and their contents now sit directly in `src/app/(frontend)/`:
+  - `components/portfolio/*` → `components/*`
+  - `lib/portfolio/*` → `lib/*`
+  - `styles/vtarikhi/*` → `styles/*`
+  `data/` stays. `database.json` is read by the tests. `schema.json` is only referenced in comments.
 - Behaviour is unchanged. No runtime file was edited, only paths.
 
 ## 7. Out of scope

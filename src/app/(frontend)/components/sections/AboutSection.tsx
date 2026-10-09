@@ -2,7 +2,7 @@ import Image from 'next/image'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCheck } from '@fortawesome/free-solid-svg-icons'
 
-import type { AboutContent } from '@/app/(frontend)/lib/portfolio/types'
+import type { AboutContent } from '@/app/(frontend)/lib/types'
 
 // Ported from vTarikhi/components/sections/about.tsx. Markup and copy are unchanged.
 

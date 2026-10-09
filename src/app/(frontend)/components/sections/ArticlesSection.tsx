@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-import type { ArticleItem } from '@/app/(frontend)/lib/portfolio/types'
+import type { ArticleItem } from '@/app/(frontend)/lib/types'
 import { CoverImage } from '../ui/CoverImage'
 
 // Ported from vTarikhi/components/sections/articles.tsx. All articles are shown (D-12).

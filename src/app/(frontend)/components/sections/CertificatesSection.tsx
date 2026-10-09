@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 
-import type { CertificateItem } from '@/app/(frontend)/lib/portfolio/types'
+import type { CertificateItem } from '@/app/(frontend)/lib/types'
 
 // Ported from vTarikhi/components/sections/certificates.tsx. The "View Certificate" link only renders when a link exists.
 

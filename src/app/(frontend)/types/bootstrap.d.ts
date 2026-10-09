@@ -1,5 +1,5 @@
 // The bootstrap package ships no type declarations, and @types/bootstrap is not a dependency.
-// This declares only the Collapse API used by src/app/(frontend)/components/portfolio/layout/Navigation.tsx.
+// This declares only the Collapse API used by src/app/(frontend)/components/layout/Navigation.tsx.
 declare module 'bootstrap' {
   export class Collapse {
     static getOrCreateInstance(element: Element): Collapse

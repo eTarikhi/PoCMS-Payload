@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faGem } from '@fortawesome/free-solid-svg-icons'
 
-import type { FooterContent } from '@/app/(frontend)/lib/portfolio/types'
+import type { FooterContent } from '@/app/(frontend)/lib/types'
 import { getFooterIcon } from '../icons'
 import { EmailReveal } from '../ui/EmailReveal'
 

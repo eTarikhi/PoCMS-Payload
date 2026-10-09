@@ -13,7 +13,7 @@ import { describe, expect, it } from 'vitest'
 
 import { Projects } from '../../src/collections/Projects'
 import { legacy, mediaDoc, toPayloadDocs } from '../helpers/portfolio-fixtures'
-import { formatDisplayDate, formatReadTime, joinDisplay } from '../../src/app/(frontend)/lib/portfolio/format'
+import { formatDisplayDate, formatReadTime, joinDisplay } from '../../src/app/(frontend)/lib/format'
 import {
   mapAbout,
   mapArticles,
@@ -28,7 +28,7 @@ import {
   mapSkills,
   PROJECT_FILTERS,
   type RawPortfolioDocs,
-} from '../../src/app/(frontend)/lib/portfolio/mappers'
+} from '../../src/app/(frontend)/lib/mappers'
 const raw = toPayloadDocs()
 
 describe('display formatting', () => {

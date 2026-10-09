@@ -2,7 +2,7 @@
  * Framework-free view models for the portfolio site.
  *
  * These are the only shapes the presentational components in
- * `src/app/(frontend)/components/portfolio/*` are allowed to depend on. They mirror the props
+ * `src/app/(frontend)/components/*` are allowed to depend on. They mirror the props
  * interfaces of the original `vTarikhi/` components, with the following changes:
  *
  * - Unused placeholder members (`map`, `filter`) are removed.

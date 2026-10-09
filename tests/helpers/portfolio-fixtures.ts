@@ -6,7 +6,7 @@
  */
 
 import database from '../../src/app/(frontend)/data/database.json'
-import type { RawPortfolioDocs } from '../../src/app/(frontend)/lib/portfolio/mappers'
+import type { RawPortfolioDocs } from '../../src/app/(frontend)/lib/mappers'
 import type {
   About,
   Article,

@@ -1,5 +1,5 @@
 /**
- * Behaviour tests for the client islands in `src/app/(frontend)/components/portfolio/`.
+ * Behaviour tests for the client islands in `src/app/(frontend)/components/`.
  *
  * jsdom with @testing-library/react. The timings and effects come from the original vTarikhi components.
  * No database is needed.
@@ -9,15 +9,15 @@ import { createElement } from 'react'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { BackToTop } from '../../src/app/(frontend)/components/portfolio/layout/BackToTop'
-import { Navigation } from '../../src/app/(frontend)/components/portfolio/layout/Navigation'
-import { ProjectsGrid } from '../../src/app/(frontend)/components/portfolio/sections/ProjectsGrid'
-import { getFooterIcon, getServiceIcon } from '../../src/app/(frontend)/components/portfolio/icons'
-import { CoverImage } from '../../src/app/(frontend)/components/portfolio/ui/CoverImage'
-import { EmailReveal } from '../../src/app/(frontend)/components/portfolio/ui/EmailReveal'
-import { ProgressBar } from '../../src/app/(frontend)/components/portfolio/ui/ProgressBar'
-import { TypingEffect } from '../../src/app/(frontend)/components/portfolio/ui/TypingEffect'
-import type { ProjectFilter, ProjectItem } from '../../src/app/(frontend)/lib/portfolio/types'
+import { BackToTop } from '../../src/app/(frontend)/components/layout/BackToTop'
+import { Navigation } from '../../src/app/(frontend)/components/layout/Navigation'
+import { ProjectsGrid } from '../../src/app/(frontend)/components/sections/ProjectsGrid'
+import { getFooterIcon, getServiceIcon } from '../../src/app/(frontend)/components/icons'
+import { CoverImage } from '../../src/app/(frontend)/components/ui/CoverImage'
+import { EmailReveal } from '../../src/app/(frontend)/components/ui/EmailReveal'
+import { ProgressBar } from '../../src/app/(frontend)/components/ui/ProgressBar'
+import { TypingEffect } from '../../src/app/(frontend)/components/ui/TypingEffect'
+import type { ProjectFilter, ProjectItem } from '../../src/app/(frontend)/lib/types'
 import { VisibleIntersectionObserver } from '../helpers/visible-intersection-observer'
 
 /** Sets window.scrollY, which jsdom leaves read-only. */

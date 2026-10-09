@@ -12,17 +12,17 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { createElement } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { Footer } from '../../src/app/(frontend)/components/portfolio/layout/Footer'
-import { Hero } from '../../src/app/(frontend)/components/portfolio/layout/Hero'
-import { JsonLd } from '../../src/app/(frontend)/components/portfolio/seo/JsonLd'
-import { mapPortfolioContent } from '../../src/app/(frontend)/lib/portfolio/mappers'
+import { Footer } from '../../src/app/(frontend)/components/layout/Footer'
+import { Hero } from '../../src/app/(frontend)/components/layout/Hero'
+import { JsonLd } from '../../src/app/(frontend)/components/seo/JsonLd'
+import { mapPortfolioContent } from '../../src/app/(frontend)/lib/mappers'
 import {
   buildPersonJsonLd,
   DEFAULT_SITE_URL,
   PROFILE_IMAGE_PATH,
   portfolioMetadata,
   siteUrl,
-} from '../../src/app/(frontend)/lib/portfolio/seo'
+} from '../../src/app/(frontend)/lib/seo'
 import { toPayloadDocs } from '../helpers/portfolio-fixtures'
 
 afterEach(() => {

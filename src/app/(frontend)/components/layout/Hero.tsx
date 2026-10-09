@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 
-import type { HeaderContent } from '@/app/(frontend)/lib/portfolio/types'
+import type { HeaderContent } from '@/app/(frontend)/lib/types'
 import { TypingEffect } from '../ui/TypingEffect'
 
 // Ported from the Header component in vTarikhi/components/header.tsx. Markup and typing settings are unchanged.

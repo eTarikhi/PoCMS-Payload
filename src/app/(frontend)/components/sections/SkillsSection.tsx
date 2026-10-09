@@ -1,4 +1,4 @@
-import type { EducationItem, ExperienceItem, SkillsContent } from '@/app/(frontend)/lib/portfolio/types'
+import type { EducationItem, ExperienceItem, SkillsContent } from '@/app/(frontend)/lib/types'
 import { ProgressBar } from '../ui/ProgressBar'
 
 // Ported from vTarikhi/components/sections/skills.tsx.

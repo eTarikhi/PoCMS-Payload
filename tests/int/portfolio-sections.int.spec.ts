@@ -1,5 +1,5 @@
 /**
- * Tests for the server sections in `src/app/(frontend)/components/portfolio/sections/`.
+ * Tests for the server sections in `src/app/(frontend)/components/sections/`.
  *
  * The expected strings come from the baseline text extract of the original home page
  * (`/tmp/parity/vtarikhi-home.text.txt`, one region at a time). The content comes from the shared
@@ -10,14 +10,14 @@ import { cleanup, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createElement } from 'react'
 
-import { AboutSection } from '../../src/app/(frontend)/components/portfolio/sections/AboutSection'
-import { ArticlesSection } from '../../src/app/(frontend)/components/portfolio/sections/ArticlesSection'
-import { CertificatesSection } from '../../src/app/(frontend)/components/portfolio/sections/CertificatesSection'
-import { ProjectsSection } from '../../src/app/(frontend)/components/portfolio/sections/ProjectsSection'
-import { ServicesSection } from '../../src/app/(frontend)/components/portfolio/sections/ServicesSection'
-import { SkillsSection } from '../../src/app/(frontend)/components/portfolio/sections/SkillsSection'
-import { mapPortfolioContent } from '../../src/app/(frontend)/lib/portfolio/mappers'
-import type { CertificateItem, PortfolioContent } from '../../src/app/(frontend)/lib/portfolio/types'
+import { AboutSection } from '../../src/app/(frontend)/components/sections/AboutSection'
+import { ArticlesSection } from '../../src/app/(frontend)/components/sections/ArticlesSection'
+import { CertificatesSection } from '../../src/app/(frontend)/components/sections/CertificatesSection'
+import { ProjectsSection } from '../../src/app/(frontend)/components/sections/ProjectsSection'
+import { ServicesSection } from '../../src/app/(frontend)/components/sections/ServicesSection'
+import { SkillsSection } from '../../src/app/(frontend)/components/sections/SkillsSection'
+import { mapPortfolioContent } from '../../src/app/(frontend)/lib/mappers'
+import type { CertificateItem, PortfolioContent } from '../../src/app/(frontend)/lib/types'
 import { toPayloadDocs } from '../helpers/portfolio-fixtures'
 import { VisibleIntersectionObserver } from '../helpers/visible-intersection-observer'
 

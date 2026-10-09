@@ -39,7 +39,7 @@ The content collections are edited in the admin. `Users` holds the admin account
 | `footer` (global) | Social links, profile links, contact details, copyright, hiring CTA    | Single document               |
 
 Icons are chosen from lists. The list of Font Awesome icons that the site can draw is in
-`src/app/(frontend)/components/portfolio/icons.tsx`. Adding a new icon means adding it to that file first.
+`src/app/(frontend)/components/icons.tsx`. Adding a new icon means adding it to that file first.
 
 ## Running it locally
 
@@ -63,10 +63,10 @@ Create the first admin user at `/admin`. Seeding does not create a user.
 ## Caching and updates
 
 The home page is static. It reads its content through `getCachedPortfolioContent()`
-(`src/app/(frontend)/lib/portfolio/cache.ts`), which is cached under the `portfolio` tag.
+(`src/app/(frontend)/lib/cache.ts`), which is cached under the `portfolio` tag.
 
 Every content collection and the footer global run `afterChange` and `afterDelete` hooks
-(`src/app/(frontend)/lib/portfolio/hooks.ts`). Each hook marks the `portfolio` tag stale. After a save, the next request can
+(`src/app/(frontend)/lib/hooks.ts`). Each hook marks the `portfolio` tag stale. After a save, the next request can
 still show the old content. The request after that shows the new content.
 
 A failed cache update is logged and does not fail the save.

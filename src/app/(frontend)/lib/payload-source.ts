@@ -1,7 +1,7 @@
 /**
  * Payload data source for the portfolio site.
  *
- * This is the only module in `src/app/(frontend)/lib/portfolio` that talks to Payload at runtime.
+ * This is the only module in `src/app/(frontend)/lib` that talks to Payload at runtime.
  * It uses the Local API from React Server Components, as recommended by the Payload 3
  * docs (`getPayload({ config })` with `@payload-config`).
  *

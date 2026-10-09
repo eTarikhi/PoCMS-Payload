@@ -1,4 +1,4 @@
-import type { ProjectsContent } from '@/app/(frontend)/lib/portfolio/types'
+import type { ProjectsContent } from '@/app/(frontend)/lib/types'
 import { ProjectsGrid } from './ProjectsGrid'
 
 // Section shell from vTarikhi/components/sections/projects.tsx. The title row and grid are in ProjectsGrid (D-13).
