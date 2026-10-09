@@ -1,8 +1,13 @@
 import type { CollectionConfig } from 'payload'
+import { portfolioAfterChange, portfolioAfterDelete } from '../lib/portfolio/hooks'
 import { orderField } from '../fields/order'
 
 export const Projects: CollectionConfig = {
   slug: 'projects',
+  hooks: {
+    afterChange: [portfolioAfterChange],
+    afterDelete: [portfolioAfterDelete],
+  },
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'categories', 'order'],
@@ -18,7 +23,10 @@ export const Projects: CollectionConfig = {
       name: 'image',
       type: 'upload',
       relationTo: 'media',
-      admin: { description: 'The thumbnail is generated automatically (media.sizes.thumbnail).' },
+      admin: {
+        description:
+          'Used as the full image when the Image URL below is empty. It is also the thumbnail when the Place Holder Image URL is empty.',
+      },
     },
     { name: 'src', label: 'Image URL', type: 'text' },
     { name: 'placeHolder', label: 'Place Holder Image URL', type: 'text' },

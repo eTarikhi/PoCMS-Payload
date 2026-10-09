@@ -1,8 +1,13 @@
 import type { CollectionConfig } from 'payload'
+import { portfolioAfterChange, portfolioAfterDelete } from '../lib/portfolio/hooks'
 import { orderField } from '../fields/order'
 
 export const Skills: CollectionConfig = {
   slug: 'skills',
+  hooks: {
+    afterChange: [portfolioAfterChange],
+    afterDelete: [portfolioAfterDelete],
+  },
   admin: {
     useAsTitle: 'label',
     defaultColumns: ['label', 'group', 'value', 'color', 'order'],

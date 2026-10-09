@@ -2,7 +2,7 @@ export const articlesData = () => [
   {
     title: 'Full-Stack Geliştiriciler İçin DevOps: Temel Kavramlar ve Pratikler İçin Yol Haritası',
     excerpt:
-      'Günümüz yazılım geliştirme dünyas��nda DevOps, artık bir seçenek değil, bir gereklilik haline geldi. Tam yığın (full-stack) geliştiriciler için DevOps',
+      'Günümüz yazılım geliştirme dünyasında DevOps, artık bir seçenek değil, bir gereklilik haline geldi. Tam yığın (full-stack) geliştiriciler için DevOps',
     category: 'articles',
     publishedAt: '2025-02-02T12:00:00.000Z',
     readTime: 3,

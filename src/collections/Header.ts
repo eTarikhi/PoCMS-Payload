@@ -1,7 +1,12 @@
 import type { CollectionConfig } from 'payload'
+import { portfolioAfterChange, portfolioAfterDelete } from '../lib/portfolio/hooks'
 
 export const Header: CollectionConfig = {
   slug: 'header',
+  hooks: {
+    afterChange: [portfolioAfterChange],
+    afterDelete: [portfolioAfterDelete],
+  },
   labels: {
     singular: 'Header',
     plural: 'Header',

@@ -1,64 +1,44 @@
-import { headers as getHeaders } from 'next/headers.js'
-import Image from 'next/image'
-import { getPayload } from 'payload'
-import React from 'react'
-import { fileURLToPath } from 'url'
+import { Footer } from '@/components/portfolio/layout/Footer'
+import { Hero } from '@/components/portfolio/layout/Hero'
+import { Navigation } from '@/components/portfolio/layout/Navigation'
+import { BackToTop } from '@/components/portfolio/layout/BackToTop'
+import { BootstrapClient } from '@/components/portfolio/layout/BootstrapClient'
+import { AboutSection } from '@/components/portfolio/sections/AboutSection'
+import { ServicesSection } from '@/components/portfolio/sections/ServicesSection'
+import { SkillsSection } from '@/components/portfolio/sections/SkillsSection'
+import { CertificatesSection } from '@/components/portfolio/sections/CertificatesSection'
+import { ProjectsSection } from '@/components/portfolio/sections/ProjectsSection'
+import { ArticlesSection } from '@/components/portfolio/sections/ArticlesSection'
+import { JsonLd } from '@/components/portfolio/seo/JsonLd'
+import { getCachedPortfolioContent } from '@/lib/portfolio/cache'
+import { buildPersonJsonLd } from '@/lib/portfolio/seo'
 
-import config from '@/payload.config'
-import './styles.css'
-
-import { SpeedInsights } from '@vercel/speed-insights/next'
-import { Analytics } from '@vercel/analytics/next'
-
+// Composition only, in the order of vTarikhi/pages/index.js.
+// The page reads cached content and never calls headers(), cookies(), or payload.auth(), so Next can
+// prerender it as static (roadmap §3.3). Editors refresh it by saving in /admin (hooks.ts).
 export default async function HomePage() {
-  const headers = await getHeaders()
-  const payloadConfig = await config
-  const payload = await getPayload({ config: payloadConfig })
-  const { user } = await payload.auth({ headers })
-
-  const fileURL = `vscode://file/${fileURLToPath(import.meta.url)}`
+  const content = await getCachedPortfolioContent()
 
   return (
-    <div className="home">
-      <div className="content">
-        <picture>
-          <source srcSet="https://raw.githubusercontent.com/payloadcms/payload/3.x/packages/ui/src/assets/payload-favicon.svg" />
-          <Image
-            alt="Payload Logo"
-            height={65}
-            src="https://raw.githubusercontent.com/payloadcms/payload/3.x/packages/ui/src/assets/payload-favicon.svg"
-            width={65}
-          />
-        </picture>
-        {!user && <h1>Welcome to Portfolio Content Management System with Payload Headless CMS</h1>}
-        {user && <h1>Welcome back, {user.email}</h1>}
-        <div className="links">
-          <a
-            className="admin"
-            href={payloadConfig.routes.admin}
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            Go to admin panel
-          </a>
-          <a
-            className="docs"
-            href="https://payloadcms.com/docs"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            Documentation
-          </a>
-        </div>
-      </div>
-      {/* <div className="footer">
-        <p>Update this page by editing</p>
-        <a className="codeLink" href={fileURL}>
-          <code>app/(frontend)/page.tsx</code>
-        </a>
-      </div> */}
-      <Analytics />
-      <SpeedInsights />
-    </div>
+    <>
+      <Navigation />
+      {content.header ? <Hero header={content.header} /> : null}
+      <main data-bs-spy="scroll" data-bs-target=".navbar" data-bs-offset="51">
+        <AboutSection about={content.about} />
+        <ServicesSection services={content.services} />
+        <SkillsSection
+          skills={content.skills}
+          experiences={content.experiences}
+          educations={content.educations}
+        />
+        <CertificatesSection certificates={content.certificates} />
+        <ProjectsSection projects={content.projects} />
+        <ArticlesSection articles={content.articles} />
+      </main>
+      {content.footer ? <Footer footer={content.footer} /> : null}
+      <BackToTop />
+      <BootstrapClient />
+      <JsonLd data={buildPersonJsonLd(content.header, content.footer)} />
+    </>
   )
 }

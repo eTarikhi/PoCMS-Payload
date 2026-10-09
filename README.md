@@ -5,7 +5,9 @@
 [![PostgreSQL](https://img.shields.io/badge/Database-Neon%20PostgreSQL-336791)](https://neon.tech)
 [![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-000000)](https://vercel.com)
 
-A modern Portfolio Content Management System built with Payload 3.0 Headless CMS for managing portfolio projects, content, media, and user authentication.
+This repository is a personal portfolio site, the Next.js 16 App Router port of the `vTarikhi` site, with its content managed in Payload 3.0.
+The public site is at `/`, and the editor UI is at `/admin`. The home page reads its content through the Payload Local API and is cached.
+Saving content in the admin refreshes the cached home page. See [PAYLOAD.md](PAYLOAD.md) for the sections, the content model, and the caching behaviour.
 
 ## Documentation
 
@@ -22,9 +24,10 @@ This project documentation is split across multiple files for easier maintenance
 
 ## Quick access
 
+- Public site: `http://localhost:3000`
 - Admin panel: `http://localhost:3000/admin`
-- API: `http://localhost:3000/api`
-- GraphQL: `http://localhost:3000/graphql`
+- REST API: `http://localhost:3000/api`
+- GraphQL: `http://localhost:3000/api/graphql`
 
 ## Tech stack
 
@@ -41,27 +44,19 @@ This project documentation is split across multiple files for easier maintenance
 
 ## Features
 
-- Payload 3.0 Headless CMS
-- Neon serverless PostgreSQL
-- Vercel Blob storage
+- Portfolio home page: hero, about, services, skills, certificates, projects, articles, and footer
+- Payload 3.0 Headless CMS, with the content read through the Local API
+- Cached home page, refreshed by `afterChange` and `afterDelete` hooks on each content collection
+- Neon serverless PostgreSQL (a `localhost` URL uses a plain `pg` pool)
+- Vercel Blob storage for uploads
 - Built-in authentication and RBAC
-- Rich media management
 - REST and GraphQL APIs
 - Type-safe TypeScript codebase
 - Docker support
 
-## Content use cases
+## What the site contains
 
-PoCMS is designed for a wide range of portfolio and content-driven websites. Typical content types include:
-
-- Portfolio homepage sections for hero, intro, featured work, and call-to-action
-- Case studies with project summaries, timelines, results, and media galleries
-- Services pages for offerings, process steps, and pricing or package descriptions
-- Blog or news entries with categories, authors, tags, and featured images
-- Testimonials and client feedback blocks for social proof
-- About pages with credentials, experience, skills, and resume highlights
-- Contact and inquiry content with location, social links, and form CTAs
-- Custom collections for certifications, resources, projects, or creative assets
+The home page has a hero, an about section, services with a hiring call-to-action, skills with progress bars, experience and education, certificates, projects with category filters, articles, and a footer with social and contact links. Every section is edited in the admin, and the list of collections is in [PAYLOAD.md](PAYLOAD.md).
 
 ## Deployment use cases
 

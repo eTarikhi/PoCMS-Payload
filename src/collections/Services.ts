@@ -1,8 +1,13 @@
 import type { CollectionConfig } from 'payload'
+import { portfolioAfterChange, portfolioAfterDelete } from '../lib/portfolio/hooks'
 import { orderField } from '../fields/order'
 
 export const Services: CollectionConfig = {
   slug: 'services',
+  hooks: {
+    afterChange: [portfolioAfterChange],
+    afterDelete: [portfolioAfterDelete],
+  },
   admin: {
     useAsTitle: 'category',
     defaultColumns: ['category', 'iconFont', 'order'],
@@ -16,8 +21,9 @@ export const Services: CollectionConfig = {
     { name: 'category', type: 'text', required: true },
     {
       name: 'iconFont',
-      type: 'text',
-      admin: { description: 'Font Awesome icon name used by the frontend, e.g. faCode.' },
+      type: 'select',
+      options: ['faCode', 'faCropAlt', 'faLaptopCode', 'faCodeBranch'],
+      admin: { description: 'Icon shown next to the category. Only the icons the frontend has are listed.' },
     },
     {
       name: 'descriptions',

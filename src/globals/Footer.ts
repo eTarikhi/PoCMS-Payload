@@ -1,7 +1,11 @@
 import type { GlobalConfig } from 'payload'
+import { portfolioAfterChange } from '../lib/portfolio/hooks'
 
 export const Footer: GlobalConfig = {
   slug: 'footer',
+  hooks: {
+    afterChange: [portfolioAfterChange],
+  },
   label: 'Footer',
   access: {
     read: () => true,
@@ -26,7 +30,13 @@ export const Footer: GlobalConfig = {
           admin: { description: 'Select the social media platform for the link.' },
         },
         { name: 'url', type: 'text', required: true, admin: { description: 'The URL for the social media link.' } },
-        { name: 'iconName', type: 'text', required: true, admin: { description: 'The name of the icon to display for the social media link.' } },
+        {
+          name: 'iconName',
+          type: 'select',
+          required: true,
+          options: ['faFacebookF', 'faXTwitter', 'faInstagram', 'faLinkedin', 'faGithub', 'faWhatsapp', 'faWhatsappc', 'faGem', 'faHome', 'faEnvelope', 'faPhoneFlip'],
+          admin: { description: 'The icon to display for the social media link.' },
+        },
         { name: 'ariaLabel', type: 'text', required: true, admin: { description: 'The ARIA label for the social media link.' } },
       ],
     },
@@ -69,7 +79,13 @@ export const Footer: GlobalConfig = {
           ],
           admin: { description: 'Select the type of contact info item.' },
         },
-        { name: 'iconName', type: 'text', required: true, admin: { description: 'The name of the icon to display for the contact info item.' } },
+        {
+          name: 'iconName',
+          type: 'select',
+          required: true,
+          options: ['faFacebookF', 'faXTwitter', 'faInstagram', 'faLinkedin', 'faGithub', 'faWhatsapp', 'faWhatsappc', 'faGem', 'faHome', 'faEnvelope', 'faPhoneFlip'],
+          admin: { description: 'The icon to display for the contact info item.' },
+        },
         { name: 'content', type: 'text', required: true, admin: { description: 'The content for the contact info item.' } },
         { name: 'isLink', type: 'checkbox', admin: { description: 'Check if this contact info item is a link.' } },
 
@@ -79,7 +95,7 @@ export const Footer: GlobalConfig = {
           type: 'select',
           defaultValue: 'text-white',
           options: ['text-white', 'text-primary', 'text-secondary', 'text-success', 'text-info', 'text-warning', 'text-danger'],
-          admin: { description: 'Bootstrap contextual color of the progress bar.' },
+          admin: { description: 'Bootstrap text color class for the contact info item.' },
         },
       ],
     },

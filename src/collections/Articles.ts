@@ -1,7 +1,12 @@
 import type { CollectionConfig } from 'payload'
+import { portfolioAfterChange, portfolioAfterDelete } from '../lib/portfolio/hooks'
 
 export const Articles: CollectionConfig = {
   slug: 'articles',
+  hooks: {
+    afterChange: [portfolioAfterChange],
+    afterDelete: [portfolioAfterDelete],
+  },
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'category', 'publishedAt', 'featured'],

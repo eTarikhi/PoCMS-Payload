@@ -1,7 +1,12 @@
 import type { CollectionConfig } from 'payload'
+import { portfolioAfterChange, portfolioAfterDelete } from '../lib/portfolio/hooks'
 
 export const About: CollectionConfig = {
     slug: 'about',
+    hooks: {
+        afterChange: [portfolioAfterChange],
+        afterDelete: [portfolioAfterDelete],
+    },
     labels: {
         singular: 'About',
         plural: 'About',
