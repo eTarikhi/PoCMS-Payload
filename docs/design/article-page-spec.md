@@ -359,5 +359,5 @@ Set D is implemented and awaiting approval to close the feature.
 
 Approved on 2026-10-09. Sets A to D are committed (`dc2a51e`, `7334519`, `8a8e079`, `992d61a`).
 
-- **Placeholder removed.** The layout-check article `layout-check-placeholder-text` was deleted from the local database. A restart cleared the cached page, and the URL now returns 404. The six seeded articles are unchanged.
+- **Placeholder removed.** The layout-check article `layout-check-placeholder-text` was deleted from the local database. A restart did not clear the cached page, because Next keeps rendered pages on disk in `.next/server/route-cache`, and the fetch cache is in `.next/cache/fetch-cache`. Both were removed, and the URL now returns 404. A deletion made from a separate script does not invalidate the cache (the Set 6 gap). Deletions made in `/admin` do. The six seeded articles are unchanged.
 - **Still open, not decided by the approval.** (1) Body text for the six seeded articles. Until it is supplied, none has a page, and the cards show no "Read on this site" link. (2) The missing-article response. Option A accepts Next.js 16.3.8's empty HTML shell with the correct 404 status (§15). Option B returns a 200 page with `noindex`.
