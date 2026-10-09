@@ -24,7 +24,6 @@ export const Articles: CollectionConfig = {
       type: 'text',
       unique: true,
       admin: {
-        position: 'sidebar',
         description: 'URL key for /articles/{slug}. Made from the title when left empty. Keep it stable once the article is shared.',
       },
     },
