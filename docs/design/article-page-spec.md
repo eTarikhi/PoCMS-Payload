@@ -343,3 +343,14 @@ Set C is implemented and awaiting approval. Set D (SEO and QA) does not start un
 - **Verified.** tsc 0, eslint 0 errors, vitest 121 passed. `next build --webpack` 0. Headless screenshots at 1366px and 390px show no horizontal overflow. The measure is about 700px (68ch), the title is 40px on desktop and 30px on mobile, the body is 18px, and the cover is 1140px wide on desktop.
 - **Placeholder article in the local database.** `layout-check-placeholder-text` ("Layout check (placeholder text)") exists only so the layout can be reviewed. Its body is placeholder text, not article content. Delete it before the feature closes, or when the real bodies are added.
 - **Still open from Set B.** The six seeded articles still have no body text. The 404 limitation is unchanged.
+
+## 17. Set D notes (SEO and QA)
+
+Set D is implemented and awaiting approval to close the feature.
+
+- **Metadata.** `buildArticleMetadata` in `lib/seo.ts`: title is the article title, description is the excerpt, the canonical URL is `{site}/articles/{slug}`, and Open Graph type is `article` with `publishedTime`. The image is the cover, made absolute, or the profile photo when there is no cover. `generateMetadata` in the article route returns `noindex` for a missing article. Next replaces the root `openGraph` and `twitter` objects, so both are set in full.
+- **Structured data.** `buildBlogPostingJsonLd` gives `headline`, `description`, `datePublished`, `author` (the home page's Person, without a nested `@context`), `image`, `url`, and `mainEntityOfPage`. Every URL is absolute. The script is rendered beside the home page's Person block, outside `SiteChrome`.
+- **Contrast.** `tests/int/article-contrast.int.spec.ts` computes WCAG ratios for every text pair. It also checks that the colors exist in `article.css`. Results: body 15.47:1, title 19.13:1, excerpt 14.08:1, meta 11.07:1, links 12.06:1, link hover 7.32:1, badge and CTA text 7.32:1. The homepage's white-on-amber button is 2.61:1 and is not used on the article page (F-A1, separate change, D-A6).
+- **Verified.** tsc 0. eslint 0 errors (the 7 warnings were there before this set). vitest 142 passed across 12 files. `next build --webpack` 0. A production smoke test (`next start`) checked the homepage (Person JSON-LD only, no canonical, unchanged), the placeholder article (200, canonical, Open Graph, `BlogPosting`), a seeded article with no body (404, `noindex`), and an unknown slug (404, `noindex`).
+- **Known gaps, for the record.** The homepage has no canonical link, because §7 covers articles only. The sitemap is out of scope (§7). The missing-article HTML is still the Next.js 16.3.8 empty shell from Set B. Playwright e2e was not run, because the browser download is blocked in this sandbox, as in earlier sets.
+- **Before closing the feature.** Delete the placeholder article `layout-check-placeholder-text`. Settle the six seeded article bodies and the 404 option (Set B, §15).

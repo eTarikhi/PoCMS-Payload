@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 
+import type { ArticleDetail } from './article-mappers'
+import { articlePagePath } from './article-page'
 import type { FooterContent, HeaderContent } from './types'
 
 /**
@@ -122,5 +124,84 @@ export const buildPersonJsonLd = (
     image: `${site}${PROFILE_IMAGE_PATH}`,
     jobTitle: JOB_TITLE,
     sameAs: [...profiles, site],
+  }
+}
+
+/**
+ * Absolute URL for a path or an absolute URL. Media can be either: an upload gives `/api/media/file/...`,
+ * and Vercel Blob gives an absolute URL (article page spec §7).
+ */
+export const absoluteUrl = (value: string, site: string = siteUrl()): string =>
+  new URL(value, `${site}/`).toString()
+
+/** Canonical URL of an article page (spec §7, D-5). */
+export const articleCanonicalUrl = (slug: string, site: string = siteUrl()): string =>
+  `${site}${articlePagePath(slug)}`
+
+/**
+ * Per-article metadata for `/articles/[slug]` (article page spec §7). The title is the article title. The
+ * description is the excerpt. The image is the cover when there is one, and the profile photo otherwise.
+ * Next replaces the root `openGraph` and `twitter` objects, so both are set here in full.
+ */
+export const buildArticleMetadata = (
+  article: ArticleDetail,
+  site: string = siteUrl(),
+): Metadata => {
+  const url = articleCanonicalUrl(article.slug, site)
+  const image = article.coverUrl
+    ? { url: absoluteUrl(article.coverUrl, site), alt: article.coverAlt, width: 1140, height: 600 }
+    : {
+        url: `${site}${PROFILE_IMAGE_PATH}`,
+        alt: OWNER,
+        width: PROFILE_IMAGE_WIDTH,
+        height: PROFILE_IMAGE_HEIGHT,
+      }
+
+  return {
+    title: article.title,
+    ...(article.excerpt ? { description: article.excerpt } : {}),
+    alternates: { canonical: url },
+    openGraph: {
+      type: 'article',
+      siteName: OG_SITE_NAME,
+      title: article.title,
+      ...(article.excerpt ? { description: article.excerpt } : {}),
+      url,
+      locale: 'en_US',
+      ...(article.publishedAt ? { publishedTime: article.publishedAt } : {}),
+      images: [image],
+    },
+    twitter: {
+      card: article.coverUrl ? 'summary_large_image' : 'summary',
+      title: article.title,
+      ...(article.excerpt ? { description: article.excerpt } : {}),
+      images: [image.url],
+    },
+  }
+}
+
+/**
+ * `BlogPosting` JSON-LD for an article page (article page spec §7). The author is the same Person as the
+ * home page, without its `@context` (it is nested). Every URL is absolute.
+ */
+export const buildBlogPostingJsonLd = (
+  article: ArticleDetail,
+  header: HeaderContent | null,
+  footer: FooterContent | null,
+  site: string = siteUrl(),
+): Record<string, unknown> => {
+  const { '@context': _context, ...author } = buildPersonJsonLd(header, footer, site)
+  const url = articleCanonicalUrl(article.slug, site)
+
+  return {
+    '@context': 'https://schema.org/',
+    '@type': 'BlogPosting',
+    headline: article.title,
+    ...(article.excerpt ? { description: article.excerpt } : {}),
+    ...(article.publishedAt ? { datePublished: article.publishedAt } : {}),
+    author,
+    image: absoluteUrl(article.coverUrl ?? PROFILE_IMAGE_PATH, site),
+    url,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': url },
   }
 }
