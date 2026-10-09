@@ -1,6 +1,6 @@
 # Article page: technical specification
 
-Status: **proposal, awaiting approval.** No runtime code is changed by this document. Implementation follows the same set-by-set approval workflow as the vTarikhi migration (see `docs/migration/03-refactoring-specification.md`, §6).
+Status: **D-A1, D-A4, and D-A10 approved. D-A2, D-A3, and D-A5 to D-A9 are still open (§11).** No runtime code is changed by this document. Implementation follows the same set-by-set approval workflow as the vTarikhi migration (see `docs/migration/03-refactoring-specification.md`, §6).
 
 Date: 2026-10-09. Scope: the root Payload app in this repository, branch `arena/33b19b08-pocms-payload`.
 
@@ -8,9 +8,9 @@ Date: 2026-10-09. Scope: the root Payload app in this repository, branch `arena/
 
 ## 0. Assumptions and open questions
 
-- **"Modern dark-themed blog template" is not named.** This spec does not copy a specific template. It applies the reading-layout conventions common to dark blog themes: a narrow text column, a generous line height, a clear heading scale, a reading-progress bar, and a visible metadata row. If you have a specific template in mind, send its URL or a screenshot and §5 will be adjusted. Decision D-A4.
+- **"Modern dark-themed blog template" is not named, and that is intentional (D-A4, approved).** This spec does not copy a specific template. It applies the reading-layout conventions common to dark blog themes: a narrow text column, a generous line height, a clear heading scale, a reading-progress bar, and a visible metadata row. §8 is the reference.
 - **The homepage is already dark.** The body background is `#0d0f17` with `#e7e7e7` text. The article page therefore *extends* the existing palette and typography. It does not introduce a second theme.
-- **Article content is not yet internal.** The current `Articles` collection holds a title, an excerpt, an optional description, an image, and an external `link` (LinkedIn, Medium). An internal article page needs a stable URL key and a body. §3 adds both. Decisions D-A1 and D-A2.
+- **Article cards keep linking out (D-A1, approved).** Homepage cards continue to open LinkedIn or Medium in a new tab. The current `Articles` collection holds a title, an excerpt, an optional description, an image, and an external `link`. An internal article page still needs a stable URL key and a body, so §3 adds both. Articles with a body also get a smaller "Read on this site" link to the internal page (D-A10, approved).
 
 ---
 
@@ -76,7 +76,7 @@ Changes to `collections/Articles.ts`. Existing fields are kept.
 | `slug` | `text`, `unique`, `index`, `required` | URL key. Generated from `title` in a `beforeValidate` hook when empty (lowercase, ASCII, hyphens, max 80 characters). Editable. Must be unique. |
 | `body` | `richText` (Lexical) | Article body. Rendered by `RichText` with the converters in §5.3. Required for the internal page. |
 | `coverImage` | `upload` → `media` | Reuse the existing `image` field instead of adding a new one. Decision D-A5: keep `image` and `imageUrl` as is. |
-| `link` | `text` | Kept. Its label changes to "Originally published at" (optional, no longer `required`). Decision D-A1. |
+| `link` | `text` | Kept and still `required`. It is the card's main link (D-A1, approved). |
 | `readTime` | `number` | Kept. The admin hint remains "minutes". It is not computed from the body in this spec. |
 | `status` | — | Not added. Articles without a `body` are not published as pages (§5.1). |
 
@@ -258,15 +258,16 @@ The existing Vitest setup covers all of these. The Playwright e2e spec stays unc
 
 | ID | Question | Recommendation |
 |---|---|---|
-| **D-A1** | Should homepage article cards link to the internal page (`/articles/{slug}`), or keep linking out to LinkedIn and Medium? | **Internal**, with "Originally published at" as a secondary link. Keep external links only for articles with no body. |
+| **D-A1** | Should homepage article cards link to the internal page (`/articles/{slug}`), or keep linking out to LinkedIn and Medium? | **APPROVED: keep linking out** to LinkedIn and Medium. Cards are unchanged. Consequence: the internal page needs its own entry point (D-A10). |
 | **D-A2** | Body source: a new `body` rich-text field, or reuse the existing `description` textarea? | **New `body` rich-text field.** `description` is plain text and can't hold headings, lists, or code. |
 | **D-A3** | Navigation links: `/#section` everywhere (§4.2), or per-page link sets? | **`/#section` everywhere.** One format, no per-page branching. |
-| **D-A4** | Which dark blog template should the reading layout follow? | Send a link or screenshot. Until then, §8 is used as is. |
+| **D-A4** | Which dark blog template should the reading layout follow? | **APPROVED: common dark-blog reading conventions**, as written in §8. No specific template. |
 | **D-A5** | Cover image: reuse `image` (upload) with `imageUrl` kept as a fallback? | **Reuse `image`.** Keep `imageUrl` as a fallback for the legacy seed. |
 | **D-A6** | Fix the homepage's white-on-amber buttons (F-A1) now, or in a separate change? | **Separate change.** It touches the homepage visuals, which this spec does not change. |
 | **D-A7** | Need an image block in the rich-text body in the first version? | **No**, in the first version. Add it later if needed. |
 | **D-A8** | Per-article cache tags, or the single `portfolio` tag (§6)? | **Single `portfolio` tag.** It is simpler and the content volume is small. |
 | **D-A9** | Add a skip-to-content link to the shared layout? | **Yes.** It is cheap and improves keyboard use across both pages. |
+| **D-A10** | Entry point for the internal article page, now that cards link out (D-A1). Options: (a) reachable by direct URL only, (b) a secondary "Read on this site" link on each card, (c) drop the internal route. | **APPROVED: (b).** Each card keeps its main link out. Articles with a body also get a smaller "Read on this site" link to `/articles/{slug}`. |
 
 ---
 
@@ -277,7 +278,7 @@ Each set ends with a stop for approval, the same as the migration.
 | Set | Scope | Gate |
 |---|---|---|
 | **A. Shared chrome** | `SiteChrome.tsx`. Replace `page.tsx` composition with it. `/#section` links in `Navigation` and `Footer`. The consistency test in §4.3. The homepage must look and behave the same. | Approval, then a visual parity check against the current homepage. |
-| **B. Content and routing** | `slug` and `body` fields. The slug backfill script. The body content for the six seeded articles. `/articles/[slug]` with `generateStaticParams` and `notFound`. `lib/articles.ts` and the mappers. | Approval, then the content review of the six article bodies. |
+| **B. Content and routing** | `slug` and `body` fields. The slug backfill script. The body content for the six seeded articles. `/articles/[slug]` with `generateStaticParams` and `notFound`. `lib/articles.ts` and the mappers. The "Read on this site" link on each article card with a body (D-A10). | Approval, then the content review of the six article bodies. |
 | **C. Article components** | `components/article/*`, `styles/article.css`, `RichText` converters, `ReadingProgress`. Unit and component tests. | Approval, then a visual review of one article against §8. |
 | **D. SEO and QA** | `generateMetadata`, `BlogPosting` JSON-LD, the contrast script, the full test run, `next build`, and a production smoke test of `/` and `/articles/{slug}`. | Approval to close the feature. |
 
@@ -298,7 +299,7 @@ src/app/(frontend)/
 │   ├── layout/SiteChrome.tsx          NEW (Set A)
 │   ├── layout/...                     existing; links changed to /#section (Set A)
 │   ├── article/                       NEW (Set C)
-│   └── sections/...                   existing; ArticlesSection links to /articles/{slug} (Set B, D-A1)
+│   └── sections/...                   existing; ArticlesSection keeps its external main link (D-A1) and adds a "Read on this site" link for articles with a body (D-A10) (Set B)
 ├── lib/
 │   ├── articles.ts                    NEW (Set B): getCachedArticleBySlug, getArticleSlugs, slugify
 │   ├── article-mappers.ts             NEW (Set B): ArticleDetail
