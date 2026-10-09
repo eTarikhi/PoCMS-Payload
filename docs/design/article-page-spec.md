@@ -1,6 +1,6 @@
 # Article page: technical specification
 
-Status: **D-A1, D-A2, D-A3, D-A4, and D-A10 approved. D-A5 to D-A9 are still open (§11).** No runtime code is changed by this document. Implementation follows the same set-by-set approval workflow as the vTarikhi migration (see `docs/migration/03-refactoring-specification.md`, §6).
+Status: **approved (§11). D-A2 was revised to plain text, and D-A7 no longer applies as a result.** No runtime code is changed by this document. Implementation follows the same set-by-set approval workflow as the vTarikhi migration (see `docs/migration/03-refactoring-specification.md`, §6).
 
 Date: 2026-10-09. Scope: the root Payload app in this repository, branch `arena/33b19b08-pocms-payload`.
 
@@ -10,7 +10,7 @@ Date: 2026-10-09. Scope: the root Payload app in this repository, branch `arena/
 
 - **"Modern dark-themed blog template" is not named, and that is intentional (D-A4, approved).** This spec does not copy a specific template. It applies the reading-layout conventions common to dark blog themes: a narrow text column, a generous line height, a clear heading scale, a reading-progress bar, and a visible metadata row. §8 is the reference.
 - **The homepage is already dark.** The body background is `#0d0f17` with `#e7e7e7` text. The article page therefore *extends* the existing palette and typography. It does not introduce a second theme.
-- **Article cards keep linking out (D-A1, approved).** Homepage cards continue to open LinkedIn or Medium in a new tab. The current `Articles` collection holds a title, an excerpt, an optional description, an image, and an external `link`. An internal article page still needs a stable URL key and a body, so §3 adds both. Articles with a body also get a smaller "Read on this site" link to the internal page (D-A10, approved).
+- **Article cards keep linking out (D-A1, approved).** Homepage cards continue to open LinkedIn or Medium in a new tab. The current `Articles` collection holds a title, an excerpt, an optional description, an image, and an external `link`. An internal article page still needs a stable URL key, and the body text (the existing plain-text `description`, D-A2 revised). §3 adds the slug. Articles with a body also get a smaller "Read on this site" link to the internal page (D-A10, approved).
 
 ---
 
@@ -45,9 +45,8 @@ Date: 2026-10-09. Scope: the root Payload app in this repository, branch `arena/
 | Footer links | `social.url`, `profile.url`, `contact.url \|\| '#'`, `copyright.url` | `components/layout/Footer.tsx` |
 | Articles section | every card links out (`article.link`, `target="_blank"`) | `components/sections/ArticlesSection.tsx` |
 | Articles collection | `title`, `excerpt`, `description`, `featured`, `category`, `publishedAt`, `readTime`, `image`, `imageUrl`, `link`. **No slug, no body.** | `collections/Articles.ts` |
-| Rich text | `@payloadcms/richtext-lexical` 3.90.2 is installed, and `lexicalEditor()` is the global editor | `payload.config.ts`, `package.json` |
-| Renderer | `RichText` and `JSXConvertersFunction` are exported from `@payloadcms/richtext-lexical/react` | installed package `index.d.ts` |
-| Seed | 6 articles, none with a body | `seed/articles.ts` |
+| Rich text | `@payloadcms/richtext-lexical` 3.90.2 is installed, and `lexicalEditor()` is the global editor. Not used by the article page (D-A2 revised). | `payload.config.ts`, `package.json` |
+| Seed | 6 articles, with `title`, `excerpt`, and `link`. None has a `description`. | `seed/articles.ts` |
 | Page composition | `Navigation`, `Hero`, `main`, `Footer`, `BackToTop`, `BootstrapClient`, and `JsonLd` are all rendered in `(frontend)/page.tsx` | `app/(frontend)/page.tsx` |
 
 ### Contrast audit (computed, WCAG 2.x relative luminance)
@@ -63,7 +62,7 @@ Date: 2026-10-09. Scope: the root Payload app in this repository, branch `arena/
 | **`#ffffff` on `#da9100` (current `btn-primary`)** | **2.61:1** | **Fails AA (needs 4.5:1)** |
 | **`#0d0f17` on `#da9100` (proposed CTA text)** | **7.32:1** | **Passes AAA** |
 
-**Finding F-A1.** The homepage's `btn-primary` buttons use white text on amber, which fails AA. They are the Hero button (`Hero.tsx`), the Services, Articles, and Certificates buttons, and the Certificates "View" button. The article page must not copy that pairing. The homepage fix is out of scope here and should be a separate change (§11, decision D-A6).
+**Finding F-A1.** The homepage's `btn-primary` buttons use white text on amber, which fails AA. They are the Hero button (`Hero.tsx`), the Services, Articles, and Certificates buttons, and the Certificates "View" button. The article page must not copy that pairing. The homepage fix is out of scope here and is a separate change (D-A6, approved).
 
 ---
 
@@ -74,13 +73,12 @@ Changes to `collections/Articles.ts`. Existing fields are kept.
 | Field | Type | Notes |
 |---|---|---|
 | `slug` | `text`, `unique`, `index`, `required` | URL key. Generated from `title` in a `beforeValidate` hook when empty (lowercase, ASCII, hyphens, max 80 characters). Editable. Must be unique. |
-| `body` | `richText` (Lexical) | Article body. Rendered by `RichText` with the converters in §5.3. Required for the internal page. |
-| `coverImage` | `upload` → `media` | Reuse the existing `image` field instead of adding a new one. Decision D-A5: keep `image` and `imageUrl` as is. |
+| `description` | `textarea` (existing) | **The article body (D-A2 revised).** Plain text. Paragraphs are separated by a blank line. It is not required, and the internal page needs it (§5.1). Admin hint: "Article body. Separate paragraphs with a blank line." |
 | `link` | `text` | Kept and still `required`. It is the card's main link (D-A1, approved). |
 | `readTime` | `number` | Kept. The admin hint remains "minutes". It is not computed from the body in this spec. |
-| `status` | — | Not added. Articles without a `body` are not published as pages (§5.1). |
+| `status` | — | Not added. Articles without a `description` are not published as pages (§5.1). |
 
-**Migration.** Set B adds the `slug` backfill (a one-time script in `src/seed/` that uses the same slug function) and body content for the six seeded articles. Payload pushes the schema change on the next start. The DB unique index on `slug` fails if two rows share a title, so the backfill appends `-2`, `-3`, and so on.
+**Migration.** Set B adds the `slug` backfill (a one-time script in `src/seed/` that uses the same slug function) and plain-text `description` content for the six seeded articles. Payload pushes the schema change on the next start. The DB unique index on `slug` fails if two rows share a title, so the backfill appends `-2`, `-3`, and so on.
 
 ---
 
@@ -127,9 +125,9 @@ src/app/(frontend)/articles/[slug]/
 └── opengraph-image.tsx optional, out of scope for Set B
 ```
 
-- `generateStaticParams()` reads every article that has a `slug` and a `body` through the cached data layer. The articles are prerendered at build time, the same way the homepage is.
+- `generateStaticParams()` reads every article that has a `slug` and a `description` through the cached data layer. The articles are prerendered at build time, the same way the homepage is.
 - `dynamicParams` stays at its default (`true`). A new article saved after the build renders on the first request and is then cached.
-- An unknown slug, or an article with no body, calls `notFound()`.
+- An unknown slug, or an article with no `description`, calls `notFound()`.
 - `getCachedArticleBySlug(slug)` lives in `lib/articles.ts`. It uses `unstable_cache` with the key `['portfolio-article', slug]` and the tag `portfolio`. The existing `portfolioAfterChange` and `portfolioAfterDelete` hooks already call `revalidateTag('portfolio', 'max')`, so no new hook is needed.
 
 ### 5.2 Components
@@ -146,7 +144,7 @@ components/
     ├── ArticleHeader.tsx        server  category, title, excerpt, date, readTime
     ├── ArticleMeta.tsx          server  date and readTime row (reuses the homepage format)
     ├── ArticleCover.tsx         server  wraps the existing ui/CoverImage.tsx
-    ├── ArticleBody.tsx          server  RichText + converters (§5.3)
+    ├── ArticleBody.tsx          server  plain-text paragraphs from `description` (§5.3)
     ├── ArticleFooterNav.tsx     server  "Back to articles" and "Originally published at" links
     └── ReadingProgress.tsx      client  thin amber bar at the top, scroll-driven
 ```
@@ -155,11 +153,13 @@ components/
 
 `ArticleBody` does not use the homepage's `TypingEffect`, scroll reveal, or any animation.
 
-### 5.3 Rich text rendering
+### 5.3 Plain-text body rendering (D-A2 revised)
 
-- Use `RichText` from `@payloadcms/richtext-lexical/react`.
-- Converters: the default set, plus a custom `heading` converter that adds an anchor `id` (for example, `h2` gets `id="section-slug"`) so the reader can link to it.
-- No raw HTML. Images in the body use `next/image` through a small block converter. Decision D-A7 covers whether a block converter is needed in the first version.
+- The body is the article's `description`, plain text. `ArticleBody` splits it on blank lines (`/\n\s*\n/`) and renders each non-empty chunk as a `<p>`.
+- Text is rendered as React text, so it is escaped. No HTML is accepted or rendered.
+- Single line breaks inside a paragraph are kept as spaces. No headings, lists, links, code, or images are parsed from the body in this version.
+- The Lexical renderer (`RichText`) is not used by this feature. It stays installed for other collections.
+- Because the body has no headings, there is no table of contents and no heading anchors.
 
 ### 5.4 Mapping
 
@@ -174,7 +174,7 @@ type ArticleDetail = {
   publishedDisplay: string   // "October 9, 2026"
   readTimeDisplay: string    // "5 min"
   coverUrl: string | null
-  body: SerializedEditorState   // passed to ArticleBody only
+  paragraphs: string[]          // split from `description` by blank lines (§5.3)
   externalLink: string | null
 }
 ```
@@ -186,7 +186,7 @@ type ArticleDetail = {
 ## 6. Caching and revalidation
 
 - The article route is prerendered like the homepage. It has no `headers()`, `cookies()`, or `payload.auth()` calls.
-- It shares the single `portfolio` tag. Saving any article, or the header, footer, or other collections, refreshes it. This is slightly broader than necessary. The trade-off is one tag and no per-article bookkeeping. Decision D-A8 asks whether you want per-slug tags.
+- It shares the single `portfolio` tag (D-A8, approved). Saving any article, or the header, footer, or other collections, refreshes it. This is slightly broader than necessary. The trade-off is one tag and no per-article bookkeeping.
 - The known gap from Set 6 still applies. A seed or a direct database change does not refresh the cache until the next build or a save in `/admin`.
 
 ---
@@ -207,18 +207,16 @@ Colors and fonts are reused from the homepage. The reading layer adds only the v
 |---|---|---|
 | Page background | `#0d0f17` | unchanged |
 | Body text | `#e7e7e7`, Open Sans 400 | Open Sans 400, `1.125rem` (18px), line-height `1.75` |
-| Headings | `#fff`, Open Sans 700 | `h2` 2rem, `h3` 1.5rem, `h4` 1.125rem, margin-top `2.5em`, `letter-spacing: -0.01em` |
+| Title (`h1`) | `#fff`, Open Sans 700 | Open Sans 700, `2.5rem` on desktop, `1.875rem` on mobile, `letter-spacing: -0.01em` |
 | Measure | container (Bootstrap) | text column `max-width: 68ch`, centered. Cover image up to 1140px wide. |
 | Paragraph spacing | `margin-bottom` default | `margin: 0 0 1.25em` |
-| Links | `#ffc448` | same color, `text-decoration-thickness: 0.08em`, `text-underline-offset: 0.2em`. Hover `#da9100`. |
-| Blockquote | — | `border-left: 3px solid #da9100`, background `rgba(218, 145, 0, 0.08)`, text `#cfc4ad`, padding `1rem 1.25rem` |
-| Inline code | — | `background: #12141d`, text `#ffc448`, radius 4px |
-| Code block | — | `background: #12141d`, border `1px solid #34495e`, `overflow-x: auto` |
-| Image caption | — | `#ddd`, `0.875rem`, centered |
+| Links (navigation, footer, "Originally published at") | `#ffc448` | same color, `text-decoration-thickness: 0.08em`, `text-underline-offset: 0.2em`. Hover `#da9100`. |
 | Category badge | — | `background: #da9100`, text `#0d0f17` (AAA, §2) |
 | Primary CTA | `btn-primary` (white on amber, fails AA) | text `#0d0f17` on `#da9100` (7.32:1) |
 | Reading progress | — | `#da9100`, height 3px, fixed top |
 | Dividers | `#34495e` | same |
+
+Rows for headings, blockquotes, inline code, code blocks, and image captions were removed in D-A2 revised, because the body is plain text.
 
 **Styles file.** `styles/article.css`, new, imported from `articles/[slug]/page.tsx`. Every rule is scoped under `.article-page`, so `main.css` is not touched.
 
@@ -226,10 +224,10 @@ Colors and fonts are reused from the homepage. The reading layer adds only the v
 
 ## 9. Accessibility
 
-- One `<h1>` (the title). Body headings start at `h2`.
+- One `<h1>` (the title). The body is paragraphs only, so it has no headings.
 - The `<article>` element wraps the body. `<time dateTime="…">` is used for the date.
 - Images have `alt` text from the media record. An image without `alt` fails the content check in §10.
-- Focus styles are kept from Bootstrap. Skip link: the layout gets one `Skip to content` link (decision D-A9, optional).
+- Focus styles are kept from Bootstrap. The shared layout gets one `Skip to content` link (D-A9, approved). It is visually hidden until it receives focus.
 - The reading-progress bar is `aria-hidden="true"`.
 - All text colors meet AA. The CTA uses dark text on amber (§2, F-A1).
 - Respect `prefers-reduced-motion`: no progress animation.
@@ -241,11 +239,11 @@ Colors and fonts are reused from the homepage. The reading layer adds only the v
 | Test | Type | Layer |
 |---|---|---|
 | `slugify` and uniqueness suffix (`-2`, `-3`) | unit | `lib/articles` |
-| `mapArticleDoc` → `ArticleDetail` (dates, read time, cover URL, null `body` returns `notFound`) | unit | `lib/article-mappers` |
+| `mapArticleDoc` → `ArticleDetail` (dates, read time, cover URL, missing `description` returns `notFound`, blank-line splitting) | unit | `lib/article-mappers` |
 | `buildBlogPostingJsonLd` output (required fields, absolute URLs) | unit | `lib/seo` |
-| `ArticleBody` renders headings with `id`s, links, lists, blockquote, and code | component (jsdom) | `components/article` |
+| `ArticleBody` splits plain text into paragraphs, drops empty chunks, and escapes HTML in the text | component (jsdom) | `components/article` |
 | `ReadingProgress` updates `scaleX` on scroll, removes its listener on unmount, and is hidden under reduced motion | component (jsdom) | `components/article` |
-| `SiteChrome` produces identical `nav` and `footer` markup on the homepage and the article page | integration | `tests/int/` |
+| `SiteChrome` produces identical `nav` and `footer` markup on the homepage and the article page, and the skip link is present on both | integration | `tests/int/` |
 | Each navigation link resolves to `/#section` on the article page | integration | `tests/int/` |
 | `/articles/{slug}` prerenders for each seeded article, and an unknown slug returns 404 | build and smoke | `next build` and `next start` |
 | Contrast of the tokens in §8 | script | `tests/int/` (pure computation) |
@@ -259,14 +257,14 @@ The existing Vitest setup covers all of these. The Playwright e2e spec stays unc
 | ID | Question | Recommendation |
 |---|---|---|
 | **D-A1** | Should homepage article cards link to the internal page (`/articles/{slug}`), or keep linking out to LinkedIn and Medium? | **APPROVED: keep linking out** to LinkedIn and Medium. Cards are unchanged. Consequence: the internal page needs its own entry point (D-A10). |
-| **D-A2** | Body source: a new `body` rich-text field, or reuse the existing `description` textarea? | **APPROVED: new `body` rich-text field.** `description` is plain text and can't hold headings, lists, or code. |
+| **D-A2** | Body source: a new `body` rich-text field, or reuse the existing `description` textarea? | **REVISED, approved: plain-text `description`.** This reverses the earlier approval of a rich-text field. The body has no headings, lists, links, or code. §5.3 describes the plain-text rendering. |
 | **D-A3** | Navigation links: `/#section` everywhere (§4.2), or per-page link sets? | **APPROVED: `/#section` everywhere.** One format, no per-page branching. |
 | **D-A4** | Which dark blog template should the reading layout follow? | **APPROVED: common dark-blog reading conventions**, as written in §8. No specific template. |
-| **D-A5** | Cover image: reuse `image` (upload) with `imageUrl` kept as a fallback? | **Reuse `image`.** Keep `imageUrl` as a fallback for the legacy seed. |
-| **D-A6** | Fix the homepage's white-on-amber buttons (F-A1) now, or in a separate change? | **Separate change.** It touches the homepage visuals, which this spec does not change. |
-| **D-A7** | Need an image block in the rich-text body in the first version? | **No**, in the first version. Add it later if needed. |
-| **D-A8** | Per-article cache tags, or the single `portfolio` tag (§6)? | **Single `portfolio` tag.** It is simpler and the content volume is small. |
-| **D-A9** | Add a skip-to-content link to the shared layout? | **Yes.** It is cheap and improves keyboard use across both pages. |
+| **D-A5** | Cover image: reuse `image` (upload) with `imageUrl` kept as a fallback? | **APPROVED: reuse `image`.** Keep `imageUrl` as a fallback for the legacy seed. |
+| **D-A6** | Fix the homepage's white-on-amber buttons (F-A1) now, or in a separate change? | **APPROVED: separate change.** It touches the homepage visuals, which this spec does not change. |
+| **D-A7** | Need an image block in the rich-text body in the first version? | **Moot.** The body is plain text (D-A2 revised). |
+| **D-A8** | Per-article cache tags, or the single `portfolio` tag (§6)? | **APPROVED: single `portfolio` tag.** It is simpler and the content volume is small. |
+| **D-A9** | Add a skip-to-content link to the shared layout? | **APPROVED: yes.** It is cheap and improves keyboard use across both pages. |
 | **D-A10** | Entry point for the internal article page, now that cards link out (D-A1). Options: (a) reachable by direct URL only, (b) a secondary "Read on this site" link on each card, (c) drop the internal route. | **APPROVED: (b).** Each card keeps its main link out. Articles with a body also get a smaller "Read on this site" link to `/articles/{slug}`. |
 
 ---
@@ -277,9 +275,9 @@ Each set ends with a stop for approval, the same as the migration.
 
 | Set | Scope | Gate |
 |---|---|---|
-| **A. Shared chrome** | `SiteChrome.tsx`. Replace `page.tsx` composition with it. `/#section` links in `Navigation` and `Footer`. The consistency test in §4.3. The homepage must look and behave the same. | Approval, then a visual parity check against the current homepage. |
-| **B. Content and routing** | `slug` and `body` fields. The slug backfill script. The body content for the six seeded articles. `/articles/[slug]` with `generateStaticParams` and `notFound`. `lib/articles.ts` and the mappers. The "Read on this site" link on each article card with a body (D-A10). | Approval, then the content review of the six article bodies. |
-| **C. Article components** | `components/article/*`, `styles/article.css`, `RichText` converters, `ReadingProgress`. Unit and component tests. | Approval, then a visual review of one article against §8. |
+| **A. Shared chrome** | `SiteChrome.tsx`. Replace `page.tsx` composition with it. `/#section` links in `Navigation` and `Footer`. The skip link (D-A9). The consistency test in §4.3. The homepage must look and behave the same, apart from the skip link, which is hidden until focused. | Approval, then a visual parity check against the current homepage. |
+| **B. Content and routing** | `slug` field. The slug backfill script. Plain-text `description` content for the six seeded articles. `/articles/[slug]` with `generateStaticParams` and `notFound`. `lib/articles.ts` and the mappers. The "Read on this site" link on each article card with a body (D-A10). | Approval, then the content review of the six article bodies. |
+| **C. Article components** | `components/article/*`, `styles/article.css`, `ReadingProgress`. Unit and component tests. | Approval, then a visual review of one article against §8. |
 | **D. SEO and QA** | `generateMetadata`, `BlogPosting` JSON-LD, the contrast script, the full test run, `next build`, and a production smoke test of `/` and `/articles/{slug}`. | Approval to close the feature. |
 
 Set A is the smallest change and the one that protects the "identical navigation and footer" requirement. It should be approved first.
@@ -309,8 +307,8 @@ src/app/(frontend)/
     ├── main.css                       unchanged
     └── article.css                    NEW (Set C), scoped to .article-page
 
-src/collections/Articles.ts            + slug, + body (Set B)
-src/seed/articles.ts                   + bodies for six articles (Set B)
+src/collections/Articles.ts            + slug (Set B). description is reused as the body.
+src/seed/articles.ts                   + description text for six articles (Set B)
 tests/int/                             + SiteChrome parity, + nav link format, + contrast, + mappers, + components
 ```
 
