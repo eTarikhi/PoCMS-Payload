@@ -51,3 +51,4 @@ node_modules/
 .env.example
 /src/migrations
 test.env
+src/seed/portfolio-data.json

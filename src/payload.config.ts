@@ -1,12 +1,27 @@
 import { vercelPostgresAdapter } from '@payloadcms/db-vercel-postgres'
+import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import { GraphQL } from '@payloadcms/graphql/types'
 import path from 'path'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
+import { Footer } from './globals/Footer'
+
 import { Users } from './collections/Users'
+import { About } from './collections/About'
+import { Header } from './collections/Header'
+import { Articles } from './collections/Articles'
+import { Certificates } from './collections/Certificates'
+import { Educations } from './collections/Educations'
+import { Experiences } from './collections/Experiences'
+import { Projects } from './collections/Projects'
+import { Services } from './collections/Services'
+import { Skills } from './collections/Skills'
 import { Media } from './collections/Media'
+
+// import { MediaWithPrefix } from './collections/MediaWithPrefix'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -40,7 +55,20 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Media],
+  collections: [
+    Users,
+    About,
+    Header,
+    Articles,
+    Certificates,
+    Educations,
+    Experiences,
+    Projects,
+    Services,
+    Skills,
+    Media,
+  ],
+  globals: [Footer],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
@@ -60,5 +88,35 @@ export default buildConfig({
   //   }),
   // ],
   sharp,
-  plugins: [],
+  plugins: [
+    vercelBlobStorage({
+      enabled: true,
+      collections: {
+        media: true,
+        // 'media-with-prefix': {
+        //   prefix: 'media',
+        // },
+      },
+      token: process.env.BLOB_READ_WRITE_TOKEN || '',
+    }),
+  ],
+  graphQL: {
+    validationRules: (args) => [NoProductionIntrospection],
+    disablePlaygroundInProduction: false,
+  },
+})
+
+const NoProductionIntrospection: GraphQL.ValidationRule = (context) => ({
+  Field(node) {
+    if (process.env.NODE_ENV === 'production') {
+      if (node.name.value === '__schema' || node.name.value === '__type') {
+        context.reportError(
+          new GraphQL.GraphQLError(
+            'GraphQL introspection is not allowed, but the query contained __schema or __type',
+            { nodes: [node] },
+          ),
+        )
+      }
+    }
+  },
 })

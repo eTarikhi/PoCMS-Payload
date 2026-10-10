@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
       {
         pathname: '/api/media/file/**',
       },
+      {
+        // Static assets from public/images (vTarikhi portfolio). Without this entry,
+        // next/image rejects them once localPatterns is set (see migration analysis F-02).
+        pathname: '/images/**',
+      },
     ],
   },
   webpack: (webpackConfig) => {
