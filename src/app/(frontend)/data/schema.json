@@ -1,0 +1,25 @@
+{
+  "@context": "https://schema.org/",
+  "@type": "Person",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Istanbul, Turkey",
+    "addressRegion": "Beykoz",
+    "postalCode": "34805",
+    "streetAddress": "34805, Beykoz, Istanbul, Turkey"
+  },
+  "name": "Amir v.Tarikhi",
+  "telephone": "+90 (552) 570-0850",
+  "url": "https://www.etarikhi.com",
+  "email": "mailto:etarikhi@gmail.com",
+  "image": "https://vercel.etarikhi.com/_next/image?url=%2Fimages%2Fprofile.webp",
+  "jobTitle": "Senior Full-Stack Web Developer",
+  "sameAs": [
+    "https://www.facebook.com/etarikhi",
+    "https://www.twitter.com/eTarikhi",
+    "https://www.instagram.com/eTarikhi",
+    "https://www.linkedin.com/in/eTarikhi",
+    "https://www.github.com/eTarikhi",
+    "https://www.etarikhi.com"
+  ]
+}

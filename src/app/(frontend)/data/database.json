@@ -1,0 +1,567 @@
+[
+    {
+        "header": {
+            "id": 1,
+            "sureName": "Amir v.Tarikhi",
+            "imageUrl": "/images/profile.webp",
+            "requestCV": "https://api.whatsapp.com/send/?phone=905525700850",
+            "professionTexts": [
+                "Full-Stack Senior PHP Developer",
+                "Junior Laravel - NodeJS Developer",
+                "Automation Panel Developer",
+                "E-Commerce CMS - CRM Developer",
+                "SEO Manager and Consultant"
+            ]
+        },
+        "about": {
+            "id": 1,
+            "experience": {
+                "years": 12,
+                "title": "of working experience as Web Designer & Developer",
+                "description": "For approximately 12 years, I have continuously improved myself, embracing innovation and achieving success in areas such as content management systems, survey analysis systems, online e-commerce management panels, and integration systems. Additionally, I have gained experience in positions like software training. Despite the experiences and skills I have acquired during this period, I still feel a strong desire for learning within myself. This is because I am on a journey that continues to surprise me, and I feel like I am only halfway through the path. I believe it is time to delve into new technologies, frameworks, and libraries."
+            },
+            "workPermit": {
+                "title": "Sponsorship and Work Permit:",
+                "description": "I don't have currently a work permit in EU or USA, but if the employer sponsors me, I am eligible to work wherever the employer wants and also i'm open to immigration."
+            },
+            "images": [
+                "/images/about/about-1.jpg",
+                "/images/about/about-2.jpg"
+            ],
+            "interests": {
+                "title": "Interests",
+                "description": "In my professional career, I have always remained open to learning. However, due to my intense interest in certain areas, my curiosity turns into a passion, and working in those fields is always my front-end choice, as reaching an expertise level is relatively easy. I would like to list some of these areas:",
+                "areas": [
+                    "Robotics",
+                    "Machine Learning",
+                    "Artificial Intelligence",
+                    "Big Data and Data Analysis"
+                ]
+            }
+        },
+        "skills": {
+            "frontend": [
+                {
+                    "id": 1,
+                    "label": "HTML, CSS, Bootstrap",
+                    "value": 95,
+                    "color": "success"
+                },
+                {
+                    "id": 2,
+                    "label": "React, Next.js, Vue.js",
+                    "value": 75,
+                    "color": "info"
+                },
+                {
+                    "id": 3,
+                    "label": "PHP, MySQL, OOP",
+                    "value": 90,
+                    "color": "primary"
+                }
+            ],
+            "backend": [
+                {
+                    "id": 1,
+                    "label": "JavaScript, TypeScript",
+                    "value": 80,
+                    "color": "warning"
+                },
+                {
+                    "id": 2,
+                    "label": "NodeJS, Express",
+                    "value": 65,
+                    "color": "danger"
+                },
+                {
+                    "id": 3,
+                    "label": "Laravel, Symfony",
+                    "value": 65,
+                    "color": "info"
+                }
+            ]
+        },
+        "experiences": [
+            {
+                "id": 1,
+                "title": "IT Department Manager",
+                "date": "2022 - 2023",
+                "company": "Tiryaki İlaç LTD. ŞTİ. Istanbul, Turkey"
+            },
+            {
+                "id": 2,
+                "title": "Chief Technology Officer (CTO)",
+                "date": "2023.01 - 2023.06",
+                "company": "Proxima Agency LTD. Istanbul, Turkey"
+            },
+            {
+                "id": 3,
+                "title": "e-Commerce CMS Developer",
+                "date": "2019 - 2022",
+                "company": "Cadde10 İnteraktif LTD. Turkey"
+            },
+            {
+                "id": 4,
+                "title": "Web Developer & Manager",
+                "date": "2011 - 2019",
+                "company": "ARK Informatic Services, Tabriz, Iran"
+            }
+        ],
+        "educations": [
+            {
+                "id": 1,
+                "title": "Bachelor in Computer Software Engineering",
+                "date": "2014 - Leaved",
+                "location": "Payam-e Nur University / Tabriz, East Azerbaijan Province, Iran"
+            },
+            {
+                "id": 2,
+                "title": "Theoretical Diploma - Mathematics & Physics",
+                "date": "2001 - 2007",
+                "location": "Ferdosi Pre-University Center / Tabriz, East Azerbaijan Province, Iran"
+            }
+        ],
+        "certificates": [
+            {
+                "id": 1,
+                "title": "Become a Full-Stack Web Developer",
+                "issuer": "LinkedIn Learning",
+                "date": "January 9, 2025",
+                "imageUrl": "/images/certificates/1736423126300.webp",
+                "link": "https://www.linkedin.com/learning/certificates/3e859bb5078c5afad8e465d4af5a69d03962a90100e20586a00fd1a25400c483"
+            },
+            {
+                "id": 2,
+                "title": "JavaScript Foundations Professional Certificate ",
+                "issuer": "LinkedIn & Mozilla",
+                "date": "January 28, 2025",
+                "imageUrl": "/images/certificates/1738103078659.webp",
+                "link": "https://www.linkedin.com/learning/certificates/7467062ebbf550a9442998b2ed973875995e69672b4bd6baba09924a46734786"
+            },
+            {
+                "id": 3,
+                "title": "Developing for Web Performance",
+                "issuer": "LinkedIn",
+                "date": "February 9, 2025",
+                "imageUrl": "/images/certificates/1739147057897.webp",
+                "link": "https://www.linkedin.com/learning/certificates/aa854b6b4b14f651d939f4248e2fc9db0fc42627eab750e7fe4bee439393a4e3"
+            }
+        ],
+        "articles": [
+            {
+                "id": "1",
+                "title": "Full-Stack Geliştiriciler İçin DevOps: Temel Kavramlar ve Pratikler İçin Yol Haritası",
+                "excerpt": "Günümüz yazılım geliştirme dünyasında DevOps, artık bir seçenek değil, bir gereklilik haline geldi. Tam yığın (full-stack) geliştiriciler için DevOps",
+                "author": "February 2, 2025",
+                "readTime": "3 min",
+                "imageUrl": "/images/articles/1735708966846.webp",
+                "link": "https://www.linkedin.com/pulse/full-stack-geli%25C5%259Ftiriciler-i%25C3%25A7in-devops-temel-kavramlar-amir-vtarikhi-xmndf"
+            },
+            {
+                "id": "2",
+                "title": "The Best Code Editors: A Comprehensive Guide",
+                "excerpt": "In the ever-evolving world of software development, choosing the right code editor can significantly enhance productivity and streamline the coding process.",
+                "author": "January 15, 2025",
+                "readTime": "3 min",
+                "imageUrl": "/images/articles/1736912634143.webp",
+                "link": "https://www.linkedin.com/pulse/best-code-editors-comprehensive-guide-amir-vtarikhi-o9jmf"
+            },
+            {
+                "id": "3",
+                "title": "Essential DevOps Toolchains for Every Syllabus: Modern Software Development",
+                "excerpt": "Software development and IT operations are such a fast time so much changes are happening, so DevOps toolchains have been widely employed to automate",
+                "author": "January 6, 2025",
+                "readTime": "5 min",
+                "imageUrl": "/images/articles/1736156534915.webp",
+                "link": "https://www.linkedin.com/pulse/essential-devops-toolchains-every-syllabus-modern-amir-vtarikhi-semaf"
+            },
+            {
+                "id": "4",
+                "title": "DevOps Syllabus You Need to Learn as a Full-Stack Developer",
+                "excerpt": "In the rapidly evolving landscape of software development, the integration of DevOps practices is becoming increasingly essential for full-stack web developers.",
+                "author": "January 1, 2025",
+                "readTime": "3 min",
+                "imageUrl": "/images/articles/1735708966846.webp",
+                "link": "https://www.linkedin.com/pulse/devops-syllabus-you-need-learn-full-stack-developer-amir-vtarikhi-3kpqf"
+            },
+            {
+                "id": "5",
+                "title": "Most Used Laravel Packages: A Comprehensive Guide",
+                "excerpt": "#Laravel is a powerful #PHP #framework that provides developers with a robust set of tools to build web applications efficiently. One of the key strengths",
+                "author": "December 30, 2024",
+                "readTime": "3 min",
+                "imageUrl": "/images/articles/1735489434802.webp",
+                "link": "https://www.linkedin.com/pulse/most-used-laravel-packages-comprehensive-guide-amir-vtarikhi-k9v3f"
+            },
+            {
+                "id": "6",
+                "title": "Becoming a full-stack developer",
+                "excerpt": "Becoming a full-stack developer is an exciting and rewarding career path! A full-stack developer works on both the front-end (user interface) and back-end",
+                "author": "December 4, 2024",
+                "readTime": "2 min",
+                "imageUrl": "/images/articles/1733263816314.webp",
+                "link": "https://www.linkedin.com/pulse/becoming-full-stack-developer-amir-vtarikhi-9nwif"
+            }
+        ],
+        "services": {
+            "hiring": [
+                {
+                    "id": 1,
+                    "title": "Hiring Me ..",
+                    "link": "https://linkedin.com/comm/mynetwork/discovery-see-all?usecase=PEOPLE_FOLLOWS&followMember=etarikhi"
+                }
+            ],
+            "items": [
+                {
+                    "id": 1,
+                    "category": "Back-End Development",
+                    "iconFont": "faCode",
+                    "descriptions": [
+                        "PHP, OOP, MVC, MySQL, PDO",
+                        "RESTful API, SOAP, GraphQL",
+                        "Ajax, JavaScript, TypeScript,",
+                        "Frameworks ( Laravel, Symfony, .. )",
+                        "CMS & CRM ( WordPress, Joomla, .. )",
+                        "Shopify, WooCommerce, OpenCart, Presta"
+                    ]
+                },
+                {
+                    "id": 2,
+                    "category": "Front-End Development",
+                    "iconFont": "faCropAlt",
+                    "descriptions": [
+                        "HTML5, CSS3, Bootstrap 5",
+                        "JavaScript, TypeScript, ES6",
+                        "React, Next.js, Vue.js",
+                        "Vite, WebPack, JQuery",
+                        "Elementor & UI Kits",
+                        "Responsive Design"
+                    ]
+                },
+                {
+                    "id": 3,
+                    "category": "Data Analysis and SEO",
+                    "iconFont": "faLaptopCode",
+                    "descriptions": [
+                        "Bing & Yandex Webmaster Tools",
+                        "Facebook Meta Webmaster Tools",
+                        "Google Analytics and Webmaster Tools",
+                        "Search Engine Optimization",
+                        "Google PageSpeed Optimization",
+                        "Database and Server Cache Optimization"
+                    ]
+                },
+                {
+                    "id": 4,
+                    "category": "Network, Server and WHM",
+                    "iconFont": "faCodeBranch",
+                    "descriptions": [
+                        "Linux Web Server Configuration (CP, DA, PL)",
+                        "WHM (Cpanel, Direct Admin, Plesk) Management",
+                        "WHMCS, CloudFlare & DNS Server Management",
+                        "Web Server Security and Data Protection",
+                        "CloudFlare Load Balancing & Cloud Configuration"
+                    ]
+                }
+            ]
+        },
+        "projects": {
+            "categories": [
+                {
+                    "id": 1,
+                    "category": "All Projects",
+                    "class": "*"
+                },
+                {
+                    "id": 2,
+                    "category": "Front-End",
+                    "class": "front-end"
+                },
+                {
+                    "id": 3,
+                    "category": "Back-End",
+                    "class": "back-end"
+                },
+                {
+                    "id": 4,
+                    "category": "CMS-CRM",
+                    "class": "cms-crm"
+                }
+            ],
+            "items": [
+                {
+                    "id": 1,
+                    "class": [
+                        "front-end",
+                        "back-end"
+                    ],
+                    "placeHolder": "/images/projects/thumb/SepiWhite.webp",
+                    "src": "/images/projects/SepiWhite.webp",
+                    "alt": "SepiWhite",
+                    "url": "https://www.linkedin.com/in/etarikhi/details/projects/"
+                },
+                {
+                    "id": 2,
+                    "class": [
+                        "front-end",
+                        "back-end"
+                    ],
+                    "placeHolder": "/images/projects/thumb/Egzador.webp",
+                    "src": "/images/projects/Egzador.webp",
+                    "alt": "Egzador",
+                    "url": "https://www.linkedin.com/in/etarikhi/details/projects/"
+                },
+                {
+                    "id": 3,
+                    "class": [
+                        "front-end"
+                    ],
+                    "placeHolder": "/images/projects/thumb/DogalAsitane.webp",
+                    "src": "/images/projects/DogalAsitane.webp",
+                    "alt": "DogalAsitane",
+                    "url": "https://www.linkedin.com/in/etarikhi/details/projects/"
+                },
+                {
+                    "id": 4,
+                    "class": [
+                        "front-end",
+                        "back-end"
+                    ],
+                    "placeHolder": "/images/projects/thumb/UrumSorgu.webp",
+                    "src": "/images/projects/UrumSorgu.webp",
+                    "alt": "UrumSorgu",
+                    "url": "https://www.linkedin.com/in/etarikhi/details/projects/"
+                },
+                {
+                    "id": 5,
+                    "class": [
+                        "front-end",
+                        "back-end"
+                    ],
+                    "placeHolder": "/images/projects/thumb/IceTherapy.webp",
+                    "src": "/images/projects/IceTherapy.webp",
+                    "alt": "IceTherapy",
+                    "url": "https://www.linkedin.com/in/etarikhi/details/projects/"
+                },
+                {
+                    "id": 6,
+                    "class": [
+                        "front-end",
+                        "back-end"
+                    ],
+                    "placeHolder": "/images/projects/thumb/ColdLipolysis.webp",
+                    "src": "/images/projects/ColdLipolysis.webp",
+                    "alt": "ColdLipolysis",
+                    "url": "https://www.linkedin.com/in/etarikhi/details/projects/"
+                },
+                {
+                    "id": 7,
+                    "class": [
+                        "front-end",
+                        "back-end"
+                    ],
+                    "placeHolder": "/images/projects/thumb/AnemonTerapi.webp",
+                    "src": "/images/projects/AnemonTerapi.webp",
+                    "alt": "AnemonTerapi",
+                    "url": "https://www.linkedin.com/in/etarikhi/details/projects/"
+                },
+                {
+                    "id": 8,
+                    "class": [
+                        "front-end",
+                        "back-end",
+                        "cms-crm"
+                    ],
+                    "placeHolder": "/images/projects/thumb/AlyaPanel.webp",
+                    "src": "/images/projects/AlyaPanel.webp",
+                    "alt": "AlyaPanel",
+                    "url": "https://www.linkedin.com/in/etarikhi/details/projects/"
+                },
+                {
+                    "id": 9,
+                    "class": [
+                        "front-end",
+                        "back-end",
+                        "cms-crm"
+                    ],
+                    "placeHolder": "/images/projects/thumb/CaddePanel.webp",
+                    "src": "/images/projects/CaddePanel.webp",
+                    "alt": "CaddePanel",
+                    "url": "https://www.linkedin.com/in/etarikhi/details/projects/"
+                },
+                {
+                    "id": 10,
+                    "class": [
+                        "front-end",
+                        "back-end",
+                        "cms-crm"
+                    ],
+                    "placeHolder": "/images/projects/thumb/ProximaAkademi.webp",
+                    "src": "/images/projects/ProximaAkademi.webp",
+                    "alt": "ProximaAkademi",
+                    "url": "https://www.linkedin.com/in/etarikhi/details/projects/"
+                },
+                {
+                    "id": 11,
+                    "class": [
+                        "front-end",
+                        "back-end"
+                    ],
+                    "placeHolder": "/images/projects/thumb/Evona-Kozmetik.webp",
+                    "src": "/images/projects/Evona-Kozmetik.webp",
+                    "alt": "Evona-Kozmetik",
+                    "url": "https://www.linkedin.com/in/etarikhi/details/projects/"
+                },
+                {
+                    "id": 12,
+                    "class": [
+                        "front-end",
+                        "back-end"
+                    ],
+                    "placeHolder": "/images/projects/thumb/WinterHoney.webp",
+                    "src": "/images/projects/WinterHoney.webp",
+                    "alt": "WinterHoney",
+                    "url": "https://www.linkedin.com/in/etarikhi/details/projects/"
+                },
+                {
+                    "id": 13,
+                    "class": [
+                        "front-end",
+                        "back-end"
+                    ],
+                    "placeHolder": "/images/projects/thumb/NatureGenome.webp",
+                    "src": "/images/projects/NatureGenome.webp",
+                    "alt": "NatureGenome",
+                    "url": "https://www.linkedin.com/in/etarikhi/details/projects/"
+                },
+                {
+                    "id": 14,
+                    "class": [
+                        "front-end"
+                    ],
+                    "placeHolder": "/images/projects/thumb/ARKBlog.webp",
+                    "src": "/images/projects/ARKBlog.webp",
+                    "alt": "ARKBlog",
+                    "url": "https://www.linkedin.com/in/etarikhi/details/projects/"
+                }
+            ]
+        },
+        "footer": {
+            "socialLinks": [
+                {
+                    "name": "Facebook",
+                    "url": "https://www.facebook.com/etarikhi",
+                    "iconName": "faFacebookF",
+                    "ariaLabel": "Facebook"
+                },
+                {
+                    "name": "Twitter",
+                    "url": "https://www.twitter.com/eTarikhi",
+                    "iconName": "faXTwitter",
+                    "ariaLabel": "Twitter"
+                },
+                {
+                    "name": "Instagram",
+                    "url": "https://www.instagram.com/eTarikhi",
+                    "iconName": "faInstagram",
+                    "ariaLabel": "Instagram"
+                },
+                {
+                    "name": "LinkedIn",
+                    "url": "https://www.linkedin.com/in/eTarikhi",
+                    "iconName": "faLinkedin",
+                    "ariaLabel": "LinkedIn"
+                },
+                {
+                    "name": "Github",
+                    "url": "https://www.github.com/eTarikhi",
+                    "iconName": "faGithub",
+                    "ariaLabel": "Github"
+                },
+                {
+                    "name": "Whatsapp",
+                    "url": "https://api.whatsapp.com/send/?phone=905525700850",
+                    "iconName": "faWhatsapp",
+                    "ariaLabel": "Whatsapp"
+                }
+            ],
+            "personalInfo": {
+                "name": "Amir v.Tarikhi",
+                "skills": [
+                    {
+                        "title": "Senior PHP Developer"
+                    },
+                    {
+                        "title": "Junior NodeJS Developer"
+                    },
+                    {
+                        "title": "Junior Laravel Developer"
+                    },
+                    {
+                        "title": "E-Commerce CRM Developer"
+                    },
+                    {
+                        "title": "Automation Panel Developer"
+                    },
+                    {
+                        "title": "SEO Manager and Consultant"
+                    }
+                ]
+            },
+            "profiles": [
+                {
+                    "name": "freelancer.com",
+                    "url": "https://www.freelancer.com/u/ETarikhi"
+                },
+                {
+                    "name": "upwork.com",
+                    "url": "https://upwork.com/freelancers/~01ecd833bdd6892456"
+                },
+                {
+                    "name": "fiverr.com",
+                    "url": "https://www.fiverr.com/etarikhi"
+                },
+                {
+                    "name": "themeforest.net",
+                    "url": "https://themeforest.net/user/etarikhi"
+                }
+            ],
+            "contactInfo": [
+                {
+                    "type": "address",
+                    "iconName": "faHome",
+                    "content": "34805, Istanbul, Turkey"
+                },
+                {
+                    "type": "email",
+                    "iconName": "faEnvelope",
+                    "content": "etarikhi@gmail.com",
+                    "url": "mailto:etarikhi@gmail.com",
+                    "isLink": true,
+                    "className": "text-white"
+                },
+                {
+                    "type": "phone",
+                    "iconName": "faPhoneFlip",
+                    "content": "+90 552 570 0850",
+                    "url": "tel:00905525700850",
+                    "isLink": true,
+                    "className": "text-white"
+                },
+                {
+                    "type": "whatsapp",
+                    "iconName": "faWhatsappc",
+                    "content": "Direct Whatsapp Call",
+                    "url": "https://call.whatsapp.com/voice/LvPt9J2VKYrXpvqfPBwdH3",
+                    "isLink": true,
+                    "className": "text-secondary"
+                }
+            ],
+            "copyright": {
+                "year": 2023,
+                "website": "eTarikhi.com",
+                "url": "#"
+            }
+        }
+    }
+]
