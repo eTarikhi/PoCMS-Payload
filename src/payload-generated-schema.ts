@@ -28,6 +28,12 @@ export const enum_projects_categories = pgEnum('enum_projects_categories', [
   'back-end',
   'cms-crm',
 ])
+export const enum_services_icon_font = pgEnum('enum_services_icon_font', [
+  'faCode',
+  'faCropAlt',
+  'faLaptopCode',
+  'faCodeBranch',
+])
 export const enum_skills_group = pgEnum('enum_skills_group', ['frontend', 'backend'])
 export const enum_skills_color = pgEnum('enum_skills_color', [
   'primary',
@@ -45,11 +51,37 @@ export const enum_footer_social_links_platform = pgEnum('enum_footer_social_link
   'github',
   'whatsapp',
 ])
+export const enum_footer_social_links_icon_name = pgEnum('enum_footer_social_links_icon_name', [
+  'faFacebookF',
+  'faXTwitter',
+  'faInstagram',
+  'faLinkedin',
+  'faGithub',
+  'faWhatsapp',
+  'faWhatsappc',
+  'faGem',
+  'faHome',
+  'faEnvelope',
+  'faPhoneFlip',
+])
 export const enum_footer_contact_info_type = pgEnum('enum_footer_contact_info_type', [
   'address',
   'email',
   'phone',
   'whatsapp',
+])
+export const enum_footer_contact_info_icon_name = pgEnum('enum_footer_contact_info_icon_name', [
+  'faFacebookF',
+  'faXTwitter',
+  'faInstagram',
+  'faLinkedin',
+  'faGithub',
+  'faWhatsapp',
+  'faWhatsappc',
+  'faGem',
+  'faHome',
+  'faEnvelope',
+  'faPhoneFlip',
 ])
 export const enum_footer_contact_info_class_name = pgEnum('enum_footer_contact_info_class_name', [
   'text-white',
@@ -258,6 +290,7 @@ export const articles = pgTable(
     id: serial('id').primaryKey(),
     title: varchar('title').notNull(),
     excerpt: varchar('excerpt').notNull(),
+    slug: varchar('slug'),
     description: varchar('description'),
     featured: boolean('featured'),
     category: enum_articles_category('category'),
@@ -280,6 +313,7 @@ export const articles = pgTable(
       .notNull(),
   },
   (columns) => [
+    uniqueIndex('articles_slug_idx').on(columns.slug),
     index('articles_category_idx').on(columns.category),
     index('articles_published_at_idx').on(columns.publishedAt),
     index('articles_image_idx').on(columns.image),
@@ -389,6 +423,7 @@ export const projects = pgTable(
     id: serial('id').primaryKey(),
     order: numeric('order', { mode: 'number' }).default(0),
     title: varchar('title').notNull(),
+    slug: varchar('slug'),
     image: integer('image_id').references(() => media.id, {
       onDelete: 'set null',
     }),
@@ -405,6 +440,7 @@ export const projects = pgTable(
   },
   (columns) => [
     index('projects_order_idx').on(columns.order),
+    uniqueIndex('projects_slug_idx').on(columns.slug),
     index('projects_image_idx').on(columns.image),
     index('projects_updated_at_idx').on(columns.updatedAt),
     index('projects_created_at_idx').on(columns.createdAt),
@@ -417,7 +453,7 @@ export const services = pgTable(
     id: serial('id').primaryKey(),
     order: numeric('order', { mode: 'number' }).default(0),
     category: varchar('category').notNull(),
-    iconFont: varchar('icon_font'),
+    iconFont: enum_services_icon_font('icon_font'),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
@@ -704,7 +740,7 @@ export const footer_social_links = pgTable(
     id: varchar('id').primaryKey(),
     platform: enum_footer_social_links_platform('platform').notNull(),
     url: varchar('url').notNull(),
-    iconName: varchar('icon_name').notNull(),
+    iconName: enum_footer_social_links_icon_name('icon_name').notNull(),
     ariaLabel: varchar('aria_label').notNull(),
   },
   (columns) => [
@@ -745,7 +781,7 @@ export const footer_contact_info = pgTable(
     _parentID: integer('_parent_id').notNull(),
     id: varchar('id').primaryKey(),
     type: enum_footer_contact_info_type('type').notNull(),
-    iconName: varchar('icon_name').notNull(),
+    iconName: enum_footer_contact_info_icon_name('icon_name').notNull(),
     content: varchar('content').notNull(),
     isLink: boolean('is_link'),
     url: varchar('url'),
@@ -1047,10 +1083,13 @@ export const relations_footer = relations(footer, ({ many }) => ({
 type DatabaseSchema = {
   enum_articles_category: typeof enum_articles_category
   enum_projects_categories: typeof enum_projects_categories
+  enum_services_icon_font: typeof enum_services_icon_font
   enum_skills_group: typeof enum_skills_group
   enum_skills_color: typeof enum_skills_color
   enum_footer_social_links_platform: typeof enum_footer_social_links_platform
+  enum_footer_social_links_icon_name: typeof enum_footer_social_links_icon_name
   enum_footer_contact_info_type: typeof enum_footer_contact_info_type
+  enum_footer_contact_info_icon_name: typeof enum_footer_contact_info_icon_name
   enum_footer_contact_info_class_name: typeof enum_footer_contact_info_class_name
   users_sessions: typeof users_sessions
   users: typeof users

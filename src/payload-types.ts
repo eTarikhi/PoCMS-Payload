@@ -244,6 +244,13 @@ export interface Article {
   id: number;
   title: string;
   excerpt: string;
+  /**
+   * URL key for /articles/{slug}. Made from the title when left empty. Keep it stable once the article is shared.
+   */
+  slug?: string | null;
+  /**
+   * Article body, as plain text. Separate paragraphs with a blank line. Leave empty and the article links out only (no page).
+   */
   description?: string | null;
   /**
    * If checked, the article expert will be featured on the homepage.
@@ -330,7 +337,11 @@ export interface Project {
   order?: number | null;
   title: string;
   /**
-   * The thumbnail is generated automatically (media.sizes.thumbnail).
+   * URL key for /projects/{slug}. Made from the title when left empty. Keep it stable once the project is shared.
+   */
+  slug?: string | null;
+  /**
+   * Used as the full image when the Image URL below is empty. It is also the thumbnail when the Place Holder Image URL is empty.
    */
   image?: (number | null) | Media;
   src?: string | null;
@@ -359,9 +370,9 @@ export interface Service {
   order?: number | null;
   category: string;
   /**
-   * Font Awesome icon name used by the frontend, e.g. faCode.
+   * Icon shown next to the category. Only the icons the frontend has are listed.
    */
-  iconFont?: string | null;
+  iconFont?: ('faCode' | 'faCropAlt' | 'faLaptopCode' | 'faCodeBranch') | null;
   /**
    * One entry per bullet point.
    */
@@ -581,6 +592,7 @@ export interface HeaderSelect<T extends boolean = true> {
 export interface ArticlesSelect<T extends boolean = true> {
   title?: T;
   excerpt?: T;
+  slug?: T;
   description?: T;
   featured?: T;
   category?: T;
@@ -638,6 +650,7 @@ export interface ExperiencesSelect<T extends boolean = true> {
 export interface ProjectsSelect<T extends boolean = true> {
   order?: T;
   title?: T;
+  slug?: T;
   image?: T;
   src?: T;
   placeHolder?: T;
@@ -748,9 +761,20 @@ export interface Footer {
          */
         url: string;
         /**
-         * The name of the icon to display for the social media link.
+         * The icon to display for the social media link.
          */
-        iconName: string;
+        iconName:
+          | 'faFacebookF'
+          | 'faXTwitter'
+          | 'faInstagram'
+          | 'faLinkedin'
+          | 'faGithub'
+          | 'faWhatsapp'
+          | 'faWhatsappc'
+          | 'faGem'
+          | 'faHome'
+          | 'faEnvelope'
+          | 'faPhoneFlip';
         /**
          * The ARIA label for the social media link.
          */
@@ -785,9 +809,20 @@ export interface Footer {
          */
         type: 'address' | 'email' | 'phone' | 'whatsapp';
         /**
-         * The name of the icon to display for the contact info item.
+         * The icon to display for the contact info item.
          */
-        iconName: string;
+        iconName:
+          | 'faFacebookF'
+          | 'faXTwitter'
+          | 'faInstagram'
+          | 'faLinkedin'
+          | 'faGithub'
+          | 'faWhatsapp'
+          | 'faWhatsappc'
+          | 'faGem'
+          | 'faHome'
+          | 'faEnvelope'
+          | 'faPhoneFlip';
         /**
          * The content for the contact info item.
          */
@@ -801,7 +836,7 @@ export interface Footer {
          */
         url?: string | null;
         /**
-         * Bootstrap contextual color of the progress bar.
+         * Bootstrap text color class for the contact info item.
          */
         className?:
           | (

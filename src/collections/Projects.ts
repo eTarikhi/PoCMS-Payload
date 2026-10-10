@@ -20,6 +20,14 @@ export const Projects: CollectionConfig = {
     orderField,
     { name: 'title', type: 'text', required: true },
     {
+      name: 'slug',
+      type: 'text',
+      unique: true,
+      admin: {
+        description: 'URL key for /projects/{slug}. Made from the title when left empty. Keep it stable once the project is shared.',
+      },
+    },
+    {
       name: 'image',
       type: 'upload',
       relationTo: 'media',

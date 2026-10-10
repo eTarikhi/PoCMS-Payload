@@ -1552,6 +1552,7 @@ type Article {
   id: Int!
   title: String!
   excerpt: String!
+  slug: String
   description: String
   featured: Boolean
   category: Article_category
@@ -1586,6 +1587,7 @@ type Articles {
 input Article_where {
   title: Article_title_operator
   excerpt: Article_excerpt_operator
+  slug: Article_slug_operator
   description: Article_description_operator
   featured: Article_featured_operator
   category: Article_category_operator
@@ -1616,6 +1618,17 @@ input Article_excerpt_operator {
   not_equals: String
   like: String
   contains: String
+}
+
+input Article_slug_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
 }
 
 input Article_description_operator {
@@ -1731,6 +1744,7 @@ input Article_id_operator {
 input Article_where_and {
   title: Article_title_operator
   excerpt: Article_excerpt_operator
+  slug: Article_slug_operator
   description: Article_description_operator
   featured: Article_featured_operator
   category: Article_category_operator
@@ -1749,6 +1763,7 @@ input Article_where_and {
 input Article_where_or {
   title: Article_title_operator
   excerpt: Article_excerpt_operator
+  slug: Article_slug_operator
   description: Article_description_operator
   featured: Article_featured_operator
   category: Article_category_operator
@@ -1779,6 +1794,7 @@ type articlesDocAccess {
 type ArticlesDocAccessFields {
   title: ArticlesDocAccessFields_title
   excerpt: ArticlesDocAccessFields_excerpt
+  slug: ArticlesDocAccessFields_slug
   description: ArticlesDocAccessFields_description
   featured: ArticlesDocAccessFields_featured
   category: ArticlesDocAccessFields_category
@@ -1834,6 +1850,29 @@ type ArticlesDocAccessFields_excerpt_Update {
 }
 
 type ArticlesDocAccessFields_excerpt_Delete {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_slug {
+  create: ArticlesDocAccessFields_slug_Create
+  read: ArticlesDocAccessFields_slug_Read
+  update: ArticlesDocAccessFields_slug_Update
+  delete: ArticlesDocAccessFields_slug_Delete
+}
+
+type ArticlesDocAccessFields_slug_Create {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_slug_Read {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_slug_Update {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_slug_Delete {
   permission: Boolean!
 }
 
@@ -3140,6 +3179,7 @@ type Project {
   id: Int!
   order: Float
   title: String!
+  slug: String
   image: Media
   src: String
   placeHolder: String
@@ -3173,6 +3213,7 @@ type Projects {
 input Project_where {
   order: Project_order_operator
   title: Project_title_operator
+  slug: Project_slug_operator
   image: Project_image_operator
   src: Project_src_operator
   placeHolder: Project_placeHolder_operator
@@ -3204,6 +3245,17 @@ input Project_title_operator {
   in: [String]
   not_in: [String]
   all: [String]
+}
+
+input Project_slug_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
 }
 
 input Project_image_operator {
@@ -3308,6 +3360,7 @@ input Project_id_operator {
 input Project_where_and {
   order: Project_order_operator
   title: Project_title_operator
+  slug: Project_slug_operator
   image: Project_image_operator
   src: Project_src_operator
   placeHolder: Project_placeHolder_operator
@@ -3324,6 +3377,7 @@ input Project_where_and {
 input Project_where_or {
   order: Project_order_operator
   title: Project_title_operator
+  slug: Project_slug_operator
   image: Project_image_operator
   src: Project_src_operator
   placeHolder: Project_placeHolder_operator
@@ -3352,6 +3406,7 @@ type projectsDocAccess {
 type ProjectsDocAccessFields {
   order: ProjectsDocAccessFields_order
   title: ProjectsDocAccessFields_title
+  slug: ProjectsDocAccessFields_slug
   image: ProjectsDocAccessFields_image
   src: ProjectsDocAccessFields_src
   placeHolder: ProjectsDocAccessFields_placeHolder
@@ -3405,6 +3460,29 @@ type ProjectsDocAccessFields_title_Update {
 }
 
 type ProjectsDocAccessFields_title_Delete {
+  permission: Boolean!
+}
+
+type ProjectsDocAccessFields_slug {
+  create: ProjectsDocAccessFields_slug_Create
+  read: ProjectsDocAccessFields_slug_Read
+  update: ProjectsDocAccessFields_slug_Update
+  delete: ProjectsDocAccessFields_slug_Delete
+}
+
+type ProjectsDocAccessFields_slug_Create {
+  permission: Boolean!
+}
+
+type ProjectsDocAccessFields_slug_Read {
+  permission: Boolean!
+}
+
+type ProjectsDocAccessFields_slug_Update {
+  permission: Boolean!
+}
+
+type ProjectsDocAccessFields_slug_Delete {
   permission: Boolean!
 }
 
@@ -3616,10 +3694,17 @@ type Service {
   id: Int!
   order: Float
   category: String!
-  iconFont: String
+  iconFont: Service_iconFont
   descriptions: [String!]!
   updatedAt: DateTime
   createdAt: DateTime
+}
+
+enum Service_iconFont {
+  faCode
+  faCropAlt
+  faLaptopCode
+  faCodeBranch
 }
 
 type Services {
@@ -3669,14 +3754,19 @@ input Service_category_operator {
 }
 
 input Service_iconFont_operator {
-  equals: String
-  not_equals: String
-  like: String
-  contains: String
-  in: [String]
-  not_in: [String]
-  all: [String]
+  equals: Service_iconFont_Input
+  not_equals: Service_iconFont_Input
+  in: [Service_iconFont_Input]
+  not_in: [Service_iconFont_Input]
+  all: [Service_iconFont_Input]
   exists: Boolean
+}
+
+enum Service_iconFont_Input {
+  faCode
+  faCropAlt
+  faLaptopCode
+  faCodeBranch
 }
 
 input Service_descriptions_operator {
@@ -5629,7 +5719,7 @@ type Footer {
 type Footer_SocialLinks {
   platform: Footer_SocialLinks_platform
   url: String
-  iconName: String
+  iconName: Footer_SocialLinks_iconName
   ariaLabel: String
   id: String
 }
@@ -5641,6 +5731,20 @@ enum Footer_SocialLinks_platform {
   linkedin
   github
   whatsapp
+}
+
+enum Footer_SocialLinks_iconName {
+  faFacebookF
+  faXTwitter
+  faInstagram
+  faLinkedin
+  faGithub
+  faWhatsapp
+  faWhatsappc
+  faGem
+  faHome
+  faEnvelope
+  faPhoneFlip
 }
 
 type Footer_Roles {
@@ -5656,7 +5760,7 @@ type Footer_Profiles {
 
 type Footer_ContactInfo {
   type: Footer_ContactInfo_type
-  iconName: String
+  iconName: Footer_ContactInfo_iconName
   content: String
   isLink: Boolean
   url: String
@@ -5669,6 +5773,20 @@ enum Footer_ContactInfo_type {
   email
   phone
   whatsapp
+}
+
+enum Footer_ContactInfo_iconName {
+  faFacebookF
+  faXTwitter
+  faInstagram
+  faLinkedin
+  faGithub
+  faWhatsapp
+  faWhatsappc
+  faGem
+  faHome
+  faEnvelope
+  faPhoneFlip
 }
 
 enum Footer_ContactInfo_className {
@@ -7372,6 +7490,7 @@ type articlesAccess {
 type ArticlesFields {
   title: ArticlesFields_title
   excerpt: ArticlesFields_excerpt
+  slug: ArticlesFields_slug
   description: ArticlesFields_description
   featured: ArticlesFields_featured
   category: ArticlesFields_category
@@ -7427,6 +7546,29 @@ type ArticlesFields_excerpt_Update {
 }
 
 type ArticlesFields_excerpt_Delete {
+  permission: Boolean!
+}
+
+type ArticlesFields_slug {
+  create: ArticlesFields_slug_Create
+  read: ArticlesFields_slug_Read
+  update: ArticlesFields_slug_Update
+  delete: ArticlesFields_slug_Delete
+}
+
+type ArticlesFields_slug_Create {
+  permission: Boolean!
+}
+
+type ArticlesFields_slug_Read {
+  permission: Boolean!
+}
+
+type ArticlesFields_slug_Update {
+  permission: Boolean!
+}
+
+type ArticlesFields_slug_Delete {
   permission: Boolean!
 }
 
@@ -8288,6 +8430,7 @@ type projectsAccess {
 type ProjectsFields {
   order: ProjectsFields_order
   title: ProjectsFields_title
+  slug: ProjectsFields_slug
   image: ProjectsFields_image
   src: ProjectsFields_src
   placeHolder: ProjectsFields_placeHolder
@@ -8341,6 +8484,29 @@ type ProjectsFields_title_Update {
 }
 
 type ProjectsFields_title_Delete {
+  permission: Boolean!
+}
+
+type ProjectsFields_slug {
+  create: ProjectsFields_slug_Create
+  read: ProjectsFields_slug_Read
+  update: ProjectsFields_slug_Update
+  delete: ProjectsFields_slug_Delete
+}
+
+type ProjectsFields_slug_Create {
+  permission: Boolean!
+}
+
+type ProjectsFields_slug_Read {
+  permission: Boolean!
+}
+
+type ProjectsFields_slug_Update {
+  permission: Boolean!
+}
+
+type ProjectsFields_slug_Delete {
   permission: Boolean!
 }
 
@@ -10629,6 +10795,7 @@ input mutationHeaderUpdateInput {
 input mutationArticleInput {
   title: String!
   excerpt: String!
+  slug: String
   description: String
   featured: Boolean
   category: Article_category_MutationInput
@@ -10649,6 +10816,7 @@ enum Article_category_MutationInput {
 input mutationArticleUpdateInput {
   title: String
   excerpt: String
+  slug: String
   description: String
   featured: Boolean
   category: ArticleUpdate_category_MutationInput
@@ -10729,6 +10897,7 @@ input mutationExperienceUpdateInput {
 input mutationProjectInput {
   order: Float
   title: String!
+  slug: String
   image: Int
   src: String
   placeHolder: String
@@ -10748,6 +10917,7 @@ enum Project_categories_MutationInput {
 input mutationProjectUpdateInput {
   order: Float
   title: String
+  slug: String
   image: Int
   src: String
   placeHolder: String
@@ -10767,19 +10937,33 @@ enum ProjectUpdate_categories_MutationInput {
 input mutationServiceInput {
   order: Float
   category: String!
-  iconFont: String
+  iconFont: Service_iconFont_MutationInput
   descriptions: [String]!
   updatedAt: String
   createdAt: String
 }
 
+enum Service_iconFont_MutationInput {
+  faCode
+  faCropAlt
+  faLaptopCode
+  faCodeBranch
+}
+
 input mutationServiceUpdateInput {
   order: Float
   category: String
-  iconFont: String
+  iconFont: ServiceUpdate_iconFont_MutationInput
   descriptions: [String]
   updatedAt: String
   createdAt: String
+}
+
+enum ServiceUpdate_iconFont_MutationInput {
+  faCode
+  faCropAlt
+  faLaptopCode
+  faCodeBranch
 }
 
 input mutationSkillInput {
@@ -10992,7 +11176,7 @@ input mutationFooterInput {
 input mutationFooter_SocialLinksInput {
   platform: Footer_SocialLinks_platform_MutationInput!
   url: String!
-  iconName: String!
+  iconName: Footer_SocialLinks_iconName_MutationInput!
   ariaLabel: String!
   id: String
 }
@@ -11004,6 +11188,20 @@ enum Footer_SocialLinks_platform_MutationInput {
   linkedin
   github
   whatsapp
+}
+
+enum Footer_SocialLinks_iconName_MutationInput {
+  faFacebookF
+  faXTwitter
+  faInstagram
+  faLinkedin
+  faGithub
+  faWhatsapp
+  faWhatsappc
+  faGem
+  faHome
+  faEnvelope
+  faPhoneFlip
 }
 
 input mutationFooter_RolesInput {
@@ -11019,7 +11217,7 @@ input mutationFooter_ProfilesInput {
 
 input mutationFooter_ContactInfoInput {
   type: Footer_ContactInfo_type_MutationInput!
-  iconName: String!
+  iconName: Footer_ContactInfo_iconName_MutationInput!
   content: String!
   isLink: Boolean
   url: String
@@ -11032,6 +11230,20 @@ enum Footer_ContactInfo_type_MutationInput {
   email
   phone
   whatsapp
+}
+
+enum Footer_ContactInfo_iconName_MutationInput {
+  faFacebookF
+  faXTwitter
+  faInstagram
+  faLinkedin
+  faGithub
+  faWhatsapp
+  faWhatsappc
+  faGem
+  faHome
+  faEnvelope
+  faPhoneFlip
 }
 
 enum Footer_ContactInfo_className_MutationInput {
