@@ -14,6 +14,7 @@ import {
 } from '@/admin-ui/tailadmin/lib/format'
 import { buildNavGroups, flattenNavGroups } from '@/admin-ui/tailadmin/data/navGroups'
 import { buildQuickActions } from '@/admin-ui/tailadmin/data/quickActions'
+import { buildTailAdminComponents, resolvePilotMode } from '@/admin-ui/tailadmin/config'
 import type { CollectionStat } from '@/admin-ui/tailadmin/data/types'
 
 describe('admin-ui: lib/format', () => {
@@ -101,6 +102,29 @@ describe('admin-ui: data/navGroups', () => {
     const bySlug = new Map(flattenNavGroups(groups).map((e) => [e.slug, e]))
     expect(bySlug.get('projects')?.href).toBe('/admin/collections/projects')
     expect(bySlug.get('footer')?.href).toBe('/admin/globals/footer')
+  })
+})
+
+describe('admin-ui: config', () => {
+  it('enables the whole-admin TailAdmin theme by default', () => {
+    expect(resolvePilotMode({ NODE_ENV: 'test' })).toBe('full')
+  })
+
+  it('supports explicit modes and falls back to full for unknown values', () => {
+    expect(resolvePilotMode({ NODE_ENV: 'test', POCMS_ADMIN_UI: 'off' })).toBe('off')
+    expect(resolvePilotMode({ NODE_ENV: 'test', POCMS_ADMIN_UI: 'additive' })).toBe('additive')
+    expect(resolvePilotMode({ NODE_ENV: 'test', POCMS_ADMIN_UI: 'dashboard' })).toBe('dashboard')
+    expect(resolvePilotMode({ NODE_ENV: 'test', POCMS_ADMIN_UI: 'unknown' })).toBe('full')
+  })
+
+  it('registers the global theme provider in full mode without replacing Payload Nav', () => {
+    const components = buildTailAdminComponents('full')
+
+    expect(components?.providers).toEqual([
+      '/admin-ui/tailadmin/providers/TailAdminThemeProvider#TailAdminThemeProvider',
+    ])
+    expect(components).not.toHaveProperty('Nav')
+    expect(components?.views).toHaveProperty('dashboard.Component')
   })
 })
 

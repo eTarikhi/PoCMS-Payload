@@ -1,42 +1,45 @@
 # Admin UI modernisation
 
-PoCMS ships with Payload 3's stock admin panel. This folder documents the effort to
-**replace or significantly customise** that interface with a modern, responsive,
-user-friendly design — currently piloted with the **TailAdmin Free (Next.js)** template.
+PoCMS ships with Payload 3's admin panel. This folder documents the work to modernise
+that interface with the **TailAdmin Free (Next.js)** design system while preserving
+Payload's built-in editing, access-control, routing, and responsive navigation behaviour.
 
 ## Read in order
 
 1. **[Research — admin UI options](./research-admin-ui-options.md)**
    What Payload lets us customise, six candidate templates/libraries compared, and a
-   per-option phased roadmap plus skills/frameworks/tools breakdown.
-
+   phased roadmap plus skills/frameworks/tools breakdown.
 2. **[TailAdmin Free pilot](./tailadmin-pilot.md)**
-   What was actually built in this repository, how to run it, the integration modes
-   (`off` / `additive` / `dashboard` / `full`), and how Tailwind is kept from breaking
-   the stock panel.
-
+   What was built, how to run it, the integration modes (`off` / `additive` /
+   `dashboard` / `full`), and how the global theme is safely scoped.
 3. **[Roadmap](./roadmap.md)**
-   The phased plan (what is done vs. next), a consolidated skills matrix, and a risk
-   register.
+   Completed work, remaining manual QA, skills matrix, and risk register.
 
 ## Current status
 
 | Mode | `POCMS_ADMIN_UI` | State |
 |---|---|---|
-| Stock panel, untouched | `off` | ✅ always available |
-| TailAdmin surfaces alongside the stock panel | `additive` | ✅ **default** in this branch |
-| TailAdmin replaces the `/admin` dashboard | `dashboard` | ✅ implemented, opt-in |
-| TailAdmin sidebar + full re-skin | `full` | ✅ implemented, opt-in |
+| Stock Payload panel | `off` | ✅ available as rollback |
+| TailAdmin routes + dashboard strip | `additive` | ✅ available, stock styling retained |
+| TailAdmin dashboard in Payload chrome | `dashboard` | ✅ available, no global re-skin |
+| TailAdmin dashboard + global TailAdmin theme | `full` | ✅ **default**; applies across admin pages and elements |
+
+`full` restyles Payload's native sidebar instead of replacing it, preserving its grid,
+mobile drawer, accessibility, and keyboard behaviour. The TailAdmin palette and targeted
+component styling cover login/auth pages, dashboard, collections/globals, edit forms,
+settings, tables, navigation, buttons, inputs, popups, drawers, modals, and toasts.
 
 ## Quick start
 
 ```bash
 pnpm dev
-# then visit /admin and /admin/tailadmin
+# sign in at /admin; the TailAdmin dashboard and global theme are enabled by default
 ```
 
-Set `POCMS_ADMIN_UI=dashboard` or `POCMS_ADMIN_UI=full` in your environment to promote
-the pilot, then restart. See the [pilot doc](./tailadmin-pilot.md) for every knob.
+Set `POCMS_ADMIN_UI=additive` for the stock look with the pilot surfaces, or
+`POCMS_ADMIN_UI=off` to disable the pilot entirely. Use `dashboard` to apply only the
+TailAdmin dashboard while retaining Payload's native styling. Restart after changing the
+variable. See the [pilot doc](./tailadmin-pilot.md) for all settings.
 
 ## Code
 

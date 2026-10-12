@@ -23,8 +23,8 @@ This project documentation is split across multiple files for easier maintenance
 
 ## Quick access
 
-- Admin panel: `http://localhost:3000/admin`
-- TailAdmin pilot dashboard: `http://localhost:3000/admin/tailadmin`
+- Admin panel (TailAdmin theme enabled by default): `http://localhost:3000/admin`
+- Dedicated TailAdmin dashboard: `http://localhost:3000/admin/tailadmin`
 - TailAdmin UI kit: `http://localhost:3000/admin/tailadmin/ui-kit`
 - API: `http://localhost:3000/api`
 - GraphQL: `http://localhost:3000/graphql`

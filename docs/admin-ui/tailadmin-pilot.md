@@ -1,9 +1,10 @@
 # TailAdmin Free — Payload admin-UI pilot
 
 This branch vendors the **TailAdmin Free (Next.js)** design system into the Payload
-admin panel and wires it in through Payload's official extension points. It is an
-**additive pilot**: by default it adds new TailAdmin-styled surfaces *beside* the stock
-admin panel and never replaces it, so it is safe to run.
+admin panel and wires it in through Payload's official extension points. By default,
+`full` mode applies the TailAdmin look across **all admin pages and elements**. It keeps
+Payload's native navigation and editing components, restyling them rather than replacing
+their underlying behaviour. Use `additive` or `off` for the stock Payload appearance.
 
 - Template: [TailAdmin free-nextjs-admin-dashboard](https://github.com/TailAdmin/free-nextjs-admin-dashboard) (MIT)
 - Research & alternatives: [`research-admin-ui-options.md`](./research-admin-ui-options.md)
@@ -16,20 +17,23 @@ admin panel and never replaces it, so it is safe to run.
 1. Install and run the project normally (`pnpm install`, `pnpm dev`) with a working
    `POSTGRES_URL`.
 2. Sign in to `/admin`.
-3. Open the pilot:
-   - **`/admin/tailadmin`** — full TailAdmin dashboard in its own shell (sidebar + header).
-   - **`/admin/tailadmin/ui-kit`** — the TailAdmin component gallery.
-   - The stock `/admin` dashboard now shows a small **Content overview** strip at the top
-     and **TailAdmin** links in the sidebar.
+3. Open the admin:
+   - **`/admin`** — the TailAdmin dashboard inside Payload's default shell (the default
+     `full` mode); the native sidebar and header keep their built-in behaviour, but are
+     styled with the TailAdmin theme.
+   - **`/admin/tailadmin`** — the full TailAdmin dashboard in its own shell (sidebar +
+     header); **`/admin/tailadmin/ui-kit`** opens the component gallery.
+   - To compare against the stock dashboard with only the **Content overview** strip and
+     TailAdmin links, set `POCMS_ADMIN_UI=additive` and restart the app.
 
 The integration mode is controlled by the `POCMS_ADMIN_UI` environment variable:
 
 | Value | What changes |
 |---|---|
 | `off` | Nothing. Stock Payload panel, 100%. |
-| `additive` *(default)* | New `/admin/tailadmin` routes + a KPI strip on the stock dashboard + sidebar links. Stock UI untouched. |
-| `dashboard` | Everything in `additive`, **plus** `/admin` itself renders the TailAdmin dashboard (inside Payload's template, so the stock nav/header/account menu remain). |
-| `full` | Everything in `dashboard`, **plus** Payload's sidebar is replaced by the TailAdmin sidebar and the TailAdmin **theme bridge** re-skins the whole stock panel. |
+| `additive` | New `/admin/tailadmin` routes + a KPI strip on the stock dashboard + sidebar links. Stock appearance retained. |
+| `dashboard` | Everything in `additive`, **plus** `/admin` itself renders the TailAdmin dashboard inside Payload's template. Native sidebar/header remain; stock styling retained. |
+| `full` *(default)* | Everything in `dashboard`, **plus** the TailAdmin theme re-skins all admin pages and elements. Payload's native sidebar is restyled in place to preserve responsive layout and accessibility. |
 
 Other knobs (all optional):
 
@@ -60,7 +64,7 @@ src/admin-ui/tailadmin/
 ├── icons.tsx                          # TailAdmin icon names → lucide-react bridge
 ├── styles/
 │   ├── tailadmin.css                  # scoped Tailwind v4 design system (see §3)
-│   └── payload-bridge.css             # opt-in re-skin of Payload variables (§5)
+│   └── tailadmin-theme.css            # whole-admin TailAdmin theme, gated by the provider (§5)
 ├── lib/
 │   ├── cn.ts                          # clsx + tailwind-merge (TailAdmin `cn`)
 │   └── format.ts                      # pure number/date helpers (unit-tested)
@@ -82,13 +86,11 @@ src/admin-ui/tailadmin/
 │   ├── TailAdminUiKitView.tsx         # /admin/tailadmin/ui-kit
 │   └── TailAdminDashboardOverride.tsx # replaces /admin (modes dashboard/full)
 ├── nav/
-│   ├── TailAdminNavLinks.tsx          # afterNavLinks (additive links)
-│   ├── TailAdminNav.tsx               # Nav replacement (mode full)
-│   └── TailAdminNavClient.tsx         # client sidebar for the Nav replacement
+│   └── TailAdminNavLinks.tsx          # afterNavLinks (additive links)
 ├── dashboard/TailAdminKpiStrip.tsx    # beforeDashboard KPI strip
-└── providers/TailAdminThemeProvider.tsx # enables the theme bridge (mode full)
+└── providers/TailAdminThemeProvider.tsx # enables the whole-admin theme (mode full)
 
-tests/int/admin-ui.int.spec.ts         # 14 unit tests (format, navGroups, quickActions)
+tests/int/admin-ui.int.spec.ts         # unit tests (config, format, navGroups, quickActions)
 docs/admin-ui/                         # this documentation
 ```
 
@@ -122,9 +124,11 @@ get wrong:
 - **Layer order.** Payload wraps its CSS in `@layer payload-default`; the Tailwind layers
   are declared after it, so Tailwind utilities win where they apply — and they only apply
   to markup that carries Tailwind classes, which Payload never emits.
-- **The stylesheet is imported by the components themselves**, not by the Payload-generated
-  `layout.tsx`/`custom.scss`, so it is only fetched when a TailAdmin surface mounts and it
-  survives Payload regenerating those files.
+- `tailadmin.css` is imported by TailAdmin surfaces, not the Payload-generated
+  `layout.tsx`/`custom.scss`, so its scoped utilities survive Payload regenerating those
+  files. The separate `tailadmin-theme.css` is imported by the `full`-mode provider and
+  applies only while that provider is mounted; every rule is gated by
+  `html[data-ta-theme="on"]`.
 
 ## 4. Data & permissions
 
@@ -142,36 +146,56 @@ signed-in principal:
   nothing unserialisable (functions, class instances, component refs) crosses the boundary
   — icons travel as *names* resolved through `icons.tsx`.
 
-## 5. The opt-in theme bridge (mode `full`)
+## 5. Whole-admin TailAdmin theme (mode `full`, the default)
 
-`styles/payload-bridge.css` re-points Payload's CSS custom properties (`--color-base-*`,
-`--color-success/error/warning-*`, `--theme-bg/text/border`, `--style-radius-*`,
-`--font-body`) at the TailAdmin palette, plus targeted overrides for the primary/secondary
-buttons, nav indicator and focus ring. It is only active when `TailAdminThemeProvider`
-sets `html[data-ta-theme="on"]`, which only happens in `full` mode — so the stock look
-returns the moment you switch modes. This is deliberately done with **variables, not
-selectors**, so it survives Payload renaming class names in future releases.
+`styles/tailadmin-theme.css` re-points Payload's CSS custom properties (`--color-base-*`,
+`--color-success/error/warning-*`, `--theme-bg/text/border`, `--style-radius-*`, and
+`--font-body`) to the TailAdmin palette. Payload maps those tokens onto its elevation
+ramp, so list views, document editors, settings, auth pages, and other stock screens pick
+up the new colors in both light and dark mode. Targeted styles add TailAdmin treatments to
+the native sidebar, buttons, form controls, tables, cards, popups, drawers, confirmation
+dialogs, toasts, and login card.
+
+`TailAdminThemeProvider` is registered through `admin.components.providers` in `full`
+mode. It sets `html[data-ta-theme="on"]` before paint, and every theme rule is gated by
+that attribute. `off`, `additive`, and `dashboard` therefore retain Payload's native
+appearance; switching modes restores the stock styling without rebuilding or leaving
+orphaned global styles. The native sidebar is styled in place instead of being replaced,
+which avoids fighting Payload's grid-based layout and preserves its mobile/keyboard
+behaviour.
+
+The palette is variable-first for broad compatibility; targeted selectors are used only
+where a component needs TailAdmin-specific shape, hover, focus, or layout treatment. The
+stylesheet remains scoped to the admin provider and does not change the public frontend.
 
 ## 6. Verification performed
 
 - `pnpm exec tsc --noEmit` — clean.
-- `pnpm exec eslint src/admin-ui src/payload.config.ts` — clean (0 errors).
-- `pnpm exec vitest run tests/int/admin-ui.int.spec.ts` — 14/14 pass.
-- `pnpm exec tailwindcss` compile of `tailadmin.css` — utilities, tokens, scoped base and
-  Payload-keyed dark variant all emit; zero Bootstrap leakage.
-- `pnpm generate:importmap` — generates the expected entries in both `additive` and `full`
-  modes.
-- `next build` — **compiles and type-checks successfully**; the remaining build steps fail
-  only because the sandbox has no Postgres/Google-Fonts network access (environmental,
-  pre-existing — unrelated to this change).
+- `pnpm exec eslint src/admin-ui src/payload.config.ts tests/int/admin-ui.int.spec.ts` —
+  0 errors (two existing unused-variable warnings in `payload.config.ts`).
+- `pnpm exec vitest run tests/int/admin-ui.int.spec.ts` — 17/17 pass, including checks
+  for the default `full` mode and provider registration.
+- `pnpm admin-ui:css` — Tailwind utilities, tokens, scoped base, and Payload-keyed dark
+  variant compile; the generated CSS has zero Bootstrap leakage.
+- Theme stylesheet parsed with PostCSS; all theme rules are gated by
+  `html[data-ta-theme="on"]`.
+- `pnpm generate:importmap` — verified both `additive` and default `full` maps; only
+  `full` includes the theme provider and dashboard override, and neither uses the removed
+  custom `Nav` override.
+- `pnpm build:compile` — optimized production compile passed. The sandbox cannot fetch
+  Google Fonts, so `Open_Sans` was temporarily stubbed for this check and the frontend
+  layout was restored byte-for-byte afterward; full data-generation still requires the
+  project's Postgres connection.
 
 ## 7. Known limitations / next steps
 
 - The growth chart uses `payload.count` per month bucket; for very large collections this
   is N queries. A future optimisation is a single aggregation or a cached rollup.
-- `TailAdminNav` (mode `full`) resolves the user via `payload.auth({ headers })`; on any
-  failure it renders a minimal fallback link list so navigation is never lost.
-- The avatar always uses initials or a direct URL (`<img>`) rather than `next/image`, to
-  avoid remote-origin image-config issues with Vercel Blob media.
-- Manual QA against seeded content (light + dark, mobile → desktop) is the natural next
-  step before promoting to `dashboard`/`full`.
+- `full` mode keeps Payload's native sidebar and restyles its actual nav classes; this is
+  intentional because the default template positions it as a grid column, and replacing it
+  with a fixed-position sidebar breaks that layout. The dedicated `/admin/tailadmin` route
+  still uses the full TailAdmin shell.
+- The avatar in the dedicated TailAdmin shell uses initials or a direct URL (`<img>`) rather
+  than `next/image`, to avoid remote-origin image-config issues with Vercel Blob media.
+- Manual QA of the global theme against seeded content (light + dark, mobile → desktop,
+  login, collection lists, document editing, drawers and modals) remains the next step.

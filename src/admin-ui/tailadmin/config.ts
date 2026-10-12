@@ -21,25 +21,33 @@ export { TAILADMIN_BASE_PATH, TAILADMIN_UIKIT_PATH }
  */
 
 /**
- * How aggressively the pilot replaces Payload's admin UI.
+ * How aggressively the pilot takes over Payload's admin UI.
  *
  * - `off`       — nothing is registered; Payload's admin panel is 100% stock.
- * - `additive`  — (default) new `/admin/tailadmin` routes + a KPI strip on the
- *                 stock dashboard + a nav link. Payload's UI stays intact.
+ * - `additive`  — new `/admin/tailadmin` routes + a KPI strip on the stock
+ *                 dashboard + a nav link. Payload's own styling stays intact.
  * - `dashboard` — everything in `additive`, plus `/admin` itself is replaced by
  *                 the TailAdmin dashboard (rendered inside Payload's
  *                 `DefaultTemplate`, so Payload's nav/header stay).
- * - `full`      — everything in `dashboard`, plus Payload's `Nav` component is
- *                 replaced by the TailAdmin sidebar and the TailAdmin theme
- *                 bridge is enabled for the whole admin panel.
+ * - `full`      — (default) everything in `dashboard`, plus the **TailAdmin
+ *                 theme is applied to every page and element** of the admin
+ *                 panel (nav, buttons, inputs, cards, tables, headers, pills,
+ *                 modals, drawers, toasts, login) via `TailAdminThemeProvider`
+ *                 and `styles/tailadmin-theme.css`.
+ *
+ * Note: `full` deliberately restyles Payload's *native* nav and elements via CSS
+ * instead of swapping the `Nav` component. Payload lays the sidebar out with a
+ * CSS grid (`--nav-width` column), so replacing it with a fixed-position
+ * component fights that layout. Restyling keeps all of Payload's nav behaviour
+ * (open/close, mobile drawer, keyboard access) while applying the TailAdmin look.
  */
 export type TailAdminPilotMode = 'off' | 'additive' | 'dashboard' | 'full'
 
 const MODES: TailAdminPilotMode[] = ['off', 'additive', 'dashboard', 'full']
 
 export function resolvePilotMode(env: NodeJS.ProcessEnv = process.env): TailAdminPilotMode {
-  const raw = (env.POCMS_ADMIN_UI ?? 'additive').trim().toLowerCase()
-  return (MODES as string[]).includes(raw) ? (raw as TailAdminPilotMode) : 'additive'
+  const raw = (env.POCMS_ADMIN_UI ?? 'full').trim().toLowerCase()
+  return (MODES as string[]).includes(raw) ? (raw as TailAdminPilotMode) : 'full'
 }
 
 /** Admin-panel branding used by the TailAdmin shell. */
@@ -111,9 +119,15 @@ export function buildTailAdminComponents(
   }
 
   if (mode === 'full') {
-    // Replace Payload's sidebar with the TailAdmin one...
-    components.Nav = '/admin-ui/tailadmin/nav/TailAdminNav#TailAdminNav'
-    // ...and enable the opt-in TailAdmin theme bridge across the admin panel.
+    // Enable the TailAdmin theme across the entire admin panel. The provider
+    // wraps every admin route and sets `html[data-ta-theme="on"]`, which the
+    // global stylesheet (`styles/tailadmin-theme.css`) keys off — so every page
+    // and element (nav, buttons, inputs, cards, tables, modals, drawers,
+    // toasts, login) picks up the TailAdmin design language.
+    //
+    // Payload's native `Nav` is intentionally NOT replaced: it is restyled by
+    // the theme CSS instead, which is robust across Payload's grid layout and
+    // preserves its built-in open/close/mobile/keyboard behaviour.
     components.providers = [
       '/admin-ui/tailadmin/providers/TailAdminThemeProvider#TailAdminThemeProvider',
     ]

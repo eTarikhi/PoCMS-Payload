@@ -39,7 +39,8 @@ const dirname = path.dirname(filename)
  * `docs/admin-ui/`).
  *
  * `POCMS_ADMIN_UI` selects how much of Payload's admin panel the pilot takes
- * over — `off` | `additive` (default) | `dashboard` | `full`.
+ * over — `off` | `additive` | `dashboard` | `full` (default, TailAdmin theme on
+ * every admin page and element).
  */
 const adminUiMode = resolvePilotMode()
 

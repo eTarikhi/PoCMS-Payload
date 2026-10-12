@@ -104,7 +104,7 @@ real data, without breaking the stock panel.
 | **2 — Design-system port** | UI primitives (button, badge, avatar, dropdown, table, alert, card) | `ui/` components + a `/ui-kit` gallery to eyeball them | Server/client boundary respected; light + dark both render |
 | **3 — Data layer** | Server-only stats via the Local API, honouring permissions | `buildContentStats()` with per-query `try/catch` | Every query `overrideAccess:false` + `req`/`user`; unit-tested pure helpers |
 | **4 — Dashboard surfaces** | KPI grid, growth chart, collection breakdown, recent docs, quick actions | `/admin/tailadmin` full shell + `/admin` dashboard override | Each block degrades to a warning banner on failure |
-| **5 — Integration & modes** | `beforeDashboard` KPI strip, `afterNavLinks` link, Nav override, theme bridge, env-gated modes | `buildTailAdminComponents()` | Modes are additive→full; `off` restores stock panel entirely |
+| **5 — Integration & modes** | `beforeDashboard` KPI strip, `afterNavLinks` link, provider-gated whole-admin theme, env-gated modes | `buildTailAdminComponents()` | `full` is the default; `off` restores the stock panel entirely |
 | **6 — Harden & QA** | Real-data test, a11y pass, responsive pass, telemetry of usage | Signed-off pilot | Manual QA against seeded content |
 
 **Skills / frameworks / tools**
@@ -166,20 +166,24 @@ over the Tailwind-native options.
 | 3 | Optionally adopt `admin.dashboard` modular widgets |
 
 **Skills:** CSS custom properties, Payload SCSS variables. **Risk:** lowest possible.
-This is exactly what the pilot's `payload-bridge.css` implements behind an opt-in flag.
+The whole-admin theme now lives in `styles/tailadmin-theme.css`, gated by the
+`TailAdminThemeProvider` and enabled by default in `full` mode; `off` remains the complete
+stock-panel rollback.
 
 ---
 
 ## 4. Recommendation
 
-1. **Ship the TailAdmin Free pilot** (done in this branch) in **additive mode** so the
-   stock admin panel is untouched.
-2. **Evaluate it against real content** with `POCMS_ADMIN_UI=additive`, then promote to
-   `dashboard` once the team is happy.
-3. **Adopt shadcn/ui** as the long-term component foundation if a broader rebuild is
-   green-lit; the data layer and shell logic port over unchanged.
-4. Keep **option 3.5** (native theming) as the zero-risk fallback at all times — it is
-   one environment variable away (`POCMS_ADMIN_UI=off`) plus the bridge stylesheet.
+1. **Selected and implemented:** TailAdmin Free is the first pilot. The follow-up
+   implementation applies its theme across the whole admin panel by default (`full`), as
+   requested, while keeping Payload's native navigation and editing behaviour.
+2. **Evaluate against real content** in light and dark mode, on mobile and desktop. Set
+   `POCMS_ADMIN_UI=additive` for an appearance-preserving comparison or `off` for a
+   complete stock-panel rollback.
+3. **Consider shadcn/ui** as a long-term component foundation if a deeper structural
+   rebuild is green-lit; the data layer and shell logic can port over.
+4. The native Payload components remain the fallback, with `POCMS_ADMIN_UI=off`; the
+   TailAdmin theme is gated by its provider and does not rewrite Payload source styles.
 
 ## 5. Key sources
 

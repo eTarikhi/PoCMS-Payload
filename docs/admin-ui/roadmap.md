@@ -83,43 +83,52 @@ Payload's nav/header/account menu intact.
 
 **Skills/tools:** ApexCharts options typing, date bucketing, responsive grid layout.
 
-## Phase 5 — Integration modes & theming bridge ✅
+## Phase 5 — Integration modes & whole-admin theming ✅
 
 - ✅ `beforeDashboard` KPI strip and `afterNavLinks` links (additive entry points).
-- ✅ `Nav` replacement (mode `full`) with a fail-safe fallback.
-- ✅ `TailAdminThemeProvider` + `payload-bridge.css` opt-in re-skin (mode `full`).
-- ✅ `buildTailAdminComponents()` mode switch (`off`/`additive`/`dashboard`/`full`) and
-  env-driven configuration.
+- ✅ `TailAdminThemeProvider` + `tailadmin-theme.css` apply the TailAdmin palette and
+  component styling to every admin route in `full` mode.
+- ✅ Native Payload navigation is restyled in place instead of replaced, preserving its
+  grid layout, mobile drawer, keyboard access, and account controls.
+- ✅ `buildTailAdminComponents()` supports `off`/`additive`/`dashboard`/`full`, with
+  `full` as the default and env-driven rollback options.
 - ✅ Import-map generation verified in `additive` and `full` modes.
 
-**Acceptance criteria:** each mode produces the expected import-map entries; `off` leaves
-the panel stock; the bridge applies only when the provider is mounted.
+**Acceptance criteria:** every mode produces the expected import-map entries; `off`,
+`additive`, and `dashboard` retain Payload's native styling; `full` applies the TailAdmin
+theme across login/auth pages, dashboard, lists, edit views, settings, drawers, modals,
+and toasts; light/dark mode follows Payload's `data-theme` attribute.
 
 **Skills/tools:** Payload `admin.components` slots, React context providers, CSS custom
-property theming, Next `headers()` + `payload.auth`.
+properties, cascade layers, Tailwind scoping, import-map generation.
 
 ## Phase 6 — Hardening & sign-off 🔜
 
-- [ ] **Manual QA against seeded content**: light + dark, mobile → desktop, every mode.
-- [ ] **Accessibility pass**: keyboard navigation in the sidebar/header dropdowns, focus
-      rings, ARIA labels, colour contrast for the brand palette.
+- [ ] **Manual QA against seeded content**: verify the full theme in light + dark, mobile
+      → desktop, and across login, dashboard, list, edit, settings, drawer, and modal views;
+      compare `full` against `additive` and `off`.
+- [ ] **Accessibility pass**: keyboard navigation in the native sidebar/header dropdowns,
+      visible focus rings, ARIA labels, reduced motion, and colour contrast for the brand
+      palette.
 - [ ] **Performance**: ensure the dashboard's query fan-out stays fast on large datasets;
       add React `cache()`/`unstable_cache()` where appropriate; consider a single
       aggregation query for the growth chart.
 - [ ] **i18n**: route user-facing labels through Payload's `i18n` so the pilot respects
       admin translations.
-- [ ] **Telemetry/feedback**: collect qualitative feedback from editors before promotion.
+- [ ] **Telemetry/feedback**: collect qualitative feedback from editors using the
+      whole-admin TailAdmin theme.
 
 **Skills/tools:** Playwright (repo already has e2e specs), Lighthouse/axe, Payload i18n.
 
-## Phase 7 — Decide: promote or hand off to shadcn/ui 🗓
+## Phase 7 — Long-term component strategy 🗓
 
-- [ ] If editors prefer the TailAdmin look → promote to `dashboard` then `full`, and
-      begin replacing stock list/edit chrome with TailAdmin primitives.
-- [ ] If a broader, accessible rebuild is wanted → adopt **shadcn/ui** (Payload's official
+- [ ] If the TailAdmin look is a fit, decide whether to keep Payload's native list/edit
+      components with the global theme or incrementally replace selected screens with
+      TailAdmin primitives.
+- [ ] If a deeper accessible rebuild is wanted, adopt **shadcn/ui** (Payload's official
       guide) and port this branch's data layer + shell logic over unchanged.
-- [ ] Either way, keep the `off` escape hatch and the CSS-variable bridge as the low-risk
-      baseline.
+- [ ] Keep the `off` rollback mode and `data-ta-theme` provider gate regardless of the
+      longer-term component strategy.
 
 **Skills/tools:** shadcn/ui + Radix, design-token governance, migration planning.
 
@@ -133,7 +142,7 @@ property theming, Next `headers()` + `payload.auth`.
 | React 19 / Server Components | views, blocks, data flow | react.dev (RSC) |
 | Next.js App Router | routing, `next/link`, `next/navigation`, `next/headers`, `next/dynamic` | nextjs.org |
 | Tailwind CSS v4 | tokens, scoped preflight, dark variant, source scoping | tailwindcss.com |
-| CSS cascade layers & custom properties | isolation + theming bridge | MDN |
+| CSS cascade layers & custom properties | Tailwind isolation + whole-admin theme | MDN |
 | Payload 3 config & components | `admin.components.*`, root views, providers, import map | payloadcms.com/docs |
 | Payload Local API + access control | all data queries | payloadcms.com/docs |
 | ApexCharts | growth chart | apexcharts.com |
@@ -149,5 +158,5 @@ property theming, Next `headers()` + `payload.auth`.
 |---|---|---|---|
 | Tailwind preflight/leakage breaks stock panel | Low (guarded) | High | Scoped `.ta-root`/`.ta-inline`, `source(none)`, layer order; verified in §6 of the pilot doc |
 | Query fan-out slows the dashboard on big data | Medium | Medium | Per-query guards now; aggregation/caching in Phase 6 |
-| Payload renames internal selectors (mode `full`) | Low | Medium | Theme bridge uses CSS variables; Nav override has a fallback |
+| Payload changes internal selector names (mode `full`) | Low | Medium | Core colors use Payload CSS variables; targeted TailAdmin rules use documented selectors and are checked against the installed version; `off`/`additive` remain rollback options |
 | Google-Fonts/offline build issues | Environmental | Low | Pilot avoids `next/font/google`; Outfit degrades to system fonts |

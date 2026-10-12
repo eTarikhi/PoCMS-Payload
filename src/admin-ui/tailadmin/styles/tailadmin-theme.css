@@ -1,0 +1,768 @@
+/**
+ * ============================================================================
+ * TailAdmin Free — GLOBAL theme for the ENTIRE Payload admin panel
+ * ============================================================================
+ *
+ * This stylesheet re-skins **every page and every element** of the Payload
+ * admin panel with the TailAdmin Free design language: login, dashboard, list
+ * views, edit views, drawers, modals, toasts, account, 404 — everything.
+ *
+ * It is activated by `TailAdminThemeProvider`, which sets
+ * `html[data-ta-theme="on"]`. Every rule below hangs off that attribute, so the
+ * theme is fully reversible (switch `POCMS_ADMIN_UI` to `additive`/`off` and the
+ * stock Payload look returns with no leftover CSS).
+ *
+ * Two-layer strategy
+ * ------------------
+ * 1. **Design tokens.** Payload builds every colour from the `--color-base-*`
+ *    neutral ramp and the `--color-{success,error,warning}-*` ramps, then maps
+ *    them onto `--theme-elevation-*` (auto-inverted in dark mode). Re-pointing
+ *    those ramps at the TailAdmin palette re-colours the whole panel. Surfaces,
+ *    fonts, radii and z-index are re-pointed the same way.
+ * 2. **Targeted surface styling.** High-visibility components (nav, buttons,
+ *    inputs, cards, tables, headers, pills, modals, drawers, toasts, login) get
+ *    explicit TailAdmin treatment: larger radii, soft shadows, brand accents.
+ *
+ * Layering note: Payload wraps its CSS in `@layer payload-default`. This file is
+ * unlayered, so it wins over Payload's rules without needing `!important`.
+ *
+ * Palette source: TailAdmin Free v2.4.0 `src/app/globals.css` (MIT).
+ */
+
+/* ==========================================================================
+   1. Design tokens — LIGHT
+   ========================================================================== */
+html[data-ta-theme='on'] {
+  /* Brand accent (exposed for the targeted rules below). */
+  --ta-brand-50: #ecf3ff;
+  --ta-brand-100: #dde9ff;
+  --ta-brand-200: #c2d6ff;
+  --ta-brand-300: #9cb9ff;
+  --ta-brand-400: #7592ff;
+  --ta-brand-500: #465fff;
+  --ta-brand-600: #3641f5;
+  --ta-brand-700: #2a31d8;
+
+  /* TailAdmin shadows. */
+  --ta-shadow-xs: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
+  --ta-shadow-sm: 0px 1px 3px 0px rgba(16, 24, 40, 0.1), 0px 1px 2px 0px rgba(16, 24, 40, 0.06);
+  --ta-shadow-md: 0px 4px 8px -2px rgba(16, 24, 40, 0.1), 0px 2px 4px -2px rgba(16, 24, 40, 0.06);
+  --ta-shadow-lg: 0px 12px 16px -4px rgba(16, 24, 40, 0.08), 0px 4px 6px -2px rgba(16, 24, 40, 0.03);
+  --ta-shadow-xl: 0px 20px 24px -4px rgba(16, 24, 40, 0.08), 0px 8px 8px -4px rgba(16, 24, 40, 0.03);
+  --ta-focus-ring: 0px 0px 0px 3px rgba(70, 95, 255, 0.15);
+
+  /* Neutral ramp -> TailAdmin gray. */
+  --color-base-0: #ffffff;
+  --color-base-50: #fcfcfd;
+  --color-base-100: #f9fafb;
+  --color-base-150: #f2f4f7;
+  --color-base-200: #e4e7ec;
+  --color-base-250: #d0d5dd;
+  --color-base-300: #c2c9d4;
+  --color-base-350: #b0b8c4;
+  --color-base-400: #98a2b3;
+  --color-base-450: #8590a2;
+  --color-base-500: #667085;
+  --color-base-550: #5a6478;
+  --color-base-600: #475467;
+  --color-base-650: #3d4a5c;
+  --color-base-700: #344054;
+  --color-base-750: #263041;
+  --color-base-800: #1d2939;
+  --color-base-850: #16202e;
+  --color-base-900: #101828;
+  --color-base-950: #0c111d;
+  --color-base-1000: #000000;
+
+  /* Status ramps -> TailAdmin success / error / warning. */
+  --color-success-50: #ecfdf3;
+  --color-success-100: #d1fadf;
+  --color-success-150: #a6f4c5;
+  --color-success-200: #a6f4c5;
+  --color-success-250: #6ce9a6;
+  --color-success-300: #6ce9a6;
+  --color-success-350: #32d583;
+  --color-success-400: #32d583;
+  --color-success-450: #12b76a;
+  --color-success-500: #12b76a;
+  --color-success-550: #039855;
+  --color-success-600: #039855;
+  --color-success-650: #027a48;
+  --color-success-700: #027a48;
+  --color-success-750: #05603a;
+  --color-success-800: #05603a;
+  --color-success-850: #054f31;
+  --color-success-900: #054f31;
+  --color-success-950: #053321;
+  --color-error-50: #fef3f2;
+  --color-error-100: #fee4e2;
+  --color-error-150: #fecdca;
+  --color-error-200: #fecdca;
+  --color-error-250: #fda29b;
+  --color-error-300: #fda29b;
+  --color-error-350: #f97066;
+  --color-error-400: #f97066;
+  --color-error-450: #f04438;
+  --color-error-500: #f04438;
+  --color-error-550: #d92d20;
+  --color-error-600: #d92d20;
+  --color-error-650: #b42318;
+  --color-error-700: #b42318;
+  --color-error-750: #912018;
+  --color-error-800: #912018;
+  --color-error-850: #7a271a;
+  --color-error-900: #7a271a;
+  --color-error-950: #55160c;
+  --color-warning-50: #fffaeb;
+  --color-warning-100: #fef0c7;
+  --color-warning-150: #fedf89;
+  --color-warning-200: #fedf89;
+  --color-warning-250: #fec84b;
+  --color-warning-300: #fec84b;
+  --color-warning-350: #fdb022;
+  --color-warning-400: #fdb022;
+  --color-warning-450: #f79009;
+  --color-warning-500: #f79009;
+  --color-warning-550: #dc6803;
+  --color-warning-600: #dc6803;
+  --color-warning-650: #b54708;
+  --color-warning-700: #b54708;
+  --color-warning-750: #93370d;
+  --color-warning-800: #93370d;
+  --color-warning-850: #7a2e0e;
+  --color-warning-900: #7a2e0e;
+  --color-warning-950: #4e1d09;
+
+  /* Info/blue ramp -> TailAdmin brand blues. */
+  --color-blue-50: #ecf3ff;
+  --color-blue-100: #dde9ff;
+  --color-blue-150: #d1dcff;
+  --color-blue-200: #c2d6ff;
+  --color-blue-250: #aec7ff;
+  --color-blue-300: #9cb9ff;
+  --color-blue-350: #89a6ff;
+  --color-blue-400: #7592ff;
+  --color-blue-450: #5d78ff;
+  --color-blue-500: #465fff;
+  --color-blue-550: #3e50fa;
+  --color-blue-600: #3641f5;
+  --color-blue-650: #3039e5;
+  --color-blue-700: #2a31d8;
+  --color-blue-750: #282fc2;
+  --color-blue-800: #252dae;
+  --color-blue-850: #252d9c;
+  --color-blue-900: #262e89;
+  --color-blue-950: #161950;
+
+  /* Surfaces & type. TailAdmin pages sit on gray-50 with white cards. */
+  --theme-bg: #f9fafb;
+  --theme-input-bg: #ffffff;
+  --theme-border-color: #e4e7ec;
+  --theme-text: #101828;
+
+  --font-body: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  /* Corner radii: TailAdmin uses 8px buttons/inputs, 12px panels, 16px cards. */
+  --style-radius-s: 6px;
+  --style-radius-m: 8px;
+  --style-radius-l: 12px;
+}
+
+/* ==========================================================================
+   2. Design tokens — DARK
+   Payload inverts the elevation ramp automatically; only re-state the surfaces
+   that are not derived from --color-base-*.
+   ========================================================================== */
+html[data-ta-theme='on'][data-theme='dark'] {
+  --theme-bg: #101828;
+  --theme-input-bg: #1d2939;
+  --theme-border-color: #344054;
+  --theme-text: #f9fafb;
+  --theme-overlay: rgba(12, 17, 29, 0.65);
+}
+
+/* ==========================================================================
+   3. Base surfaces & scrollbars (every page)
+   ========================================================================== */
+html[data-ta-theme='on'] body {
+  background: var(--theme-bg);
+  font-family: var(--font-body);
+  color: var(--theme-text);
+}
+
+html[data-ta-theme='on'] .template-default,
+html[data-ta-theme='on'] .template-default__wrap,
+html[data-ta-theme='on'] .template-minimal {
+  background-color: var(--theme-bg);
+}
+
+html[data-ta-theme='on'] ::selection {
+  background: var(--ta-brand-500);
+  color: #ffffff;
+}
+
+/* TailAdmin-style slim scrollbars. */
+html[data-ta-theme='on'] *::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+html[data-ta-theme='on'] *::-webkit-scrollbar-track {
+  background: transparent;
+}
+html[data-ta-theme='on'] *::-webkit-scrollbar-thumb {
+  background: var(--color-base-200);
+  border-radius: 999px;
+}
+html[data-ta-theme='on'] *::-webkit-scrollbar-thumb:hover {
+  background: var(--color-base-300);
+}
+html[data-ta-theme='on'][data-theme='dark'] *::-webkit-scrollbar-thumb {
+  background: var(--color-base-700);
+}
+html[data-ta-theme='on'][data-theme='dark'] *::-webkit-scrollbar-thumb:hover {
+  background: var(--color-base-600);
+}
+
+/* Focus rings in the brand colour. */
+html[data-ta-theme='on'] {
+  --accessibility-outline: 2px solid var(--ta-brand-500);
+}
+
+/* ==========================================================================
+   4. Buttons
+   ========================================================================== */
+html[data-ta-theme='on'] .btn {
+  --btn-font-weight: 500;
+  font-weight: 500;
+}
+
+/* Primary: brand-500 fill. */
+html[data-ta-theme='on'] .btn--style-primary:not(.btn--disabled) {
+  --bg-color: var(--ta-brand-500);
+  --hover-bg: var(--ta-brand-600);
+  --color: #ffffff;
+  --hover-color: #ffffff;
+  box-shadow: var(--ta-shadow-xs);
+}
+
+/* Secondary: white card with soft border. */
+html[data-ta-theme='on'] .btn--style-secondary:not(.btn--disabled) {
+  --color: var(--color-base-700);
+  --bg-color: var(--theme-input-bg);
+  --btn-border: 1px solid var(--color-base-300);
+  --hover-color: var(--ta-brand-600);
+  --hover-btn-border: 1px solid var(--ta-brand-300);
+  box-shadow: var(--ta-shadow-xs);
+}
+
+html[data-ta-theme='on'][data-theme='dark'] .btn--style-secondary:not(.btn--disabled) {
+  --color: var(--color-base-200);
+  --bg-color: var(--theme-input-bg);
+  --btn-border: 1px solid var(--color-base-700);
+  --hover-color: var(--ta-brand-400);
+  --hover-btn-border: 1px solid var(--ta-brand-400);
+}
+
+/* Dashed: subtle add-new affordance. */
+html[data-ta-theme='on'] .btn--style-dashed:not(.btn--disabled) {
+  --color: var(--color-base-500);
+  --hover-color: var(--ta-brand-600);
+  --btn-border: 1px dashed var(--color-base-300);
+  --hover-btn-border: 1px dashed var(--ta-brand-400);
+}
+html[data-ta-theme='on'][data-theme='dark'] .btn--style-dashed:not(.btn--disabled) {
+  --color: var(--color-base-300);
+  --hover-color: var(--ta-brand-400);
+  --btn-border: 1px dashed var(--color-base-700);
+  --hover-btn-border: 1px dashed var(--ta-brand-400);
+}
+
+/* Icon buttons (cards, rows). */
+html[data-ta-theme='on'] .btn__icon {
+  border-radius: var(--style-radius-m);
+}
+
+/* ==========================================================================
+   5. Form fields, inputs, selects, checkboxes
+   ========================================================================== */
+html[data-ta-theme='on'] .field-label,
+html[data-ta-theme='on'] .field-type label {
+  font-weight: 500;
+}
+
+html[data-ta-theme='on'] .field-description {
+  color: var(--color-base-500);
+}
+html[data-ta-theme='on'][data-theme='dark'] .field-description {
+  color: var(--color-base-400);
+}
+
+html[data-ta-theme='on'] .field-type input:not([type='checkbox']):not([type='radio']):not([type='hidden']):not([type='submit']):not([type='button']):not([type='file']),
+html[data-ta-theme='on'] .field-type textarea,
+html[data-ta-theme='on'] .field-type select,
+html[data-ta-theme='on'] .search-filter__input,
+html[data-ta-theme='on'] .toolbar-input,
+html[data-ta-theme='on'] .react-select .rs__control,
+html[data-ta-theme='on'] textarea.textarea {
+  border-radius: var(--style-radius-m);
+  border-color: var(--color-base-300);
+}
+html[data-ta-theme='on'][data-theme='dark'] .field-type input:not([type='checkbox']):not([type='radio']):not([type='hidden']):not([type='submit']):not([type='button']):not([type='file']),
+html[data-ta-theme='on'][data-theme='dark'] .field-type textarea,
+html[data-ta-theme='on'][data-theme='dark'] .field-type select,
+html[data-ta-theme='on'][data-theme='dark'] .search-filter__input,
+html[data-ta-theme='on'][data-theme='dark'] .toolbar-input,
+html[data-ta-theme='on'][data-theme='dark'] .react-select .rs__control,
+html[data-ta-theme='on'][data-theme='dark'] textarea.textarea {
+  border-color: var(--color-base-700);
+}
+
+html[data-ta-theme='on'] .field-type input:focus,
+html[data-ta-theme='on'] .field-type textarea:focus,
+html[data-ta-theme='on'] .field-type select:focus,
+html[data-ta-theme='on'] .search-filter__input:focus,
+html[data-ta-theme='on'] .toolbar-input:focus,
+html[data-ta-theme='on'] input:focus-visible,
+html[data-ta-theme='on'] textarea:focus-visible {
+  box-shadow: var(--ta-focus-ring);
+}
+
+/* Native controls pick up the brand colour. */
+html[data-ta-theme='on'] input[type='checkbox'],
+html[data-ta-theme='on'] input[type='radio'] {
+  accent-color: var(--ta-brand-500);
+}
+
+/* React-select (relationship/select fields); Payload uses rs__ class names. */
+html[data-ta-theme='on'] .react-select .rs__control {
+  border-radius: var(--style-radius-m);
+  border-color: var(--color-base-300);
+  box-shadow: none;
+}
+html[data-ta-theme='on'] .react-select .rs__control--is-focused {
+  border-color: var(--ta-brand-500);
+  box-shadow: var(--ta-focus-ring);
+}
+html[data-ta-theme='on'] .react-select .rs__menu {
+  border-radius: var(--style-radius-l);
+  box-shadow: var(--ta-shadow-lg);
+  border: 1px solid var(--color-base-200);
+  overflow: hidden;
+}
+html[data-ta-theme='on'] .react-select .rs__option--is-focused {
+  background-color: var(--ta-brand-50);
+}
+html[data-ta-theme='on'] .react-select .rs__option--is-selected {
+  background-color: var(--ta-brand-500);
+  color: #ffffff;
+}
+html[data-ta-theme='on'][data-theme='dark'] .react-select .rs__option--is-focused {
+  background-color: rgba(70, 95, 255, 0.16);
+}
+html[data-ta-theme='on'][data-theme='dark'] .react-select .rs__menu {
+  border-color: var(--color-base-700);
+}
+
+/* ==========================================================================
+   6. Sidebar navigation (restyled native nav — keeps Payload's layout logic)
+   ========================================================================== */
+html[data-ta-theme='on'] .nav {
+  background: var(--theme-input-bg);
+  border-right: 1px solid var(--color-base-200);
+}
+html[data-ta-theme='on'][data-theme='dark'] .nav {
+  background: var(--color-base-900);
+  border-right-color: var(--color-base-700);
+}
+html[dir='rtl'][data-ta-theme='on'] .nav {
+  border-right: 0;
+  border-left: 1px solid var(--color-base-200);
+}
+html[dir='rtl'][data-ta-theme='on'][data-theme='dark'] .nav {
+  border-left-color: var(--color-base-700);
+}
+
+/* Section headers -> TailAdmin uppercase labels. */
+html[data-ta-theme='on'] .nav-group__toggle,
+html[data-ta-theme='on'] .nav__label {
+  color: var(--color-base-400);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+}
+
+/* Links -> TailAdmin menu items. */
+html[data-ta-theme='on'] .nav__link {
+  border-radius: var(--style-radius-m);
+  padding-block: 7px;
+  padding-inline: 12px;
+  margin-inline: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--color-base-600);
+  text-decoration: none;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+html[data-ta-theme='on'][data-theme='dark'] .nav__link {
+  color: var(--color-base-300);
+}
+html[data-ta-theme='on'] .nav__link:hover {
+  background: var(--color-base-100);
+  color: var(--color-base-900);
+}
+html[data-ta-theme='on'][data-theme='dark'] .nav__link:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+}
+
+/* Active link -> brand. */
+html[data-ta-theme='on'] .nav__link.active,
+html[data-ta-theme='on'] .nav__link[aria-current='page'] {
+  background: var(--ta-brand-50);
+  color: var(--ta-brand-600);
+  font-weight: 500;
+}
+html[data-ta-theme='on'][data-theme='dark'] .nav__link.active,
+html[data-ta-theme='on'][data-theme='dark'] .nav__link[aria-current='page'] {
+  background: rgba(70, 95, 255, 0.12);
+  color: var(--ta-brand-400);
+}
+html[data-ta-theme='on'] .nav__link-indicator {
+  background-color: var(--ta-brand-500);
+  border-radius: 999px;
+}
+
+/* Bottom controls (account/logout). */
+html[data-ta-theme='on'] .nav__controls {
+  border-top: 1px solid var(--color-base-200);
+  padding-top: 15px;
+}
+html[data-ta-theme='on'][data-theme='dark'] .nav__controls {
+  border-top-color: var(--color-base-700);
+}
+
+/* ==========================================================================
+   7. App header & document controls bar
+   ========================================================================== */
+html[data-ta-theme='on'] .app-header__bg,
+html[data-ta-theme='on'] .doc-controls {
+  background: var(--theme-input-bg);
+}
+html[data-ta-theme='on'] .app-header__bg {
+  border-bottom: 1px solid var(--color-base-200);
+  box-shadow: var(--ta-shadow-xs);
+}
+html[data-ta-theme='on'][data-theme='dark'] .app-header__bg {
+  border-bottom-color: var(--color-base-700);
+}
+html[data-ta-theme='on'] .doc-controls {
+  border-bottom: 1px solid var(--color-base-200);
+}
+html[data-ta-theme='on'][data-theme='dark'] .doc-controls {
+  background: var(--color-base-900);
+  border-bottom-color: var(--color-base-700);
+}
+
+/* Breadcrumb / step nav. */
+html[data-ta-theme='on'] .step-nav a,
+html[data-ta-theme='on'] .step-nav button {
+  color: var(--color-base-500);
+}
+html[data-ta-theme='on'] .step-nav a:hover {
+  color: var(--ta-brand-600);
+}
+
+/* ==========================================================================
+   8. Dashboard cards & section titles
+   ========================================================================== */
+html[data-ta-theme='on'] .card {
+  background: var(--theme-input-bg);
+  border: 1px solid var(--color-base-200);
+  border-radius: var(--style-radius-l);
+  box-shadow: var(--ta-shadow-xs);
+  transition: box-shadow 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+html[data-ta-theme='on'] .card--has-onclick:hover {
+  border-color: var(--ta-brand-300);
+  box-shadow: var(--ta-shadow-md);
+}
+html[data-ta-theme='on'][data-theme='dark'] .card {
+  background: var(--color-base-850);
+  border-color: var(--color-base-700);
+}
+html[data-ta-theme='on'] .card__title {
+  font-weight: 600;
+}
+
+html[data-ta-theme='on'] .section-title {
+  font-weight: 600;
+  color: var(--color-base-800);
+}
+html[data-ta-theme='on'][data-theme='dark'] .section-title {
+  color: var(--color-base-100);
+}
+
+/* ==========================================================================
+   9. List views & data tables
+   ========================================================================== */
+html[data-ta-theme='on'] .table {
+  background: var(--theme-input-bg);
+  border: 1px solid var(--color-base-200);
+  border-radius: var(--style-radius-l);
+  box-shadow: var(--ta-shadow-xs);
+}
+html[data-ta-theme='on'][data-theme='dark'] .table {
+  background: var(--color-base-850);
+  border-color: var(--color-base-700);
+}
+
+html[data-ta-theme='on'] .table thead th,
+html[data-ta-theme='on'] .table th {
+  background: var(--color-base-50);
+  color: var(--color-base-500);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+  border-bottom: 1px solid var(--color-base-200);
+}
+html[data-ta-theme='on'][data-theme='dark'] .table thead th,
+html[data-ta-theme='on'][data-theme='dark'] .table th {
+  background: var(--color-base-800);
+  border-bottom-color: var(--color-base-700);
+}
+
+html[data-ta-theme='on'] .table tbody tr {
+  border-bottom: 1px solid var(--color-base-150);
+}
+html[data-ta-theme='on'] .table tbody tr:hover {
+  background: var(--color-base-50);
+}
+html[data-ta-theme='on'][data-theme='dark'] .table tbody tr {
+  border-bottom-color: var(--color-base-750);
+}
+html[data-ta-theme='on'][data-theme='dark'] .table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* List header & controls. */
+html[data-ta-theme='on'] .list-header__title,
+html[data-ta-theme='on'] .collection-list__header h1 {
+  font-weight: 700;
+}
+html[data-ta-theme='on'] .search-filter,
+html[data-ta-theme='on'] .search-bar input {
+  border-radius: var(--style-radius-m);
+}
+
+/* Pagination. */
+html[data-ta-theme='on'] .paginator button,
+html[data-ta-theme='on'] .paginator__page {
+  border-radius: var(--style-radius-m);
+}
+html[data-ta-theme='on'] .paginator__page--is-current {
+  background: var(--ta-brand-500);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   10. Pills, banners, statuses
+   ========================================================================== */
+html[data-ta-theme='on'] .pill {
+  border-radius: 999px;
+  font-weight: 500;
+}
+html[data-ta-theme='on'] .banner {
+  border-radius: var(--style-radius-l);
+}
+html[data-ta-theme='on'] .pill--rounded {
+  border-radius: 999px;
+}
+
+/* ==========================================================================
+   11. Drawers & popups  (modals styled in section 12)
+   ========================================================================== */
+
+html[data-ta-theme='on'] .drawer {
+  background: var(--theme-input-bg);
+}
+html[data-ta-theme='on'] .drawer__header,
+html[data-ta-theme='on'] .drawer-action-header {
+  border-bottom: 1px solid var(--color-base-200);
+}
+html[data-ta-theme='on'][data-theme='dark'] .drawer {
+  background: var(--color-base-900);
+}
+html[data-ta-theme='on'][data-theme='dark'] .drawer__header,
+html[data-ta-theme='on'][data-theme='dark'] .drawer-action-header {
+  border-bottom-color: var(--color-base-700);
+}
+
+html[data-ta-theme='on'] .popup__content {
+  background: var(--theme-input-bg);
+  color: var(--theme-text);
+  border: 1px solid var(--color-base-200);
+  border-radius: var(--style-radius-l);
+  box-shadow: var(--ta-shadow-lg);
+}
+html[data-ta-theme='on'][data-theme='dark'] .popup__content {
+  border-color: var(--color-base-700);
+}
+html[data-ta-theme='on'] .popup-button-list__button {
+  border-radius: var(--style-radius-m);
+}
+html[data-ta-theme='on'] .popup-button-list__button:hover,
+html[data-ta-theme='on'] .popup-button-list__button:focus-visible {
+  background: var(--ta-brand-50);
+  color: var(--ta-brand-600);
+}
+html[data-ta-theme='on'][data-theme='dark'] .popup-button-list__button:hover,
+html[data-ta-theme='on'][data-theme='dark'] .popup-button-list__button:focus-visible {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ta-brand-400);
+}
+
+/* ==========================================================================
+   12. Modals & toasts
+   Payload modal items are full-height transparent wrappers; style the actual
+   confirmation dialog surface inside them. Toasts use Sonner with the
+   `.payload-toast-*` classes added by Payload's ToastContainer.
+   ========================================================================== */
+html[data-ta-theme='on'] .confirmation-modal__wrapper {
+  width: min(560px, calc(100vw - 32px));
+  max-width: 560px;
+  padding: 24px;
+  background: var(--theme-input-bg);
+  border: 1px solid var(--color-base-200);
+  border-radius: var(--style-radius-l);
+  box-shadow: var(--ta-shadow-xl);
+}
+html[data-ta-theme='on'][data-theme='dark'] .confirmation-modal__wrapper {
+  background: var(--color-base-850);
+  border-color: var(--color-base-700);
+}
+html[data-ta-theme='on'] .confirmation-modal__controls {
+  border-top: 1px solid var(--color-base-200);
+  padding-top: 16px;
+}
+html[data-ta-theme='on'][data-theme='dark'] .confirmation-modal__controls {
+  border-top-color: var(--color-base-700);
+}
+html[data-ta-theme='on'] .close-modal-button {
+  border-radius: var(--style-radius-m);
+}
+
+html[data-ta-theme='on'] .payload-toast-item,
+html[data-ta-theme='on'] [data-sonner-toast] {
+  border-radius: var(--style-radius-l);
+  box-shadow: var(--ta-shadow-lg);
+  font-weight: 500;
+}
+/* Status tints on the sonner variant classes. */
+html[data-ta-theme='on'] .payload-toast-item.toast-success {
+  border-color: var(--color-success-200);
+}
+html[data-ta-theme='on'] .payload-toast-item.toast-error {
+  border-color: var(--color-error-200);
+}
+html[data-ta-theme='on'] .payload-toast-item.toast-warning {
+  border-color: var(--color-warning-200);
+}
+html[data-ta-theme='on'] .payload-toast-item.toast-info {
+  border-color: var(--color-base-200);
+}
+
+/* ==========================================================================
+   13. Login & minimal templates
+   ========================================================================== */
+html[data-ta-theme='on'] .template-minimal {
+  background: var(--theme-bg);
+}
+/* The login card: the minimal-template wrap holding the login form. */
+html[data-ta-theme='on'] .template-minimal__wrap {
+  background: var(--theme-input-bg);
+  border: 1px solid var(--color-base-200);
+  border-radius: var(--style-radius-l);
+  box-shadow: var(--ta-shadow-md);
+  padding: 32px;
+}
+html[data-ta-theme='on'][data-theme='dark'] .template-minimal__wrap {
+  background: var(--color-base-850);
+  border-color: var(--color-base-700);
+}
+html[data-ta-theme='on'] .login-fields {
+  gap: 16px;
+}
+@media (max-width: 600px) {
+  html[data-ta-theme='on'] .template-minimal__wrap {
+    padding: 24px;
+  }
+}
+
+/* ==========================================================================
+   14. Miscellaneous surfaces
+   ========================================================================== */
+/* Collapsible panels and nested blocks. */
+html[data-ta-theme='on'] .collapsible,
+html[data-ta-theme='on'] .blocks-field__rows .collapsible {
+  border-radius: var(--style-radius-l);
+  border-color: var(--color-base-200);
+  background: var(--theme-input-bg);
+}
+html[data-ta-theme='on'][data-theme='dark'] .collapsible {
+  border-color: var(--color-base-700);
+  background: var(--color-base-850);
+}
+html[data-ta-theme='on'] .blocks-field__header {
+  border-radius: var(--style-radius-m);
+}
+
+/* Upload / file cards & thumbnails. */
+html[data-ta-theme='on'] .upload-field-card,
+html[data-ta-theme='on'] .thumbnail-card,
+html[data-ta-theme='on'] .file-details {
+  border-radius: var(--style-radius-l);
+}
+
+/* Tabs. */
+html[data-ta-theme='on'] .tabs-field__tab-button {
+  border-radius: var(--style-radius-m);
+}
+html[data-ta-theme='on'] .tabs-field__tab-button--active {
+  color: var(--ta-brand-600);
+}
+html[data-ta-theme='on'][data-theme='dark'] .tabs-field__tab-button--active {
+  color: var(--ta-brand-400);
+}
+
+/* Document fields gutter keeps TailAdmin background. */
+html[data-ta-theme='on'] .document-fields,
+html[data-ta-theme='on'] .gutter {
+  background-color: transparent;
+}
+
+/* Loading overlay spinner in brand colour. */
+html[data-ta-theme='on'] .loading-overlay .spinner,
+html[data-ta-theme='on'] .spinner {
+  border-top-color: var(--ta-brand-500);
+}
+
+/* Links inside list cells pick up the brand accent. */
+html[data-ta-theme='on'] .table a,
+html[data-ta-theme='on'] .relationship-cell a,
+html[data-ta-theme='on'] .default-cell__first-cell {
+  color: var(--ta-brand-600);
+}
+html[data-ta-theme='on'] .table a:hover,
+html[data-ta-theme='on'] .relationship-cell a:hover,
+html[data-ta-theme='on'] .default-cell__first-cell:hover {
+  color: var(--ta-brand-700);
+  text-decoration: underline;
+}
+html[data-ta-theme='on'][data-theme='dark'] .table a,
+html[data-ta-theme='on'][data-theme='dark'] .relationship-cell a,
+html[data-ta-theme='on'][data-theme='dark'] .default-cell__first-cell {
+  color: var(--ta-brand-400);
+}
