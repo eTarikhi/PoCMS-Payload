@@ -18,11 +18,23 @@ test.describe('Admin Panel', () => {
     await cleanupTestUser()
   })
 
+  test('keeps the dashboard behind login', async ({ browser }) => {
+    const context = await browser.newContext()
+    try {
+      const guestPage = await context.newPage()
+      await guestPage.goto('http://localhost:3000/admin')
+      await expect(guestPage).toHaveURL(/\/admin\/login/)
+      await expect(guestPage.getByRole('heading', { name: 'Content workspace' })).not.toBeVisible()
+    } finally {
+      await context.close()
+    }
+  })
+
   test('can navigate to dashboard', async () => {
     await page.goto('http://localhost:3000/admin')
     await expect(page).toHaveURL('http://localhost:3000/admin')
-    const dashboardArtifact = page.locator('span[title="Dashboard"]').first()
-    await expect(dashboardArtifact).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Content workspace' })).toBeVisible()
+    await expect(page.getByRole('link', { name: /Projects.*Portfolio work/ })).toBeVisible()
   })
 
   test('can navigate to list view', async () => {

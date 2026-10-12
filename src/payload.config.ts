@@ -10,6 +10,7 @@ import { resendAdapter } from '@payloadcms/email-resend'
 
 import path from 'path'
 import { buildConfig } from 'payload'
+import type { CollectionConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
@@ -32,9 +33,28 @@ import { Media } from './collections/Media'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
+// Group only the actual portfolio entities in Payload's permission-aware sidebar.
+const navigationGroups: Record<string, string> = {
+  projects: 'Portfolio', services: 'Portfolio', skills: 'Portfolio',
+  articles: 'Publishing', media: 'Publishing',
+  about: 'Profile', header: 'Profile', experiences: 'Profile',
+  educations: 'Profile', certificates: 'Profile',
+  users: 'Settings',
+}
+const withNavigationGroup = (collection: CollectionConfig): CollectionConfig => ({
+  ...collection,
+  admin: { ...collection.admin, group: navigationGroups[collection.slug] },
+})
+
 export default buildConfig({
   admin: {
     user: Users.slug,
+    components: {
+      beforeNavLinks: ['/components/admin/SidebarBrand'],
+      views: {
+        dashboard: { Component: '/components/admin/Dashboard' },
+      },
+    },
     livePreview: {
       breakpoints: [
         {
@@ -62,19 +82,19 @@ export default buildConfig({
     },
   },
   collections: [
-    Users,
-    About,
-    Header,
-    Articles,
-    Certificates,
-    Educations,
-    Experiences,
     Projects,
     Services,
     Skills,
+    Articles,
     Media,
-  ],
-  globals: [Footer],
+    About,
+    Header,
+    Experiences,
+    Educations,
+    Certificates,
+    Users,
+  ].map(withNavigationGroup),
+  globals: [{ ...Footer, admin: { ...Footer.admin, group: 'Settings' } }],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
