@@ -1,7 +1,9 @@
 import { default as default_eefb63250393b6f1ece217283842a4aa } from '../../../admin/lists/ListSummary.tsx'
+import { default as default_f821a7e585062e1c1d039f9edbdf991e } from '../../../admin/brand/AdminFonts.tsx'
 import { default as default_f9bbce68d2358aa09c796e98173adc66 } from '../../../admin/nav/RefreshCacheButton.tsx'
 import { default as default_65ed0945efe3aad60a7bc8592e85b6bb } from '../../../admin/graphics/Icon.tsx'
 import { default as default_a6801f351999135bbacec7ae94b55ad0 } from '../../../admin/graphics/Logo.tsx'
+import { default as default_07e5ed856206b238fd4371a0d1cd2268 } from '../../../admin/nav/HeaderViewSiteButton.tsx'
 import { default as default_b273b32469f785a85f7b3c629f48449e } from '../../../admin/nav/ViewSiteLink.tsx'
 import { default as default_94d8c639ad2a71b821ecc21770e04f4f } from '../../../admin/dashboard/widgets/ContentOverview.tsx'
 import { default as default_f3600afdf05d63dfeac3a27c74404490 } from '../../../admin/dashboard/widgets/QuickActions.tsx'
@@ -13,9 +15,11 @@ import { VercelBlobClientUploadHandler as VercelBlobClientUploadHandler_16c82c5e
 /** @type import('payload').ImportMap */
 export const importMap = {
   "/admin/lists/ListSummary.tsx#default": default_eefb63250393b6f1ece217283842a4aa,
+  "/admin/brand/AdminFonts.tsx#default": default_f821a7e585062e1c1d039f9edbdf991e,
   "/admin/nav/RefreshCacheButton.tsx#default": default_f9bbce68d2358aa09c796e98173adc66,
   "/admin/graphics/Icon.tsx#default": default_65ed0945efe3aad60a7bc8592e85b6bb,
   "/admin/graphics/Logo.tsx#default": default_a6801f351999135bbacec7ae94b55ad0,
+  "/admin/nav/HeaderViewSiteButton.tsx#default": default_07e5ed856206b238fd4371a0d1cd2268,
   "/admin/nav/ViewSiteLink.tsx#default": default_b273b32469f785a85f7b3c629f48449e,
   "/admin/dashboard/widgets/ContentOverview.tsx#default": default_94d8c639ad2a71b821ecc21770e04f4f,
   "/admin/dashboard/widgets/QuickActions.tsx#default": default_f3600afdf05d63dfeac3a27c74404490,

@@ -101,11 +101,48 @@ layout itself is drag-and-drop customisable ("Edit Dashboard") and resettable.
 - Layouts are fluid; Payload's responsive nav/table behavior is preserved (verified at
   mobile 375px, tablet 768px, and desktop widths).
 
+## Visual theme
+
+The theme in `src/app/(payload)/custom.scss` covers every admin page and element,
+not just the dashboard. All rules sit in `@layer payload`, so they win against
+Payload's native styles in `@layer payload-default` without fighting specificity,
+and frontend styles are never imported.
+
+What is restyled (18 sections):
+
+- **Tokens first** — brand amber/gold/ink, warm paper canvas + floating white
+  surfaces (light) and an ink-tinted dark ramp (`html[data-theme='dark']`),
+  radius scale `--style-radius-s/m/l` (5/8/12px), `--font-body` = Open Sans,
+  shell rhythm (`--nav-width`, `--gutter-h`, header/doc-controls heights).
+- **Typography** — the user-visible "small fonts" fix: `html` base 14px (13px on
+  tablets), body/inputs 13–14px, list tables 13.5px, document title 22px, and
+  crisp 11px uppercase meta labels (group labels, table headers, pills) so
+  small ≠ cramped.
+- **Every surface** — login/auth (`template-minimal` brand backdrop, logo
+  lockup, 42px inputs), app header (blur, "View site" action pill), navigation
+  (rounded links, amber active bar), list views (list header, controls, sortable
+  tables, paginator, per-page, no-results), document edit views (doc header,
+  doc tabs, sidebar panels, save bar), fields (inputs, checkbox/radio pills,
+  react-select, relationship, upload/file-details, datepicker, code/JSON),
+  arrays/blocks/collapsibles/groups, relationship tables, bulk upload, popups,
+  drawers, confirmation modals, toasts (accent bars), where builder, dashboard
+  cards, folder cards, locked-doc banners, verification, and the Live Preview
+  toolbar.
+- **Open Sans in the admin** — `src/admin/brand/AdminFonts.tsx` (header slot)
+  renders the stylesheet link (a plain CSS `@import` is dropped by the
+  bundler); offline the system sans fallback stack applies.
+
+Extras beyond restyling: app-header "View site" shortcut on every page
+(`HeaderViewSiteButton`), reduced-motion support, subtle row-hover/selected
+states for dense tables, and hover-lift cards for faster visual scanning.
+
 ## Validation checklist
 
 - [ ] Login → dashboard → list → edit flows work unchanged for an editor user.
 - [ ] Widgets and summary strips respect permissions (hide actions the user cannot perform).
 - [ ] Light and dark themes both readable.
+- [ ] Login, list, edit, account, drawers and modals all show the PoCMS theme (not native Payload).
+- [ ] Body/input text renders at the 13–14px scale; meta labels are 11px uppercase, not tiny lowercase.
 - [ ] Live Preview iframe and Preview button open the article page for articles with a body.
 - [ ] "Refresh live site cache" (gear menu) returns `{"revalidated":true}` for signed-in users.
 - [ ] `pnpm generate:types`, `pnpm generate:importmap`, `pnpm lint`, `pnpm test` pass.
