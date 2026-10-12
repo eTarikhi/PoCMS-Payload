@@ -11,6 +11,9 @@ export const Articles: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'category', 'publishedAt', 'featured'],
+    components: {
+      beforeList: ['/components/payload/collections/ArticlesListIntro#ArticlesListIntro'],
+    },
   },
   defaultSort: 'publishedAt',
   access: {

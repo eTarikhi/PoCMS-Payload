@@ -1,0 +1,60 @@
+/* Tailwind v4 for custom Payload surfaces only. Preflight is intentionally
+   omitted to preserve Payload's built-in field and table styling. */
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme) prefix(tw);
+@import 'tailwindcss/utilities.css' layer(utilities) prefix(tw);
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@theme inline {
+  --color-admin-background: var(--pocms-admin-background);
+  --color-admin-card: var(--pocms-admin-card);
+  --color-admin-foreground: var(--pocms-admin-foreground);
+  --color-admin-muted: var(--pocms-admin-muted);
+  --color-admin-muted-foreground: var(--pocms-admin-muted-foreground);
+  --color-admin-border: var(--pocms-admin-border);
+  --color-admin-primary: var(--pocms-admin-primary);
+  --color-admin-primary-foreground: var(--pocms-admin-primary-foreground);
+  --color-admin-ring: var(--pocms-admin-ring);
+}
+
+@layer components {
+  .pocms-admin {
+    --pocms-admin-background: #f7f8fb;
+    --pocms-admin-card: #ffffff;
+    --pocms-admin-foreground: #172033;
+    --pocms-admin-muted: #f0f2f6;
+    --pocms-admin-muted-foreground: #667085;
+    --pocms-admin-border: #e6e9ef;
+    --pocms-admin-primary: #b77908;
+    --pocms-admin-primary-foreground: #ffffff;
+    --pocms-admin-ring: #d99b27;
+    background: var(--pocms-admin-background);
+    color: var(--pocms-admin-foreground);
+    font-family: inherit;
+  }
+
+  html[data-theme='dark'] .pocms-admin {
+    --pocms-admin-background: #101521;
+    --pocms-admin-card: #171e2c;
+    --pocms-admin-foreground: #edf1f7;
+    --pocms-admin-muted: #202a3a;
+    --pocms-admin-muted-foreground: #a5afbf;
+    --pocms-admin-border: #2b3546;
+    --pocms-admin-primary: #e3ab3c;
+    --pocms-admin-primary-foreground: #211708;
+    --pocms-admin-ring: #e3ab3c;
+  }
+
+  .pocms-admin a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .pocms-admin a:focus-visible,
+  .pocms-admin button:focus-visible {
+    outline: 2px solid var(--pocms-admin-ring);
+    outline-offset: 3px;
+  }
+}
