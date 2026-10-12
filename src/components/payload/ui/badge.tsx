@@ -20,7 +20,7 @@ export function Badge({ className, variant = 'default', ...props }: BadgeProps) 
     <span
       data-slot="badge"
       className={cn(
-        'tw:inline-flex tw:items-center tw:rounded-full tw:px-2.5 tw:py-1 tw:text-xs tw:font-medium tw:leading-none',
+        'tw:inline-flex tw:items-center tw:rounded-full tw:px-2.5 tw:py-1 tw:text-[13px] tw:font-medium tw:leading-none',
         variants[variant],
         className,
       )}

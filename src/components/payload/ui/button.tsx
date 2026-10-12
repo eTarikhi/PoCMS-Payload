@@ -25,10 +25,10 @@ const variants: Record<ButtonVariant, string> = {
 }
 
 const sizes: Record<ButtonSize, string> = {
-  default: 'tw:h-10 tw:px-4 tw:py-2',
-  sm: 'tw:h-9 tw:rounded-lg tw:px-3',
-  lg: 'tw:h-11 tw:rounded-xl tw:px-6',
-  icon: 'tw:size-10',
+  default: 'tw:min-h-[44px] tw:px-4 tw:py-2',
+  sm: 'tw:min-h-[40px] tw:rounded-lg tw:px-3',
+  lg: 'tw:min-h-[48px] tw:rounded-xl tw:px-6',
+  icon: 'tw:size-[44px]',
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(

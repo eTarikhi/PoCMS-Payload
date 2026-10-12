@@ -40,8 +40,10 @@ function StatCard({ label, value, note, icon: Icon }: StatCardProps) {
       <CardContent className="tw:flex tw:items-start tw:justify-between tw:gap-4 tw:pt-5 tw:sm:pt-6">
         <div className="tw:min-w-0">
           <p className="tw:m-0 tw:text-sm tw:font-medium tw:text-admin-muted-foreground">{label}</p>
-          <p className="tw:mb-1 tw:mt-3 tw:text-3xl tw:font-semibold tw:tracking-tight">{value}</p>
-          <p className="tw:m-0 tw:text-xs tw:text-admin-muted-foreground">{note}</p>
+          <p className="tw:mb-1 tw:mt-3 tw:text-3xl tw:font-semibold tw:tabular-nums tw:tracking-tight">
+            {value}
+          </p>
+          <p className="tw:m-0 tw:text-sm tw:text-admin-muted-foreground">{note}</p>
         </div>
         <span className="tw:flex tw:size-10 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-xl tw:bg-admin-primary/10 tw:text-admin-primary">
           <Icon aria-hidden="true" className="tw:size-5" />
@@ -103,7 +105,7 @@ function RecentList({ items, title, description, href, emptyLabel }: RecentListP
                   >
                     {item.title?.trim() || 'Untitled document'}
                   </Link>
-                  <p className="tw:mb-0 tw:mt-1 tw:flex tw:items-center tw:gap-1.5 tw:text-xs tw:text-admin-muted-foreground">
+                  <p className="tw:mb-0 tw:mt-1 tw:flex tw:items-center tw:gap-1.5 tw:text-[13px] tw:text-admin-muted-foreground">
                     <Clock3 aria-hidden="true" className="tw:size-3.5" />
                     <time dateTime={item.updatedAt || undefined}>{formatDate(item.updatedAt)}</time>
                   </p>

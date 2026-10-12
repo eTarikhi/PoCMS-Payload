@@ -3,12 +3,15 @@ import { login } from '../helpers/login'
 import { seedTestUser, cleanupTestUser, testUser } from '../helpers/seedUser'
 
 async function expectSharedAdminTheme(page: Page) {
-  const primary = await page
-    .locator('html')
-    .evaluate((element) =>
-      getComputedStyle(element).getPropertyValue('--pocms-admin-primary').trim(),
-    )
-  expect(primary).toMatch(/^#[0-9a-f]{6}$/i)
+  const theme = await page.locator('html').evaluate((element) => {
+    const styles = getComputedStyle(element)
+    return {
+      primary: styles.getPropertyValue('--pocms-admin-primary').trim(),
+      fontSize: Number.parseFloat(styles.fontSize),
+    }
+  })
+  expect(theme.primary).toMatch(/^#[0-9a-f]{6}$/i)
+  expect(theme.fontSize).toBeGreaterThanOrEqual(14)
 }
 
 test.describe('Admin Panel', () => {
@@ -75,5 +78,9 @@ test.describe('Admin Panel', () => {
     await expectSharedAdminTheme(page)
     const editViewArtifact = page.locator('input[name="email"]')
     await expect(editViewArtifact).toBeVisible()
+    const inputMinHeight = await editViewArtifact.evaluate((element) =>
+      Number.parseFloat(getComputedStyle(element).minHeight),
+    )
+    expect(inputMinHeight).toBeGreaterThanOrEqual(44)
   })
 })

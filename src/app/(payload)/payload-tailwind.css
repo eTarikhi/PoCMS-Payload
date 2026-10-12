@@ -24,6 +24,11 @@
 
 @layer payload {
   :root {
+    /* A slightly larger type baseline improves readability without inflating spacing. */
+    --base-body-size: 14;
+    --theme-baseline-body-size: 14px;
+    --theme-baseline: 20px;
+
     /* Shared light palette used by every native Payload admin screen. */
     --color-base-0: #ffffff;
     --color-base-50: #f7f8fb;
@@ -115,9 +120,101 @@
     --accessibility-outline: 2px solid var(--pocms-admin-ring);
   }
 
+  html {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
   #app {
     min-height: 100%;
     background: var(--pocms-admin-background);
+    color: var(--pocms-admin-foreground);
+  }
+
+  #app .btn {
+    font-size: 14px;
+  }
+
+  #app .field-label:not(.unstyled) {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  #app .field-description {
+    color: var(--pocms-admin-muted-foreground);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  #app small,
+  #app .pill--rounded,
+  #app .error-pill,
+  #app .multi-value-label,
+  #app .relationship--multi-value-label__content,
+  #app .section-title:after,
+  #app .section-title__input {
+    font-size: 13px;
+  }
+
+  #app
+    .field-type
+    input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='hidden']):not(
+      .rs__input
+    ) {
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  #app .field-type textarea {
+    min-height: 96px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  #app .react-select .rs__control {
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  #app .react-select .rs__option {
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  #app .react-datepicker {
+    border-radius: var(--style-radius-l);
+    font-size: 14px;
+    overflow: hidden;
+  }
+
+  #app .react-datepicker__header {
+    background: var(--pocms-admin-muted);
+    border-color: var(--pocms-admin-border);
+  }
+
+  #app .react-datepicker__day,
+  #app .react-datepicker__day-name,
+  #app .react-datepicker__month-text,
+  #app .react-datepicker__time-container .react-datepicker__time-list-item {
+    font-size: 13px;
+  }
+
+  #app .react-datepicker__day--selected,
+  #app .react-datepicker__day--in-selecting-range,
+  #app .react-datepicker__day--in-range,
+  #app .react-datepicker__month-text--selected,
+  #app .react-datepicker__month-text--in-selecting-range,
+  #app .react-datepicker__month-text--in-range,
+  #app .react-datepicker__time-list-item--selected {
+    border-radius: var(--style-radius-s);
+    background: var(--pocms-admin-primary);
+    color: var(--pocms-admin-primary-foreground);
+  }
+
+  #app .react-datepicker__day--keyboard-selected:not(.react-datepicker__day--selected) {
+    border-radius: var(--style-radius-s);
+    background: color-mix(in srgb, var(--pocms-admin-primary) 16%, var(--pocms-admin-card));
     color: var(--pocms-admin-foreground);
   }
 
@@ -219,6 +316,21 @@
     background: var(--pocms-admin-background);
   }
 
+  .table th,
+  .table td {
+    font-size: 14px;
+    line-height: 1.45;
+    padding-block: calc(var(--base) * 0.7);
+  }
+
+  .table tbody tr {
+    transition: background-color 120ms ease;
+  }
+
+  .table tbody tr:hover {
+    background: color-mix(in srgb, var(--pocms-admin-primary) 6%, var(--pocms-admin-card));
+  }
+
   .table tbody tr:not(:last-child) td {
     border-bottom: 1px solid var(--pocms-admin-border);
   }
@@ -243,7 +355,7 @@
   }
 
   .list-header__title {
-    font-size: clamp(1.5rem, 2.4vw, 1.875rem);
+    font-size: clamp(1.75rem, 2.8vw, 2rem);
     font-weight: 600;
     letter-spacing: -0.025em;
     line-height: 1.2;
@@ -252,11 +364,15 @@
   .nav-group__toggle {
     border-radius: var(--style-radius-s);
     color: var(--pocms-admin-muted-foreground);
+    font-size: 14px;
     font-weight: 600;
   }
 
   .nav-group__content a {
+    min-height: 40px;
     border-radius: var(--style-radius-s);
+    font-size: 14px;
+    line-height: 1.45;
     transition:
       background-color 150ms ease,
       color 150ms ease;
@@ -292,6 +408,17 @@
     outline: var(--accessibility-outline);
     outline-offset: var(--accessibility-outline-offset);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--pocms-admin-ring) 18%, transparent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #app *,
+    #app *::before,
+    #app *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
