@@ -1,21 +1,21 @@
 import { unstable_cache } from 'next/cache'
 
-import { mapArticleDetail, type ArticleDetail } from './article-mappers'
 import { fetchArticleBySlug, fetchPublishedArticleSlugs } from './payload-source'
 import { PORTFOLIO_CACHE_TAG } from './revalidate'
+import type { Article } from '@/payload-types'
 
 /**
- * One article's page data, cached under its own key and the shared `portfolio` tag (article page spec §5.1, §6).
- * Saving any content in /admin marks the tag stale, which refreshes these entries too (D-A8).
- * Returns null when there is no article with that slug, or it has no page (no body).
+ * One article's raw Payload document, cached under its own key and the shared `portfolio` tag
+ * (article page spec §5.1, §6). Saving any content in /admin marks the tag stale, which refreshes
+ * these entries too (D-A8). `depth: 1` resolves the cover image (see `fetchArticleBySlug`).
+ *
+ * The raw document is the input for `mapArticleDetail` (page view model, metadata, JSON-LD) and
+ * the `initialData` for Live Preview on the article page.
  */
-export const getCachedArticleBySlug = (slug: string): Promise<ArticleDetail | null> =>
+export const getCachedArticleDoc = (slug: string): Promise<Article | null> =>
   unstable_cache(
-    async () => {
-      const doc = await fetchArticleBySlug(slug)
-      return doc ? mapArticleDetail(doc) : null
-    },
-    ['portfolio-article', slug],
+    async () => fetchArticleBySlug(slug),
+    ['portfolio-article-doc', slug],
     { tags: [PORTFOLIO_CACHE_TAG] },
   )()
 

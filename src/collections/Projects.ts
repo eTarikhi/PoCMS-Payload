@@ -14,6 +14,7 @@ export const Projects: CollectionConfig = {
       'Portfolio projects shown in the homepage projects grid. Lower "order" values appear first.',
     useAsTitle: 'title',
     defaultColumns: ['title', 'categories', 'order'],
+    listSearchableFields: ['title', 'slug'],
     components: {
       beforeList: ['/admin/lists/ListSummary.tsx'],
     },

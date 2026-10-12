@@ -3,7 +3,7 @@ import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { GraphQL } from '@payloadcms/graphql/types'
 
-import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
+import { nodemailerAdapter } from '@payloadcms/email-nodemailer' // eslint-disable-line @typescript-eslint/no-unused-vars -- kept for the commented SMTP examples below
 import { resendAdapter } from '@payloadcms/email-resend'
 // import nodemailerSendgrid from 'nodemailer-sendgrid'
 // import nodemailer from 'nodemailer'
@@ -43,12 +43,15 @@ export default buildConfig({
         { url: '/images/favicon/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
       ],
     },
+    // Compact, readable dates everywhere in the admin (list columns, activity, etc.).
+    dateFormat: 'd MMM yyyy',
     components: {
       graphics: {
         Icon: '/admin/graphics/Icon.tsx',
         Logo: '/admin/graphics/Logo.tsx',
       },
       afterNavLinks: ['/admin/nav/ViewSiteLink.tsx'],
+      settingsMenu: ['/admin/nav/RefreshCacheButton.tsx'],
     },
     dashboard: {
       widgets: [
@@ -58,6 +61,29 @@ export default buildConfig({
           label: 'Content overview',
           minWidth: 'medium',
           maxWidth: 'full',
+          fields: [
+            {
+              name: 'title',
+              type: 'text',
+              defaultValue: 'Content overview',
+              admin: { description: 'Heading shown on the widget.' },
+            },
+            {
+              name: 'shown',
+              type: 'select',
+              hasMany: true,
+              defaultValue: ['articles', 'projects', 'media', 'certificates', 'experiences', 'skills'],
+              options: [
+                { label: 'Articles', value: 'articles' },
+                { label: 'Projects', value: 'projects' },
+                { label: 'Media', value: 'media' },
+                { label: 'Certificates', value: 'certificates' },
+                { label: 'Experience', value: 'experiences' },
+                { label: 'Skills', value: 'skills' },
+              ],
+              admin: { description: 'Which collections to count on your dashboard.' },
+            },
+          ],
         },
         {
           slug: 'quick-actions',
@@ -82,7 +108,14 @@ export default buildConfig({
         },
       ],
       defaultLayout: [
-        { widgetSlug: 'content-overview', width: 'large' },
+        {
+          widgetSlug: 'content-overview',
+          width: 'large',
+          data: {
+            title: 'Content overview',
+            shown: ['articles', 'projects', 'media', 'certificates', 'experiences', 'skills'],
+          },
+        },
         { widgetSlug: 'quick-actions', width: 'small' },
         { widgetSlug: 'recent-activity', width: 'medium' },
         { widgetSlug: 'needs-attention', width: 'medium' },
@@ -162,7 +195,7 @@ export default buildConfig({
     }),
   ],
   graphQL: {
-    validationRules: (args) => [NoProductionIntrospection],
+    validationRules: () => [NoProductionIntrospection],
     disablePlaygroundInProduction: false,
   },
 

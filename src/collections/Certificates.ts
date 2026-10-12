@@ -12,6 +12,7 @@ export const Certificates: CollectionConfig = {
     description: 'Certificates and credentials shown on the homepage, newest issued first.',
     useAsTitle: 'title',
     defaultColumns: ['title', 'issuer', 'issuedAt'],
+    listSearchableFields: ['title', 'issuer'],
   },
   defaultSort: 'issuedAt',
   access: {

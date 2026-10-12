@@ -231,3 +231,9 @@
     align-items: flex-start;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .pocms-widget a {
+    transition: none;
+  }
+}

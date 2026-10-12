@@ -1,4 +1,5 @@
 import { default as default_eefb63250393b6f1ece217283842a4aa } from '../../../admin/lists/ListSummary.tsx'
+import { default as default_f9bbce68d2358aa09c796e98173adc66 } from '../../../admin/nav/RefreshCacheButton.tsx'
 import { default as default_65ed0945efe3aad60a7bc8592e85b6bb } from '../../../admin/graphics/Icon.tsx'
 import { default as default_a6801f351999135bbacec7ae94b55ad0 } from '../../../admin/graphics/Logo.tsx'
 import { default as default_b273b32469f785a85f7b3c629f48449e } from '../../../admin/nav/ViewSiteLink.tsx'
@@ -12,6 +13,7 @@ import { VercelBlobClientUploadHandler as VercelBlobClientUploadHandler_16c82c5e
 /** @type import('payload').ImportMap */
 export const importMap = {
   "/admin/lists/ListSummary.tsx#default": default_eefb63250393b6f1ece217283842a4aa,
+  "/admin/nav/RefreshCacheButton.tsx#default": default_f9bbce68d2358aa09c796e98173adc66,
   "/admin/graphics/Icon.tsx#default": default_65ed0945efe3aad60a7bc8592e85b6bb,
   "/admin/graphics/Logo.tsx#default": default_a6801f351999135bbacec7ae94b55ad0,
   "/admin/nav/ViewSiteLink.tsx#default": default_b273b32469f785a85f7b3c629f48449e,

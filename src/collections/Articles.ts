@@ -14,9 +14,18 @@ export const Articles: CollectionConfig = {
       'Blog and news entries shown on the homepage article section and at /articles/{slug}.',
     useAsTitle: 'title',
     defaultColumns: ['title', 'category', 'publishedAt', 'featured'],
+    listSearchableFields: ['title', 'slug', 'excerpt'],
     components: {
       beforeList: ['/admin/lists/ListSummary.tsx'],
     },
+    // Live Preview opens the article page (only articles with a slug and body have one).
+    livePreview: {
+      url: ({ data }) =>
+        data?.slug && data?.description ? `/articles/${data.slug}` : undefined,
+    },
+    // Preview button in the document header, same rule as Live Preview.
+    preview: (doc) =>
+      doc?.slug && doc?.description ? `/articles/${String(doc.slug)}` : null,
   },
   defaultSort: 'publishedAt',
   access: {

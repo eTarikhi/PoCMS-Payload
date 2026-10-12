@@ -13,6 +13,7 @@ export const Services: CollectionConfig = {
     description: 'Service categories shown in the services section. Lower "order" values appear first.',
     useAsTitle: 'category',
     defaultColumns: ['category', 'iconFont', 'order'],
+    listSearchableFields: ['category'],
   },
   defaultSort: 'order',
   access: {

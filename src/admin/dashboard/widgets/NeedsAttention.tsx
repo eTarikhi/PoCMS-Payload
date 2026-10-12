@@ -1,61 +1,10 @@
-import { stringify } from 'qs-esm'
-import type { SanitizedPermissions, Where, WidgetServerProps } from 'payload'
+import type { WidgetServerProps } from 'payload'
 import Link from 'next/link'
 import React from 'react'
 
+import { ATTENTION_CHECKS, attentionListUrl } from '../../lib/content-attention'
+import { canReadCollection } from '../../lib/permissions'
 import '../dashboard-widgets.scss'
-
-type AttentionCheck = {
-  collection: 'articles' | 'projects'
-  collectionLabel: string
-  label: string
-  note: string
-  where: Where
-}
-
-const CHECKS: AttentionCheck[] = [
-  {
-    collection: 'articles',
-    collectionLabel: 'Articles',
-    label: 'Articles without a cover image',
-    note: 'Neither the image upload nor the image URL is set, so cards fall back to a placeholder.',
-    where: { and: [{ image: { exists: false } }, { imageUrl: { exists: false } }] },
-  },
-  {
-    collection: 'articles',
-    collectionLabel: 'Articles',
-    label: 'Articles without a reading time',
-    note: 'The article meta line shows "min" only when this is filled in.',
-    where: { or: [{ readTime: { exists: false } }, { readTime: { equals: null } }] },
-  },
-  {
-    collection: 'projects',
-    collectionLabel: 'Projects',
-    label: 'Projects without any image',
-    note: 'None of the image upload, image URL, or placeholder URL is set.',
-    where: {
-      and: [{ image: { exists: false } }, { src: { exists: false } }, { placeHolder: { exists: false } }],
-    },
-  },
-  {
-    collection: 'projects',
-    collectionLabel: 'Projects',
-    label: 'Projects without a live URL',
-    note: 'The project card cannot link out to a live site or case study.',
-    where: { or: [{ url: { exists: false } }, { url: { equals: null } }] },
-  },
-]
-
-function canRead(permissions: SanitizedPermissions | undefined, collection: string): boolean {
-  return Boolean(permissions?.collections?.[collection]?.read)
-}
-
-function listUrl(collection: string, where: Where): string {
-  return `/admin/collections/${collection}?${stringify(
-    { where },
-    { encodeValuesOnly: true },
-  )}`
-}
 
 /**
  * Dashboard widget: content gaps worth fixing, with counts and links to
@@ -63,7 +12,9 @@ function listUrl(collection: string, where: Where): string {
  * and respect the current user's access.
  */
 export default async function NeedsAttention({ permissions, req, user }: WidgetServerProps) {
-  const checks = CHECKS.filter((check) => canRead(permissions, check.collection))
+  const checks = ATTENTION_CHECKS.filter((check) =>
+    canReadCollection(permissions, check.collection),
+  )
 
   const results = await Promise.all(
     checks.map(async (check) => {
@@ -95,7 +46,7 @@ export default async function NeedsAttention({ permissions, req, user }: WidgetS
           {pending.map((item) => (
             <li key={item.label} className="pocms-links__item">
               <span>
-                <Link href={listUrl(item.collection, item.where)}>{item.label}</Link>
+                <Link href={attentionListUrl(item.collection, item.where)}>{item.label}</Link>
                 <br />
                 <small style={{ opacity: 0.7 }}>{item.note}</small>
               </span>

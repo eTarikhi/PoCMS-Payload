@@ -14,6 +14,7 @@ export const Experiences: CollectionConfig = {
     description: 'Work history shown in the experience timeline. Lower "order" values appear first.',
     useAsTitle: 'title',
     defaultColumns: ['title', 'company', 'date', 'order'],
+    listSearchableFields: ['title', 'company'],
   },
   access: {
     read: () => true,

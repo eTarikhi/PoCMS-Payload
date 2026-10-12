@@ -12,6 +12,7 @@ export const Media: CollectionConfig = {
     description:
       'Images used across the portfolio. Always fill in the alt text — relationship pickers and accessibility both rely on it.',
     useAsTitle: 'alt',
+    listSearchableFields: ['alt', 'filename'],
     components: {
       beforeList: ['/admin/lists/ListSummary.tsx'],
     },

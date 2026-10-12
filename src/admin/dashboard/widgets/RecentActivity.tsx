@@ -1,8 +1,9 @@
 import { formatDistanceToNow } from 'date-fns'
-import type { SanitizedPermissions, WidgetServerProps } from 'payload'
+import type { WidgetServerProps } from 'payload'
 import Link from 'next/link'
 import React from 'react'
 
+import { canReadCollection } from '../../lib/permissions'
 import '../dashboard-widgets.scss'
 
 type ActivityCollection = 'articles' | 'certificates' | 'projects'
@@ -20,17 +21,13 @@ type ActivityItem = {
   title: string
 }
 
-function canRead(permissions: SanitizedPermissions | undefined, collection: string): boolean {
-  return Boolean(permissions?.collections?.[collection]?.read)
-}
-
 /**
  * Dashboard widget: the most recently updated documents across key collections.
  * Fetched server-side with the Local API and scoped to the current user's access.
  */
 export default async function RecentActivity({ permissions, req, user }: WidgetServerProps) {
   const collections = (Object.keys(COLLECTION_LABELS) as ActivityCollection[]).filter((slug) =>
-    canRead(permissions, slug),
+    canReadCollection(permissions, slug),
   )
 
   const perCollection = await Promise.all(

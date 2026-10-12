@@ -65,6 +65,20 @@ The dashboard is a task hub built from Payload's modular dashboard widgets
 Widgets are React Server Components that use the Local API server-side and respect the
 logged-in user's permissions, so editors only see what they can act on.
 
+Widget settings are user-editable: the **Content overview** widget has an edit drawer
+(title and which collections to count) stored per user in dashboard preferences. The
+layout itself is drag-and-drop customisable ("Edit Dashboard") and resettable.
+
+## Editor workflows
+
+- **Live Preview** — the article edit view opens `/articles/{slug}` in the responsive
+  preview iframe (mobile 375 / tablet 768 / desktop 1440 breakpoints) whenever the
+  article has a page. The Preview button opens the same URL in a new tab.
+- **Cache refresh** — saving content in the admin refreshes the live-site cache
+  automatically. After out-of-band changes (seeds, imports, manual DB edits), use
+  "Refresh live site cache" in the admin gear menu (POST `/api/revalidate`, admin
+  users only).
+
 ## Screen-level customization policy
 
 - Customize only high-value screens: the dashboard, and a slim summary strip
@@ -92,4 +106,6 @@ logged-in user's permissions, so editors only see what they can act on.
 - [ ] Login → dashboard → list → edit flows work unchanged for an editor user.
 - [ ] Widgets and summary strips respect permissions (hide actions the user cannot perform).
 - [ ] Light and dark themes both readable.
+- [ ] Live Preview iframe and Preview button open the article page for articles with a body.
+- [ ] "Refresh live site cache" (gear menu) returns `{"revalidated":true}` for signed-in users.
 - [ ] `pnpm generate:types`, `pnpm generate:importmap`, `pnpm lint`, `pnpm test` pass.

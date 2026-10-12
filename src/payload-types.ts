@@ -966,7 +966,14 @@ export interface FooterSelect<T extends boolean = true> {
  */
 export interface ContentOverviewWidget {
   data?: {
-    [k: string]: unknown;
+    /**
+     * Heading shown on the widget.
+     */
+    title?: string | null;
+    /**
+     * Which collections to count on your dashboard.
+     */
+    shown?: ('articles' | 'projects' | 'media' | 'certificates' | 'experiences' | 'skills')[] | null;
   };
   width: 'medium' | 'large' | 'x-large' | 'full';
 }

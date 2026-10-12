@@ -13,6 +13,7 @@ export const Skills: CollectionConfig = {
     description: 'Skills shown on the homepage. Proficiency renders as a progress bar. Lower "order" values appear first.',
     useAsTitle: 'label',
     defaultColumns: ['label', 'group', 'value', 'color', 'order'],
+    listSearchableFields: ['label'],
   },
   defaultSort: 'order',
     access: {
