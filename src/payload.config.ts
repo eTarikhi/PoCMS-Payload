@@ -2,6 +2,12 @@ import { vercelPostgresAdapter } from '@payloadcms/db-vercel-postgres'
 import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { GraphQL } from '@payloadcms/graphql/types'
+
+import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
+import { resendAdapter } from '@payloadcms/email-resend'
+// import nodemailerSendgrid from 'nodemailer-sendgrid'
+// import nodemailer from 'nodemailer'
+
 import path from 'path'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
@@ -104,6 +110,48 @@ export default buildConfig({
     validationRules: (args) => [NoProductionIntrospection],
     disablePlaygroundInProduction: false,
   },
+
+  // email: nodemailerAdapter({
+  //   defaultFromAddress: 'info@payloadcms.com',
+  //   defaultFromName: 'Payload',
+  //   // Nodemailer transportOptions
+  //   transportOptions: {
+  //     host: process.env.SMTP_HOST,
+  //     port: 587,
+  //     auth: {
+  //       user: process.env.SMTP_USER,
+  //       pass: process.env.SMTP_PASS,
+  //     },
+  //   },
+  // }),
+
+  // email: nodemailerAdapter({
+  //   defaultFromAddress: 'info@payloadcms.com',
+  //   defaultFromName: 'Payload',
+  //   // Any Nodemailer transport can be used
+  //   transport: nodemailer.createTransport({
+  //     host: process.env.SMTP_HOST,
+  //     port: 587,
+  //     auth: {
+  //       user: process.env.SMTP_USER,
+  //       pass: process.env.SMTP_PASS,
+  //     },
+  //   }),
+  // }),
+
+  // email: nodemailerAdapter({
+  //   defaultFromAddress: 'info@payloadcms.com',
+  //   defaultFromName: 'Payload',
+  //   transportOptions: nodemailerSendgrid({
+  //     apiKey: process.env.SENDGRID_API_KEY,
+  //   }),
+  // }),
+
+  email: resendAdapter({
+    defaultFromAddress: 'dev@vtarikhi.com',
+    defaultFromName: 'PoCMS',
+    apiKey: process.env.RESEND_API_KEY || '',
+  }),
 })
 
 const NoProductionIntrospection: GraphQL.ValidationRule = (context) => ({

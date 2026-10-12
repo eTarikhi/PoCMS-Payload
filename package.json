@@ -32,6 +32,7 @@
     "@payloadcms/db-postgres": "3.90.2",
     "@payloadcms/db-vercel-postgres": "3.90.2",
     "@payloadcms/email-nodemailer": "3.90.2",
+    "@payloadcms/email-resend": "3.90.2",
     "@payloadcms/live-preview-react": "3.90.2",
     "@payloadcms/graphql": "^3.90.2",
     "@payloadcms/next": "3.90.2",
@@ -109,11 +110,7 @@
     "pnpm": "^9 || ^10 || ^11"
   },
   "pnpm": {
-    "onlyBuiltDependencies": [
-      "sharp",
-      "esbuild",
-      "unrs-resolver"
-    ]
+    "onlyBuiltDependencies": ["sharp", "esbuild","sunrs-resolver"]
   },
   "allowScripts": {
     "esbuild": true,

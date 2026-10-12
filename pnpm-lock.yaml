@@ -35,6 +35,9 @@ importers:
       '@payloadcms/email-nodemailer':
         specifier: 3.90.2
         version: 3.90.2(payload@3.90.2(bufferutil@4.1.0)(graphql@16.14.2)(supports-color@7.2.0)(typescript@5.7.3))
+      '@payloadcms/email-resend':
+        specifier: 3.90.2
+        version: 3.90.2(payload@3.90.2(bufferutil@4.1.0)(graphql@16.14.2)(supports-color@7.2.0)(typescript@5.7.3))
       '@payloadcms/graphql':
         specifier: ^3.90.2
         version: 3.90.2(graphql@16.14.2)(payload@3.90.2(bufferutil@4.1.0)(graphql@16.14.2)(supports-color@7.2.0)(typescript@5.7.3))(typescript@5.7.3)
@@ -1573,6 +1576,12 @@ packages:
 
   '@payloadcms/email-nodemailer@3.90.2':
     resolution: {integrity: sha512-HpkEpnXYi6sFtbKB8qi9rL234gsMS5c0DJg2zag8+sYyad23xrUPytKT6PxI4HYdsIs+GRkQSmpjCgLmwi5ojw==}
+    engines: {node: ^18.20.2 || >=20.9.0}
+    peerDependencies:
+      payload: 3.90.2
+
+  '@payloadcms/email-resend@3.90.2':
+    resolution: {integrity: sha512-CckTlL2qeXuaIFA1LFiIXzntlEoVqsz1tEboO/3EsSgNw0kmVUts4fdhvUF2fTvg/lEpVdESk8KyWCBLHYMkxw==}
     engines: {node: ^18.20.2 || >=20.9.0}
     peerDependencies:
       payload: 3.90.2
@@ -6592,6 +6601,10 @@ snapshots:
   '@payloadcms/email-nodemailer@3.90.2(payload@3.90.2(bufferutil@4.1.0)(graphql@16.14.2)(supports-color@7.2.0)(typescript@5.7.3))':
     dependencies:
       nodemailer: 9.1.1
+      payload: 3.90.2(bufferutil@4.1.0)(graphql@16.14.2)(supports-color@7.2.0)(typescript@5.7.3)
+
+  '@payloadcms/email-resend@3.90.2(payload@3.90.2(bufferutil@4.1.0)(graphql@16.14.2)(supports-color@7.2.0)(typescript@5.7.3))':
+    dependencies:
       payload: 3.90.2(bufferutil@4.1.0)(graphql@16.14.2)(supports-color@7.2.0)(typescript@5.7.3)
 
   '@payloadcms/graphql@3.90.2(graphql@16.14.2)(payload@3.90.2(bufferutil@4.1.0)(graphql@16.14.2)(supports-color@7.2.0)(typescript@5.7.3))(typescript@5.7.3)':
