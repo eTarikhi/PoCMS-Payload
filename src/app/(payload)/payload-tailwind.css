@@ -1,6 +1,9 @@
-/* Tailwind v4 for custom Payload surfaces only. Preflight is intentionally
-   omitted to preserve Payload's built-in field and table styling. */
-@layer theme, base, components, utilities;
+/*
+ * Global Payload admin theme plus prefixed Tailwind utilities for custom views.
+ * Preflight is intentionally omitted so Payload's native fields, tables, and
+ * publishing controls keep their baseline behavior.
+ */
+@layer payload-default, payload, theme, base, components, utilities;
 
 @import 'tailwindcss/theme.css' layer(theme) prefix(tw);
 @import 'tailwindcss/utilities.css' layer(utilities) prefix(tw);
@@ -19,23 +22,75 @@
   --color-admin-ring: var(--pocms-admin-ring);
 }
 
-@layer components {
-  .pocms-admin {
+@layer payload {
+  :root {
+    /* Shared light palette used by every native Payload admin screen. */
+    --color-base-0: #ffffff;
+    --color-base-50: #f7f8fb;
+    --color-base-100: #f0f2f6;
+    --color-base-150: #e6e9ef;
+    --color-base-200: #dce2eb;
+    --color-base-250: #cbd3df;
+    --color-base-300: #bac4d2;
+    --color-base-350: #a7b2c2;
+    --color-base-400: #8792a3;
+    --color-base-450: #748094;
+    --color-base-500: #667085;
+    --color-base-550: #566174;
+    --color-base-600: #475467;
+    --color-base-650: #3d485a;
+    --color-base-700: #344054;
+    --color-base-750: #273247;
+    --color-base-800: #172033;
+    --color-base-850: #111827;
+    --color-base-900: #101521;
+    --color-base-950: #090d16;
+    --color-base-1000: #05070d;
+
+    /* Warm brand accent used for primary actions, selection, and focus. */
+    --color-success-50: #fff9ed;
+    --color-success-100: #fff1d6;
+    --color-success-150: #ffe6b5;
+    --color-success-200: #ffdc91;
+    --color-success-250: #f2c86d;
+    --color-success-300: #e9b94f;
+    --color-success-350: #dbab35;
+    --color-success-400: #c7941c;
+    --color-success-450: #ad790d;
+    --color-success-500: #9a6200;
+    --color-success-550: #875600;
+    --color-success-600: #754b00;
+    --color-success-650: #654100;
+    --color-success-700: #543600;
+    --color-success-750: #442c00;
+    --color-success-800: #382400;
+    --color-success-850: #2d1e00;
+    --color-success-900: #261900;
+    --color-success-950: #211600;
+
     --pocms-admin-background: #f7f8fb;
     --pocms-admin-card: #ffffff;
     --pocms-admin-foreground: #172033;
     --pocms-admin-muted: #f0f2f6;
     --pocms-admin-muted-foreground: #667085;
     --pocms-admin-border: #e6e9ef;
-    --pocms-admin-primary: #b77908;
+    --pocms-admin-primary: #9a6200;
     --pocms-admin-primary-foreground: #ffffff;
-    --pocms-admin-ring: #d99b27;
-    background: var(--pocms-admin-background);
-    color: var(--pocms-admin-foreground);
-    font-family: inherit;
+    --pocms-admin-primary-hover: #7d5000;
+    --pocms-admin-ring: #9a6200;
+
+    --theme-bg: var(--pocms-admin-background);
+    --theme-input-bg: var(--pocms-admin-card);
+    --theme-text: var(--pocms-admin-foreground);
+    --theme-border-color: var(--pocms-admin-border);
+    --accessibility-outline: 2px solid var(--pocms-admin-ring);
+    --accessibility-outline-offset: 2px;
+    --style-radius-s: 0.625rem;
+    --style-radius-m: 0.75rem;
+    --style-radius-l: 1rem;
   }
 
-  html[data-theme='dark'] .pocms-admin {
+  html[data-theme='dark'] {
     --pocms-admin-background: #101521;
     --pocms-admin-card: #171e2c;
     --pocms-admin-foreground: #edf1f7;
@@ -44,7 +99,207 @@
     --pocms-admin-border: #2b3546;
     --pocms-admin-primary: #e3ab3c;
     --pocms-admin-primary-foreground: #211708;
+    --pocms-admin-primary-hover: #f0bd5f;
     --pocms-admin-ring: #e3ab3c;
+
+    --color-success-500: var(--pocms-admin-primary);
+    --theme-bg: var(--pocms-admin-background);
+    --theme-input-bg: var(--pocms-admin-card);
+    --theme-text: var(--pocms-admin-foreground);
+    --theme-border-color: var(--pocms-admin-border);
+    --theme-elevation-400: #a5afbf;
+    --theme-elevation-450: #929eaf;
+    --theme-elevation-500: #8591a3;
+    --theme-elevation-550: #a7b2c2;
+    --theme-elevation-600: #bac4d2;
+    --accessibility-outline: 2px solid var(--pocms-admin-ring);
+  }
+
+  #app {
+    min-height: 100%;
+    background: var(--pocms-admin-background);
+    color: var(--pocms-admin-foreground);
+  }
+
+  .app-header {
+    background: var(--pocms-admin-card);
+    border-bottom: 1px solid var(--pocms-admin-border);
+  }
+
+  .app-header__bg {
+    background: var(--pocms-admin-card);
+  }
+
+  .btn--style-primary {
+    --color: var(--pocms-admin-primary-foreground);
+    --bg-color: var(--pocms-admin-primary);
+    --hover-bg: var(--pocms-admin-primary-hover);
+    --hover-color: var(--pocms-admin-primary-foreground);
+    --btn-border: 1px solid transparent;
+    --hover-btn-border: 1px solid transparent;
+    box-shadow: 0 3px 8px rgb(23 32 51 / 12%);
+  }
+
+  .btn--style-primary.btn--disabled {
+    --color: var(--theme-elevation-600);
+    --bg-color: var(--theme-elevation-100);
+    --hover-bg: var(--theme-elevation-100);
+    --hover-color: var(--theme-elevation-600);
+    --btn-border: 1px solid var(--pocms-admin-border);
+    --hover-btn-border: 1px solid var(--pocms-admin-border);
+    box-shadow: none;
+  }
+
+  .btn--style-secondary {
+    --color: var(--pocms-admin-foreground);
+    --bg-color: var(--pocms-admin-card);
+    --btn-border: 1px solid var(--pocms-admin-border);
+    --hover-color: var(--pocms-admin-foreground);
+    --hover-bg: var(--pocms-admin-muted);
+    --hover-btn-border: 1px solid var(--pocms-admin-border);
+  }
+
+  .btn--style-secondary.btn--disabled {
+    --color: var(--theme-elevation-400);
+    --bg-color: var(--pocms-admin-muted);
+    --btn-border: 1px solid var(--pocms-admin-border);
+    --hover-color: var(--theme-elevation-400);
+    --hover-bg: var(--pocms-admin-muted);
+    --hover-btn-border: 1px solid var(--pocms-admin-border);
+  }
+
+  .btn--style-subtle,
+  .btn--style-pill {
+    --color: var(--pocms-admin-foreground);
+    --bg-color: var(--pocms-admin-muted);
+    --hover-color: var(--pocms-admin-foreground);
+    --hover-bg: var(--pocms-admin-border);
+    --btn-border: 1px solid transparent;
+    --hover-btn-border: 1px solid transparent;
+  }
+
+  .btn--style-tab {
+    --color: var(--pocms-admin-foreground);
+    --hover-color: var(--pocms-admin-primary);
+    --hover-bg: var(--pocms-admin-muted);
+  }
+
+  .card {
+    background: var(--pocms-admin-card);
+    border-color: var(--pocms-admin-border);
+    border-radius: var(--style-radius-l);
+    box-shadow: 0 2px 8px rgb(23 32 51 / 5%);
+  }
+
+  .card--has-onclick:hover {
+    background: var(--pocms-admin-card);
+    border-color: var(--pocms-admin-primary);
+    box-shadow: 0 8px 24px rgb(23 32 51 / 10%);
+  }
+
+  .table {
+    overflow: auto;
+    border: 1px solid var(--pocms-admin-border);
+    border-radius: var(--style-radius-l);
+    background: var(--pocms-admin-card);
+    box-shadow: 0 2px 8px rgb(23 32 51 / 4%);
+  }
+
+  .table thead {
+    background: var(--pocms-admin-muted);
+    color: var(--pocms-admin-muted-foreground);
+  }
+
+  .table thead th {
+    border-bottom: 1px solid var(--pocms-admin-border);
+    font-weight: 600;
+  }
+
+  .table tbody tr:nth-child(odd) {
+    background: var(--pocms-admin-background);
+  }
+
+  .table tbody tr:not(:last-child) td {
+    border-bottom: 1px solid var(--pocms-admin-border);
+  }
+
+  .table a:not(.btn):hover {
+    color: var(--pocms-admin-primary);
+  }
+
+  .popup__content {
+    border: 1px solid var(--pocms-admin-border);
+    border-radius: var(--style-radius-m);
+    box-shadow: 0 12px 32px rgb(23 32 51 / 14%);
+  }
+
+  .popup-button-list__button {
+    border-radius: var(--style-radius-s);
+  }
+
+  .banner {
+    border: 1px solid var(--pocms-admin-border);
+    border-radius: var(--style-radius-m);
+  }
+
+  .list-header__title {
+    font-size: clamp(1.5rem, 2.4vw, 1.875rem);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+  }
+
+  .nav-group__toggle {
+    border-radius: var(--style-radius-s);
+    color: var(--pocms-admin-muted-foreground);
+    font-weight: 600;
+  }
+
+  .nav-group__content a {
+    border-radius: var(--style-radius-s);
+    transition:
+      background-color 150ms ease,
+      color 150ms ease;
+  }
+
+  .nav-group__content a:hover {
+    background: var(--pocms-admin-muted);
+    color: var(--pocms-admin-primary);
+  }
+
+  .nav-group__content a[aria-current='page'] {
+    background: color-mix(in srgb, var(--pocms-admin-primary) 10%, var(--pocms-admin-card));
+    color: var(--pocms-admin-primary);
+    font-weight: 600;
+  }
+
+  .doc-controls__dots {
+    border-radius: var(--style-radius-s);
+    border-color: var(--pocms-admin-border);
+    background: var(--pocms-admin-card);
+  }
+
+  input[type='checkbox'],
+  input[type='radio'] {
+    accent-color: var(--pocms-admin-primary);
+  }
+
+  #app input:focus-visible,
+  #app textarea:focus-visible,
+  #app select:focus-visible,
+  #app [role='combobox']:focus-visible {
+    border-color: var(--pocms-admin-ring);
+    outline: var(--accessibility-outline);
+    outline-offset: var(--accessibility-outline-offset);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--pocms-admin-ring) 18%, transparent);
+  }
+}
+
+@layer components {
+  .pocms-admin {
+    background: var(--pocms-admin-background);
+    color: var(--pocms-admin-foreground);
+    font-family: inherit;
   }
 
   .pocms-admin a {

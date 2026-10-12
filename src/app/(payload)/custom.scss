@@ -1,3 +1,3 @@
-/* Keep the generated Payload layout as-is; route-scoped Tailwind lives in a
-   separate CSS entrypoint so Sass does not rewrite Tailwind v4 import syntax. */
+/* Keep the generated Payload layout as-is; the admin theme and Tailwind live
+   in a separate CSS entrypoint so Sass preserves Tailwind v4 import syntax. */
 @import './payload-tailwind.css';

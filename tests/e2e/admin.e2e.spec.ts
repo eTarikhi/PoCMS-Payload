@@ -2,6 +2,15 @@ import { test, expect, Page } from '@playwright/test'
 import { login } from '../helpers/login'
 import { seedTestUser, cleanupTestUser, testUser } from '../helpers/seedUser'
 
+async function expectSharedAdminTheme(page: Page) {
+  const primary = await page
+    .locator('html')
+    .evaluate((element) =>
+      getComputedStyle(element).getPropertyValue('--pocms-admin-primary').trim(),
+    )
+  expect(primary).toMatch(/^#[0-9a-f]{6}$/i)
+}
+
 test.describe('Admin Panel', () => {
   let page: Page
 
@@ -49,6 +58,7 @@ test.describe('Admin Panel', () => {
   test('can navigate to list view', async () => {
     await page.goto('http://localhost:3000/admin/collections/users')
     await expect(page).toHaveURL('http://localhost:3000/admin/collections/users')
+    await expectSharedAdminTheme(page)
     const listViewArtifact = page.locator('h1', { hasText: 'Users' }).first()
     await expect(listViewArtifact).toBeVisible()
   })
@@ -62,6 +72,7 @@ test.describe('Admin Panel', () => {
   test('can navigate to edit view', async () => {
     await page.goto('http://localhost:3000/admin/collections/users/create')
     await expect(page).toHaveURL(/\/admin\/collections\/users\/[a-zA-Z0-9-_]+/)
+    await expectSharedAdminTheme(page)
     const editViewArtifact = page.locator('input[name="email"]')
     await expect(editViewArtifact).toBeVisible()
   })
