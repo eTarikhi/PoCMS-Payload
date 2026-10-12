@@ -307,6 +307,12 @@
   // ---------------------------------------------------------------------------
   // 5. Fields & form controls
   // ---------------------------------------------------------------------------
+
+   .group-field {
+    margin-left: calc(var(--gutter-h)*0) !important;
+    margin-right: calc(var(--gutter-h)*0) !important;
+  }
+
   .field-label {
     font-size: 13.5px;
     font-weight: 600;
