@@ -21,13 +21,13 @@
 
   &__title {
     margin: 0;
-    font-size: 0.95rem;
+    font-size: 15px;
     font-weight: 600;
     letter-spacing: 0.01em;
   }
 
   &__hint {
-    font-size: 0.72rem;
+    font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     opacity: 0.65;
@@ -36,11 +36,11 @@
   &__foot {
     margin-top: auto;
     padding-top: 0.35rem;
-    font-size: 0.8rem;
+    font-size: 12.5px;
   }
 
   a {
-    color: var(--theme-link-color);
+    color: var(--pocms-accent-strong);
     text-decoration: none;
 
     &:hover,
@@ -53,7 +53,7 @@
 // Stat tiles (Content overview)
 .pocms-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   gap: 0.65rem;
   margin: 0;
   padding: 0;
@@ -70,14 +70,14 @@
   }
 
   &__value {
-    font-size: 1.45rem;
+    font-size: 22px;
     font-weight: 650;
     line-height: 1.1;
     font-variant-numeric: tabular-nums;
   }
 
   &__label {
-    font-size: 0.75rem;
+    font-size: 12px;
     opacity: 0.75;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -102,9 +102,17 @@
     border: 1px solid var(--theme-elevation-100);
     border-radius: 6px;
     background: var(--theme-elevation-50);
+    transition: background-color 120ms ease, border-color 120ms ease;
+
+    &:hover {
+      background: var(--pocms-accent-softer);
+      border-color: var(--pocms-accent);
+    }
 
     a {
-      font-weight: 500;
+      font-weight: 600;
+      font-size: 13.5px;
+      color: inherit;
     }
   }
 
@@ -112,7 +120,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
-    font-size: 0.78rem;
+    font-size: 12px;
     opacity: 0.8;
     white-space: nowrap;
   }
@@ -159,14 +167,14 @@
     border-radius: 999px;
     background: var(--pocms-accent-soft, rgba(218, 145, 0, 0.12));
     color: var(--theme-text);
-    font-size: 0.68rem;
+    font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
 
   &__date {
     flex: 0 0 auto;
-    font-size: 0.78rem;
+    font-size: 12px;
     opacity: 0.7;
     white-space: nowrap;
   }
@@ -175,7 +183,7 @@
 .pocms-empty {
   margin: 0;
   padding: 0.5rem 0;
-  font-size: 0.85rem;
+  font-size: 13px;
   opacity: 0.75;
 }
 
@@ -201,7 +209,7 @@
     margin: 0;
     padding: 0;
     list-style: none;
-    font-size: 0.85rem;
+    font-size: 13px;
 
     strong {
       font-variant-numeric: tabular-nums;

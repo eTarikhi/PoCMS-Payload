@@ -51,17 +51,36 @@
     --app-header-height: 60px;
     --doc-controls-height: 60px;
 
-    /* Warm, tinted neutrals for light surfaces (50–200 used for bg/borders/hover) */
-    --theme-elevation-50: #faf9f6;
-    --theme-elevation-100: #f1efe9;
-    --theme-elevation-150: #e5e2da;
-    --theme-elevation-200: #d6d2c7;
+    /* Warm paper palette — retint the RAW base ramp only. Payload maps
+       --theme-elevation-N to --color-base-N (light) and flips the mapping in
+       dark mode (--theme-elevation-0 -> --color-base-900, ...900 -> base-0).
+       Never override --theme-elevation-* directly: the custom layer would then
+       beat Payload's dark-mode flip (layer order > specificity) and produce
+       light panels with light text in dark mode. */
+    --color-base-0: #ffffff;
+    --color-base-50: #faf8f3;
+    --color-base-100: #f2efe7;
+    --color-base-150: #e7e2d5;
+    --color-base-200: #d9d2c1;
+    --color-base-250: #c6bea9;
+    --color-base-300: #b2a98f;
+    --color-base-350: #9c9277;
+    --color-base-400: #8a8065;
+    --color-base-450: #797055;
+    --color-base-500: #6a6147;
+    --color-base-550: #5b533b;
+    --color-base-600: #4d4630;
+    --color-base-650: #403926;
+    --color-base-700: #342e1d;
+    --color-base-750: #2a2416;
+    --color-base-800: #211c11;
+    --color-base-850: #18140b;
+    --color-base-900: #100d06;
+    --color-base-950: #080603;
+    --color-base-1000: #000000;
 
     /* Warm paper canvas; cards and inputs (elevation-0) stay white and float */
     --theme-bg: #f5f3ee;
-    --theme-input-bg: var(--theme-elevation-0);
-    --theme-border-color: var(--theme-elevation-150);
-    --theme-overlay: rgba(18, 20, 29, 0.42);
 
     /* Focus */
     --accessibility-outline: 2px solid var(--pocms-accent);
@@ -76,19 +95,35 @@
   }
 
   html[data-theme='dark'] {
-    /* Ink-tinted dark ramp (surfaces/borders only; light text values untouched) */
-    --color-base-700: #34405a;
-    --color-base-750: #2b3448;
-    --color-base-800: #232b3c;
-    --color-base-850: #1c2331;
-    --color-base-900: #161c27;
-    --color-base-950: #10151e;
+    /* Ink-tinted dark ramp. Because the elevation mapping flips, the raw ramp
+       runs light->dark: base-0..350 is the text ramp, 400..650 muted/borders,
+       700..1000 the surfaces (elevation-0 -> base-900). Lightness follows
+       Payload's own contrast structure, so readability parity is preserved. */
+    --color-base-0: #eef1f7;
+    --color-base-50: #e2e7f0;
+    --color-base-100: #d0d7e3;
+    --color-base-150: #bcc4d3;
+    --color-base-200: #a6afc1;
+    --color-base-250: #939db1;
+    --color-base-300: #828da2;
+    --color-base-350: #737e93;
+    --color-base-400: #7c869b;
+    --color-base-450: #6f798c;
+    --color-base-500: #626b7e;
+    --color-base-550: #565f70;
+    --color-base-600: #4b5362;
+    --color-base-650: #424955;
+    --color-base-700: #2c323e;
+    --color-base-750: #252b35;
+    --color-base-800: #1e242d;
+    --color-base-850: #191e26;
+    --color-base-900: #141920;
+    --color-base-950: #0e1218;
+    --color-base-1000: #080b0f;
 
-    --theme-bg: #121722;
-    --theme-input-bg: var(--theme-elevation-50);
-    --theme-border-color: var(--theme-elevation-150);
-    --theme-overlay: rgba(5, 8, 14, 0.66);
+    --theme-bg: #0f131a;
 
+    /* Deep ink accents (gold reads better on dark) */
     --pocms-accent: var(--pocms-brand-gold);
     --pocms-accent-strong: var(--pocms-brand-gold);
     --pocms-accent-soft: rgba(var(--pocms-brand-amber-rgb), 0.2);
@@ -530,7 +565,8 @@
   }
 
   .nav__scroll {
-    padding: 10px 4px 16px;
+    /* Keep the block-start var: it reserves room for the floating nav toggler */
+    padding: var(--nav-padding-block-start) 4px 16px;
   }
 
   .nav__link {
@@ -576,9 +612,43 @@
   }
 
   .nav__log-out {
-    margin: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 4px 10px 10px;
+    min-width: 36px;
+    min-height: 36px;
     border-radius: var(--style-radius-m);
-    font-size: 13px;
+    color: var(--theme-elevation-500);
+
+    &:hover {
+      background: var(--pocms-accent-softer);
+      color: var(--theme-text);
+    }
+  }
+
+  /* Footer icon buttons (settings / logout) */
+  .nav__controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 12px;
+
+    a,
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 36px;
+      min-height: 36px;
+      border-radius: var(--style-radius-m);
+      color: var(--theme-elevation-500);
+
+      &:hover {
+        background: var(--pocms-accent-softer);
+        color: var(--theme-text);
+      }
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -1174,7 +1244,7 @@
       font-size: 1.65rem;
     }
     .pocms-logo__text small {
-      font-size: 0.78rem;
+      font-size: 12px;
       letter-spacing: 0.12em;
     }
     .pocms-logo {
@@ -1552,10 +1622,11 @@
       .pocms-logo {
         justify-content: center;
       }
-      .pocms-logo__letter {
-        font-size: 38px;
+      .pocms-logo__mark {
+        width: 52px;
+        height: 52px;
       }
-      .pocms-logo__name {
+      .pocms-logo__text strong {
         font-family: var(--font-body);
         font-size: 18px;
       }

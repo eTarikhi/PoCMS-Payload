@@ -111,9 +111,13 @@ and frontend styles are never imported.
 What is restyled (18 sections):
 
 - **Tokens first** — brand amber/gold/ink, warm paper canvas + floating white
-  surfaces (light) and an ink-tinted dark ramp (`html[data-theme='dark']`),
-  radius scale `--style-radius-s/m/l` (5/8/12px), `--font-body` = Open Sans,
-  shell rhythm (`--nav-width`, `--gutter-h`, header/doc-controls heights).
+  surfaces (light) and an ink-tinted dark ramp, radius scale
+  `--style-radius-s/m/l` (5/8/12px), `--font-body` = Open Sans, shell rhythm
+  (`--nav-width`, `--gutter-h`, header/doc-controls heights). **Palette
+  layering rule:** only retint the raw `--color-base-*` ramp per theme; never
+  override `--theme-elevation-*` — Payload flips that mapping in dark mode and
+  the custom layer would beat the flip (layer order > specificity), producing
+  light panels with light text.
 - **Typography** — the user-visible "small fonts" fix: `html` base 14px (13px on
   tablets), body/inputs 13–14px, list tables 13.5px, document title 22px, and
   crisp 11px uppercase meta labels (group labels, table headers, pills) so
@@ -140,9 +144,10 @@ states for dense tables, and hover-lift cards for faster visual scanning.
 
 - [ ] Login → dashboard → list → edit flows work unchanged for an editor user.
 - [ ] Widgets and summary strips respect permissions (hide actions the user cannot perform).
-- [ ] Light and dark themes both readable.
+- [ ] Light and dark themes both readable (widget tiles, quick actions, tables — no light-on-light).
 - [ ] Login, list, edit, account, drawers and modals all show the PoCMS theme (not native Payload).
 - [ ] Body/input text renders at the 13–14px scale; meta labels are 11px uppercase, not tiny lowercase.
+- [ ] Nav group labels are not clipped under the collapse toggler.
 - [ ] Live Preview iframe and Preview button open the article page for articles with a body.
 - [ ] "Refresh live site cache" (gear menu) returns `{"revalidated":true}` for signed-in users.
 - [ ] `pnpm generate:types`, `pnpm generate:importmap`, `pnpm lint`, `pnpm test` pass.
