@@ -9,8 +9,14 @@ export const Projects: CollectionConfig = {
     afterDelete: [portfolioAfterDelete],
   },
   admin: {
+    group: 'Content',
+    description:
+      'Portfolio projects shown in the homepage projects grid. Lower "order" values appear first.',
     useAsTitle: 'title',
     defaultColumns: ['title', 'categories', 'order'],
+    components: {
+      beforeList: ['/admin/lists/ListSummary.tsx'],
+    },
   },
   defaultSort: 'order',
   access: {

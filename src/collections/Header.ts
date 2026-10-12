@@ -12,6 +12,8 @@ export const Header: CollectionConfig = {
     plural: 'Header',
   },
   admin: {
+    group: 'Portfolio',
+    description: 'Hero/header section: surname, profile image, rotating profession texts, and the "Request CV" link.',
     useAsTitle: 'sureName',
     defaultColumns: ['id', 'sureName', 'professionTexts', 'updatedAt'],
   },

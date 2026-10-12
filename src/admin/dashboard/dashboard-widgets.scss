@@ -1,0 +1,233 @@
+// Shared styles for PoCMS admin dashboard widgets and list summaries.
+// Imported by the widget components themselves (see Payload custom CSS guidance).
+
+.pocms-widget {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.15rem 1.25rem;
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 8px;
+  background: var(--theme-elevation-0);
+  color: var(--theme-text);
+  height: 100%;
+
+  &__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  &__hint {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    opacity: 0.65;
+  }
+
+  &__foot {
+    margin-top: auto;
+    padding-top: 0.35rem;
+    font-size: 0.8rem;
+  }
+
+  a {
+    color: var(--theme-link-color);
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+      text-decoration: underline;
+    }
+  }
+}
+
+// Stat tiles (Content overview)
+.pocms-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--theme-elevation-100);
+    border-radius: 6px;
+    background: var(--theme-elevation-50);
+  }
+
+  &__value {
+    font-size: 1.45rem;
+    font-weight: 650;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__label {
+    font-size: 0.75rem;
+    opacity: 0.75;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+}
+
+// Link/button lists (Quick actions, Needs attention)
+.pocms-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--theme-elevation-100);
+    border-radius: 6px;
+    background: var(--theme-elevation-50);
+
+    a {
+      font-weight: 500;
+    }
+  }
+
+  &__meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.78rem;
+    opacity: 0.8;
+    white-space: nowrap;
+  }
+}
+
+// Recent activity rows
+.pocms-activity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  &__item {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.45rem 0.15rem;
+    border-bottom: 1px solid var(--theme-elevation-100);
+
+    &:last-child {
+      border-bottom: 0;
+    }
+  }
+
+  &__title {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    min-width: 0;
+
+    a {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  &__badge {
+    flex: 0 0 auto;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    background: var(--pocms-accent-soft, rgba(218, 145, 0, 0.12));
+    color: var(--theme-text);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  &__date {
+    flex: 0 0 auto;
+    font-size: 0.78rem;
+    opacity: 0.7;
+    white-space: nowrap;
+  }
+}
+
+.pocms-empty {
+  margin: 0;
+  padding: 0.5rem 0;
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+// List-view summary strip (beforeList)
+.pocms-list-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 0 1.15rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--theme-elevation-100);
+  border-left: 3px solid var(--pocms-accent, #da9100);
+  border-radius: 6px;
+  background: var(--theme-elevation-50);
+  color: var(--theme-text);
+
+  &__facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1.15rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.85rem;
+
+    strong {
+      font-variant-numeric: tabular-nums;
+      margin-right: 0.3rem;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+}
+
+// Responsive: at narrow widths let widgets/links stack cleanly.
+@media (max-width: 480px) {
+  .pocms-stats {
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  }
+
+  .pocms-links__item,
+  .pocms-activity__item {
+    flex-wrap: wrap;
+  }
+
+  .pocms-list-summary {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

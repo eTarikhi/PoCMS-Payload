@@ -9,8 +9,14 @@ export const Articles: CollectionConfig = {
     afterDelete: [portfolioAfterDelete],
   },
   admin: {
+    group: 'Content',
+    description:
+      'Blog and news entries shown on the homepage article section and at /articles/{slug}.',
     useAsTitle: 'title',
     defaultColumns: ['title', 'category', 'publishedAt', 'featured'],
+    components: {
+      beforeList: ['/admin/lists/ListSummary.tsx'],
+    },
   },
   defaultSort: 'publishedAt',
   access: {

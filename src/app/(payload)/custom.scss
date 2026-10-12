@@ -1,0 +1,108 @@
+// PoCMS admin theming.
+//
+// This is the ONLY global admin stylesheet. Payload's own CSS is encapsulated in
+// `@layer payload-default`, so anything written into `@layer payload` (or left
+// unlayered) applies on top of it without fighting specificity.
+// Do NOT import frontend styles here — the admin owns its own palette.
+// See docs/admin-experience.md.
+
+@layer payload {
+  // ---------------------------------------------------------------------------
+  // Brand tokens (mirrored from the portfolio frontend palette)
+  // ---------------------------------------------------------------------------
+  :root {
+    --pocms-brand-amber: #da9100;
+    --pocms-brand-gold: #ffc448;
+    --pocms-brand-ink: #12141d;
+    --pocms-brand-amber-rgb: 218, 145, 0;
+  }
+
+  html[data-theme='dark'] {
+    // In dark mode the plate stays amber but the letter switches to a dark ink
+    // for contrast against the amber fill.
+    --pocms-brand-ink: #12141d;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Palette refinements: warm the neutral elevation scale very slightly and
+  // nudge the "success" accents toward the brand gold, without touching the
+  // structural --theme-* variables Payload manages per theme.
+  // ---------------------------------------------------------------------------
+  :root {
+    --theme-link-color: var(--pocms-brand-amber);
+    --pocms-accent: var(--pocms-brand-amber);
+    --pocms-accent-soft: rgba(var(--pocms-brand-amber-rgb), 0.12);
+    --pocms-accent-strong: #b77800;
+  }
+
+  html[data-theme='dark'] {
+    --theme-link-color: var(--pocms-brand-gold);
+    --pocms-accent: var(--pocms-brand-gold);
+    --pocms-accent-soft: rgba(var(--pocms-brand-amber-rgb), 0.18);
+    --pocms-accent-strong: var(--pocms-brand-gold);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Shell / navigation
+  // ---------------------------------------------------------------------------
+  .nav {
+    .nav__link {
+      transition: background-color 120ms ease, color 120ms ease;
+    }
+
+    .nav__link--active,
+    .nav__link.active {
+      box-shadow: inset 3px 0 0 var(--pocms-accent);
+    }
+  }
+
+  .app-header {
+    a[href='/'] {
+      text-decoration: none;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Buttons & controls
+  // ---------------------------------------------------------------------------
+  .btn {
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+  }
+
+  .btn--style-primary,
+  button[type='submit'].btn--style-primary {
+    &:hover,
+    &:focus-visible {
+      background-color: var(--pocms-accent-strong);
+    }
+  }
+
+  :focus-visible {
+    outline-color: var(--pocms-accent);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Dashboard cards and PoCMS widgets
+  // ---------------------------------------------------------------------------
+  .card {
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+
+    &:hover {
+      border-color: var(--pocms-accent-soft);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Table accents
+  // ---------------------------------------------------------------------------
+  .table {
+    .cell__link {
+      color: inherit;
+
+      &:hover,
+      &:focus-visible {
+        color: var(--theme-link-color);
+      }
+    }
+  }
+}

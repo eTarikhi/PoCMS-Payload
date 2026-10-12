@@ -1,0 +1,55 @@
+// Styles for the admin shell graphics (nav icon + login logo).
+// Brand colors mirror the portfolio frontend: amber #da9100, gold #ffc448, ink #12141d.
+
+.pocms-mark {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+
+  svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+}
+
+.pocms-mark__plate {
+  fill: var(--pocms-brand-amber, #da9100);
+}
+
+.pocms-mark__letter {
+  fill: var(--pocms-brand-ink, #12141d);
+}
+
+.pocms-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--theme-text);
+  text-decoration: none;
+}
+
+.pocms-logo__mark {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+}
+
+.pocms-logo__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+
+  strong {
+    font-size: 1.35rem;
+    letter-spacing: 0.01em;
+  }
+
+  small {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.7;
+  }
+}

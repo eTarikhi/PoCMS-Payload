@@ -35,6 +35,60 @@ const dirname = path.dirname(filename)
 export default buildConfig({
   admin: {
     user: Users.slug,
+    meta: {
+      titleSuffix: ' – PoCMS',
+      description: 'PoCMS portfolio content management.',
+      icons: [
+        { url: '/images/favicon/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+        { url: '/images/favicon/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      ],
+    },
+    components: {
+      graphics: {
+        Icon: '/admin/graphics/Icon.tsx',
+        Logo: '/admin/graphics/Logo.tsx',
+      },
+      afterNavLinks: ['/admin/nav/ViewSiteLink.tsx'],
+    },
+    dashboard: {
+      widgets: [
+        {
+          slug: 'content-overview',
+          Component: '/admin/dashboard/widgets/ContentOverview.tsx',
+          label: 'Content overview',
+          minWidth: 'medium',
+          maxWidth: 'full',
+        },
+        {
+          slug: 'quick-actions',
+          Component: '/admin/dashboard/widgets/QuickActions.tsx',
+          label: 'Quick actions',
+          minWidth: 'x-small',
+          maxWidth: 'medium',
+        },
+        {
+          slug: 'recent-activity',
+          Component: '/admin/dashboard/widgets/RecentActivity.tsx',
+          label: 'Recent activity',
+          minWidth: 'medium',
+          maxWidth: 'full',
+        },
+        {
+          slug: 'needs-attention',
+          Component: '/admin/dashboard/widgets/NeedsAttention.tsx',
+          label: 'Needs attention',
+          minWidth: 'medium',
+          maxWidth: 'full',
+        },
+      ],
+      defaultLayout: [
+        { widgetSlug: 'content-overview', width: 'large' },
+        { widgetSlug: 'quick-actions', width: 'small' },
+        { widgetSlug: 'recent-activity', width: 'medium' },
+        { widgetSlug: 'needs-attention', width: 'medium' },
+        { widgetSlug: 'collections', width: 'full' },
+      ],
+    },
     livePreview: {
       breakpoints: [
         {
@@ -62,17 +116,18 @@ export default buildConfig({
     },
   },
   collections: [
-    Users,
+    // Content-first ordering shapes the admin nav groups and dashboard cards.
+    Articles,
+    Projects,
+    Media,
     About,
     Header,
-    Articles,
-    Certificates,
-    Educations,
     Experiences,
-    Projects,
-    Services,
+    Educations,
     Skills,
-    Media,
+    Services,
+    Certificates,
+    Users,
   ],
   globals: [Footer],
   editor: lexicalEditor(),

@@ -12,6 +12,8 @@ export const About: CollectionConfig = {
         plural: 'About',
     },
     admin: {
+        group: 'Portfolio',
+        description: 'Intro/About section of the homepage: experience summary, work permit, and bio.',
         useAsTitle: 'title',
         defaultColumns: ['id', 'title', 'experience.years', 'updatedAt'],
     },

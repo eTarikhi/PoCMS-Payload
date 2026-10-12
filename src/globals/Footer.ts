@@ -7,6 +7,10 @@ export const Footer: GlobalConfig = {
     afterChange: [portfolioAfterChange],
   },
   label: 'Footer',
+  admin: {
+    group: 'Site',
+    description: 'Social links and footer text shown on every page of the live site.',
+  },
   access: {
     read: () => true,
   },

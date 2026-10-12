@@ -9,6 +9,8 @@ export const Services: CollectionConfig = {
     afterDelete: [portfolioAfterDelete],
   },
   admin: {
+    group: 'Portfolio',
+    description: 'Service categories shown in the services section. Lower "order" values appear first.',
     useAsTitle: 'category',
     defaultColumns: ['category', 'iconFont', 'order'],
   },

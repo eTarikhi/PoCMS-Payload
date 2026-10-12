@@ -10,6 +10,7 @@ This repository is organized into a small set of topic-based guides. Use the pag
 
 ## Reference and operations
 
+- [Admin editor experience](admin-experience.md) — admin customization baseline, dashboard, and IA
 - [API reference](api.md) — REST and GraphQL usage
 - [Deployment](deployment.md) — Docker, Vercel, and production setup
 - [Development and troubleshooting](development.md) — common issues and workflows
