@@ -52,3 +52,4 @@ node_modules/
 /src/migrations
 test.env
 src/seed/portfolio-data.json
+/.kilo
