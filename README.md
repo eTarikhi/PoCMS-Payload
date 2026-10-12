@@ -18,11 +18,14 @@ This project documentation is split across multiple files for easier maintenance
 - [API reference](docs/api.md)
 - [Deployment](docs/deployment.md)
 - [Development and troubleshooting](docs/development.md)
+- [Admin UI modernisation](docs/admin-ui/README.md)
 - [Contributing](docs/contributing.md)
 
 ## Quick access
 
 - Admin panel: `http://localhost:3000/admin`
+- TailAdmin pilot dashboard: `http://localhost:3000/admin/tailadmin`
+- TailAdmin UI kit: `http://localhost:3000/admin/tailadmin/ui-kit`
 - API: `http://localhost:3000/api`
 - GraphQL: `http://localhost:3000/graphql`
 

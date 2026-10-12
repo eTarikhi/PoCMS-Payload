@@ -15,6 +15,8 @@ import sharp from 'sharp'
 
 import { Footer } from './globals/Footer'
 
+import { buildTailAdminComponents, resolvePilotMode } from './admin-ui/tailadmin'
+
 import { Users } from './collections/Users'
 import { About } from './collections/About'
 import { Header } from './collections/Header'
@@ -32,9 +34,19 @@ import { Media } from './collections/Media'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
+/**
+ * Admin UI pilot: TailAdmin Free (see `src/admin-ui/tailadmin` and
+ * `docs/admin-ui/`).
+ *
+ * `POCMS_ADMIN_UI` selects how much of Payload's admin panel the pilot takes
+ * over — `off` | `additive` (default) | `dashboard` | `full`.
+ */
+const adminUiMode = resolvePilotMode()
+
 export default buildConfig({
   admin: {
     user: Users.slug,
+    components: buildTailAdminComponents(adminUiMode),
     livePreview: {
       breakpoints: [
         {

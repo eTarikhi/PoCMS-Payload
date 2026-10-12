@@ -8,6 +8,13 @@ This repository is organized into a small set of topic-based guides. Use the pag
 - [Getting started](getting-started.md) — install, configure, and run locally
 - [Project structure](project-structure.md) — code layout and content collections
 
+## Admin UI
+
+- [Admin UI overview](admin-ui/README.md) — why and how the admin panel is being modernised
+- [Admin UI research](admin-ui/research-admin-ui-options.md) — template/library options compared, with per-option roadmaps and skill breakdowns
+- [TailAdmin Free pilot](admin-ui/tailadmin-pilot.md) — what was built, how to run it, and the integration modes
+- [TailAdmin roadmap](admin-ui/roadmap.md) — phased development plan, skills matrix, and risk register
+
 ## Reference and operations
 
 - [API reference](api.md) — REST and GraphQL usage
