@@ -1679,4 +1679,237 @@
       background: var(--pocms-accent-soft);
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // 19. Sidebar item icons + collapsed icon rail
+  //     Icons are CSS masks keyed to Payload's stable nav ids, so the default
+  //     nav markup keeps working. Collapsing the sidebar shrinks to a 64px
+  //     icon rail instead of hiding entirely (desktop only; mobile keeps the
+  //     full-screen overlay behavior).
+  // ---------------------------------------------------------------------------
+
+  .nav__link {
+    /* Fallback glyph for links without a mapped icon */
+    --pocms-nav-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm1 4v2h8V7H8zm0 4v2h8v-2H8z'/%3E%3C/svg%3E");
+    gap: 10px;
+
+    &::before {
+      content: '';
+      flex: none;
+      width: 16px;
+      height: 16px;
+      background: currentColor;
+      opacity: 0.9;
+      -webkit-mask-image: var(--pocms-nav-icon);
+      mask-image: var(--pocms-nav-icon);
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      -webkit-mask-position: center;
+      mask-position: center;
+      -webkit-mask-size: contain;
+      mask-size: contain;
+    }
+  }
+
+  /* Per-item icons + rail tooltip labels */
+  [id='nav-articles'] {
+    --pocms-nav-tip: 'Articles';
+    --pocms-nav-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M14.5 2H7a2.5 2.5 0 0 0-2.5 2.5v15A2.5 2.5 0 0 0 7 22h10a2.5 2.5 0 0 0 2.5-2.5V7.2L14.5 2zM8 12h8v1.7H8V12zm0 4h8v1.7H8V16z'/%3E%3C/svg%3E");
+  }
+  [id='nav-projects'] {
+    --pocms-nav-tip: 'Projects';
+    --pocms-nav-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 2.5 2 7.6l10 5.1 10-5.1-10-5.1zM3.6 12.1 12 16.4l8.4-4.3 1.9 1-10.3 5.3-10.3-5.3 1.9-1zM3.6 16.3 12 20.6l8.4-4.3 1.9 1-10.3 5.3-10.3-5.3 1.9-1z'/%3E%3C/svg%3E");
+  }
+  [id='nav-media'] {
+    --pocms-nav-tip: 'Media';
+    --pocms-nav-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M4 3h16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm4.2 8.2a1.8 1.8 0 1 1 0 3.6 1.8 1.8 0 0 1 0-3.6zM4 18l4.8-5.2 3.2 3.4 2.6-2.8L20 18H4z'/%3E%3C/svg%3E");
+  }
+  [id='nav-about'] {
+    --pocms-nav-tip: 'About';
+    --pocms-nav-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 12.2c2.9 0 5.2-2.3 5.2-5.2S14.9 1.8 12 1.8 6.8 4.1 6.8 7s2.3 5.2 5.2 5.2zm0 2.2c-4.1 0-8.2 2.1-8.2 4.8V21h16.4v-1.8c0-2.7-4.1-4.8-8.2-4.8z'/%3E%3C/svg%3E");
+  }
+  [id='nav-header'] {
+    --pocms-nav-tip: 'Header';
+    --pocms-nav-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M4 3h16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm-.8 8.2h17.6v6.8H3.2V11.2z'/%3E%3C/svg%3E");
+  }
+  [id='nav-experiences'] {
+    --pocms-nav-tip: 'Experiences';
+    --pocms-nav-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M9.8 4h4.4A1.8 1.8 0 0 1 16 5.8V7h4a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h4V5.8A1.8 1.8 0 0 1 9.8 4zM10 6h4v1.2h-4V6z'/%3E%3C/svg%3E");
+  }
+  [id='nav-educations'] {
+    --pocms-nav-tip: 'Educations';
+    --pocms-nav-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 3 1.5 8.4 12 13.8l10.5-5.4L12 3zM5.5 12.1v4c0 .5.2 1 .5 1.3 1.1 1.1 3.3 2 6 2s4.9-.9 6-2c.3-.4.5-.8.5-1.3v-4L12 15.8 5.5 12.1z'/%3E%3C/svg%3E");
+  }
+  [id='nav-skills'] {
+    --pocms-nav-tip: 'Skills';
+    --pocms-nav-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M13.8 2 5.4 13.1h4.6L9.2 22l8.4-11.1h-4.6L13.8 2z'/%3E%3C/svg%3E");
+  }
+  [id='nav-services'] {
+    --pocms-nav-tip: 'Services';
+    --pocms-nav-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M12 21s-8.5-4.9-8.5-10.9C3.5 6.6 6 4.2 9 4.2c1.5 0 2.9.7 3.8 1.9.9-1.2 2.3-1.9 3.8-1.9 3 0 5.4 2.4 5.4 5.9C22 16.1 12 21 12 21z'/%3E%3C/svg%3E");
+  }
+  [id='nav-certificates'] {
+    --pocms-nav-tip: 'Certificates';
+    --pocms-nav-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M12 2a7 7 0 1 1 0 14 7 7 0 0 1 0-14zm0 3.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6zM9 15.4 7.5 22l4.5-2.4L16.5 22 15 15.4H9z'/%3E%3C/svg%3E");
+  }
+  [id='nav-users'] {
+    --pocms-nav-tip: 'Users';
+    --pocms-nav-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M8.5 11c2.5 0 4.5-2 4.5-4.5S11 2 8.5 2 4 4 4 6.5 6 11 8.5 11zm7.2.3c2.1 0 3.8-1.7 3.8-3.8s-1.7-3.8-3.8-3.8c-.7 0-1.4.2-2 .5 1.5 1 2.5 2.6 2.5 4.4 0 .9-.3 1.8-.8 2.5.1.1.2.2.3.2zM8.5 13.2C5 13.2 1 15 1 17.3V20h15v-2.7c0-2.3-4-4.1-7.5-4.1zm8.6 0c-.6 0-1.2 0-1.8.1 1.7.9 2.8 2.1 2.8 3.6V20h5v-2.5c0-2.1-3-4.3-6-4.3z'/%3E%3C/svg%3E");
+  }
+  [id='nav-global-footer'] {
+    --pocms-nav-tip: 'Footer';
+    --pocms-nav-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' fill-rule='evenodd' d='M4 3h16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm-.8 2.2h17.6v6.8H3.2V5.2z'/%3E%3C/svg%3E");
+  }
+
+  /* Collapsed state = icon rail (desktop only) */
+  @media (min-width: 769px) {
+    .template-default--nav-hydrated:not(.template-default--nav-open) {
+      grid-template-columns: 64px auto;
+
+      .nav {
+        opacity: 1;
+        width: 64px;
+        overflow: hidden;
+      }
+
+      .nav__scroll {
+        padding: var(--nav-padding-block-start) 8px 16px;
+      }
+
+      .nav-group {
+        margin-bottom: 6px;
+
+        &__toggle {
+          height: 16px;
+          padding: 0;
+          margin-bottom: 4px;
+          justify-content: center;
+          cursor: default;
+
+          .nav-group__label,
+          .nav-group__indicator {
+            display: none;
+          }
+
+          &::after {
+            content: '';
+            width: 18px;
+            height: 1px;
+            background: var(--theme-elevation-200);
+          }
+        }
+      }
+
+      .nav__link {
+        position: relative;
+        align-self: center;
+        justify-content: center;
+        width: 44px;
+        margin: 2px 0;
+        padding: 9px 0;
+
+        .nav__link-label {
+          display: none;
+        }
+
+        &::before {
+          width: 18px;
+          height: 18px;
+        }
+
+        /* Hover/focus tooltip restores the item name */
+        &::after {
+          content: var(--pocms-nav-tip, '');
+          position: absolute;
+          left: calc(100% + 10px);
+          top: 50%;
+          transform: translateY(-50%);
+          padding: 5px 10px;
+          border-radius: 6px;
+          background: var(--theme-elevation-800);
+          color: var(--theme-elevation-0);
+          font-family: var(--font-body);
+          font-size: 12px;
+          font-weight: 600;
+          letter-spacing: 0.01em;
+          white-space: nowrap;
+          opacity: 0;
+          pointer-events: none;
+          z-index: 60;
+          transition: opacity 120ms ease;
+        }
+
+        &:hover::after,
+        &:focus-visible::after {
+          opacity: 1;
+        }
+
+        &.active::before {
+          opacity: 1;
+        }
+      }
+
+      /* Text pills don't fit the rail — the header keeps "View site" */
+      .pocms-view-site {
+        display: none;
+      }
+
+      .nav__controls {
+        padding: 8px 0 0;
+        justify-content: center;
+
+        a,
+        button {
+          margin: 0 auto;
+        }
+      }
+
+      .nav__log-out {
+        margin: 6px auto 10px;
+      }
+    }
+
+    /* Smooth expand/collapse */
+    .template-default--nav-hydrated {
+      transition: grid-template-columns 180ms ease;
+
+      .nav {
+        transition: width 180ms ease;
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // 20. Header theme toggle (dark/light)
+  // ---------------------------------------------------------------------------
+  .pocms-theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    min-height: 32px;
+    padding: 0;
+    border: 1px solid var(--pocms-border);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--theme-text);
+    cursor: pointer;
+    transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease;
+
+    svg {
+      display: block;
+    }
+
+    &:hover,
+    &:focus-visible {
+      border-color: var(--pocms-accent);
+      background: var(--pocms-accent-softer);
+      color: var(--theme-text);
+    }
+
+    @media (max-width: 768px) {
+      min-width: 30px;
+      min-height: 30px;
+    }
+  }
 }

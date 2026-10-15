@@ -50,7 +50,7 @@ export default buildConfig({
         Icon: '/admin/graphics/Icon.tsx',
         Logo: '/admin/graphics/Logo.tsx',
       },
-      actions: ['/admin/nav/HeaderViewSiteButton.tsx'],
+      actions: ['/admin/nav/HeaderViewSiteButton.tsx', '/admin/nav/ThemeToggleButton.tsx'],
       header: ['/admin/brand/AdminFonts.tsx'],
       afterNavLinks: ['/admin/nav/ViewSiteLink.tsx'],
       settingsMenu: ['/admin/nav/RefreshCacheButton.tsx'],
