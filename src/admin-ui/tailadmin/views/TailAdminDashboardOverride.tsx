@@ -52,6 +52,7 @@ export async function TailAdminDashboardOverride(props: AdminViewServerProps) {
   })
 
   return (
+  <div className="gutter gutter--left gutter--right">
     <div className="ta-inline flex flex-col gap-4 py-4 md:gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -59,7 +60,7 @@ export async function TailAdminDashboardOverride(props: AdminViewServerProps) {
             Welcome back{user?.email ? `, ${String(user.email).split('@')[0]}` : ''}
           </h1>
           <p className="mt-1 text-theme-sm text-gray-500 dark:text-gray-400">
-            TailAdmin pilot dashboard · live Payload data · generated{' '}
+            TailAdmin Dashboard · live Payload data · generated{' '}
             {new Date(stats.generatedAt).toLocaleString()}
           </p>
         </div>
@@ -67,7 +68,11 @@ export async function TailAdminDashboardOverride(props: AdminViewServerProps) {
           <Button href={`${adminBase}${TAILADMIN_BASE_PATH}`} variant="outline" size="sm">
             Full TailAdmin shell
           </Button>
-          <Button href={quickActions[0]?.href ?? adminBase} size="sm" endIcon={<ArrowUpRightIcon size={14} />}>
+          <Button
+            href={quickActions[0]?.href ?? adminBase}
+            size="sm"
+            endIcon={<ArrowUpRightIcon size={14} />}
+          >
             {quickActions[0]?.label ?? 'Open admin'}
           </Button>
         </div>
@@ -77,14 +82,19 @@ export async function TailAdminDashboardOverride(props: AdminViewServerProps) {
 
       <KpiGrid stats={stats} locale={typeof locale === 'string' ? locale : undefined} />
 
-      {stats.growth ? <ContentGrowthChart growth={stats.growth} /> : null}
-
-      <div className="grid grid-cols-1 gap-4 md:gap-6 xl:grid-cols-2">
-        <CollectionBreakdown stats={stats.collections} locale={typeof locale === 'string' ? locale : undefined} />
-        <RecentDocumentsTable documents={stats.recent} />
+      <div className="grid grid-cols-1 gap-4 md:gap-6 xl:grid-cols-3">
+        {stats.growth ? <ContentGrowthChart growth={stats.growth} /> : null}
+        <QuickActions actions={quickActions} />
       </div>
 
-      <QuickActions actions={quickActions} />
+      <div className="grid grid-cols-1 gap-4 md:gap-6 xl:grid-cols-2">
+        <CollectionBreakdown
+          stats={stats.collections}
+          locale={typeof locale === 'string' ? locale : undefined}
+        />
+        <RecentDocumentsTable documents={stats.recent} />
+      </div>
+    </div>
     </div>
   )
 }
