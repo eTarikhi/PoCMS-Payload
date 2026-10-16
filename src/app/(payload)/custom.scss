@@ -1764,7 +1764,7 @@
   /* Collapsed state = icon rail (desktop only) */
   @media (min-width: 769px) {
     .template-default--nav-hydrated:not(.template-default--nav-open) {
-      grid-template-columns: 64px auto;
+      grid-template-columns: 64px minmax(0, 1fr);
 
       .nav {
         opacity: 1;
@@ -1850,7 +1850,8 @@
       }
 
       /* Text pills don't fit the rail — the header keeps "View site" */
-      .pocms-view-site {
+      .pocms-view-site,
+      .pocms-nav-create {
         display: none;
       }
 
@@ -1910,6 +1911,266 @@
     @media (max-width: 768px) {
       min-width: 30px;
       min-height: 30px;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // 21. Per-item create shortcuts in the native Payload sidebar
+  // ---------------------------------------------------------------------------
+  .pocms-nav-item-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .pocms-nav-item-row > .nav__link {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    padding-inline-end: 38px;
+  }
+
+  .nav a.pocms-nav-create {
+    position: absolute;
+    z-index: 2;
+    inset-inline-end: 4px;
+    top: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    transform: translateY(-50%);
+    border: 1px solid transparent;
+    border-radius: 50%;
+    color: var(--theme-elevation-450);
+    font-family: var(--font-body);
+    font-size: 19px;
+    font-weight: 500;
+    line-height: 1;
+    text-decoration: none;
+    opacity: 0.78;
+    transition: color 120ms ease, background-color 120ms ease, border-color 120ms ease,
+      opacity 120ms ease;
+
+    &:hover,
+    &:focus-visible {
+      border-color: var(--pocms-border);
+      background: var(--pocms-accent-softer);
+      color: var(--pocms-accent-strong);
+      text-decoration: none;
+      opacity: 1;
+    }
+
+    &:focus-visible {
+      outline: var(--accessibility-outline);
+      outline-offset: 2px;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // 22. Expand the collapsed icon rail while hovering/focusing its items
+  // ---------------------------------------------------------------------------
+  @media (min-width: 769px) {
+    .template-default--nav-hydrated:not(.template-default--nav-open):has(
+        .nav:hover,
+        .nav:focus-within
+      ) {
+      grid-template-columns: var(--nav-width) minmax(0, 1fr);
+
+      .nav {
+        width: var(--nav-width);
+        overflow: hidden;
+      }
+
+      .nav__scroll {
+        padding: var(--nav-padding-block-start) 4px 16px;
+      }
+
+      .nav-group {
+        margin-bottom: 10px;
+
+        &__toggle {
+          height: auto;
+          padding: 4px 12px;
+          margin-bottom: 0;
+          justify-content: space-between;
+          cursor: pointer;
+
+          .nav-group__label {
+            display: block;
+          }
+
+          .nav-group__indicator {
+            display: flex;
+          }
+
+          &::after {
+            display: none;
+            content: none;
+          }
+        }
+      }
+
+      .nav__link {
+        align-self: stretch;
+        justify-content: flex-start;
+        width: 100%;
+        margin: 0;
+        padding: 2.5px 38px 2.5px 0;
+        gap: 10px;
+
+        .nav__link-label {
+          display: block;
+          max-width: none;
+          overflow: visible;
+          opacity: 1;
+          white-space: nowrap;
+        }
+
+        &::before {
+          width: 16px;
+          height: 16px;
+        }
+
+        &::after {
+          display: none;
+          content: none;
+        }
+      }
+
+      .pocms-nav-item-row > .nav__link {
+        padding-inline-end: 38px;
+      }
+
+      .nav a.pocms-nav-create {
+        display: inline-flex;
+      }
+
+      .pocms-view-site {
+        display: inline-flex;
+      }
+
+      .nav__controls {
+        padding: 8px 12px;
+        justify-content: flex-start;
+
+        a,
+        button {
+          margin: 0;
+        }
+      }
+
+      .nav__log-out {
+        margin: 6px 12px 10px;
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // 23. Give the P brand mark enough room in the app-header breadcrumb
+  // ---------------------------------------------------------------------------
+  .app-header .step-nav__home {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 40px !important;
+    min-width: 40px;
+    height: 40px !important;
+    flex: 0 0 40px;
+    overflow: visible;
+    padding: 4px !important;
+  }
+
+  .app-header .step-nav__home > span,
+  .app-header .step-nav .pocms-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 32px;
+    max-width: none;
+    height: 32px;
+    overflow: visible;
+    flex: 0 0 32px;
+    white-space: normal;
+  }
+
+  .app-header .step-nav span:has(.pocms-mark) {
+    max-width: none;
+    overflow: visible;
+    white-space: normal;
+  }
+
+  .app-header .step-nav__home .pocms-mark svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .app-header .step-nav__home:hover {
+    background: var(--pocms-accent-softer);
+  }
+
+  // ---------------------------------------------------------------------------
+  // 24. Full-width, gap-aware dashboard grid
+  //     Payload supplies inline percentage widths for its widget size presets.
+  //     Replace those widths with grid spans so gaps never push a widget onto
+  //     an unintended row or past the page edge.
+  // ---------------------------------------------------------------------------
+  .dashboard {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .dashboard > div,
+  .dashboard > div > div {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .dashboard .modular-dashboard {
+    display: grid !important;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 18px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .dashboard .modular-dashboard > .widget {
+    box-sizing: border-box;
+    width: auto !important;
+    min-width: 0;
+    margin: 0;
+    padding: 0 !important;
+    grid-column: span 12;
+  }
+
+  .dashboard .modular-dashboard > .widget[data-width='large'] {
+    grid-column: span 8;
+  }
+
+  .dashboard .modular-dashboard > .widget[data-width='medium'] {
+    grid-column: span 6;
+  }
+
+  .dashboard .modular-dashboard > .widget[data-width='small'] {
+    grid-column: span 4;
+  }
+
+  .dashboard .modular-dashboard > .widget[data-width='full'] {
+    grid-column: span 12;
+  }
+
+  @media (max-width: 1100px) {
+    .dashboard .modular-dashboard > .widget {
+      grid-column: span 12 !important;
     }
   }
 }

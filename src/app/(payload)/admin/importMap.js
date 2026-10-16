@@ -6,6 +6,7 @@ import { default as default_a6801f351999135bbacec7ae94b55ad0 } from '../../../ad
 import { default as default_07e5ed856206b238fd4371a0d1cd2268 } from '../../../admin/nav/HeaderViewSiteButton.tsx'
 import { default as default_706b7e53d827f9e0c2cd995ec6653170 } from '../../../admin/nav/ThemeToggleButton.tsx'
 import { default as default_b273b32469f785a85f7b3c629f48449e } from '../../../admin/nav/ViewSiteLink.tsx'
+import { default as default_ad1d6088f7d9bbfd532235e0640eb7ee } from '../../../admin/nav/NavCreateLinks.tsx'
 import { default as default_94d8c639ad2a71b821ecc21770e04f4f } from '../../../admin/dashboard/widgets/ContentOverview.tsx'
 import { default as default_f3600afdf05d63dfeac3a27c74404490 } from '../../../admin/dashboard/widgets/QuickActions.tsx'
 import { default as default_678d13cb9a497992523c08c07fa44e37 } from '../../../admin/dashboard/widgets/RecentActivity.tsx'
@@ -23,6 +24,7 @@ export const importMap = {
   "/admin/nav/HeaderViewSiteButton.tsx#default": default_07e5ed856206b238fd4371a0d1cd2268,
   "/admin/nav/ThemeToggleButton.tsx#default": default_706b7e53d827f9e0c2cd995ec6653170,
   "/admin/nav/ViewSiteLink.tsx#default": default_b273b32469f785a85f7b3c629f48449e,
+  "/admin/nav/NavCreateLinks.tsx#default": default_ad1d6088f7d9bbfd532235e0640eb7ee,
   "/admin/dashboard/widgets/ContentOverview.tsx#default": default_94d8c639ad2a71b821ecc21770e04f4f,
   "/admin/dashboard/widgets/QuickActions.tsx#default": default_f3600afdf05d63dfeac3a27c74404490,
   "/admin/dashboard/widgets/RecentActivity.tsx#default": default_678d13cb9a497992523c08c07fa44e37,

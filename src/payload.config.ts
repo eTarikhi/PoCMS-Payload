@@ -52,7 +52,7 @@ export default buildConfig({
       },
       actions: ['/admin/nav/HeaderViewSiteButton.tsx', '/admin/nav/ThemeToggleButton.tsx'],
       header: ['/admin/brand/AdminFonts.tsx'],
-      afterNavLinks: ['/admin/nav/ViewSiteLink.tsx'],
+      afterNavLinks: ['/admin/nav/ViewSiteLink.tsx', '/admin/nav/NavCreateLinks.tsx'],
       settingsMenu: ['/admin/nav/RefreshCacheButton.tsx'],
     },
     dashboard: {
