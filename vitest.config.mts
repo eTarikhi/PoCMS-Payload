@@ -8,5 +8,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
     include: ['tests/int/**/*.int.spec.ts'],
+    // Every file calls getPayload(), which pushes the dev schema to an empty database. In parallel
+    // the pushes race (duplicate CREATE TYPE on a fresh CI database), so run files one at a time.
+    fileParallelism: false,
   },
 })
