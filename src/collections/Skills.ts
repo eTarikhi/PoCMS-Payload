@@ -9,6 +9,8 @@ export const Skills: CollectionConfig = {
     afterDelete: [portfolioAfterDelete],
   },
   admin: {
+    group: 'Profile',
+    description: 'Skill bars in the résumé section, grouped by category.',
     useAsTitle: 'label',
     defaultColumns: ['label', 'group', 'value', 'color', 'order'],
   },

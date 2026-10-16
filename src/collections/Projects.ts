@@ -9,6 +9,8 @@ export const Projects: CollectionConfig = {
     afterDelete: [portfolioAfterDelete],
   },
   admin: {
+    group: 'Content',
+    description: 'Portfolio projects, listed under /projects.',
     useAsTitle: 'title',
     defaultColumns: ['title', 'categories', 'order'],
   },

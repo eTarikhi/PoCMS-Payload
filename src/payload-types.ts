@@ -67,17 +67,17 @@ export interface Config {
   };
   blocks: {};
   collections: {
-    users: User;
-    about: About;
-    header: Header;
     articles: Article;
-    certificates: Certificate;
-    educations: Education;
-    experiences: Experience;
     projects: Project;
     services: Service;
-    skills: Skill;
     media: Media;
+    header: Header;
+    about: About;
+    experiences: Experience;
+    educations: Education;
+    skills: Skill;
+    certificates: Certificate;
+    users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -85,17 +85,17 @@ export interface Config {
   };
   collectionsJoins: {};
   collectionsSelect: {
-    users: UsersSelect<false> | UsersSelect<true>;
-    about: AboutSelect<false> | AboutSelect<true>;
-    header: HeaderSelect<false> | HeaderSelect<true>;
     articles: ArticlesSelect<false> | ArticlesSelect<true>;
-    certificates: CertificatesSelect<false> | CertificatesSelect<true>;
-    educations: EducationsSelect<false> | EducationsSelect<true>;
-    experiences: ExperiencesSelect<false> | ExperiencesSelect<true>;
     projects: ProjectsSelect<false> | ProjectsSelect<true>;
     services: ServicesSelect<false> | ServicesSelect<true>;
-    skills: SkillsSelect<false> | SkillsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    header: HeaderSelect<false> | HeaderSelect<true>;
+    about: AboutSelect<false> | AboutSelect<true>;
+    experiences: ExperiencesSelect<false> | ExperiencesSelect<true>;
+    educations: EducationsSelect<false> | EducationsSelect<true>;
+    skills: SkillsSelect<false> | SkillsSelect<true>;
+    certificates: CertificatesSelect<false> | CertificatesSelect<true>;
+    users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -140,6 +140,264 @@ export interface UserAuthOperations {
   };
 }
 /**
+ * Blog posts, listed under /articles.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "articles".
+ */
+export interface Article {
+  id: number;
+  title: string;
+  excerpt: string;
+  /**
+   * URL key for /articles/{slug}. Made from the title when left empty. Keep it stable once the article is shared.
+   */
+  slug?: string | null;
+  /**
+   * Article body, as plain text. Separate paragraphs with a blank line. Leave empty and the article links out only (no page).
+   */
+  description?: string | null;
+  /**
+   * If checked, the article expert will be featured on the homepage.
+   */
+  featured?: boolean | null;
+  category?: ('articles' | 'others') | null;
+  publishedAt: string;
+  /**
+   * Minutes. Render as "{n} min" in the frontend.
+   */
+  readTime?: number | null;
+  image?: (number | null) | Media;
+  imageUrl?: string | null;
+  /**
+   * Where the article is published (LinkedIn, Medium, ...).
+   */
+  link: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Images and files used across the site. Alt text is required for accessibility.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: number;
+  alt: string;
+  _objectKey?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * Portfolio projects, listed under /projects.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "projects".
+ */
+export interface Project {
+  id: number;
+  /**
+   * Lower numbers appear first.
+   */
+  order?: number | null;
+  title: string;
+  /**
+   * URL key for /projects/{slug}. Made from the title when left empty. Keep it stable once the project is shared.
+   */
+  slug?: string | null;
+  /**
+   * Used as the full image when the Image URL below is empty. It is also the thumbnail when the Place Holder Image URL is empty.
+   */
+  image?: (number | null) | Media;
+  src?: string | null;
+  placeHolder?: string | null;
+  /**
+   * Live site or case-study URL.
+   */
+  url?: string | null;
+  /**
+   * URL for the "Read More" link.
+   */
+  readMoreUrl?: string | null;
+  categories: ('front-end' | 'back-end' | 'cms-crm')[];
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Service categories shown on the home page.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "services".
+ */
+export interface Service {
+  id: number;
+  /**
+   * Lower numbers appear first.
+   */
+  order?: number | null;
+  category: string;
+  /**
+   * Icon shown next to the category. Only the icons the frontend has are listed.
+   */
+  iconFont?: ('faCode' | 'faCropAlt' | 'faLaptopCode' | 'faCodeBranch') | null;
+  /**
+   * One entry per bullet point.
+   */
+  descriptions: string[];
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * The hero section: name, job titles and CV link. One document: the site shows the first one.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "header".
+ */
+export interface Header {
+  id: number;
+  sureName: string;
+  profileImage?: (number | null) | Media;
+  imageUrl?: string | null;
+  /**
+   * Link behind the "Request CV" button.
+   */
+  requestCV?: string | null;
+  /**
+   * Job titles shown in the hero section.
+   */
+  professionTexts: string[];
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * The About section. One document: the site shows the first one.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "about".
+ */
+export interface About {
+  id: number;
+  title: string;
+  experience: {
+    years: number;
+    title: string;
+    description: string;
+  };
+  workPermit: {
+    title: string;
+    description: string;
+  };
+  uploadImages?: (number | Media)[] | null;
+  images?:
+    | {
+        imageUrl: string;
+        id?: string | null;
+      }[]
+    | null;
+  interests: {
+    title: string;
+    description: string;
+    areas?: string[] | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Work history in the résumé section. Lower order shows first.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "experiences".
+ */
+export interface Experience {
+  id: number;
+  /**
+   * Lower numbers appear first.
+   */
+  order?: number | null;
+  title: string;
+  date: string;
+  company: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Education history in the résumé section. Lower order shows first.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "educations".
+ */
+export interface Education {
+  id: number;
+  /**
+   * Lower numbers appear first.
+   */
+  order?: number | null;
+  title: string;
+  institution: string;
+  location?: string | null;
+  /**
+   * Display text, e.g. "2001 - 2007".
+   */
+  date: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Skill bars in the résumé section, grouped by category.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "skills".
+ */
+export interface Skill {
+  id: number;
+  /**
+   * Lower numbers appear first.
+   */
+  order?: number | null;
+  label: string;
+  group: 'frontend' | 'backend';
+  /**
+   * Proficiency, 0-100.
+   */
+  value: number;
+  /**
+   * Bootstrap contextual color of the progress bar.
+   */
+  color: 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'danger';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Certificates and credentials.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "certificates".
+ */
+export interface Certificate {
+  id: number;
+  title: string;
+  issuer: string;
+  issuedAt: string;
+  image?: (number | null) | Media;
+  imageUrl?: string | null;
+  /**
+   * Public credential URL.
+   */
+  link?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * People who can sign in to this admin. Only admins can manage users and roles.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -177,244 +435,6 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "about".
- */
-export interface About {
-  id: number;
-  title: string;
-  experience: {
-    years: number;
-    title: string;
-    description: string;
-  };
-  workPermit: {
-    title: string;
-    description: string;
-  };
-  uploadImages?: (number | Media)[] | null;
-  images?:
-    | {
-        imageUrl: string;
-        id?: string | null;
-      }[]
-    | null;
-  interests: {
-    title: string;
-    description: string;
-    areas?: string[] | null;
-  };
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
- */
-export interface Media {
-  id: number;
-  alt: string;
-  _objectKey?: string | null;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "header".
- */
-export interface Header {
-  id: number;
-  sureName: string;
-  profileImage?: (number | null) | Media;
-  imageUrl?: string | null;
-  /**
-   * Link behind the "Request CV" button.
-   */
-  requestCV?: string | null;
-  /**
-   * Job titles shown in the hero section.
-   */
-  professionTexts: string[];
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "articles".
- */
-export interface Article {
-  id: number;
-  title: string;
-  excerpt: string;
-  /**
-   * URL key for /articles/{slug}. Made from the title when left empty. Keep it stable once the article is shared.
-   */
-  slug?: string | null;
-  /**
-   * Article body, as plain text. Separate paragraphs with a blank line. Leave empty and the article links out only (no page).
-   */
-  description?: string | null;
-  /**
-   * If checked, the article expert will be featured on the homepage.
-   */
-  featured?: boolean | null;
-  category?: ('articles' | 'others') | null;
-  publishedAt: string;
-  /**
-   * Minutes. Render as "{n} min" in the frontend.
-   */
-  readTime?: number | null;
-  image?: (number | null) | Media;
-  imageUrl?: string | null;
-  /**
-   * Where the article is published (LinkedIn, Medium, ...).
-   */
-  link: string;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "certificates".
- */
-export interface Certificate {
-  id: number;
-  title: string;
-  issuer: string;
-  issuedAt: string;
-  image?: (number | null) | Media;
-  imageUrl?: string | null;
-  /**
-   * Public credential URL.
-   */
-  link?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "educations".
- */
-export interface Education {
-  id: number;
-  /**
-   * Lower numbers appear first.
-   */
-  order?: number | null;
-  title: string;
-  institution: string;
-  location?: string | null;
-  /**
-   * Display text, e.g. "2001 - 2007".
-   */
-  date: string;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "experiences".
- */
-export interface Experience {
-  id: number;
-  /**
-   * Lower numbers appear first.
-   */
-  order?: number | null;
-  title: string;
-  date: string;
-  company: string;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "projects".
- */
-export interface Project {
-  id: number;
-  /**
-   * Lower numbers appear first.
-   */
-  order?: number | null;
-  title: string;
-  /**
-   * URL key for /projects/{slug}. Made from the title when left empty. Keep it stable once the project is shared.
-   */
-  slug?: string | null;
-  /**
-   * Used as the full image when the Image URL below is empty. It is also the thumbnail when the Place Holder Image URL is empty.
-   */
-  image?: (number | null) | Media;
-  src?: string | null;
-  placeHolder?: string | null;
-  /**
-   * Live site or case-study URL.
-   */
-  url?: string | null;
-  /**
-   * URL for the "Read More" link.
-   */
-  readMoreUrl?: string | null;
-  categories: ('front-end' | 'back-end' | 'cms-crm')[];
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "services".
- */
-export interface Service {
-  id: number;
-  /**
-   * Lower numbers appear first.
-   */
-  order?: number | null;
-  category: string;
-  /**
-   * Icon shown next to the category. Only the icons the frontend has are listed.
-   */
-  iconFont?: ('faCode' | 'faCropAlt' | 'faLaptopCode' | 'faCodeBranch') | null;
-  /**
-   * One entry per bullet point.
-   */
-  descriptions: string[];
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "skills".
- */
-export interface Skill {
-  id: number;
-  /**
-   * Lower numbers appear first.
-   */
-  order?: number | null;
-  label: string;
-  group: 'frontend' | 'backend';
-  /**
-   * Proficiency, 0-100.
-   */
-  value: number;
-  /**
-   * Bootstrap contextual color of the progress bar.
-   */
-  color: 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'danger';
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -438,32 +458,8 @@ export interface PayloadLockedDocument {
   id: number;
   document?:
     | ({
-        relationTo: 'users';
-        value: number | User;
-      } | null)
-    | ({
-        relationTo: 'about';
-        value: number | About;
-      } | null)
-    | ({
-        relationTo: 'header';
-        value: number | Header;
-      } | null)
-    | ({
         relationTo: 'articles';
         value: number | Article;
-      } | null)
-    | ({
-        relationTo: 'certificates';
-        value: number | Certificate;
-      } | null)
-    | ({
-        relationTo: 'educations';
-        value: number | Education;
-      } | null)
-    | ({
-        relationTo: 'experiences';
-        value: number | Experience;
       } | null)
     | ({
         relationTo: 'projects';
@@ -474,12 +470,36 @@ export interface PayloadLockedDocument {
         value: number | Service;
       } | null)
     | ({
+        relationTo: 'media';
+        value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'header';
+        value: number | Header;
+      } | null)
+    | ({
+        relationTo: 'about';
+        value: number | About;
+      } | null)
+    | ({
+        relationTo: 'experiences';
+        value: number | Experience;
+      } | null)
+    | ({
+        relationTo: 'educations';
+        value: number | Education;
+      } | null)
+    | ({
         relationTo: 'skills';
         value: number | Skill;
       } | null)
     | ({
-        relationTo: 'media';
-        value: number | Media;
+        relationTo: 'certificates';
+        value: number | Certificate;
+      } | null)
+    | ({
+        relationTo: 'users';
+        value: number | User;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -525,28 +545,83 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users_select".
+ * via the `definition` "articles_select".
  */
-export interface UsersSelect<T extends boolean = true> {
-  name?: T;
-  roles?: T;
+export interface ArticlesSelect<T extends boolean = true> {
+  title?: T;
+  excerpt?: T;
+  slug?: T;
+  description?: T;
+  featured?: T;
+  category?: T;
+  publishedAt?: T;
+  readTime?: T;
+  image?: T;
+  imageUrl?: T;
+  link?: T;
   updatedAt?: T;
   createdAt?: T;
-  email?: T;
-  resetPasswordToken?: T;
-  resetPasswordExpiration?: T;
-  salt?: T;
-  hash?: T;
-  resetPasswordRequestedAt?: T;
-  loginAttempts?: T;
-  lockUntil?: T;
-  sessions?:
-    | T
-    | {
-        id?: T;
-        createdAt?: T;
-        expiresAt?: T;
-      };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "projects_select".
+ */
+export interface ProjectsSelect<T extends boolean = true> {
+  order?: T;
+  title?: T;
+  slug?: T;
+  image?: T;
+  src?: T;
+  placeHolder?: T;
+  url?: T;
+  readMoreUrl?: T;
+  categories?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "services_select".
+ */
+export interface ServicesSelect<T extends boolean = true> {
+  order?: T;
+  category?: T;
+  iconFont?: T;
+  descriptions?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media_select".
+ */
+export interface MediaSelect<T extends boolean = true> {
+  alt?: T;
+  _objectKey?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "header_select".
+ */
+export interface HeaderSelect<T extends boolean = true> {
+  sureName?: T;
+  profileImage?: T;
+  imageUrl?: T;
+  requestCV?: T;
+  professionTexts?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -586,33 +661,39 @@ export interface AboutSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "header_select".
+ * via the `definition` "experiences_select".
  */
-export interface HeaderSelect<T extends boolean = true> {
-  sureName?: T;
-  profileImage?: T;
-  imageUrl?: T;
-  requestCV?: T;
-  professionTexts?: T;
+export interface ExperiencesSelect<T extends boolean = true> {
+  order?: T;
+  title?: T;
+  date?: T;
+  company?: T;
   updatedAt?: T;
   createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "articles_select".
+ * via the `definition` "educations_select".
  */
-export interface ArticlesSelect<T extends boolean = true> {
+export interface EducationsSelect<T extends boolean = true> {
+  order?: T;
   title?: T;
-  excerpt?: T;
-  slug?: T;
-  description?: T;
-  featured?: T;
-  category?: T;
-  publishedAt?: T;
-  readTime?: T;
-  image?: T;
-  imageUrl?: T;
-  link?: T;
+  institution?: T;
+  location?: T;
+  date?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "skills_select".
+ */
+export interface SkillsSelect<T extends boolean = true> {
+  order?: T;
+  label?: T;
+  group?: T;
+  value?: T;
+  color?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -632,89 +713,28 @@ export interface CertificatesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "educations_select".
+ * via the `definition` "users_select".
  */
-export interface EducationsSelect<T extends boolean = true> {
-  order?: T;
-  title?: T;
-  institution?: T;
-  location?: T;
-  date?: T;
+export interface UsersSelect<T extends boolean = true> {
+  name?: T;
+  roles?: T;
   updatedAt?: T;
   createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "experiences_select".
- */
-export interface ExperiencesSelect<T extends boolean = true> {
-  order?: T;
-  title?: T;
-  date?: T;
-  company?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "projects_select".
- */
-export interface ProjectsSelect<T extends boolean = true> {
-  order?: T;
-  title?: T;
-  slug?: T;
-  image?: T;
-  src?: T;
-  placeHolder?: T;
-  url?: T;
-  readMoreUrl?: T;
-  categories?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "services_select".
- */
-export interface ServicesSelect<T extends boolean = true> {
-  order?: T;
-  category?: T;
-  iconFont?: T;
-  descriptions?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "skills_select".
- */
-export interface SkillsSelect<T extends boolean = true> {
-  order?: T;
-  label?: T;
-  group?: T;
-  value?: T;
-  color?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media_select".
- */
-export interface MediaSelect<T extends boolean = true> {
-  alt?: T;
-  _objectKey?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  url?: T;
-  thumbnailURL?: T;
-  filename?: T;
-  mimeType?: T;
-  filesize?: T;
-  width?: T;
-  height?: T;
-  focalX?: T;
-  focalY?: T;
+  email?: T;
+  resetPasswordToken?: T;
+  resetPasswordExpiration?: T;
+  salt?: T;
+  hash?: T;
+  resetPasswordRequestedAt?: T;
+  loginAttempts?: T;
+  lockUntil?: T;
+  sessions?:
+    | T
+    | {
+        id?: T;
+        createdAt?: T;
+        expiresAt?: T;
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -757,6 +777,8 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   createdAt?: T;
 }
 /**
+ * Social links, roles and marketplace profiles shown in the site footer.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "footer".
  */

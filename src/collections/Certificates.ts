@@ -8,6 +8,8 @@ export const Certificates: CollectionConfig = {
     afterDelete: [portfolioAfterDelete],
   },
   admin: {
+    group: 'Profile',
+    description: 'Certificates and credentials.',
     useAsTitle: 'title',
     defaultColumns: ['title', 'issuer', 'issuedAt'],
   },

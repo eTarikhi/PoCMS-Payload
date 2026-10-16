@@ -9,6 +9,8 @@ export const Services: CollectionConfig = {
     afterDelete: [portfolioAfterDelete],
   },
   admin: {
+    group: 'Content',
+    description: 'Service categories shown on the home page.',
     useAsTitle: 'category',
     defaultColumns: ['category', 'iconFont', 'order'],
   },

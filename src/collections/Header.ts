@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { portfolioAfterChange, portfolioAfterDelete } from '../app/(frontend)/lib/hooks'
+import { createWhileEmpty } from '../access/singleton'
 
 export const Header: CollectionConfig = {
   slug: 'header',
@@ -12,11 +13,19 @@ export const Header: CollectionConfig = {
     plural: 'Header',
   },
   admin: {
+    group: 'Profile',
+    description:
+      'The hero section: name, job titles and CV link. One document: the site shows the first one.',
     useAsTitle: 'sureName',
     defaultColumns: ['id', 'sureName', 'professionTexts', 'updatedAt'],
+    // One-document collection: the list view opens the document (or the create form).
+    components: {
+      views: { list: { Component: '/components/admin/views/SingletonList#SingletonListView' } },
+    },
   },
   access: {
     read: () => true,
+    create: createWhileEmpty('header'),
   },
   fields: [
     { name: 'sureName', type: 'text', required: true },

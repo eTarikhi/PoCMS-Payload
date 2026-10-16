@@ -38,9 +38,30 @@ export default buildConfig({
     user: Users.slug,
     // Initials on the design-system Avatar instead of Gravatar (no third-party request).
     avatar: { Component: '/components/admin/graphics/AccountAvatar#AccountAvatar' },
+    meta: {
+      titleSuffix: ' · PoCMS',
+      description: 'PoCMS, the content admin for the eTarikhi portfolio.',
+      icons: [
+        { rel: 'icon', type: 'image/svg+xml', url: '/images/favicon/favicon.svg' },
+        {
+          rel: 'icon',
+          type: 'image/png',
+          sizes: '32x32',
+          url: '/images/favicon/favicon-32x32.png',
+        },
+        { rel: 'apple-touch-icon', sizes: '180x180', url: '/images/favicon/apple-touch-icon.png' },
+      ],
+    },
     components: {
       // Admin design system: Inter, design tokens, Payload overrides, Tailwind (acn:*) utilities.
       providers: ['/components/admin/providers/AdminUIProvider#AdminUIProvider'],
+      graphics: {
+        Logo: '/components/admin/graphics/Logo#Logo',
+        Icon: '/components/admin/graphics/Icon#Icon',
+      },
+      // Sidebar: a permission-aware "Create" menu on top; "View site" (and the UI kit for admins) below.
+      beforeNavLinks: ['/components/admin/nav/QuickCreate#QuickCreate'],
+      afterNavLinks: ['/components/admin/nav/NavExtraLinks#NavExtraLinks'],
       views: {
         // Living style guide (admins only): tokens and primitives inside Payload's shell.
         uiKit: {
@@ -76,18 +97,20 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
+  // Order sets the sidebar order of the admin.group sections: Content, Profile, Admin.
+  // (Payload lists collections before globals, so the Footer global sits at the end of Profile.)
   collections: [
-    Users,
-    About,
-    Header,
     Articles,
-    Certificates,
-    Educations,
-    Experiences,
     Projects,
     Services,
-    Skills,
     Media,
+    Header,
+    About,
+    Experiences,
+    Educations,
+    Skills,
+    Certificates,
+    Users,
   ],
   globals: [Footer],
   editor: lexicalEditor(),

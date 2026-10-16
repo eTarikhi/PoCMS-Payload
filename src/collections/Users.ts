@@ -12,6 +12,7 @@ const firstUserIsAdmin: CollectionBeforeChangeHook = async ({ data, operation, r
 export const Users: CollectionConfig = {
   slug: 'users',
   admin: {
+    group: 'Admin',
     useAsTitle: 'email',
     defaultColumns: ['email', 'name', 'roles', 'updatedAt'],
     description: 'People who can sign in to this admin. Only admins can manage users and roles.',

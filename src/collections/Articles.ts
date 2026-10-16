@@ -9,6 +9,8 @@ export const Articles: CollectionConfig = {
     afterDelete: [portfolioAfterDelete],
   },
   admin: {
+    group: 'Content',
+    description: 'Blog posts, listed under /articles.',
     useAsTitle: 'title',
     defaultColumns: ['title', 'category', 'publishedAt', 'featured'],
   },

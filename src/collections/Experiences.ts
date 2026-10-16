@@ -10,6 +10,8 @@ export const Experiences: CollectionConfig = {
   },
   defaultSort: 'order',
   admin: {
+    group: 'Profile',
+    description: 'Work history in the résumé section. Lower order shows first.',
     useAsTitle: 'title',
     defaultColumns: ['title', 'company', 'date', 'order'],
   },

@@ -9,6 +9,8 @@ export const Educations: CollectionConfig = {
     afterDelete: [portfolioAfterDelete],
   },
   admin: {
+    group: 'Profile',
+    description: 'Education history in the résumé section. Lower order shows first.',
     useAsTitle: 'title',
     defaultColumns: ['title', 'institution', 'date', 'order'],
   },

@@ -7,6 +7,11 @@ export const Media: CollectionConfig = {
     afterChange: [portfolioAfterChange],
     afterDelete: [portfolioAfterDelete],
   },
+  admin: {
+    group: 'Content',
+    description: 'Images and files used across the site. Alt text is required for accessibility.',
+    defaultColumns: ['filename', 'alt', 'mimeType', 'filesize', 'updatedAt'],
+  },
   access: {
     read: () => true,
   },

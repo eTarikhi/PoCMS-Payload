@@ -7,6 +7,10 @@ export const Footer: GlobalConfig = {
     afterChange: [portfolioAfterChange],
   },
   label: 'Footer',
+  admin: {
+    group: 'Profile',
+    description: 'Social links, roles and marketplace profiles shown in the site footer.',
+  },
   access: {
     read: () => true,
   },
@@ -29,15 +33,37 @@ export const Footer: GlobalConfig = {
           ],
           admin: { description: 'Select the social media platform for the link.' },
         },
-        { name: 'url', type: 'text', required: true, admin: { description: 'The URL for the social media link.' } },
+        {
+          name: 'url',
+          type: 'text',
+          required: true,
+          admin: { description: 'The URL for the social media link.' },
+        },
         {
           name: 'iconName',
           type: 'select',
           required: true,
-          options: ['faFacebookF', 'faXTwitter', 'faInstagram', 'faLinkedin', 'faGithub', 'faWhatsapp', 'faWhatsappc', 'faGem', 'faHome', 'faEnvelope', 'faPhoneFlip'],
+          options: [
+            'faFacebookF',
+            'faXTwitter',
+            'faInstagram',
+            'faLinkedin',
+            'faGithub',
+            'faWhatsapp',
+            'faWhatsappc',
+            'faGem',
+            'faHome',
+            'faEnvelope',
+            'faPhoneFlip',
+          ],
           admin: { description: 'The icon to display for the social media link.' },
         },
-        { name: 'ariaLabel', type: 'text', required: true, admin: { description: 'The ARIA label for the social media link.' } },
+        {
+          name: 'ariaLabel',
+          type: 'text',
+          required: true,
+          admin: { description: 'The ARIA label for the social media link.' },
+        },
       ],
     },
     {
@@ -51,7 +77,7 @@ export const Footer: GlobalConfig = {
           type: 'text',
           hasMany: true,
           admin: { description: 'Short role list shown in the footer.' },
-        }
+        },
       ],
     },
     {
@@ -59,8 +85,18 @@ export const Footer: GlobalConfig = {
       label: 'Freelance / Marketplace Profiles',
       type: 'array',
       fields: [
-        { name: 'name', type: 'text', required: true, admin: { description: 'The name of the freelance or marketplace profile.' } },
-        { name: 'url', type: 'text', required: true, admin: { description: 'The URL for the freelance or marketplace profile.' } },
+        {
+          name: 'name',
+          type: 'text',
+          required: true,
+          admin: { description: 'The name of the freelance or marketplace profile.' },
+        },
+        {
+          name: 'url',
+          type: 'text',
+          required: true,
+          admin: { description: 'The URL for the freelance or marketplace profile.' },
+        },
       ],
     },
     {
@@ -83,18 +119,47 @@ export const Footer: GlobalConfig = {
           name: 'iconName',
           type: 'select',
           required: true,
-          options: ['faFacebookF', 'faXTwitter', 'faInstagram', 'faLinkedin', 'faGithub', 'faWhatsapp', 'faWhatsappc', 'faGem', 'faHome', 'faEnvelope', 'faPhoneFlip'],
+          options: [
+            'faFacebookF',
+            'faXTwitter',
+            'faInstagram',
+            'faLinkedin',
+            'faGithub',
+            'faWhatsapp',
+            'faWhatsappc',
+            'faGem',
+            'faHome',
+            'faEnvelope',
+            'faPhoneFlip',
+          ],
           admin: { description: 'The icon to display for the contact info item.' },
         },
-        { name: 'content', type: 'text', required: true, admin: { description: 'The content for the contact info item.' } },
-        { name: 'isLink', type: 'checkbox', admin: { description: 'Check if this contact info item is a link.' } },
+        {
+          name: 'content',
+          type: 'text',
+          required: true,
+          admin: { description: 'The content for the contact info item.' },
+        },
+        {
+          name: 'isLink',
+          type: 'checkbox',
+          admin: { description: 'Check if this contact info item is a link.' },
+        },
 
         { name: 'url', type: 'text', admin: { description: 'The URL for the contact info item.' } },
         {
           name: 'className',
           type: 'select',
           defaultValue: 'text-white',
-          options: ['text-white', 'text-primary', 'text-secondary', 'text-success', 'text-info', 'text-warning', 'text-danger'],
+          options: [
+            'text-white',
+            'text-primary',
+            'text-secondary',
+            'text-success',
+            'text-info',
+            'text-warning',
+            'text-danger',
+          ],
           admin: { description: 'Bootstrap text color class for the contact info item.' },
         },
       ],
@@ -104,8 +169,16 @@ export const Footer: GlobalConfig = {
       type: 'group',
       label: 'Hiring call-to-action',
       fields: [
-        { name: 'label', type: 'text', admin: { description: 'The label for the hiring call-to-action.' } },
-        { name: 'url', type: 'text', admin: { description: 'The URL for the hiring call-to-action.' } },
+        {
+          name: 'label',
+          type: 'text',
+          admin: { description: 'The label for the hiring call-to-action.' },
+        },
+        {
+          name: 'url',
+          type: 'text',
+          admin: { description: 'The URL for the hiring call-to-action.' },
+        },
       ],
     },
     {
@@ -113,13 +186,30 @@ export const Footer: GlobalConfig = {
       type: 'group',
       label: 'Copyright',
       fields: [
-        { name: 'year', type: 'number', required: true, min: 0, admin: { description: 'The year is generated by the frontend.' } },
+        {
+          name: 'year',
+          type: 'number',
+          required: true,
+          min: 0,
+          admin: { description: 'The year is generated by the frontend.' },
+        },
         {
           name: 'website',
           type: 'text',
-          admin: { description: 'Used in the copyright line, e.g. eTarikhi.com. The year is generated by the frontend.' },
+          admin: {
+            description:
+              'Used in the copyright line, e.g. eTarikhi.com. The year is generated by the frontend.',
+          },
         },
-        { name: 'url', type: 'text', required: true, admin: { description: 'Used in the copyright line, e.g. https://vTarikhi.com. The year is generated by the frontend.' } },
+        {
+          name: 'url',
+          type: 'text',
+          required: true,
+          admin: {
+            description:
+              'Used in the copyright line, e.g. https://vTarikhi.com. The year is generated by the frontend.',
+          },
+        },
       ],
     },
   ],
