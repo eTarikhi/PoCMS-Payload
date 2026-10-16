@@ -49,6 +49,5 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 .env.example
-/src/migrations
 test.env
 src/seed/portfolio-data.json

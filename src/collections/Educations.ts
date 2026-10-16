@@ -18,9 +18,9 @@ export const Educations: CollectionConfig = {
   },
   fields: [
     orderField,
-    { name: 'title', type: 'text', required: true },
+    { name: 'title', type: 'text', required: true, localized: true },
     { name: 'institution', type: 'text', required: true },
-    { name: 'location', type: 'text' },
+    { name: 'location', type: 'text', localized: true },
     {
       name: 'date',
       type: 'text',

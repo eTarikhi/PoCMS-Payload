@@ -17,8 +17,8 @@ export const Articles: CollectionConfig = {
     read: () => true,
   },
   fields: [
-    { name: 'title', type: 'text', required: true },
-    { name: 'excerpt', type: 'textarea', required: true },
+    { name: 'title', type: 'text', required: true, localized: true },
+    { name: 'excerpt', type: 'textarea', required: true, localized: true },
     {
       name: 'slug',
       type: 'text',
@@ -30,6 +30,7 @@ export const Articles: CollectionConfig = {
     {
       name: 'description',
       type: 'textarea',
+      localized: true,
       admin: {
         description: 'Article body, as plain text. Separate paragraphs with a blank line. Leave empty and the article links out only (no page).',
       },

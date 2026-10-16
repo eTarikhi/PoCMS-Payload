@@ -16,7 +16,7 @@ export const Certificates: CollectionConfig = {
     read: () => true,
   },
   fields: [
-    { name: 'title', type: 'text', required: true },
+    { name: 'title', type: 'text', required: true, localized: true },
     { name: 'issuer', type: 'text', required: true },
     {
       name: 'issuedAt',

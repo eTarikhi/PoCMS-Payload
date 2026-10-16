@@ -16,6 +16,7 @@ import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
 import { Footer } from './globals/Footer'
+import { migrations } from './migrations'
 
 import { Users } from './collections/Users'
 import { About } from './collections/About'
@@ -104,6 +105,8 @@ export default buildConfig({
     pool: {
       connectionString: process.env.POSTGRES_URL || '',
     },
+    migrationDir: path.resolve(dirname, 'migrations'),
+    prodMigrations: migrations,
   }),
   // storage: [
   //   vercelBlobStorage({

@@ -37,7 +37,7 @@ export const Footer: GlobalConfig = {
           options: ['faFacebookF', 'faXTwitter', 'faInstagram', 'faLinkedin', 'faGithub', 'faWhatsapp', 'faWhatsappc', 'faGem', 'faHome', 'faEnvelope', 'faPhoneFlip'],
           admin: { description: 'The icon to display for the social media link.' },
         },
-        { name: 'ariaLabel', type: 'text', required: true, admin: { description: 'The ARIA label for the social media link.' } },
+        { name: 'ariaLabel', type: 'text', required: true, localized: true, admin: { description: 'The ARIA label for the social media link.' } },
       ],
     },
     {
@@ -50,6 +50,7 @@ export const Footer: GlobalConfig = {
           name: 'footerRoles',
           type: 'text',
           hasMany: true,
+          localized: true,
           admin: { description: 'Short role list shown in the footer.' },
         }
       ],
@@ -86,7 +87,7 @@ export const Footer: GlobalConfig = {
           options: ['faFacebookF', 'faXTwitter', 'faInstagram', 'faLinkedin', 'faGithub', 'faWhatsapp', 'faWhatsappc', 'faGem', 'faHome', 'faEnvelope', 'faPhoneFlip'],
           admin: { description: 'The icon to display for the contact info item.' },
         },
-        { name: 'content', type: 'text', required: true, admin: { description: 'The content for the contact info item.' } },
+        { name: 'content', type: 'text', required: true, localized: true, admin: { description: 'The content for the contact info item.' } },
         { name: 'isLink', type: 'checkbox', admin: { description: 'Check if this contact info item is a link.' } },
 
         { name: 'url', type: 'text', admin: { description: 'The URL for the contact info item.' } },
@@ -104,7 +105,7 @@ export const Footer: GlobalConfig = {
       type: 'group',
       label: 'Hiring call-to-action',
       fields: [
-        { name: 'label', type: 'text', admin: { description: 'The label for the hiring call-to-action.' } },
+        { name: 'label', type: 'text', localized: true, admin: { description: 'The label for the hiring call-to-action.' } },
         { name: 'url', type: 'text', admin: { description: 'The URL for the hiring call-to-action.' } },
       ],
     },

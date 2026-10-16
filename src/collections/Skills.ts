@@ -18,7 +18,7 @@ export const Skills: CollectionConfig = {
     },
   fields: [
     orderField,
-    { name: 'label', type: 'text', required: true },
+    { name: 'label', type: 'text', required: true, localized: true },
     {
       name: 'group',
       type: 'select',

@@ -18,7 +18,7 @@ export const Services: CollectionConfig = {
   },
   fields: [
     orderField,
-    { name: 'category', type: 'text', required: true },
+    { name: 'category', type: 'text', required: true, localized: true },
     {
       name: 'iconFont',
       type: 'select',
@@ -30,6 +30,7 @@ export const Services: CollectionConfig = {
       type: 'text',
       hasMany: true,
       required: true,
+      localized: true,
       admin: { description: 'One entry per bullet point.' },
     },
   ],

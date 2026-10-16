@@ -18,7 +18,7 @@ export const Experiences: CollectionConfig = {
   },
   fields: [
     orderField,
-    { name: 'title', type: 'text', required: true },
+    { name: 'title', type: 'text', required: true, localized: true },
     { name: 'date', type: 'text', required: true },
     { name: 'company', type: 'text', required: true },
   ],

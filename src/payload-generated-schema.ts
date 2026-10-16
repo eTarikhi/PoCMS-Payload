@@ -22,6 +22,7 @@ import {
   pgEnum,
 } from '@payloadcms/db-vercel-postgres/drizzle/pg-core'
 import { sql, relations } from '@payloadcms/db-vercel-postgres/drizzle'
+export const enum__locales = pgEnum('enum__locales', ['en', 'fa'])
 export const enum_articles_category = pgEnum('enum_articles_category', ['articles', 'others'])
 export const enum_projects_categories = pgEnum('enum_projects_categories', [
   'front-end',
@@ -174,14 +175,7 @@ export const about = pgTable(
   'about',
   {
     id: serial('id').primaryKey(),
-    title: varchar('title').notNull(),
     experience_years: numeric('experience_years', { mode: 'number' }).notNull(),
-    experience_title: varchar('experience_title').notNull(),
-    experience_description: varchar('experience_description').notNull(),
-    workPermit_title: varchar('work_permit_title').notNull(),
-    workPermit_description: varchar('work_permit_description').notNull(),
-    interests_title: varchar('interests_title').notNull(),
-    interests_description: varchar('interests_description').notNull(),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
@@ -195,6 +189,30 @@ export const about = pgTable(
   ],
 )
 
+export const about_locales = pgTable(
+  'about_locales',
+  {
+    title: varchar('title').notNull(),
+    experience_title: varchar('experience_title').notNull(),
+    experience_description: varchar('experience_description').notNull(),
+    workPermit_title: varchar('work_permit_title').notNull(),
+    workPermit_description: varchar('work_permit_description').notNull(),
+    interests_title: varchar('interests_title').notNull(),
+    interests_description: varchar('interests_description').notNull(),
+    id: serial('id').primaryKey(),
+    _locale: enum__locales('_locale').notNull(),
+    _parentID: integer('_parent_id').notNull(),
+  },
+  (columns) => [
+    uniqueIndex('about_locales_locale_parent_id_unique').on(columns._locale, columns._parentID),
+    foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [about.id],
+      name: 'about_locales_parent_id_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
 export const about_texts = pgTable(
   'about_texts',
   {
@@ -203,9 +221,11 @@ export const about_texts = pgTable(
     parent: integer('parent_id').notNull(),
     path: varchar('path').notNull(),
     text: varchar('text'),
+    locale: enum__locales('locale'),
   },
   (columns) => [
     index('about_texts_order_parent').on(columns.order, columns.parent),
+    index('about_texts_locale_parent').on(columns.locale, columns.parent),
     foreignKey({
       columns: [columns['parent']],
       foreignColumns: [about.id],
@@ -273,9 +293,11 @@ export const header_texts = pgTable(
     parent: integer('parent_id').notNull(),
     path: varchar('path').notNull(),
     text: varchar('text'),
+    locale: enum__locales('locale'),
   },
   (columns) => [
     index('header_texts_order_parent').on(columns.order, columns.parent),
+    index('header_texts_locale_parent').on(columns.locale, columns.parent),
     foreignKey({
       columns: [columns['parent']],
       foreignColumns: [header.id],
@@ -288,10 +310,7 @@ export const articles = pgTable(
   'articles',
   {
     id: serial('id').primaryKey(),
-    title: varchar('title').notNull(),
-    excerpt: varchar('excerpt').notNull(),
     slug: varchar('slug'),
-    description: varchar('description'),
     featured: boolean('featured'),
     category: enum_articles_category('category'),
     publishedAt: timestamp('published_at', {
@@ -322,11 +341,30 @@ export const articles = pgTable(
   ],
 )
 
+export const articles_locales = pgTable(
+  'articles_locales',
+  {
+    title: varchar('title').notNull(),
+    excerpt: varchar('excerpt').notNull(),
+    description: varchar('description'),
+    id: serial('id').primaryKey(),
+    _locale: enum__locales('_locale').notNull(),
+    _parentID: integer('_parent_id').notNull(),
+  },
+  (columns) => [
+    uniqueIndex('articles_locales_locale_parent_id_unique').on(columns._locale, columns._parentID),
+    foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [articles.id],
+      name: 'articles_locales_parent_id_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
 export const certificates = pgTable(
   'certificates',
   {
     id: serial('id').primaryKey(),
-    title: varchar('title').notNull(),
     issuer: varchar('issuer').notNull(),
     issuedAt: timestamp('issued_at', {
       mode: 'string',
@@ -353,14 +391,33 @@ export const certificates = pgTable(
   ],
 )
 
+export const certificates_locales = pgTable(
+  'certificates_locales',
+  {
+    title: varchar('title').notNull(),
+    id: serial('id').primaryKey(),
+    _locale: enum__locales('_locale').notNull(),
+    _parentID: integer('_parent_id').notNull(),
+  },
+  (columns) => [
+    uniqueIndex('certificates_locales_locale_parent_id_unique').on(
+      columns._locale,
+      columns._parentID,
+    ),
+    foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [certificates.id],
+      name: 'certificates_locales_parent_id_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
 export const educations = pgTable(
   'educations',
   {
     id: serial('id').primaryKey(),
     order: numeric('order', { mode: 'number' }).default(0),
-    title: varchar('title').notNull(),
     institution: varchar('institution').notNull(),
-    location: varchar('location'),
     date: varchar('date').notNull(),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
@@ -376,12 +433,33 @@ export const educations = pgTable(
   ],
 )
 
+export const educations_locales = pgTable(
+  'educations_locales',
+  {
+    title: varchar('title').notNull(),
+    location: varchar('location'),
+    id: serial('id').primaryKey(),
+    _locale: enum__locales('_locale').notNull(),
+    _parentID: integer('_parent_id').notNull(),
+  },
+  (columns) => [
+    uniqueIndex('educations_locales_locale_parent_id_unique').on(
+      columns._locale,
+      columns._parentID,
+    ),
+    foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [educations.id],
+      name: 'educations_locales_parent_id_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
 export const experiences = pgTable(
   'experiences',
   {
     id: serial('id').primaryKey(),
     order: numeric('order', { mode: 'number' }).default(0),
-    title: varchar('title').notNull(),
     date: varchar('date').notNull(),
     company: varchar('company').notNull(),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
@@ -395,6 +473,27 @@ export const experiences = pgTable(
     index('experiences_order_idx').on(columns.order),
     index('experiences_updated_at_idx').on(columns.updatedAt),
     index('experiences_created_at_idx').on(columns.createdAt),
+  ],
+)
+
+export const experiences_locales = pgTable(
+  'experiences_locales',
+  {
+    title: varchar('title').notNull(),
+    id: serial('id').primaryKey(),
+    _locale: enum__locales('_locale').notNull(),
+    _parentID: integer('_parent_id').notNull(),
+  },
+  (columns) => [
+    uniqueIndex('experiences_locales_locale_parent_id_unique').on(
+      columns._locale,
+      columns._parentID,
+    ),
+    foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [experiences.id],
+      name: 'experiences_locales_parent_id_fk',
+    }).onDelete('cascade'),
   ],
 )
 
@@ -452,7 +551,6 @@ export const services = pgTable(
   {
     id: serial('id').primaryKey(),
     order: numeric('order', { mode: 'number' }).default(0),
-    category: varchar('category').notNull(),
     iconFont: enum_services_icon_font('icon_font'),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
@@ -468,6 +566,24 @@ export const services = pgTable(
   ],
 )
 
+export const services_locales = pgTable(
+  'services_locales',
+  {
+    category: varchar('category').notNull(),
+    id: serial('id').primaryKey(),
+    _locale: enum__locales('_locale').notNull(),
+    _parentID: integer('_parent_id').notNull(),
+  },
+  (columns) => [
+    uniqueIndex('services_locales_locale_parent_id_unique').on(columns._locale, columns._parentID),
+    foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [services.id],
+      name: 'services_locales_parent_id_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
 export const services_texts = pgTable(
   'services_texts',
   {
@@ -476,9 +592,11 @@ export const services_texts = pgTable(
     parent: integer('parent_id').notNull(),
     path: varchar('path').notNull(),
     text: varchar('text'),
+    locale: enum__locales('locale'),
   },
   (columns) => [
     index('services_texts_order_parent').on(columns.order, columns.parent),
+    index('services_texts_locale_parent').on(columns.locale, columns.parent),
     foreignKey({
       columns: [columns['parent']],
       foreignColumns: [services.id],
@@ -492,7 +610,6 @@ export const skills = pgTable(
   {
     id: serial('id').primaryKey(),
     order: numeric('order', { mode: 'number' }).default(0),
-    label: varchar('label').notNull(),
     group: enum_skills_group('group').notNull().default('frontend'),
     value: numeric('value', { mode: 'number' }).notNull(),
     color: enum_skills_color('color').notNull().default('primary'),
@@ -511,12 +628,28 @@ export const skills = pgTable(
   ],
 )
 
+export const skills_locales = pgTable(
+  'skills_locales',
+  {
+    label: varchar('label').notNull(),
+    id: serial('id').primaryKey(),
+    _locale: enum__locales('_locale').notNull(),
+    _parentID: integer('_parent_id').notNull(),
+  },
+  (columns) => [
+    uniqueIndex('skills_locales_locale_parent_id_unique').on(columns._locale, columns._parentID),
+    foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [skills.id],
+      name: 'skills_locales_parent_id_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
 export const media = pgTable(
   'media',
   {
     id: serial('id').primaryKey(),
-    alt: varchar('alt').notNull(),
-    _objectKey: varchar('_objectkey'),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
@@ -537,6 +670,24 @@ export const media = pgTable(
     index('media_updated_at_idx').on(columns.updatedAt),
     index('media_created_at_idx').on(columns.createdAt),
     uniqueIndex('media_filename_idx').on(columns.filename),
+  ],
+)
+
+export const media_locales = pgTable(
+  'media_locales',
+  {
+    alt: varchar('alt').notNull(),
+    id: serial('id').primaryKey(),
+    _locale: enum__locales('_locale').notNull(),
+    _parentID: integer('_parent_id').notNull(),
+  },
+  (columns) => [
+    uniqueIndex('media_locales_locale_parent_id_unique').on(columns._locale, columns._parentID),
+    foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [media.id],
+      name: 'media_locales_parent_id_fk',
+    }).onDelete('cascade'),
   ],
 )
 
@@ -741,7 +892,6 @@ export const footer_social_links = pgTable(
     platform: enum_footer_social_links_platform('platform').notNull(),
     url: varchar('url').notNull(),
     iconName: enum_footer_social_links_icon_name('icon_name').notNull(),
-    ariaLabel: varchar('aria_label').notNull(),
   },
   (columns) => [
     index('footer_social_links_order_idx').on(columns._order),
@@ -750,6 +900,27 @@ export const footer_social_links = pgTable(
       columns: [columns['_parentID']],
       foreignColumns: [footer.id],
       name: 'footer_social_links_parent_id_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
+export const footer_social_links_locales = pgTable(
+  'footer_social_links_locales',
+  {
+    ariaLabel: varchar('aria_label').notNull(),
+    id: serial('id').primaryKey(),
+    _locale: enum__locales('_locale').notNull(),
+    _parentID: varchar('_parent_id').notNull(),
+  },
+  (columns) => [
+    uniqueIndex('footer_social_links_locales_locale_parent_id_unique').on(
+      columns._locale,
+      columns._parentID,
+    ),
+    foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [footer_social_links.id],
+      name: 'footer_social_links_locales_parent_id_fk',
     }).onDelete('cascade'),
   ],
 )
@@ -782,7 +953,6 @@ export const footer_contact_info = pgTable(
     id: varchar('id').primaryKey(),
     type: enum_footer_contact_info_type('type').notNull(),
     iconName: enum_footer_contact_info_icon_name('icon_name').notNull(),
-    content: varchar('content').notNull(),
     isLink: boolean('is_link'),
     url: varchar('url'),
     className: enum_footer_contact_info_class_name('class_name').default('text-white'),
@@ -798,10 +968,30 @@ export const footer_contact_info = pgTable(
   ],
 )
 
+export const footer_contact_info_locales = pgTable(
+  'footer_contact_info_locales',
+  {
+    content: varchar('content').notNull(),
+    id: serial('id').primaryKey(),
+    _locale: enum__locales('_locale').notNull(),
+    _parentID: varchar('_parent_id').notNull(),
+  },
+  (columns) => [
+    uniqueIndex('footer_contact_info_locales_locale_parent_id_unique').on(
+      columns._locale,
+      columns._parentID,
+    ),
+    foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [footer_contact_info.id],
+      name: 'footer_contact_info_locales_parent_id_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
 export const footer = pgTable('footer', {
   id: serial('id').primaryKey(),
   roles_fullName: varchar('roles_full_name').notNull(),
-  hiringCta_label: varchar('hiring_cta_label'),
   hiringCta_url: varchar('hiring_cta_url'),
   copyRight_year: numeric('copy_right_year', { mode: 'number' }).notNull(),
   copyRight_website: varchar('copy_right_website'),
@@ -809,6 +999,24 @@ export const footer = pgTable('footer', {
   updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 }),
   createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 }),
 })
+
+export const footer_locales = pgTable(
+  'footer_locales',
+  {
+    hiringCta_label: varchar('hiring_cta_label'),
+    id: serial('id').primaryKey(),
+    _locale: enum__locales('_locale').notNull(),
+    _parentID: integer('_parent_id').notNull(),
+  },
+  (columns) => [
+    uniqueIndex('footer_locales_locale_parent_id_unique').on(columns._locale, columns._parentID),
+    foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [footer.id],
+      name: 'footer_locales_parent_id_fk',
+    }).onDelete('cascade'),
+  ],
+)
 
 export const footer_texts = pgTable(
   'footer_texts',
@@ -818,9 +1026,11 @@ export const footer_texts = pgTable(
     parent: integer('parent_id').notNull(),
     path: varchar('path').notNull(),
     text: varchar('text'),
+    locale: enum__locales('locale'),
   },
   (columns) => [
     index('footer_texts_order_parent').on(columns.order, columns.parent),
+    index('footer_texts_locale_parent').on(columns.locale, columns.parent),
     foreignKey({
       columns: [columns['parent']],
       foreignColumns: [footer.id],
@@ -848,6 +1058,13 @@ export const relations_about_images = relations(about_images, ({ one }) => ({
     relationName: 'images',
   }),
 }))
+export const relations_about_locales = relations(about_locales, ({ one }) => ({
+  _parentID: one(about, {
+    fields: [about_locales._parentID],
+    references: [about.id],
+    relationName: '_locales',
+  }),
+}))
 export const relations_about_texts = relations(about_texts, ({ one }) => ({
   parent: one(about, {
     fields: [about_texts.parent],
@@ -870,6 +1087,9 @@ export const relations_about_rels = relations(about_rels, ({ one }) => ({
 export const relations_about = relations(about, ({ many }) => ({
   images: many(about_images, {
     relationName: 'images',
+  }),
+  _locales: many(about_locales, {
+    relationName: '_locales',
   }),
   _texts: many(about_texts, {
     relationName: '_texts',
@@ -895,22 +1115,64 @@ export const relations_header = relations(header, ({ one, many }) => ({
     relationName: '_texts',
   }),
 }))
-export const relations_articles = relations(articles, ({ one }) => ({
+export const relations_articles_locales = relations(articles_locales, ({ one }) => ({
+  _parentID: one(articles, {
+    fields: [articles_locales._parentID],
+    references: [articles.id],
+    relationName: '_locales',
+  }),
+}))
+export const relations_articles = relations(articles, ({ one, many }) => ({
   image: one(media, {
     fields: [articles.image],
     references: [media.id],
     relationName: 'image',
   }),
+  _locales: many(articles_locales, {
+    relationName: '_locales',
+  }),
 }))
-export const relations_certificates = relations(certificates, ({ one }) => ({
+export const relations_certificates_locales = relations(certificates_locales, ({ one }) => ({
+  _parentID: one(certificates, {
+    fields: [certificates_locales._parentID],
+    references: [certificates.id],
+    relationName: '_locales',
+  }),
+}))
+export const relations_certificates = relations(certificates, ({ one, many }) => ({
   image: one(media, {
     fields: [certificates.image],
     references: [media.id],
     relationName: 'image',
   }),
+  _locales: many(certificates_locales, {
+    relationName: '_locales',
+  }),
 }))
-export const relations_educations = relations(educations, () => ({}))
-export const relations_experiences = relations(experiences, () => ({}))
+export const relations_educations_locales = relations(educations_locales, ({ one }) => ({
+  _parentID: one(educations, {
+    fields: [educations_locales._parentID],
+    references: [educations.id],
+    relationName: '_locales',
+  }),
+}))
+export const relations_educations = relations(educations, ({ many }) => ({
+  _locales: many(educations_locales, {
+    relationName: '_locales',
+  }),
+}))
+export const relations_experiences_locales = relations(experiences_locales, ({ one }) => ({
+  _parentID: one(experiences, {
+    fields: [experiences_locales._parentID],
+    references: [experiences.id],
+    relationName: '_locales',
+  }),
+}))
+export const relations_experiences = relations(experiences, ({ many }) => ({
+  _locales: many(experiences_locales, {
+    relationName: '_locales',
+  }),
+}))
 export const relations_projects_categories = relations(projects_categories, ({ one }) => ({
   parent: one(projects, {
     fields: [projects_categories.parent],
@@ -928,6 +1190,13 @@ export const relations_projects = relations(projects, ({ one, many }) => ({
     relationName: 'categories',
   }),
 }))
+export const relations_services_locales = relations(services_locales, ({ one }) => ({
+  _parentID: one(services, {
+    fields: [services_locales._parentID],
+    references: [services.id],
+    relationName: '_locales',
+  }),
+}))
 export const relations_services_texts = relations(services_texts, ({ one }) => ({
   parent: one(services, {
     fields: [services_texts.parent],
@@ -936,12 +1205,37 @@ export const relations_services_texts = relations(services_texts, ({ one }) => (
   }),
 }))
 export const relations_services = relations(services, ({ many }) => ({
+  _locales: many(services_locales, {
+    relationName: '_locales',
+  }),
   _texts: many(services_texts, {
     relationName: '_texts',
   }),
 }))
-export const relations_skills = relations(skills, () => ({}))
-export const relations_media = relations(media, () => ({}))
+export const relations_skills_locales = relations(skills_locales, ({ one }) => ({
+  _parentID: one(skills, {
+    fields: [skills_locales._parentID],
+    references: [skills.id],
+    relationName: '_locales',
+  }),
+}))
+export const relations_skills = relations(skills, ({ many }) => ({
+  _locales: many(skills_locales, {
+    relationName: '_locales',
+  }),
+}))
+export const relations_media_locales = relations(media_locales, ({ one }) => ({
+  _parentID: one(media, {
+    fields: [media_locales._parentID],
+    references: [media.id],
+    relationName: '_locales',
+  }),
+}))
+export const relations_media = relations(media, ({ many }) => ({
+  _locales: many(media_locales, {
+    relationName: '_locales',
+  }),
+}))
 export const relations_payload_kv = relations(payload_kv, () => ({}))
 export const relations_payload_locked_documents_rels = relations(
   payload_locked_documents_rels,
@@ -1037,11 +1331,24 @@ export const relations_payload_preferences = relations(payload_preferences, ({ m
   }),
 }))
 export const relations_payload_migrations = relations(payload_migrations, () => ({}))
-export const relations_footer_social_links = relations(footer_social_links, ({ one }) => ({
+export const relations_footer_social_links_locales = relations(
+  footer_social_links_locales,
+  ({ one }) => ({
+    _parentID: one(footer_social_links, {
+      fields: [footer_social_links_locales._parentID],
+      references: [footer_social_links.id],
+      relationName: '_locales',
+    }),
+  }),
+)
+export const relations_footer_social_links = relations(footer_social_links, ({ one, many }) => ({
   _parentID: one(footer, {
     fields: [footer_social_links._parentID],
     references: [footer.id],
     relationName: 'socialLinks',
+  }),
+  _locales: many(footer_social_links_locales, {
+    relationName: '_locales',
   }),
 }))
 export const relations_footer_profiles = relations(footer_profiles, ({ one }) => ({
@@ -1051,11 +1358,31 @@ export const relations_footer_profiles = relations(footer_profiles, ({ one }) =>
     relationName: 'profiles',
   }),
 }))
-export const relations_footer_contact_info = relations(footer_contact_info, ({ one }) => ({
+export const relations_footer_contact_info_locales = relations(
+  footer_contact_info_locales,
+  ({ one }) => ({
+    _parentID: one(footer_contact_info, {
+      fields: [footer_contact_info_locales._parentID],
+      references: [footer_contact_info.id],
+      relationName: '_locales',
+    }),
+  }),
+)
+export const relations_footer_contact_info = relations(footer_contact_info, ({ one, many }) => ({
   _parentID: one(footer, {
     fields: [footer_contact_info._parentID],
     references: [footer.id],
     relationName: 'contactInfo',
+  }),
+  _locales: many(footer_contact_info_locales, {
+    relationName: '_locales',
+  }),
+}))
+export const relations_footer_locales = relations(footer_locales, ({ one }) => ({
+  _parentID: one(footer, {
+    fields: [footer_locales._parentID],
+    references: [footer.id],
+    relationName: '_locales',
   }),
 }))
 export const relations_footer_texts = relations(footer_texts, ({ one }) => ({
@@ -1075,12 +1402,16 @@ export const relations_footer = relations(footer, ({ many }) => ({
   contactInfo: many(footer_contact_info, {
     relationName: 'contactInfo',
   }),
+  _locales: many(footer_locales, {
+    relationName: '_locales',
+  }),
   _texts: many(footer_texts, {
     relationName: '_texts',
   }),
 }))
 
 type DatabaseSchema = {
+  enum__locales: typeof enum__locales
   enum_articles_category: typeof enum_articles_category
   enum_projects_categories: typeof enum_projects_categories
   enum_services_icon_font: typeof enum_services_icon_font
@@ -1095,20 +1426,28 @@ type DatabaseSchema = {
   users: typeof users
   about_images: typeof about_images
   about: typeof about
+  about_locales: typeof about_locales
   about_texts: typeof about_texts
   about_rels: typeof about_rels
   header: typeof header
   header_texts: typeof header_texts
   articles: typeof articles
+  articles_locales: typeof articles_locales
   certificates: typeof certificates
+  certificates_locales: typeof certificates_locales
   educations: typeof educations
+  educations_locales: typeof educations_locales
   experiences: typeof experiences
+  experiences_locales: typeof experiences_locales
   projects_categories: typeof projects_categories
   projects: typeof projects
   services: typeof services
+  services_locales: typeof services_locales
   services_texts: typeof services_texts
   skills: typeof skills
+  skills_locales: typeof skills_locales
   media: typeof media
+  media_locales: typeof media_locales
   payload_kv: typeof payload_kv
   payload_locked_documents: typeof payload_locked_documents
   payload_locked_documents_rels: typeof payload_locked_documents_rels
@@ -1116,27 +1455,38 @@ type DatabaseSchema = {
   payload_preferences_rels: typeof payload_preferences_rels
   payload_migrations: typeof payload_migrations
   footer_social_links: typeof footer_social_links
+  footer_social_links_locales: typeof footer_social_links_locales
   footer_profiles: typeof footer_profiles
   footer_contact_info: typeof footer_contact_info
+  footer_contact_info_locales: typeof footer_contact_info_locales
   footer: typeof footer
+  footer_locales: typeof footer_locales
   footer_texts: typeof footer_texts
   relations_users_sessions: typeof relations_users_sessions
   relations_users: typeof relations_users
   relations_about_images: typeof relations_about_images
+  relations_about_locales: typeof relations_about_locales
   relations_about_texts: typeof relations_about_texts
   relations_about_rels: typeof relations_about_rels
   relations_about: typeof relations_about
   relations_header_texts: typeof relations_header_texts
   relations_header: typeof relations_header
+  relations_articles_locales: typeof relations_articles_locales
   relations_articles: typeof relations_articles
+  relations_certificates_locales: typeof relations_certificates_locales
   relations_certificates: typeof relations_certificates
+  relations_educations_locales: typeof relations_educations_locales
   relations_educations: typeof relations_educations
+  relations_experiences_locales: typeof relations_experiences_locales
   relations_experiences: typeof relations_experiences
   relations_projects_categories: typeof relations_projects_categories
   relations_projects: typeof relations_projects
+  relations_services_locales: typeof relations_services_locales
   relations_services_texts: typeof relations_services_texts
   relations_services: typeof relations_services
+  relations_skills_locales: typeof relations_skills_locales
   relations_skills: typeof relations_skills
+  relations_media_locales: typeof relations_media_locales
   relations_media: typeof relations_media
   relations_payload_kv: typeof relations_payload_kv
   relations_payload_locked_documents_rels: typeof relations_payload_locked_documents_rels
@@ -1144,9 +1494,12 @@ type DatabaseSchema = {
   relations_payload_preferences_rels: typeof relations_payload_preferences_rels
   relations_payload_preferences: typeof relations_payload_preferences
   relations_payload_migrations: typeof relations_payload_migrations
+  relations_footer_social_links_locales: typeof relations_footer_social_links_locales
   relations_footer_social_links: typeof relations_footer_social_links
   relations_footer_profiles: typeof relations_footer_profiles
+  relations_footer_contact_info_locales: typeof relations_footer_contact_info_locales
   relations_footer_contact_info: typeof relations_footer_contact_info
+  relations_footer_locales: typeof relations_footer_locales
   relations_footer_texts: typeof relations_footer_texts
   relations_footer: typeof relations_footer
 }

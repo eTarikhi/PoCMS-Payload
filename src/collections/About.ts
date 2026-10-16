@@ -19,22 +19,22 @@ export const About: CollectionConfig = {
         read: () => true,
     },
     fields: [
-        { name: 'title', type: 'text', required: true },
+        { name: 'title', type: 'text', required: true, localized: true },
         {
             name: 'experience',
             type: 'group',
             fields: [
                 { name: 'years', type: 'number', required: true, min: 0 },
-                { name: 'title', type: 'text', required: true },
-                { name: 'description', type: 'textarea', required: true },
+                { name: 'title', type: 'text', required: true, localized: true },
+                { name: 'description', type: 'textarea', required: true, localized: true },
             ],
         },
         {
             name: 'workPermit',
             type: 'group',
             fields: [
-                { name: 'title', type: 'text', required: true },
-                { name: 'description', type: 'textarea', required: true },
+                { name: 'title', type: 'text', required: true, localized: true },
+                { name: 'description', type: 'textarea', required: true, localized: true },
             ],
         },
         {
@@ -55,12 +55,13 @@ export const About: CollectionConfig = {
             name: 'interests',
             type: 'group',
             fields: [
-                { name: 'title', type: 'text', required: true },
-                { name: 'description', type: 'textarea', required: true },
+                { name: 'title', type: 'text', required: true, localized: true },
+                { name: 'description', type: 'textarea', required: true, localized: true },
                 {
                     name: 'areas',
                     type: 'text',
                     hasMany: true,
+                    localized: true,
                 },
             ],
         },

@@ -32,6 +32,7 @@ export const Header: CollectionConfig = {
       type: 'text',
       hasMany: true,
       required: true,
+      localized: true,
       admin: { description: 'Job titles shown in the hero section.' },
     },
   ],
