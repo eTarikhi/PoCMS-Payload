@@ -53,3 +53,4 @@ test.env
 src/seed/portfolio-data.json
 /.kilo
 /.github
+src/app/(payload)/admin/importMap.js
