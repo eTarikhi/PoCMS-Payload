@@ -41,6 +41,7 @@ command menu, motion and richer interactive views.
 | After P5 | 666.2 (**+21.0**, budget then +60) | 58.6 (**+13.4**, budget then +25) |
 | After the admin shell (`76c2e02`) | 666.4 (**+21.2**, budget then +60) | 61.2 (**+16.0**, budget then +25) |
 | After the command menu and shortcuts (`df2ce9b`) | 669.1 (**+23.9**, budget +150) | 61.6 (**+16.4**, budget +40) |
+| After the interactive publishing chart (`d60615b`) | 680.1 (**+34.9**, budget +150) | 61.9 (**+16.7**, budget +40) |
 
 ## After the admin shell (2026-10-16, `76c2e02`, same setup)
 
@@ -90,4 +91,19 @@ references.
   and the theme transition. The menu and the shortcuts help are one 6.5 kB (gzip) chunk, fetched
   when the pointer reaches the search button or on the first shortcut.
 - 126 kB of the raised JS budget and 23.6 kB of the CSS budget are still free.
+
+## After the interactive publishing chart (2026-10-17, `d60615b`, same setup)
+
+| Route | JS files | JS kB (compressed) | JS kB (decoded) | CSS files | CSS kB (compressed) | CSS kB (decoded) |
+|---|---|---|---|---|---|---|
+| `/admin/login` | 13 | 669.6 | 2257.2 | 7 | 61.9 | 427.1 |
+| `/admin` | 15 | 680.1 | 2286.7 | 7 | 61.9 | 427.1 |
+| `/admin/collections/articles` | 15 | 679.8 | 2289.6 | 7 | 61.9 | 427.1 |
+| `/admin/collections/articles/create` | 14 | 669.9 | 2257.4 | 7 | 61.9 | 427.1 |
+
+- `/admin` is the dashboard, so its row includes the chart island, which loads only there (the
+  chart chunk itself is 3.0 kB gzip). Every other page is unchanged (+0.5 kB).
+- The first version used Recharts: `/admin` measured **787.2 kB (+142.0 of the +150 budget)**,
+  with 113 kB (gzip) of Recharts. The same features in plain React and CSS cost about 11 kB, so the
+  chart was rebuilt without it. Recharts is only in the UI kit again.
 
