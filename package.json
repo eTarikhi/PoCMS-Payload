@@ -118,13 +118,6 @@
     "node": "^18.20.2 || >=20.9.0",
     "pnpm": "^9 || ^10 || ^11"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "sharp",
-      "esbuild",
-      "sunrs-resolver"
-    ]
-  },
   "allowScripts": {
     "esbuild": true,
     "bufferutil": true,
