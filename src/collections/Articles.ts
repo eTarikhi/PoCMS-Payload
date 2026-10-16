@@ -1,3 +1,4 @@
+import { articlePagePath, hasArticlePage } from '@/app/(frontend)/lib/article-page'
 import type { CollectionConfig } from 'payload'
 import {
   articleSlugBeforeValidate,
@@ -17,6 +18,12 @@ export const Articles: CollectionConfig = {
     description: 'Blog posts, listed under /articles.',
     useAsTitle: 'title',
     defaultColumns: ['title', 'category', 'publishedAt', 'featured'],
+    // Live Preview and the Preview button open the article page; only articles with a slug and a
+    // body have one (see hasArticlePage), so the others get no preview.
+    livePreview: {
+      url: ({ data }) => (hasArticlePage(data) ? articlePagePath(String(data.slug)) : null),
+    },
+    preview: (doc) => (hasArticlePage(doc) ? articlePagePath(String(doc.slug)) : null),
   },
   defaultSort: 'publishedAt',
   access: {

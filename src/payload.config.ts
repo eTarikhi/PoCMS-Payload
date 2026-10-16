@@ -17,6 +17,7 @@ import { ensureAdminExists } from './access/roles'
 import { Footer } from './globals/Footer'
 
 import { Users } from './collections/Users'
+import { revalidateSiteEndpoint } from './endpoints/revalidateSite'
 import { About } from './collections/About'
 import { Header } from './collections/Header'
 import { Articles } from './collections/Articles'
@@ -38,6 +39,8 @@ const dirname = path.dirname(filename)
 export default buildConfig({
   admin: {
     user: Users.slug,
+    // Compact dates in lists, dashboards and document meta ("16 Oct 2026, 16:36").
+    dateFormat: 'd MMM yyyy, HH:mm',
     // Initials on the design-system Avatar instead of Gravatar (no third-party request).
     avatar: { Component: '/components/admin/graphics/AccountAvatar#AccountAvatar' },
     meta: {
@@ -64,6 +67,10 @@ export default buildConfig({
       // Sidebar: a permission-aware "Create" menu on top; "View site" (and the UI kit for admins) below.
       beforeNavLinks: ['/components/admin/nav/QuickCreate#QuickCreate'],
       afterNavLinks: ['/components/admin/nav/NavExtraLinks#NavExtraLinks'],
+      // Gear menu at the bottom of the sidebar (every signed-in user).
+      settingsMenu: ['/components/admin/nav/RefreshSiteCache#RefreshSiteCache'],
+      // Header: light/dark switch.
+      actions: ['/components/admin/header/ThemeToggle#ThemeToggle'],
       views: {
         // Living style guide (admins only): tokens and primitives inside Payload's shell.
         uiKit: {
@@ -139,6 +146,8 @@ export default buildConfig({
   //   }),
   // ],
   sharp,
+  // Custom REST endpoints (under /api).
+  endpoints: [revalidateSiteEndpoint],
   // Roles (ADR 0008): never leave a database without an admin.
   onInit: async (payload) => {
     await ensureAdminExists(payload)

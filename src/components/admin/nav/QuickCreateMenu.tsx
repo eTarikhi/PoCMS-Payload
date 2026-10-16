@@ -72,10 +72,10 @@ export function QuickCreateMenu({ items }: { items: QuickCreateItem[] }) {
         )}
       >
         <PlusIcon aria-hidden />
-        Create
+        <span className="quick-create__label">Create</span>
         <ChevronDownIcon
           aria-hidden
-          className="acn:ml-auto acn:transition-transform acn:group-open:rotate-180"
+          className="quick-create__chevron acn:ml-auto acn:transition-transform acn:group-open:rotate-180"
         />
       </summary>
       <nav

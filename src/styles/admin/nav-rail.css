@@ -1,0 +1,189 @@
+/*
+ * Sidebar icons and the collapsed icon rail (desktop).
+ *
+ * Icons: every .nav__link gets a ::before mask; the shape comes from --nav-icon (nav-icons.css,
+ * generated). The rail: when the collapse toggle carries data-nav-rail="true", the open sidebar
+ * shrinks to icons. Payload's own toggler still hides the sidebar completely, and below 1025px the
+ * sidebar keeps Payload's overlay behaviour.
+ */
+@layer payload {
+  /* The current page's item is a <div class="nav__link">, so set the flex layout explicitly. */
+  .nav .nav__link {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--base) * 0.5);
+  }
+
+  .nav .nav__link::before {
+    content: '';
+    display: block;
+    flex: none;
+    width: 1rem;
+    height: 1rem;
+    background-color: currentColor;
+    opacity: 0.75;
+    mask: var(--nav-icon) center / contain no-repeat;
+  }
+
+  .nav div.nav__link::before,
+  .nav .nav__link:hover::before {
+    opacity: 1;
+  }
+
+  /* The collapse toggle draws its own Lucide icon. */
+  .nav .nav-rail-toggle {
+    width: 100%;
+    margin-top: calc(var(--base) * 0.25);
+    border: 0;
+    background: transparent;
+    color: var(--theme-elevation-500);
+    font: inherit;
+    cursor: pointer;
+    text-align: start;
+  }
+
+  .nav .nav-rail-toggle::before {
+    display: none;
+  }
+
+  .nav .nav-rail-toggle svg {
+    flex: none;
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .nav .nav-rail-toggle:hover,
+  .nav .nav-rail-toggle:focus-visible {
+    color: var(--theme-text);
+  }
+
+  @media (max-width: 1024px) {
+    .nav .nav-rail-toggle {
+      display: none;
+    }
+  }
+
+  @media (min-width: 1025px) {
+    .template-default--nav-open:has(.nav [data-nav-rail='true']) {
+      --nav-width: 4rem;
+    }
+
+    /* Above the page content, so the tooltips are not covered. */
+    .template-default--nav-open:has(.nav [data-nav-rail='true']) .nav {
+      overflow: visible;
+      z-index: 5;
+    }
+
+    .template-default--nav-open:has(.nav [data-nav-rail='true']) .nav__link-indicator {
+      display: none;
+    }
+
+    .template-default--nav-open:has(.nav [data-nav-rail='true']) .nav__scroll {
+      --nav-padding-inline-start: 0.75rem;
+      --nav-padding-inline-end: 0.75rem;
+      overflow: visible;
+      align-items: center;
+    }
+
+    /* Group headings become thin separators; collapsed groups stay visible as icons. */
+    .template-default--nav-open:has(.nav [data-nav-rail='true']) .nav-group__toggle {
+      display: none;
+    }
+
+    .template-default--nav-open:has(.nav [data-nav-rail='true']) .nav-group {
+      border-top: 1px solid var(--theme-elevation-100);
+      padding-top: calc(var(--base) * 0.4);
+      margin-bottom: calc(var(--base) * 0.4);
+    }
+
+    .template-default--nav-open:has(.nav [data-nav-rail='true']) .nav-group__content,
+    .template-default--nav-open:has(.nav [data-nav-rail='true']) .nav-group__content > div:not(.nav__link) {
+      height: auto !important;
+      overflow: visible !important;
+      display: block !important;
+    }
+
+    .template-default--nav-open:has(.nav [data-nav-rail='true']) .nav .nav__link {
+      position: relative;
+      justify-content: center;
+      width: 2.5rem;
+      height: 2.25rem;
+      padding: 0;
+      border-radius: var(--style-radius-m);
+    }
+
+    .template-default--nav-open:has(.nav [data-nav-rail='true']) .nav .nav__link:hover,
+    .template-default--nav-open:has(.nav [data-nav-rail='true']) .nav div.nav__link {
+      background-color: var(--theme-elevation-100);
+    }
+
+    .template-default--nav-open:has(.nav [data-nav-rail='true']) .nav .nav__link::before {
+      width: 1.125rem;
+      height: 1.125rem;
+    }
+
+    /* Hidden visually only, so the links keep their accessible names. */
+    .template-default--nav-open:has(.nav [data-nav-rail='true']) .nav .nav__link-label,
+    .template-default--nav-open:has(.nav [data-nav-rail='true'])
+      [data-testid='quick-create']
+      summary
+      .quick-create__label,
+    .template-default--nav-open:has(.nav [data-nav-rail='true'])
+      [data-testid='quick-create']
+      summary
+      .quick-create__chevron {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    /* Tooltip with the link text, on hover and keyboard focus. */
+    .template-default--nav-open:has(.nav [data-nav-rail='true'])
+      .nav
+      .nav__link[data-nav-label]:is(:hover, :focus-visible)::after {
+      content: attr(data-nav-label);
+      position: absolute;
+      inset-inline-start: calc(100% + 0.5rem);
+      top: 50%;
+      translate: 0 -50%;
+      z-index: 70;
+      padding: 0.25rem 0.5rem;
+      border-radius: var(--style-radius-s);
+      background: var(--theme-elevation-900);
+      color: var(--theme-elevation-0);
+      font-size: 0.75rem;
+      line-height: 1.25rem;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .template-default--nav-open:has(.nav [data-nav-rail='true']) .nav-extra {
+      align-items: center;
+    }
+
+    /* Create: icon-only trigger, menu opens to the right of the rail. */
+    .template-default--nav-open:has(.nav [data-nav-rail='true']) [data-testid='quick-create'] {
+      align-self: center;
+    }
+
+    .template-default--nav-open:has(.nav [data-nav-rail='true']) [data-testid='quick-create'] summary {
+      width: 2.5rem;
+      padding: 0;
+      justify-content: center;
+    }
+
+    .template-default--nav-open:has(.nav [data-nav-rail='true']) [data-testid='quick-create'] nav {
+      inset-inline: calc(100% + 0.5rem) auto;
+      top: 0;
+      width: 14rem;
+      margin-top: 0;
+    }
+
+    .template-default--nav-open:has(.nav [data-nav-rail='true']) .nav__controls {
+      align-items: center;
+    }
+  }
+}

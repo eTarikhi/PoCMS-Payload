@@ -8,8 +8,10 @@ import { ProgressCell as ProgressCell_ce7d71ece6670be02c77e1a05755168d } from '.
 import { ContextColorCell as ContextColorCell_9acbc8403de42ef89586417006cc4931 } from '../../../components/admin/list/cells/ContextColorCell'
 import { ContextColorField as ContextColorField_60cce06ca32c5b7ec535269105bfddb2 } from '../../../components/admin/fields/ContextColorField'
 import { AccountAvatar as AccountAvatar_c3bba9300643314266b9f8dbd31e71aa } from '../../../components/admin/graphics/AccountAvatar'
+import { RefreshSiteCache as RefreshSiteCache_f09a5e442c01eaea263e7fcd3a43ac8a } from '../../../components/admin/nav/RefreshSiteCache'
 import { Icon as Icon_8c7579001d094aae258586b09a2f4a85 } from '../../../components/admin/graphics/Icon'
 import { Logo as Logo_da4f7e8a6c72793056168c73c78f997f } from '../../../components/admin/graphics/Logo'
+import { ThemeToggle as ThemeToggle_65deb6683786a06b1500e5a7b73e4b51 } from '../../../components/admin/header/ThemeToggle'
 import { NavExtraLinks as NavExtraLinks_700740d072e8454ecc3891cae76c4088 } from '../../../components/admin/nav/NavExtraLinks'
 import { QuickCreate as QuickCreate_40af7464928ae24d32e94dc581ae3dc7 } from '../../../components/admin/nav/QuickCreate'
 import { AdminUIProvider as AdminUIProvider_2e693efb1c8fbc92da8884e85d9ef9cf } from '../../../components/admin/providers/AdminUIProvider'
@@ -34,8 +36,10 @@ export const importMap = {
   "/components/admin/list/cells/ContextColorCell#ContextColorCell": ContextColorCell_9acbc8403de42ef89586417006cc4931,
   "/components/admin/fields/ContextColorField#ContextColorField": ContextColorField_60cce06ca32c5b7ec535269105bfddb2,
   "/components/admin/graphics/AccountAvatar#AccountAvatar": AccountAvatar_c3bba9300643314266b9f8dbd31e71aa,
+  "/components/admin/nav/RefreshSiteCache#RefreshSiteCache": RefreshSiteCache_f09a5e442c01eaea263e7fcd3a43ac8a,
   "/components/admin/graphics/Icon#Icon": Icon_8c7579001d094aae258586b09a2f4a85,
   "/components/admin/graphics/Logo#Logo": Logo_da4f7e8a6c72793056168c73c78f997f,
+  "/components/admin/header/ThemeToggle#ThemeToggle": ThemeToggle_65deb6683786a06b1500e5a7b73e4b51,
   "/components/admin/nav/NavExtraLinks#NavExtraLinks": NavExtraLinks_700740d072e8454ecc3891cae76c4088,
   "/components/admin/nav/QuickCreate#QuickCreate": QuickCreate_40af7464928ae24d32e94dc581ae3dc7,
   "/components/admin/providers/AdminUIProvider#AdminUIProvider": AdminUIProvider_2e693efb1c8fbc92da8884e85d9ef9cf,

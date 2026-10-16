@@ -6,6 +6,8 @@ import { resolveMediaUrl } from './mappers'
 
 /** The view model for one article page. Components receive only this, never the Payload document. */
 export type ArticleDetail = {
+  /** Document id (Live Preview needs it to fetch the editor's draft with relations resolved). */
+  id: number
   slug: string
   title: string
   excerpt: string
@@ -33,6 +35,7 @@ export const mapArticleDetail = (doc: Article): ArticleDetail | null => {
   if (!doc.slug || !hasArticlePage(doc)) return null
 
   return {
+    id: doc.id,
     slug: doc.slug,
     title: doc.title,
     excerpt: doc.excerpt,

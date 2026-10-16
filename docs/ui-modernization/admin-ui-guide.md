@@ -15,22 +15,22 @@ state or access control. The work adds four layers on top:
 
 ## Where things live
 
-| Path | What it is |
-| --- | --- |
-| `src/styles/admin/tokens.css` | Tier 0-2 design tokens and the mapping onto Payload's variables |
-| `src/styles/admin/payload-overrides.css` | Small, documented overrides of Payload classes |
-| `src/styles/admin/admin-ui.css` | Tailwind v4 entry: `prefix(acn)`, theme bridge, scoped reset |
-| `src/styles/admin/shadcn.css` | Ejected `tw-animate-css` variants used by the primitives |
-| `src/components/admin/providers/AdminUIProvider.tsx` | Loads the admin styles and Inter |
-| `src/components/admin/ui/*` | Base UI primitives (button, select, dialog, table, chart, ...) |
-| `src/components/admin/lib/utils.ts` | `cn()` with a prefix-aware `tailwind-merge` |
-| `src/components/admin/graphics/*` | Logo, Icon, initials avatar |
-| `src/components/admin/nav/*` | Sidebar Create menu, View site and UI kit links |
-| `src/components/admin/dashboard/*` | Dashboard widgets and their config |
-| `src/components/admin/list/*` | TanStack list view, data table and list cells |
-| `src/components/admin/views/*` | UI kit page, singleton list redirect |
-| `src/plugins/adminUI.ts` | Applies the list view and boolean cells to every collection |
-| `src/access/roles.ts`, `src/access/singleton.ts` | Roles helpers, one-document create access |
+| Path                                                 | What it is                                                      |
+| ---------------------------------------------------- | --------------------------------------------------------------- |
+| `src/styles/admin/tokens.css`                        | Tier 0-2 design tokens and the mapping onto Payload's variables |
+| `src/styles/admin/payload-overrides.css`             | Small, documented overrides of Payload classes                  |
+| `src/styles/admin/admin-ui.css`                      | Tailwind v4 entry: `prefix(acn)`, theme bridge, scoped reset    |
+| `src/styles/admin/shadcn.css`                        | Ejected `tw-animate-css` variants used by the primitives        |
+| `src/components/admin/providers/AdminUIProvider.tsx` | Loads the admin styles and Inter                                |
+| `src/components/admin/ui/*`                          | Base UI primitives (button, select, dialog, table, chart, ...)  |
+| `src/components/admin/lib/utils.ts`                  | `cn()` with a prefix-aware `tailwind-merge`                     |
+| `src/components/admin/graphics/*`                    | Logo, Icon, initials avatar                                     |
+| `src/components/admin/nav/*`                         | Sidebar Create menu, View site and UI kit links                 |
+| `src/components/admin/dashboard/*`                   | Dashboard widgets and their config                              |
+| `src/components/admin/list/*`                        | TanStack list view, data table and list cells                   |
+| `src/components/admin/views/*`                       | UI kit page, singleton list redirect                            |
+| `src/plugins/adminUI.ts`                             | Applies the list view and boolean cells to every collection     |
+| `src/access/roles.ts`, `src/access/singleton.ts`     | Roles helpers, one-document create access                       |
 
 The living style guide is at **`/admin/ui-kit`** (admins only). It renders every token and
 primitive inside Payload's shell, in the current theme.
@@ -46,7 +46,7 @@ primitive inside Payload's shell, in the current theme.
   `--theme-elevation-*` scale.
 - **Tier 2, semantic tokens** (shadcn names: `--background`, `--foreground`, `--card`,
   `--popover`, `--primary`, `--secondary`, `--muted`, `--accent`, `--destructive`, `--success`,
-  `--warning`, `--border`, `--input`, `--ring`, `--chart-1..5`). They are defined *from* Payload's
+  `--warning`, `--border`, `--input`, `--ring`, `--chart-1..5`). They are defined _from_ Payload's
   variables, so the primitives follow Payload's theme switch automatically.
 - **Tier 3, Tailwind utilities**: the `@theme inline` block in `admin-ui.css` maps Tier 2 onto
   `acn:*` classes (`acn:bg-card`, `acn:text-muted-foreground`...).
@@ -69,19 +69,19 @@ Payload 4 replaces the Sass variables with its own semantic tokens. Only Tiers 1
 Payload's names, so an upgrade means re-pointing these lines; components use Tier 2/3 and don't
 change. Current mapping (light / dark where they differ):
 
-| Our token (Tier 2) | Defined from (Payload 3) |
-| --- | --- |
-| `--background` | `--theme-bg` |
-| `--foreground` | `--theme-text` |
-| `--card`, `--popover` | `--theme-elevation-0` / `--theme-elevation-50` |
-| `--muted` | `--theme-elevation-50` |
-| `--muted-foreground` | `--theme-elevation-600` (Payload flips the scale in dark mode) |
-| `--secondary`, `--accent` | `--theme-elevation-100` |
-| `--border`, `--input` | `--theme-elevation-150` |
-| `--primary` | Tier 0 `--brand-amber-700` / `--brand-amber-500` (Payload's primary button is restyled in `payload-overrides.css`) |
-| `--destructive` | `--theme-error-*` |
-| `--success` | `--theme-success-*` (Payload's blue scale) |
-| `--warning` | `--theme-warning-*` |
+| Our token (Tier 2)        | Defined from (Payload 3)                                                                                           |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `--background`            | `--theme-bg`                                                                                                       |
+| `--foreground`            | `--theme-text`                                                                                                     |
+| `--card`, `--popover`     | `--theme-elevation-0` / `--theme-elevation-50`                                                                     |
+| `--muted`                 | `--theme-elevation-50`                                                                                             |
+| `--muted-foreground`      | `--theme-elevation-600` (Payload flips the scale in dark mode)                                                     |
+| `--secondary`, `--accent` | `--theme-elevation-100`                                                                                            |
+| `--border`, `--input`     | `--theme-elevation-150`                                                                                            |
+| `--primary`               | Tier 0 `--brand-amber-700` / `--brand-amber-500` (Payload's primary button is restyled in `payload-overrides.css`) |
+| `--destructive`           | `--theme-error-*`                                                                                                  |
+| `--success`               | `--theme-success-*` (Payload's blue scale)                                                                         |
+| `--warning`               | `--theme-warning-*`                                                                                                |
 
 Tier 1 values we set on Payload itself: `--font-body`, `--style-radius-s/m/l`, the dark
 `--theme-elevation-*` scale and the focus outline.
@@ -132,9 +132,44 @@ checkbox is a `span[role=checkbox]`, so name it with `aria-labelledby` or `aria-
   `payload.config.ts` sets the group order.
 - `beforeNavLinks`: the **Create** control lists only collections the user may create. It is a
   native disclosure (`details`/`summary`) holding links, closed by Escape or an outside click.
-- `afterNavLinks`: **View site** (`NEXT_PUBLIC_SITE_URL`, or the same origin) and the **UI kit**
-  for admins. Payload's gear `settingsMenu` isn't used because it opens an empty popup for users
-  whose items all render nothing.
+- `afterNavLinks`: **View site** (`NEXT_PUBLIC_SITE_URL`, or the same origin), the **UI kit** for
+  admins and **Collapse sidebar**.
+- `settingsMenu` (gear): **Refresh site cache**, for every signed-in user. It calls
+  `POST /api/revalidate-site` (`src/endpoints/revalidateSite.ts`), which expires the `portfolio`
+  cache tag at once (`expire: 0`). Saves only mark it stale, so the first visitor after a save can
+  still get the old page; seeds, imports and database edits don't touch it at all. Don't put
+  role-specific items here: the popup opens empty for users whose items all render nothing.
+- `actions` (header): the light/dark switch (`header/ThemeToggle.tsx`), through Payload's
+  `useTheme`, so the choice is Payload's own theme cookie.
+- `admin.dateFormat` is `d MMM yyyy, HH:mm`. Fields with their own `date.displayFormat` keep it.
+
+### Sidebar icons and the icon rail
+
+- Every sidebar link gets a Lucide icon as a CSS mask, keyed to Payload's nav ids (`#nav-<slug>`,
+  `#nav-global-<slug>`). Payload's nav markup is untouched. The icons are generated:
+  add the collection or global to `NAV_ICONS` in `scripts/generate-nav-icons.mjs` and run
+  `pnpm generate:nav-icons` (part of `generate:all`, so CI catches a stale
+  `src/styles/admin/nav-icons.css`). Links without an entry get a generic file icon.
+- **Collapse sidebar** (desktop, 1025 px and up) shrinks the open sidebar to a 4rem icon rail.
+  Payload's own toggler still hides the sidebar completely, and smaller screens keep Payload's
+  overlay. The state is a cookie (`pocms-nav-rail`), so the server renders the rail directly on the
+  next visit, and a `data-nav-rail` attribute that `nav-rail.css` reads with `:has()`.
+- In the rail, labels are hidden visually only (links keep their accessible names), the group
+  headings become separators, collapsed groups stay visible and hover or keyboard focus shows a
+  tooltip with the label. Create becomes an icon and its menu opens to the right.
+- Payload marks the _closed_ sidebar `inert`, which is why the rail is a width mode of the open
+  sidebar rather than a styled closed one.
+
+### Article Live Preview
+
+- Articles set `admin.livePreview.url` and `admin.preview` to the article page, but only for
+  articles that have a page (slug and body, `hasArticlePage`). The others have no preview.
+- The page renders the article on the server as before. `ArticleLivePreviewSwitch` (a few hundred
+  bytes) checks whether the page runs inside a frame; only then does it load `ArticleLivePreview`
+  (`@payloadcms/live-preview-react`) as a separate chunk, which renders the editor's unsaved form
+  state. Public visitors download none of it.
+- The live renderer needs the saved document's `id` (Payload resolves the draft's cover image
+  for it), which is why the article view model includes `id`.
 
 ## Dashboard widgets
 
