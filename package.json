@@ -16,13 +16,15 @@
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "generate:all": "payload generate:types && payload generate:importmap && payload generate:db-schema && payload-graphql generate:schema",
     "lint": "cross-env NODE_OPTIONS=--no-deprecation eslint .",
+    "typecheck": "tsc --noEmit",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
     "start:dev": "cross-env pnpm generate:all && pnpm build:all && pnpm start",
     "restart": "cross-env NODE_OPTIONS=--no-deprecation rm -rf .next && pnpm generate:all && pnpm build:all && pnpm start",
     "seed": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/seed/seed.ts",
     "test": "pnpm run test:int && pnpm run test:e2e",
-    "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" playwright test --config=playwright.config.ts",
+    "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" playwright test --config=playwright.config.ts e2e/",
+    "test:visual": "cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" playwright test --config=playwright.config.ts visual/",
     "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts"
   },
   "dependencies": {
