@@ -19,19 +19,27 @@ test.describe('UI kit', () => {
 
   for (const theme of ['light', 'dark'] as const) {
     test(`renders without serious axe violations (${theme})`, async ({ page, context }) => {
-      await context.addCookies([{ name: 'payload-theme', value: theme, url: 'http://localhost:3000' }])
+      await context.addCookies([
+        { name: 'payload-theme', value: theme, url: 'http://localhost:3000' },
+      ])
       await login({ page, user: testUser })
       await page.goto('http://localhost:3000/admin/ui-kit')
 
       await expect(page.getByRole('heading', { level: 1, name: 'UI kit' })).toBeVisible()
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
+      // The kit itself is a lazily loaded chunk (UIKitLazy); wait for it before scanning.
+      await expect(page.getByTestId('ui-kit')).toBeVisible()
 
       const results = await new AxeBuilder({ page })
         .include('[data-testid="ui-kit"]')
         .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
         .analyze()
-      const serious = results.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')
-      expect(serious.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([])
+      const serious = results.violations.filter(
+        (v) => v.impact === 'serious' || v.impact === 'critical',
+      )
+      expect(
+        serious.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`),
+      ).toEqual([])
     })
   }
 
@@ -39,8 +47,11 @@ test.describe('UI kit', () => {
     await login({ page, user: testUser })
     await page.goto('http://localhost:3000/admin/ui-kit')
 
-    await page.getByRole('button', { name: 'Open a Payload drawer' }).click()
-    await expect(page.getByTestId('ui-kit-drawer')).toBeVisible()
+    // The kit is server-rendered: a click before hydration does nothing, so retry until it opens.
+    await expect(async () => {
+      await page.getByRole('button', { name: 'Open a Payload drawer' }).click()
+      await expect(page.getByTestId('ui-kit-drawer')).toBeVisible({ timeout: 2_000 })
+    }).toPass({ timeout: 30_000 })
 
     await page.getByRole('combobox', { name: 'Skill group' }).click()
     const option = page.getByRole('option', { name: 'Back-End' })

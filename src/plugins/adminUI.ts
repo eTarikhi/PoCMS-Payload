@@ -2,6 +2,7 @@ import type { CollectionConfig, Field, Plugin } from 'payload'
 
 const LIST_VIEW = '/components/admin/list/TanStackListView#TanStackListView'
 const BOOLEAN_CELL = '/components/admin/list/cells/BooleanCell#BooleanCell'
+const LIST_SUMMARY = '/components/admin/list/ListSummary#ListSummary'
 
 /** Adds the boolean list cell to checkbox fields that have no Cell of their own (any nesting). */
 function withBooleanCells(fields: Field[]): Field[] {
@@ -33,15 +34,32 @@ function usesTanStackList(collection: CollectionConfig): boolean {
   return !collection.admin?.components?.views?.list?.Component
 }
 
+/** Adds the list summary above the table, unless the collection sets `custom: { listSummary: false }`. */
+const withListSummary = (collection: CollectionConfig): CollectionConfig['admin'] => {
+  if (collection.custom?.listSummary === false) return collection.admin
+  const components = collection.admin?.components
+  return {
+    ...collection.admin,
+    components: {
+      ...components,
+      beforeListTable: [LIST_SUMMARY, ...(components?.beforeListTable ?? [])],
+    },
+  }
+}
+
 /**
  * Admin UI conventions applied to every collection (ADR 0007), so new collections get them without
- * extra config: the TanStack list view and boolean cells. Collections opt out of the list view with
- * `custom: { tanstackList: false }`.
+ * extra config: the TanStack list view, boolean cells and the list summary. Collections opt out with
+ * `custom: { tanstackList: false }` or `custom: { listSummary: false }`.
  */
 export const adminUIPlugin = (): Plugin => (config) => ({
   ...config,
   collections: (config.collections ?? []).map((collection) => {
-    const next: CollectionConfig = { ...collection, fields: withBooleanCells(collection.fields) }
+    const next: CollectionConfig = {
+      ...collection,
+      fields: withBooleanCells(collection.fields),
+      admin: withListSummary(collection),
+    }
     if (!usesTanStackList(collection)) return next
     return {
       ...next,

@@ -5,7 +5,10 @@ import { seedTestUser, cleanupTestUser, testUser } from '../helpers/seedUser'
 
 const base = 'http://localhost:3000'
 
-/** Admin shell: theme switch, collapsible icon rail, site cache refresh and article Live Preview. */
+/**
+ * Admin shell: theme switch, collapsible icon rail, site cache refresh, list summaries and article
+ * Live Preview.
+ */
 test.describe('Admin shell', () => {
   let page: Page
 
@@ -21,7 +24,8 @@ test.describe('Admin shell', () => {
 
   /** The closed sidebar stays in the DOM (inert), so wait for hydration and open it if needed. */
   async function openNav() {
-    await expect(page.locator('.nav.nav--nav-hydrated')).toHaveCount(1)
+    // Generous: the first visit to a route compiles it on the dev server.
+    await expect(page.locator('.nav.nav--nav-hydrated')).toHaveCount(1, { timeout: 60_000 })
     if ((await page.locator('.nav.nav--nav-open').count()) === 0) {
       await page.locator('.nav-toggler').first().click()
       await expect(page.locator('.nav.nav--nav-open')).toHaveCount(1)
@@ -41,6 +45,10 @@ test.describe('Admin shell', () => {
 
     await page.getByTestId('theme-toggle').click()
     await expect(html).toHaveAttribute('data-theme', before ?? 'light')
+
+    // Custom views forward the header actions too.
+    await page.goto(`${base}/admin/ui-kit`)
+    await expect(page.getByTestId('theme-toggle')).toBeVisible()
   })
 
   test('the sidebar collapses to an icon rail and remembers it', async () => {
@@ -74,6 +82,14 @@ test.describe('Admin shell', () => {
     await expect(
       page.getByText('The site will show the latest content on the next visit.'),
     ).toBeVisible()
+  })
+
+  test('lists open with a summary line', async () => {
+    await page.goto(`${base}/admin/collections/articles`)
+    const summary = page.getByTestId('list-summary')
+    await expect(summary).toContainText('in total')
+    await expect(summary).toContainText('with a page')
+    await expect(summary).toContainText(/Last edit/)
   })
 
   test('Live Preview follows the article as it is edited', async () => {

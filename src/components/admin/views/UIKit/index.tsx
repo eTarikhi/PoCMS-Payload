@@ -22,6 +22,7 @@ export function UIKitView({
   permissions,
   searchParams,
   user,
+  viewActions,
 }: AdminViewServerProps) {
   const { req, visibleEntities } = initPageResult
 
@@ -42,6 +43,8 @@ export function UIKitView({
       req={req}
       searchParams={searchParams}
       user={user}
+      // Header actions (admin.components.actions, e.g. the theme switch): custom views pass them on.
+      viewActions={viewActions}
       visibleEntities={visibleEntities}
     >
       <Gutter>

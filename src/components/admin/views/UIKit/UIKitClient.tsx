@@ -16,8 +16,7 @@ import {
   Trash2,
   TriangleAlert,
 } from 'lucide-react'
-import dynamic from 'next/dynamic'
-import { useState, type ReactNode } from 'react'
+import { useState, useSyncExternalStore, type ReactNode } from 'react'
 
 import { Avatar, AvatarFallback } from '@/components/admin/ui/avatar'
 import { Badge } from '@/components/admin/ui/badge'
@@ -91,11 +90,21 @@ import {
   TooltipTrigger,
 } from '@/components/admin/ui/tooltip'
 
-// Recharts loads only when the chart section renders.
-const UIKitChart = dynamic(() => import('./UIKitChart').then((mod) => mod.UIKitChart), {
-  ssr: false,
-  loading: () => <Skeleton className="acn:h-48 acn:w-full" />,
-})
+// Recharts ships in this chunk, which UIKitLazy already loads on demand (UI kit page only). A
+// nested next/dynamic here made the Turbopack dev server preload a stale chunk name and reload.
+import { UIKitChart } from './UIKitChart'
+
+const subscribeNoop = () => () => {}
+
+/** Recharts measures the DOM, so the chart renders after hydration (a skeleton on the server). */
+function ClientOnlyChart() {
+  const mounted = useSyncExternalStore(
+    subscribeNoop,
+    () => true,
+    () => false,
+  )
+  return mounted ? <UIKitChart /> : <Skeleton className="acn:h-48 acn:w-full" />
+}
 
 const COLOR_TOKENS = [
   ['background', 'foreground'],
@@ -114,8 +123,8 @@ const CHART_TOKENS = ['chart-1', 'chart-2', 'chart-3', 'chart-4', 'chart-5'] as 
 
 const TYPE_SCALE = [
   ['acn:text-xs', 'Extra small · 12px'],
-  ['acn:text-sm', 'Small · 13px (Payload body)'],
-  ['acn:text-base', 'Base · 14px'],
+  ['acn:text-sm', 'Small · 13px'],
+  ['acn:text-base', 'Base · 14px (admin body)'],
   ['acn:text-lg', 'Large · 16px'],
   ['acn:text-xl', 'XL · 18px'],
   ['acn:text-2xl', '2XL · 22px'],
@@ -277,9 +286,7 @@ export function UIKitClient() {
             <Card size="sm">
               <CardHeader>
                 <CardTitle>Type scale</CardTitle>
-                <CardDescription>
-                  Inter, px-based so it lines up with Payload&apos;s 13px body.
-                </CardDescription>
+                <CardDescription>Inter, px-based. The admin body text is 14px.</CardDescription>
               </CardHeader>
               <CardContent className="acn:space-y-1.5">
                 {TYPE_SCALE.map(([className, label]) => (
@@ -719,7 +726,7 @@ export function UIKitClient() {
                 <CardDescription>Single-hue palette from --chart-1…5.</CardDescription>
               </CardHeader>
               <CardContent>
-                <UIKitChart />
+                <ClientOnlyChart />
               </CardContent>
             </Card>
           </div>

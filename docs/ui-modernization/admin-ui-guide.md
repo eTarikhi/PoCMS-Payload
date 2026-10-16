@@ -213,6 +213,21 @@ plugin adds the boolean cell to every checkbox field that has no cell of its own
 **One-document collections** (Header, About): `access.create` is `createWhileEmpty(slug)`, and the
 list view (`SingletonListView`) redirects to the document, or to the create form when there is none.
 
+### List summary
+
+`adminUIPlugin` adds `ListSummary` (`beforeListTable`) to every collection: total, edited in the
+last 30 days, last edit and collection-specific counts from `list/summaryFacts.ts` (articles with
+a page, featured and without an image; projects without an image; admins and editors). Counts use
+the signed-in user's access and ignore the current search and filters; a failing count is logged
+and left out. It is a server component, so it adds no client JavaScript. Opt out with
+`custom: { listSummary: false }`.
+
+### Typography
+
+Body text is 14px instead of Payload's 13px (`tokens.css`). Payload computes `--base` as
+`20 / --base-body-size` rem, so raising both keeps `--base` at 20px and the spacing scale at 4px:
+only text grows.
+
 ## Roles
 
 Users have `roles` (`admin`, `editor`; new users are editors, the first user is an admin).

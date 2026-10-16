@@ -94,3 +94,18 @@
     --destructive-foreground: var(--brand-navy-900);
   }
 }
+
+/*
+ * Body text at 14px instead of Payload's 13px, for readability in long forms and tables. Payload
+ * derives --base from --base-body-size (base = 20/body rem), so --base and the spacing scale stay
+ * 20px and 4px: only text grows.
+ */
+@layer payload {
+  :root {
+    --base-body-size: 14;
+  }
+
+  html {
+    font-size: 14px;
+  }
+}

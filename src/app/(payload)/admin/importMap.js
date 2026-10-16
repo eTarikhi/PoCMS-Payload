@@ -1,4 +1,5 @@
 import { BooleanCell as BooleanCell_85724abb6773f2bfd84c4a1c75e530e0 } from '../../../components/admin/list/cells/BooleanCell'
+import { ListSummary as ListSummary_5f8f924b4c978f54ea4fd39485f76e5a } from '../../../components/admin/list/ListSummary'
 import { TanStackListView as TanStackListView_2c4544fbb286a630d53ab3b09043c329 } from '../../../components/admin/list/TanStackListView'
 import { IconCell as IconCell_80c61a625af48678a787b6d16ba1280d } from '../../../components/admin/list/cells/IconCell'
 import { ServiceIconField as ServiceIconField_e56bbc31873e90e37e654a0fc29d5d11 } from '../../../components/admin/fields/ServiceIconField'
@@ -27,6 +28,7 @@ import { VercelBlobClientUploadHandler as VercelBlobClientUploadHandler_16c82c5e
 /** @type import('payload').ImportMap */
 export const importMap = {
   "/components/admin/list/cells/BooleanCell#BooleanCell": BooleanCell_85724abb6773f2bfd84c4a1c75e530e0,
+  "/components/admin/list/ListSummary#ListSummary": ListSummary_5f8f924b4c978f54ea4fd39485f76e5a,
   "/components/admin/list/TanStackListView#TanStackListView": TanStackListView_2c4544fbb286a630d53ab3b09043c329,
   "/components/admin/list/cells/IconCell#IconCell": IconCell_80c61a625af48678a787b6d16ba1280d,
   "/components/admin/fields/ServiceIconField#ServiceIconField": ServiceIconField_e56bbc31873e90e37e654a0fc29d5d11,
