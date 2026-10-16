@@ -19,10 +19,13 @@ This project documentation is split across multiple files for easier maintenance
 - [Deployment](docs/deployment.md)
 - [Development and troubleshooting](docs/development.md)
 - [Contributing](docs/contributing.md)
+- [Admin UI guide](docs/ui-modernization/admin-ui-guide.md): design tokens, Tailwind (`acn:`), Base UI primitives, dashboard widgets, list views
+- [Admin UI decisions (ADRs)](docs/ui-modernization/adr/README.md) and [performance budget](docs/ui-modernization/perf-budget.md)
 
 ## Quick access
 
 - Admin panel: `http://localhost:3000/admin`
+- UI kit (admins only): `http://localhost:3000/admin/ui-kit`
 - API: `http://localhost:3000/api`
 - GraphQL: `http://localhost:3000/graphql`
 
@@ -30,8 +33,9 @@ This project documentation is split across multiple files for easier maintenance
 
 | Layer | Technology |
 | --- | --- |
-| CMS Framework | Payload CMS 3.0 |
-| Runtime | Node.js |
+| CMS Framework | Payload CMS 3.9x (Next.js 16) |
+| Admin UI | Payload admin + design tokens, Tailwind CSS 4 (`acn:` prefix), Base UI, TanStack Table |
+| Runtime | Node.js 22 |
 | Language | TypeScript (84.4%) |
 | Database | Neon PostgreSQL |
 | File Storage | Vercel Blob |
@@ -41,10 +45,13 @@ This project documentation is split across multiple files for easier maintenance
 
 ## Features
 
-- Payload 3.0 Headless CMS
+- Payload 3.9x headless CMS
 - Neon serverless PostgreSQL
 - Vercel Blob storage
-- Built-in authentication and RBAC
+- Authentication with admin and editor roles
+- Branded admin: light/dark design tokens, grouped navigation, permission-aware Create menu
+- Admin dashboard widgets: content counts, publishing activity, content checks, recent changes
+- TanStack Table list views with custom cells; tile pickers for colours and icons
 - Rich media management
 - REST and GraphQL APIs
 - Type-safe TypeScript codebase
