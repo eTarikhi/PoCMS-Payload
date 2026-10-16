@@ -4,15 +4,15 @@ import React, { lazy, Suspense, type ReactNode, useSyncExternalStore } from 'rea
 
 import type { PublishingPoint } from './publishing'
 
-// Recharts and the chart controls: a separate chunk, requested only when the dashboard shows this
-// widget (Payload's import map would otherwise put them on every admin page).
+// The interactive chart is a separate chunk, requested only when the dashboard shows this widget
+// (Payload's import map would otherwise put it on every admin page).
 const PublishingChart = lazy(() => import('./PublishingChart'))
 
 const noopSubscribe = () => () => {}
 
 /**
  * Shows `children` (the server-rendered bars) on the server and while the chart chunk loads, then
- * the interactive chart. Client-only: Recharts measures the DOM.
+ * the interactive chart (client-only: it reads localStorage for the remembered range).
  */
 export function PublishingChartLazy({
   children,

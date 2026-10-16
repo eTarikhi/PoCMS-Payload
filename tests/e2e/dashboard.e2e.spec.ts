@@ -60,9 +60,23 @@ test.describe('Dashboard widgets', () => {
       page.getByTestId('publishing-chart').getByRole('button', { name: /^24M/ }),
     ).toHaveAttribute('aria-pressed', 'true')
 
-    // Tooltip on hover.
-    await page.getByTestId('publishing-chart').locator('path.recharts-rectangle').first().hover()
-    await expect(page.locator('.recharts-tooltip-wrapper')).toContainText(/Articles|Projects/)
+    // Tooltip on hover; the months are a radio group (arrow keys move the selection).
+    const plot = page.getByTestId('publishing-chart')
+    const current = plot.getByRole('radio', { checked: true })
+    await current.hover()
+    await expect(page.getByTestId('publishing-tooltip')).toContainText(/Articles/)
+    const before = await current.getAttribute('aria-label')
+    await current.focus()
+    await page.keyboard.press('ArrowLeft')
+    await expect(plot.getByRole('radio', { checked: true })).not.toHaveAttribute(
+      'aria-label',
+      before ?? '',
+    )
+    await page.keyboard.press('ArrowRight')
+    await expect(plot.getByRole('radio', { checked: true })).toHaveAttribute(
+      'aria-label',
+      before ?? '',
+    )
 
     // Month stepper: defaults to the latest month with activity (the seeded projects).
     const month = page.getByTestId('publishing-month')
