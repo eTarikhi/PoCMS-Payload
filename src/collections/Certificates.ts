@@ -25,7 +25,10 @@ export const Certificates: CollectionConfig = {
       type: 'date',
       required: true,
       index: true,
-      admin: { date: { pickerAppearance: 'dayOnly', displayFormat: 'MMMM d, yyyy' } },
+      admin: {
+        position: 'sidebar',
+        date: { pickerAppearance: 'dayOnly', displayFormat: 'MMMM d, yyyy' },
+      },
     },
     { name: 'image', type: 'upload', relationTo: 'media' },
     { name: 'imageUrl', type: 'text' },

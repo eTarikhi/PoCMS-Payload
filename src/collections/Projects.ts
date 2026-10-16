@@ -26,7 +26,9 @@ export const Projects: CollectionConfig = {
       type: 'text',
       unique: true,
       admin: {
-        description: 'URL key for /projects/{slug}. Made from the title when left empty. Keep it stable once the project is shared.',
+        position: 'sidebar',
+        description:
+          'URL key for /projects/{slug}. Made from the title when left empty. Keep it stable once the project is shared.',
       },
     },
     {
@@ -38,10 +40,24 @@ export const Projects: CollectionConfig = {
           'Used as the full image when the Image URL below is empty. It is also the thumbnail when the Place Holder Image URL is empty.',
       },
     },
-    { name: 'src', label: 'Image URL', type: 'text' },
-    { name: 'placeHolder', label: 'Place Holder Image URL', type: 'text' },
-    { name: 'url', type: 'text', admin: { description: 'Live site or case-study URL.' } },
-    { name: 'readMoreUrl', type: 'text', admin: { description: 'URL for the "Read More" link.' } },
+    {
+      type: 'row',
+      fields: [
+        { name: 'src', label: 'Image URL', type: 'text' },
+        { name: 'placeHolder', label: 'Place Holder Image URL', type: 'text' },
+      ],
+    },
+    {
+      type: 'row',
+      fields: [
+        { name: 'url', type: 'text', admin: { description: 'Live site or case-study URL.' } },
+        {
+          name: 'readMoreUrl',
+          type: 'text',
+          admin: { description: 'URL for the "Read More" link.' },
+        },
+      ],
+    },
     {
       name: 'categories',
       type: 'select',
@@ -52,6 +68,7 @@ export const Projects: CollectionConfig = {
         { label: 'Back-End', value: 'back-end' },
         { label: 'CMS-CRM', value: 'cms-crm' },
       ],
+      admin: { position: 'sidebar' },
     },
   ],
 }

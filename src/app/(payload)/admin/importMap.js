@@ -1,8 +1,12 @@
 import { BooleanCell as BooleanCell_85724abb6773f2bfd84c4a1c75e530e0 } from '../../../components/admin/list/cells/BooleanCell'
 import { TanStackListView as TanStackListView_2c4544fbb286a630d53ab3b09043c329 } from '../../../components/admin/list/TanStackListView'
+import { IconCell as IconCell_80c61a625af48678a787b6d16ba1280d } from '../../../components/admin/list/cells/IconCell'
+import { ServiceIconField as ServiceIconField_e56bbc31873e90e37e654a0fc29d5d11 } from '../../../components/admin/fields/ServiceIconField'
+import { FileSizeCell as FileSizeCell_e370527960e7b3ee4b8cfecbbf597ac0 } from '../../../components/admin/list/cells/FileSizeCell'
 import { SingletonListView as SingletonListView_5435722dddf5a4a9debf735ac4adfd02 } from '../../../components/admin/views/SingletonList'
 import { ProgressCell as ProgressCell_ce7d71ece6670be02c77e1a05755168d } from '../../../components/admin/list/cells/ProgressCell'
 import { ContextColorCell as ContextColorCell_9acbc8403de42ef89586417006cc4931 } from '../../../components/admin/list/cells/ContextColorCell'
+import { ContextColorField as ContextColorField_60cce06ca32c5b7ec535269105bfddb2 } from '../../../components/admin/fields/ContextColorField'
 import { AccountAvatar as AccountAvatar_c3bba9300643314266b9f8dbd31e71aa } from '../../../components/admin/graphics/AccountAvatar'
 import { Icon as Icon_8c7579001d094aae258586b09a2f4a85 } from '../../../components/admin/graphics/Icon'
 import { Logo as Logo_da4f7e8a6c72793056168c73c78f997f } from '../../../components/admin/graphics/Logo'
@@ -22,9 +26,13 @@ import { VercelBlobClientUploadHandler as VercelBlobClientUploadHandler_16c82c5e
 export const importMap = {
   "/components/admin/list/cells/BooleanCell#BooleanCell": BooleanCell_85724abb6773f2bfd84c4a1c75e530e0,
   "/components/admin/list/TanStackListView#TanStackListView": TanStackListView_2c4544fbb286a630d53ab3b09043c329,
+  "/components/admin/list/cells/IconCell#IconCell": IconCell_80c61a625af48678a787b6d16ba1280d,
+  "/components/admin/fields/ServiceIconField#ServiceIconField": ServiceIconField_e56bbc31873e90e37e654a0fc29d5d11,
+  "/components/admin/list/cells/FileSizeCell#FileSizeCell": FileSizeCell_e370527960e7b3ee4b8cfecbbf597ac0,
   "/components/admin/views/SingletonList#SingletonListView": SingletonListView_5435722dddf5a4a9debf735ac4adfd02,
   "/components/admin/list/cells/ProgressCell#ProgressCell": ProgressCell_ce7d71ece6670be02c77e1a05755168d,
   "/components/admin/list/cells/ContextColorCell#ContextColorCell": ContextColorCell_9acbc8403de42ef89586417006cc4931,
+  "/components/admin/fields/ContextColorField#ContextColorField": ContextColorField_60cce06ca32c5b7ec535269105bfddb2,
   "/components/admin/graphics/AccountAvatar#AccountAvatar": AccountAvatar_c3bba9300643314266b9f8dbd31e71aa,
   "/components/admin/graphics/Icon#Icon": Icon_8c7579001d094aae258586b09a2f4a85,
   "/components/admin/graphics/Logo#Logo": Logo_da4f7e8a6c72793056168c73c78f997f,

@@ -8,5 +8,6 @@ export const orderField: NumberField = {
   index: true,
   admin: {
     description: 'Lower numbers appear first.',
+    position: 'sidebar',
   },
 }

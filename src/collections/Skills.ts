@@ -31,6 +31,7 @@ export const Skills: CollectionConfig = {
         { label: 'Front-End', value: 'frontend' },
         { label: 'Back-End', value: 'backend' },
       ],
+      admin: { position: 'sidebar' },
     },
     {
       name: 'value',
@@ -51,7 +52,10 @@ export const Skills: CollectionConfig = {
       options: ['primary', 'secondary', 'success', 'info', 'warning', 'danger'],
       admin: {
         description: 'Bootstrap contextual color of the progress bar.',
-        components: { Cell: '/components/admin/list/cells/ContextColorCell#ContextColorCell' },
+        components: {
+          Field: '/components/admin/fields/ContextColorField#ContextColorField',
+          Cell: '/components/admin/list/cells/ContextColorCell#ContextColorCell',
+        },
       },
     },
   ],

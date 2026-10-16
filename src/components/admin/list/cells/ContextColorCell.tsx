@@ -4,7 +4,7 @@ import type { DefaultCellComponentProps } from 'payload'
 import React from 'react'
 
 /** Bootstrap 5 contextual colors, as the public site renders them (Skills progress bars). */
-const BOOTSTRAP: Record<string, string> = {
+export const BOOTSTRAP_CONTEXT_COLORS: Record<string, string> = {
   primary: '#0d6efd',
   secondary: '#6c757d',
   success: '#198754',
@@ -22,7 +22,7 @@ export function ContextColorCell({ cellData }: DefaultCellComponentProps) {
       <span
         aria-hidden
         className="acn:size-3 acn:shrink-0 acn:rounded-full acn:ring-1 acn:ring-border"
-        style={{ backgroundColor: BOOTSTRAP[value] ?? 'transparent' }}
+        style={{ backgroundColor: BOOTSTRAP_CONTEXT_COLORS[value] ?? 'transparent' }}
       />
       <span className="acn:capitalize">{value}</span>
     </span>

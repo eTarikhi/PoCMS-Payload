@@ -21,8 +21,13 @@ export const Educations: CollectionConfig = {
   fields: [
     orderField,
     { name: 'title', type: 'text', required: true },
-    { name: 'institution', type: 'text', required: true },
-    { name: 'location', type: 'text' },
+    {
+      type: 'row',
+      fields: [
+        { name: 'institution', type: 'text', required: true },
+        { name: 'location', type: 'text' },
+      ],
+    },
     {
       name: 'date',
       type: 'text',

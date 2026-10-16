@@ -21,7 +21,17 @@ export const Experiences: CollectionConfig = {
   fields: [
     orderField,
     { name: 'title', type: 'text', required: true },
-    { name: 'date', type: 'text', required: true },
-    { name: 'company', type: 'text', required: true },
+    {
+      type: 'row',
+      fields: [
+        { name: 'company', type: 'text', required: true },
+        {
+          name: 'date',
+          type: 'text',
+          required: true,
+          admin: { description: 'Display text, e.g. "2019 - Present".' },
+        },
+      ],
+    },
   ],
 }

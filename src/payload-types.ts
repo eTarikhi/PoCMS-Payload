@@ -163,13 +163,13 @@ export interface Article {
    */
   description?: string | null;
   /**
-   * If checked, the article expert will be featured on the homepage.
+   * Show this article in the featured slot on the home page.
    */
   featured?: boolean | null;
   category?: ('articles' | 'others') | null;
   publishedAt: string;
   /**
-   * Minutes. Render as "{n} min" in the frontend.
+   * Minutes. Shown as "{n} min" on the site.
    */
   readTime?: number | null;
   image?: (number | null) | Media;
@@ -202,6 +202,16 @@ export interface Media {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+  sizes?: {
+    thumbnail?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
 }
 /**
  * Portfolio projects, listed under /projects.
@@ -252,7 +262,7 @@ export interface Service {
   order?: number | null;
   category: string;
   /**
-   * Icon shown next to the category. Only the icons the frontend has are listed.
+   * Icon shown next to the category. Only the icons the site has are listed.
    */
   iconFont?: ('faCode' | 'faCropAlt' | 'faLaptopCode' | 'faCodeBranch') | null;
   /**
@@ -330,8 +340,11 @@ export interface Experience {
    */
   order?: number | null;
   title: string;
-  date: string;
   company: string;
+  /**
+   * Display text, e.g. "2019 - Present".
+   */
+  date: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -614,6 +627,20 @@ export interface MediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+  sizes?:
+    | T
+    | {
+        thumbnail?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -671,8 +698,8 @@ export interface AboutSelect<T extends boolean = true> {
 export interface ExperiencesSelect<T extends boolean = true> {
   order?: T;
   title?: T;
-  date?: T;
   company?: T;
+  date?: T;
   updatedAt?: T;
   createdAt?: T;
 }

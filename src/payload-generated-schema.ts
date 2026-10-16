@@ -242,11 +242,20 @@ export const media = pgTable(
     height: numeric('height', { mode: 'number' }),
     focalX: numeric('focal_x', { mode: 'number' }),
     focalY: numeric('focal_y', { mode: 'number' }),
+    sizes_thumbnail_url: varchar('sizes_thumbnail_url'),
+    sizes_thumbnail_width: numeric('sizes_thumbnail_width', { mode: 'number' }),
+    sizes_thumbnail_height: numeric('sizes_thumbnail_height', { mode: 'number' }),
+    sizes_thumbnail_mimeType: varchar('sizes_thumbnail_mime_type'),
+    sizes_thumbnail_filesize: numeric('sizes_thumbnail_filesize', { mode: 'number' }),
+    sizes_thumbnail_filename: varchar('sizes_thumbnail_filename'),
   },
   (columns) => [
     index('media_updated_at_idx').on(columns.updatedAt),
     index('media_created_at_idx').on(columns.createdAt),
     uniqueIndex('media_filename_idx').on(columns.filename),
+    index('media_sizes_thumbnail_sizes_thumbnail_filename_idx').on(
+      columns.sizes_thumbnail_filename,
+    ),
   ],
 )
 
@@ -389,8 +398,8 @@ export const experiences = pgTable(
     id: serial('id').primaryKey(),
     order: numeric('order', { mode: 'number' }).default(0),
     title: varchar('title').notNull(),
-    date: varchar('date').notNull(),
     company: varchar('company').notNull(),
+    date: varchar('date').notNull(),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),

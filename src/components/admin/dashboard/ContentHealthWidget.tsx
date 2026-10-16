@@ -23,17 +23,16 @@ export async function ContentHealthWidget({ req }: WidgetServerProps) {
 
   const noArticleImage: Where = { and: [{ image: { exists: false } }, empty('imageUrl')] }
   const noProjectImage: Where = { and: [{ image: { exists: false } }, empty('src')] }
-  const noDescription: Where = empty('description')
 
-  const [header, about, articlesNoImage, projectsNoImage, articlesNoDescription, footer] =
-    await Promise.all([
-      count('header'),
-      count('about'),
-      count('articles', noArticleImage),
-      count('projects', noProjectImage),
-      count('articles', noDescription),
-      req.payload.findGlobal({ slug: 'footer', req, overrideAccess: false, depth: 0 }),
-    ])
+  // Not checked on purpose: an empty article `description` is the article body, and an article
+  // without one is a valid link-out entry (see the field description), not a gap.
+  const [header, about, articlesNoImage, projectsNoImage, footer] = await Promise.all([
+    count('header'),
+    count('about'),
+    count('articles', noArticleImage),
+    count('projects', noProjectImage),
+    req.payload.findGlobal({ slug: 'footer', req, overrideAccess: false, depth: 0 }),
+  ])
   const socialLinks = footer?.socialLinks?.length ?? 0
 
   const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
@@ -55,12 +54,6 @@ export async function ContentHealthWidget({ req }: WidgetServerProps) {
       done: 'Every article has an image',
       todo: `${plural(articlesNoImage, 'article has', 'articles have')} no image`,
       href: listWith('articles', noArticleImage),
-    },
-    {
-      ok: articlesNoDescription === 0,
-      done: 'Every article has a meta description',
-      todo: `${plural(articlesNoDescription, 'article has', 'articles have')} no meta description`,
-      href: listWith('articles', noDescription),
     },
     {
       ok: projectsNoImage === 0,

@@ -104,6 +104,20 @@ type Media {
   height: Float
   focalX: Float
   focalY: Float
+  sizes: Media_Sizes
+}
+
+type Media_Sizes {
+  thumbnail: Media_Sizes_Thumbnail
+}
+
+type Media_Sizes_Thumbnail {
+  url: String
+  width: Float
+  height: Float
+  mimeType: String
+  filesize: Float
+  filename: String
 }
 
 type Articles {
@@ -1539,6 +1553,12 @@ input Media_where {
   height: Media_height_operator
   focalX: Media_focalX_operator
   focalY: Media_focalY_operator
+  sizes__thumbnail__url: Media_sizes__thumbnail__url_operator
+  sizes__thumbnail__width: Media_sizes__thumbnail__width_operator
+  sizes__thumbnail__height: Media_sizes__thumbnail__height_operator
+  sizes__thumbnail__mimeType: Media_sizes__thumbnail__mimeType_operator
+  sizes__thumbnail__filesize: Media_sizes__thumbnail__filesize_operator
+  sizes__thumbnail__filename: Media_sizes__thumbnail__filename_operator
   id: Media_id_operator
   AND: [Media_where_and]
   OR: [Media_where_or]
@@ -1681,6 +1701,69 @@ input Media_focalY_operator {
   exists: Boolean
 }
 
+input Media_sizes__thumbnail__url_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
+}
+
+input Media_sizes__thumbnail__width_operator {
+  equals: Float
+  not_equals: Float
+  greater_than_equal: Float
+  greater_than: Float
+  less_than_equal: Float
+  less_than: Float
+  exists: Boolean
+}
+
+input Media_sizes__thumbnail__height_operator {
+  equals: Float
+  not_equals: Float
+  greater_than_equal: Float
+  greater_than: Float
+  less_than_equal: Float
+  less_than: Float
+  exists: Boolean
+}
+
+input Media_sizes__thumbnail__mimeType_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
+}
+
+input Media_sizes__thumbnail__filesize_operator {
+  equals: Float
+  not_equals: Float
+  greater_than_equal: Float
+  greater_than: Float
+  less_than_equal: Float
+  less_than: Float
+  exists: Boolean
+}
+
+input Media_sizes__thumbnail__filename_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
+}
+
 input Media_id_operator {
   equals: Int
   not_equals: Int
@@ -1705,6 +1788,12 @@ input Media_where_and {
   height: Media_height_operator
   focalX: Media_focalX_operator
   focalY: Media_focalY_operator
+  sizes__thumbnail__url: Media_sizes__thumbnail__url_operator
+  sizes__thumbnail__width: Media_sizes__thumbnail__width_operator
+  sizes__thumbnail__height: Media_sizes__thumbnail__height_operator
+  sizes__thumbnail__mimeType: Media_sizes__thumbnail__mimeType_operator
+  sizes__thumbnail__filesize: Media_sizes__thumbnail__filesize_operator
+  sizes__thumbnail__filename: Media_sizes__thumbnail__filename_operator
   id: Media_id_operator
   AND: [Media_where_and]
   OR: [Media_where_or]
@@ -1724,6 +1813,12 @@ input Media_where_or {
   height: Media_height_operator
   focalX: Media_focalX_operator
   focalY: Media_focalY_operator
+  sizes__thumbnail__url: Media_sizes__thumbnail__url_operator
+  sizes__thumbnail__width: Media_sizes__thumbnail__width_operator
+  sizes__thumbnail__height: Media_sizes__thumbnail__height_operator
+  sizes__thumbnail__mimeType: Media_sizes__thumbnail__mimeType_operator
+  sizes__thumbnail__filesize: Media_sizes__thumbnail__filesize_operator
+  sizes__thumbnail__filename: Media_sizes__thumbnail__filename_operator
   id: Media_id_operator
   AND: [Media_where_and]
   OR: [Media_where_or]
@@ -1755,6 +1850,7 @@ type MediaDocAccessFields {
   height: MediaDocAccessFields_height
   focalX: MediaDocAccessFields_focalX
   focalY: MediaDocAccessFields_focalY
+  sizes: MediaDocAccessFields_sizes
 }
 
 type MediaDocAccessFields_alt {
@@ -2053,6 +2149,205 @@ type MediaDocAccessFields_focalY_Update {
 }
 
 type MediaDocAccessFields_focalY_Delete {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes {
+  create: MediaDocAccessFields_sizes_Create
+  read: MediaDocAccessFields_sizes_Read
+  update: MediaDocAccessFields_sizes_Update
+  delete: MediaDocAccessFields_sizes_Delete
+  fields: MediaDocAccessFields_sizes_Fields
+}
+
+type MediaDocAccessFields_sizes_Create {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_Read {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_Update {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_Delete {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_Fields {
+  thumbnail: MediaDocAccessFields_sizes_thumbnail
+}
+
+type MediaDocAccessFields_sizes_thumbnail {
+  create: MediaDocAccessFields_sizes_thumbnail_Create
+  read: MediaDocAccessFields_sizes_thumbnail_Read
+  update: MediaDocAccessFields_sizes_thumbnail_Update
+  delete: MediaDocAccessFields_sizes_thumbnail_Delete
+  fields: MediaDocAccessFields_sizes_thumbnail_Fields
+}
+
+type MediaDocAccessFields_sizes_thumbnail_Create {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_Read {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_Update {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_Delete {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_Fields {
+  url: MediaDocAccessFields_sizes_thumbnail_url
+  width: MediaDocAccessFields_sizes_thumbnail_width
+  height: MediaDocAccessFields_sizes_thumbnail_height
+  mimeType: MediaDocAccessFields_sizes_thumbnail_mimeType
+  filesize: MediaDocAccessFields_sizes_thumbnail_filesize
+  filename: MediaDocAccessFields_sizes_thumbnail_filename
+}
+
+type MediaDocAccessFields_sizes_thumbnail_url {
+  create: MediaDocAccessFields_sizes_thumbnail_url_Create
+  read: MediaDocAccessFields_sizes_thumbnail_url_Read
+  update: MediaDocAccessFields_sizes_thumbnail_url_Update
+  delete: MediaDocAccessFields_sizes_thumbnail_url_Delete
+}
+
+type MediaDocAccessFields_sizes_thumbnail_url_Create {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_url_Read {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_url_Update {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_url_Delete {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_width {
+  create: MediaDocAccessFields_sizes_thumbnail_width_Create
+  read: MediaDocAccessFields_sizes_thumbnail_width_Read
+  update: MediaDocAccessFields_sizes_thumbnail_width_Update
+  delete: MediaDocAccessFields_sizes_thumbnail_width_Delete
+}
+
+type MediaDocAccessFields_sizes_thumbnail_width_Create {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_width_Read {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_width_Update {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_width_Delete {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_height {
+  create: MediaDocAccessFields_sizes_thumbnail_height_Create
+  read: MediaDocAccessFields_sizes_thumbnail_height_Read
+  update: MediaDocAccessFields_sizes_thumbnail_height_Update
+  delete: MediaDocAccessFields_sizes_thumbnail_height_Delete
+}
+
+type MediaDocAccessFields_sizes_thumbnail_height_Create {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_height_Read {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_height_Update {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_height_Delete {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_mimeType {
+  create: MediaDocAccessFields_sizes_thumbnail_mimeType_Create
+  read: MediaDocAccessFields_sizes_thumbnail_mimeType_Read
+  update: MediaDocAccessFields_sizes_thumbnail_mimeType_Update
+  delete: MediaDocAccessFields_sizes_thumbnail_mimeType_Delete
+}
+
+type MediaDocAccessFields_sizes_thumbnail_mimeType_Create {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_mimeType_Read {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_mimeType_Update {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_mimeType_Delete {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_filesize {
+  create: MediaDocAccessFields_sizes_thumbnail_filesize_Create
+  read: MediaDocAccessFields_sizes_thumbnail_filesize_Read
+  update: MediaDocAccessFields_sizes_thumbnail_filesize_Update
+  delete: MediaDocAccessFields_sizes_thumbnail_filesize_Delete
+}
+
+type MediaDocAccessFields_sizes_thumbnail_filesize_Create {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_filesize_Read {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_filesize_Update {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_filesize_Delete {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_filename {
+  create: MediaDocAccessFields_sizes_thumbnail_filename_Create
+  read: MediaDocAccessFields_sizes_thumbnail_filename_Read
+  update: MediaDocAccessFields_sizes_thumbnail_filename_Update
+  delete: MediaDocAccessFields_sizes_thumbnail_filename_Delete
+}
+
+type MediaDocAccessFields_sizes_thumbnail_filename_Create {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_filename_Read {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_filename_Update {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_sizes_thumbnail_filename_Delete {
   permission: Boolean!
 }
 
@@ -3164,8 +3459,8 @@ type Experience {
   id: Int!
   order: Float
   title: String!
-  date: String!
   company: String!
+  date: String!
   updatedAt: DateTime
   createdAt: DateTime
 }
@@ -3187,8 +3482,8 @@ type Experiences {
 input Experience_where {
   order: Experience_order_operator
   title: Experience_title_operator
-  date: Experience_date_operator
   company: Experience_company_operator
+  date: Experience_date_operator
   updatedAt: Experience_updatedAt_operator
   createdAt: Experience_createdAt_operator
   id: Experience_id_operator
@@ -3216,7 +3511,7 @@ input Experience_title_operator {
   all: [String]
 }
 
-input Experience_date_operator {
+input Experience_company_operator {
   equals: String
   not_equals: String
   like: String
@@ -3226,7 +3521,7 @@ input Experience_date_operator {
   all: [String]
 }
 
-input Experience_company_operator {
+input Experience_date_operator {
   equals: String
   not_equals: String
   like: String
@@ -3271,8 +3566,8 @@ input Experience_id_operator {
 input Experience_where_and {
   order: Experience_order_operator
   title: Experience_title_operator
-  date: Experience_date_operator
   company: Experience_company_operator
+  date: Experience_date_operator
   updatedAt: Experience_updatedAt_operator
   createdAt: Experience_createdAt_operator
   id: Experience_id_operator
@@ -3283,8 +3578,8 @@ input Experience_where_and {
 input Experience_where_or {
   order: Experience_order_operator
   title: Experience_title_operator
-  date: Experience_date_operator
   company: Experience_company_operator
+  date: Experience_date_operator
   updatedAt: Experience_updatedAt_operator
   createdAt: Experience_createdAt_operator
   id: Experience_id_operator
@@ -3307,8 +3602,8 @@ type experiencesDocAccess {
 type ExperiencesDocAccessFields {
   order: ExperiencesDocAccessFields_order
   title: ExperiencesDocAccessFields_title
-  date: ExperiencesDocAccessFields_date
   company: ExperiencesDocAccessFields_company
+  date: ExperiencesDocAccessFields_date
   updatedAt: ExperiencesDocAccessFields_updatedAt
   createdAt: ExperiencesDocAccessFields_createdAt
 }
@@ -3359,29 +3654,6 @@ type ExperiencesDocAccessFields_title_Delete {
   permission: Boolean!
 }
 
-type ExperiencesDocAccessFields_date {
-  create: ExperiencesDocAccessFields_date_Create
-  read: ExperiencesDocAccessFields_date_Read
-  update: ExperiencesDocAccessFields_date_Update
-  delete: ExperiencesDocAccessFields_date_Delete
-}
-
-type ExperiencesDocAccessFields_date_Create {
-  permission: Boolean!
-}
-
-type ExperiencesDocAccessFields_date_Read {
-  permission: Boolean!
-}
-
-type ExperiencesDocAccessFields_date_Update {
-  permission: Boolean!
-}
-
-type ExperiencesDocAccessFields_date_Delete {
-  permission: Boolean!
-}
-
 type ExperiencesDocAccessFields_company {
   create: ExperiencesDocAccessFields_company_Create
   read: ExperiencesDocAccessFields_company_Read
@@ -3402,6 +3674,29 @@ type ExperiencesDocAccessFields_company_Update {
 }
 
 type ExperiencesDocAccessFields_company_Delete {
+  permission: Boolean!
+}
+
+type ExperiencesDocAccessFields_date {
+  create: ExperiencesDocAccessFields_date_Create
+  read: ExperiencesDocAccessFields_date_Read
+  update: ExperiencesDocAccessFields_date_Update
+  delete: ExperiencesDocAccessFields_date_Delete
+}
+
+type ExperiencesDocAccessFields_date_Create {
+  permission: Boolean!
+}
+
+type ExperiencesDocAccessFields_date_Read {
+  permission: Boolean!
+}
+
+type ExperiencesDocAccessFields_date_Update {
+  permission: Boolean!
+}
+
+type ExperiencesDocAccessFields_date_Delete {
   permission: Boolean!
 }
 
@@ -7513,6 +7808,7 @@ type MediaFields {
   height: MediaFields_height
   focalX: MediaFields_focalX
   focalY: MediaFields_focalY
+  sizes: MediaFields_sizes
 }
 
 type MediaFields_alt {
@@ -7811,6 +8107,205 @@ type MediaFields_focalY_Update {
 }
 
 type MediaFields_focalY_Delete {
+  permission: Boolean!
+}
+
+type MediaFields_sizes {
+  create: MediaFields_sizes_Create
+  read: MediaFields_sizes_Read
+  update: MediaFields_sizes_Update
+  delete: MediaFields_sizes_Delete
+  fields: MediaFields_sizes_Fields
+}
+
+type MediaFields_sizes_Create {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_Read {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_Update {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_Delete {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_Fields {
+  thumbnail: MediaFields_sizes_thumbnail
+}
+
+type MediaFields_sizes_thumbnail {
+  create: MediaFields_sizes_thumbnail_Create
+  read: MediaFields_sizes_thumbnail_Read
+  update: MediaFields_sizes_thumbnail_Update
+  delete: MediaFields_sizes_thumbnail_Delete
+  fields: MediaFields_sizes_thumbnail_Fields
+}
+
+type MediaFields_sizes_thumbnail_Create {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_Read {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_Update {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_Delete {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_Fields {
+  url: MediaFields_sizes_thumbnail_url
+  width: MediaFields_sizes_thumbnail_width
+  height: MediaFields_sizes_thumbnail_height
+  mimeType: MediaFields_sizes_thumbnail_mimeType
+  filesize: MediaFields_sizes_thumbnail_filesize
+  filename: MediaFields_sizes_thumbnail_filename
+}
+
+type MediaFields_sizes_thumbnail_url {
+  create: MediaFields_sizes_thumbnail_url_Create
+  read: MediaFields_sizes_thumbnail_url_Read
+  update: MediaFields_sizes_thumbnail_url_Update
+  delete: MediaFields_sizes_thumbnail_url_Delete
+}
+
+type MediaFields_sizes_thumbnail_url_Create {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_url_Read {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_url_Update {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_url_Delete {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_width {
+  create: MediaFields_sizes_thumbnail_width_Create
+  read: MediaFields_sizes_thumbnail_width_Read
+  update: MediaFields_sizes_thumbnail_width_Update
+  delete: MediaFields_sizes_thumbnail_width_Delete
+}
+
+type MediaFields_sizes_thumbnail_width_Create {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_width_Read {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_width_Update {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_width_Delete {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_height {
+  create: MediaFields_sizes_thumbnail_height_Create
+  read: MediaFields_sizes_thumbnail_height_Read
+  update: MediaFields_sizes_thumbnail_height_Update
+  delete: MediaFields_sizes_thumbnail_height_Delete
+}
+
+type MediaFields_sizes_thumbnail_height_Create {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_height_Read {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_height_Update {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_height_Delete {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_mimeType {
+  create: MediaFields_sizes_thumbnail_mimeType_Create
+  read: MediaFields_sizes_thumbnail_mimeType_Read
+  update: MediaFields_sizes_thumbnail_mimeType_Update
+  delete: MediaFields_sizes_thumbnail_mimeType_Delete
+}
+
+type MediaFields_sizes_thumbnail_mimeType_Create {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_mimeType_Read {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_mimeType_Update {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_mimeType_Delete {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_filesize {
+  create: MediaFields_sizes_thumbnail_filesize_Create
+  read: MediaFields_sizes_thumbnail_filesize_Read
+  update: MediaFields_sizes_thumbnail_filesize_Update
+  delete: MediaFields_sizes_thumbnail_filesize_Delete
+}
+
+type MediaFields_sizes_thumbnail_filesize_Create {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_filesize_Read {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_filesize_Update {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_filesize_Delete {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_filename {
+  create: MediaFields_sizes_thumbnail_filename_Create
+  read: MediaFields_sizes_thumbnail_filename_Read
+  update: MediaFields_sizes_thumbnail_filename_Update
+  delete: MediaFields_sizes_thumbnail_filename_Delete
+}
+
+type MediaFields_sizes_thumbnail_filename_Create {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_filename_Read {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_filename_Update {
+  permission: Boolean!
+}
+
+type MediaFields_sizes_thumbnail_filename_Delete {
   permission: Boolean!
 }
 
@@ -8523,8 +9018,8 @@ type experiencesAccess {
 type ExperiencesFields {
   order: ExperiencesFields_order
   title: ExperiencesFields_title
-  date: ExperiencesFields_date
   company: ExperiencesFields_company
+  date: ExperiencesFields_date
   updatedAt: ExperiencesFields_updatedAt
   createdAt: ExperiencesFields_createdAt
 }
@@ -8575,29 +9070,6 @@ type ExperiencesFields_title_Delete {
   permission: Boolean!
 }
 
-type ExperiencesFields_date {
-  create: ExperiencesFields_date_Create
-  read: ExperiencesFields_date_Read
-  update: ExperiencesFields_date_Update
-  delete: ExperiencesFields_date_Delete
-}
-
-type ExperiencesFields_date_Create {
-  permission: Boolean!
-}
-
-type ExperiencesFields_date_Read {
-  permission: Boolean!
-}
-
-type ExperiencesFields_date_Update {
-  permission: Boolean!
-}
-
-type ExperiencesFields_date_Delete {
-  permission: Boolean!
-}
-
 type ExperiencesFields_company {
   create: ExperiencesFields_company_Create
   read: ExperiencesFields_company_Read
@@ -8618,6 +9090,29 @@ type ExperiencesFields_company_Update {
 }
 
 type ExperiencesFields_company_Delete {
+  permission: Boolean!
+}
+
+type ExperiencesFields_date {
+  create: ExperiencesFields_date_Create
+  read: ExperiencesFields_date_Read
+  update: ExperiencesFields_date_Update
+  delete: ExperiencesFields_date_Delete
+}
+
+type ExperiencesFields_date_Create {
+  permission: Boolean!
+}
+
+type ExperiencesFields_date_Read {
+  permission: Boolean!
+}
+
+type ExperiencesFields_date_Update {
+  permission: Boolean!
+}
+
+type ExperiencesFields_date_Delete {
   permission: Boolean!
 }
 
@@ -10903,6 +11398,20 @@ input mutationMediaInput {
   height: Float
   focalX: Float
   focalY: Float
+  sizes: mutationMedia_SizesInput
+}
+
+input mutationMedia_SizesInput {
+  thumbnail: mutationMedia_Sizes_ThumbnailInput
+}
+
+input mutationMedia_Sizes_ThumbnailInput {
+  url: String
+  width: Float
+  height: Float
+  mimeType: String
+  filesize: Float
+  filename: String
 }
 
 input mutationMediaUpdateInput {
@@ -10919,6 +11428,20 @@ input mutationMediaUpdateInput {
   height: Float
   focalX: Float
   focalY: Float
+  sizes: mutationMediaUpdate_SizesInput
+}
+
+input mutationMediaUpdate_SizesInput {
+  thumbnail: mutationMediaUpdate_Sizes_ThumbnailInput
+}
+
+input mutationMediaUpdate_Sizes_ThumbnailInput {
+  url: String
+  width: Float
+  height: Float
+  mimeType: String
+  filesize: Float
+  filename: String
 }
 
 input mutationHeaderInput {
@@ -11010,8 +11533,8 @@ input mutationAboutUpdate_InterestsInput {
 input mutationExperienceInput {
   order: Float
   title: String!
-  date: String!
   company: String!
+  date: String!
   updatedAt: String
   createdAt: String
 }
@@ -11019,8 +11542,8 @@ input mutationExperienceInput {
 input mutationExperienceUpdateInput {
   order: Float
   title: String
-  date: String
   company: String
+  date: String
   updatedAt: String
   createdAt: String
 }

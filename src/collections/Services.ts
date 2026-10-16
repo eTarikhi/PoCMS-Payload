@@ -25,7 +25,13 @@ export const Services: CollectionConfig = {
       name: 'iconFont',
       type: 'select',
       options: ['faCode', 'faCropAlt', 'faLaptopCode', 'faCodeBranch'],
-      admin: { description: 'Icon shown next to the category. Only the icons the frontend has are listed.' },
+      admin: {
+        description: 'Icon shown next to the category. Only the icons the site has are listed.',
+        components: {
+          Field: '/components/admin/fields/ServiceIconField#ServiceIconField',
+          Cell: '/components/admin/list/cells/IconCell#IconCell',
+        },
+      },
     },
     {
       name: 'descriptions',

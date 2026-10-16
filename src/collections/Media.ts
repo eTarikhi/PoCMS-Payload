@@ -21,6 +21,22 @@ export const Media: CollectionConfig = {
       type: 'text',
       required: true,
     },
+    // Merged into Payload's built-in upload field of the same name: only the list cell changes.
+    {
+      name: 'filesize',
+      type: 'number',
+      // Without a label here, the merged field would get the generated label "Filesize".
+      label: ({ t }) => t('upload:fileSize'),
+      admin: { components: { Cell: '/components/admin/list/cells/FileSizeCell#FileSizeCell' } },
+    },
   ],
-  upload: true,
+  upload: {
+    // A small version for admin lists, drawers and pickers; the site keeps using the original.
+    imageSizes: [{ name: 'thumbnail', width: 400, height: 300, position: 'centre' }],
+    // Files uploaded before the size existed have no thumbnail: fall back to the original.
+    adminThumbnail: ({ doc }) => {
+      const sizes = doc.sizes as { thumbnail?: { url?: string | null } } | undefined
+      return sizes?.thumbnail?.url || (typeof doc.url === 'string' ? doc.url : null)
+    },
+  },
 }

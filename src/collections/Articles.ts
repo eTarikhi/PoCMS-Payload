@@ -1,5 +1,9 @@
 import type { CollectionConfig } from 'payload'
-import { articleSlugBeforeValidate, portfolioAfterChange, portfolioAfterDelete } from '../app/(frontend)/lib/hooks'
+import {
+  articleSlugBeforeValidate,
+  portfolioAfterChange,
+  portfolioAfterDelete,
+} from '../app/(frontend)/lib/hooks'
 
 export const Articles: CollectionConfig = {
   slug: 'articles',
@@ -26,17 +30,27 @@ export const Articles: CollectionConfig = {
       type: 'text',
       unique: true,
       admin: {
-        description: 'URL key for /articles/{slug}. Made from the title when left empty. Keep it stable once the article is shared.',
+        position: 'sidebar',
+        description:
+          'URL key for /articles/{slug}. Made from the title when left empty. Keep it stable once the article is shared.',
       },
     },
     {
       name: 'description',
       type: 'textarea',
       admin: {
-        description: 'Article body, as plain text. Separate paragraphs with a blank line. Leave empty and the article links out only (no page).',
+        description:
+          'Article body, as plain text. Separate paragraphs with a blank line. Leave empty and the article links out only (no page).',
       },
     },
-    { name: 'featured', type: 'checkbox', admin: { description: 'If checked, the article expert will be featured on the homepage.' } },
+    {
+      name: 'featured',
+      type: 'checkbox',
+      admin: {
+        position: 'sidebar',
+        description: 'Show this article in the featured slot on the home page.',
+      },
+    },
     {
       name: 'category',
       type: 'select',
@@ -45,19 +59,23 @@ export const Articles: CollectionConfig = {
         { label: 'Articles', value: 'articles' },
         { label: 'Others', value: 'others' },
       ],
+      admin: { position: 'sidebar' },
     },
     {
       name: 'publishedAt',
       type: 'date',
       required: true,
       index: true,
-      admin: { date: { pickerAppearance: 'dayOnly', displayFormat: 'MMMM d, yyyy' } },
+      admin: {
+        position: 'sidebar',
+        date: { pickerAppearance: 'dayOnly', displayFormat: 'MMMM d, yyyy' },
+      },
     },
     {
       name: 'readTime',
       type: 'number',
       min: 1,
-      admin: { description: 'Minutes. Render as "{n} min" in the frontend.' },
+      admin: { position: 'sidebar', description: 'Minutes. Shown as "{n} min" on the site.' },
     },
     { name: 'image', type: 'upload', relationTo: 'media' },
     { name: 'imageUrl', type: 'text' },
