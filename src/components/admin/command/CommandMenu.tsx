@@ -9,6 +9,7 @@ import {
   FileTextIcon,
   FolderIcon,
   GlobeIcon,
+  KeyboardIcon,
   LayoutDashboardIcon,
   LoaderCircleIcon,
   LogOutIcon,
@@ -30,6 +31,7 @@ import { switchTheme } from '../header/themeTransition'
 import { cn } from '../lib/utils'
 import { matchScore } from './match'
 import { readRecent } from './recent'
+import { GO_SHORTCUTS, keyShortcutsEnabled, setKeyShortcutsEnabled } from './shortcuts'
 
 type Item = {
   id: string
@@ -67,9 +69,11 @@ const labelText = (label: unknown, fallback: string, language: string): string =
 export default function CommandMenu({
   open,
   onOpenChange,
+  onShowShortcuts,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onShowShortcuts: () => void
 }) {
   const { config } = useConfig()
   const { permissions, user } = useAuth()
@@ -274,6 +278,15 @@ export default function CommandMenu({
           close()
           window.open(siteURL, '_blank', 'noopener,noreferrer')
         },
+      },
+      {
+        id: 'action:shortcuts',
+        group: 'Actions',
+        label: 'Keyboard shortcuts',
+        hint: '?',
+        keywords: ['keys', 'hotkeys', 'help'],
+        icon: <KeyboardIcon aria-hidden />,
+        run: onShowShortcuts,
       },
       {
         id: 'action:logout',
@@ -532,4 +545,82 @@ function useDocumentSearch(query: string, collections: Searchable[], apiURL: str
 
   const current = term.length >= 2 && state.term === term
   return { hits: current ? state.hits : [], loading: term.length >= 2 && !current }
+}
+
+/**
+ * Keyboard shortcuts help (`?`, or "Keyboard shortcuts" in the command menu), with the switch for
+ * single-key shortcuts (WCAG 2.1.4).
+ */
+export function ShortcutsDialog({
+  open,
+  onOpenChange,
+  mac,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  mac: boolean
+}) {
+  const { visibleEntities } = useEntityVisibility()
+  const [enabled, setEnabled] = useState(keyShortcutsEnabled)
+  const mod = mac ? '⌘' : 'Ctrl'
+  const rows: [string[], string][] = [
+    [[mod, 'K'], 'Open the command menu'],
+    [['/'], 'Open the command menu'],
+    [['?'], 'Show these shortcuts'],
+    ...GO_SHORTCUTS.filter(
+      (shortcut) => !shortcut.target || visibleEntities.collections.includes(shortcut.target),
+    ).map<[string[], string]>((shortcut) => [
+      ['G', shortcut.key.toUpperCase()],
+      `Go to ${shortcut.label}`,
+    ]),
+    [[mod, 'S'], 'Save the document (Payload)'],
+  ]
+  return (
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Backdrop className="acn:fixed acn:inset-0 acn:z-[80] acn:bg-black/30 acn:supports-backdrop-filter:backdrop-blur-xs acn:data-open:animate-in acn:data-open:fade-in-0 acn:data-closed:animate-out acn:data-closed:fade-out-0" />
+        <DialogPrimitive.Popup
+          data-testid="shortcuts-dialog"
+          className="acn:fixed acn:top-[12vh] acn:left-1/2 acn:z-[81] acn:flex acn:max-h-[76vh] acn:w-[min(28rem,calc(100vw-2rem))] acn:-translate-x-1/2 acn:flex-col acn:gap-4 acn:overflow-y-auto acn:rounded-xl acn:border acn:border-border acn:bg-popover acn:p-6 acn:text-popover-foreground acn:shadow-2xl acn:outline-none acn:data-open:animate-in acn:data-open:fade-in-0 acn:data-open:zoom-in-95"
+        >
+          <DialogPrimitive.Title className="acn:text-lg acn:font-semibold">
+            Keyboard shortcuts
+          </DialogPrimitive.Title>
+          <dl className="acn:grid acn:grid-cols-[1fr_auto] acn:gap-x-6 acn:gap-y-2 acn:text-sm">
+            {rows.map(([keys, label]) => (
+              <React.Fragment key={label + keys.join('')}>
+                <dt className="acn:text-muted-foreground">{label}</dt>
+                <dd className="acn:flex acn:items-center acn:gap-1">
+                  {keys.map((key, index) => (
+                    <React.Fragment key={key + index}>
+                      {index > 0 && keys[0] === 'G' ? (
+                        <span className="acn:text-xs acn:text-muted-foreground">then</span>
+                      ) : null}
+                      <kbd className="acn:min-w-6 acn:rounded acn:border acn:border-border acn:bg-muted acn:px-1.5 acn:text-center acn:font-sans acn:text-xs">
+                        {key}
+                      </kbd>
+                    </React.Fragment>
+                  ))}
+                </dd>
+              </React.Fragment>
+            ))}
+          </dl>
+          <label className="acn:flex acn:items-center acn:gap-2 acn:border-t acn:border-border acn:pt-4 acn:text-sm">
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={(event) => {
+                setEnabled(event.target.checked)
+                setKeyShortcutsEnabled(event.target.checked)
+              }}
+            />
+            Single-key shortcuts (/, ?, G then a letter)
+          </label>
+          <DialogPrimitive.Close className="acn:self-end acn:rounded-md acn:border acn:border-border acn:px-3 acn:py-1.5 acn:text-sm acn:hover:bg-muted">
+            Close
+          </DialogPrimitive.Close>
+        </DialogPrimitive.Popup>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
+  )
 }

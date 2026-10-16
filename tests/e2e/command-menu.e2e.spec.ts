@@ -74,6 +74,50 @@ test.describe('Command menu', () => {
     await expect(html).toHaveAttribute('data-theme', before)
   })
 
+  test('single-key shortcuts navigate and can be turned off', async () => {
+    await page.goto(`${base}/admin`)
+    await expect(page.locator('.nav.nav--nav-hydrated')).toHaveCount(1, { timeout: 60_000 })
+    await page.locator('body').click({ position: { x: 5, y: 890 } })
+
+    await expect(async () => {
+      await page.keyboard.press('g')
+      await page.keyboard.press('p')
+      await expect(page).toHaveURL(/\/admin\/collections\/projects(\?|$)/, { timeout: 3_000 })
+    }).toPass({ timeout: 30_000 })
+
+    // Single-key shortcuts are off while typing; Payload may focus the list search on load.
+    const blur = () => page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
+    await blur()
+    await page.keyboard.press('/')
+    await expect(page.getByTestId('command-menu')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.getByTestId('command-menu')).toBeHidden()
+
+    await blur()
+    await page.keyboard.press('?')
+    const help = page.getByTestId('shortcuts-dialog')
+    await expect(help).toBeVisible()
+    await expect(help).toContainText('Go to Articles')
+    const toggle = help.getByRole('checkbox', { name: /Single-key shortcuts/ })
+    await toggle.uncheck()
+    await page.keyboard.press('Escape')
+    await expect(help).toBeHidden()
+
+    // Off: G then A does nothing.
+    await blur()
+    await page.keyboard.press('g')
+    await page.keyboard.press('a')
+    await page.waitForTimeout(1_000)
+    await expect(page).toHaveURL(/\/admin\/collections\/projects(\?|$)/)
+
+    // On again (Ctrl+K always works).
+    const input = await openMenu('/admin/collections/projects')
+    await input.fill('keyboard')
+    await page.keyboard.press('Enter')
+    await help.getByRole('checkbox', { name: /Single-key shortcuts/ }).check()
+    await page.keyboard.press('Escape')
+  })
+
   test('has no serious accessibility violations', async () => {
     const input = await openMenu()
     await input.fill('a')

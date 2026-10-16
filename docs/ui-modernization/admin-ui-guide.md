@@ -166,6 +166,18 @@ checkbox is a `span[role=checkbox]`, so name it with `aria-labelledby` or `aria-
 - To add a command, add an item to the list in `CommandMenu.tsx` (group, label, keywords, icon,
   `run`).
 
+### Keyboard shortcuts
+
+- **Ctrl+K / Cmd+K**: command menu (always on). **/**: command menu. **?**: shortcuts help.
+  **G then a letter**: go to a page (D dashboard, A articles, P projects, S services, M media,
+  E experiences, K skills, C certificates, U users; only pages the user can see). Payload's own
+  Ctrl+S / Cmd+S saves.
+- Single-key shortcuts never fire while typing (inputs, editors, comboboxes) or while a dialog is
+  open, and the help dialog has a switch to turn them off, stored in localStorage (WCAG 2.1.4,
+  Character Key Shortcuts).
+- Defined in `command/shortcuts.ts`; the listener lives in `CommandMenuTrigger`, the help dialog
+  (`ShortcutsDialog`) in the lazily loaded menu chunk.
+
 ### Theme switch animation
 
 Switching the theme (header button or command menu) spreads the new theme as a circle from the

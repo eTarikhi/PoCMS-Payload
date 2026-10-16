@@ -70,9 +70,10 @@ export default buildConfig({
       // Gear menu at the bottom of the sidebar (every signed-in user).
       settingsMenu: ['/components/admin/nav/RefreshSiteCache#RefreshSiteCache'],
       // Header: command menu (Ctrl+K / Cmd+K) and the light/dark switch.
+      // (Payload renders the actions right to left, so the search button lands first.)
       actions: [
-        '/components/admin/command/CommandMenuTrigger#CommandMenuTrigger',
         '/components/admin/header/ThemeToggle#ThemeToggle',
+        '/components/admin/command/CommandMenuTrigger#CommandMenuTrigger',
       ],
       views: {
         // Living style guide (admins only): tokens and primitives inside Payload's shell.
