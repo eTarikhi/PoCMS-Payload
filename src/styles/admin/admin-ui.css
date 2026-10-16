@@ -1,7 +1,193 @@
 /*
- * Admin UI stylesheet entry. Imported only by AdminUIProvider (admin.components.providers),
- * never by the (frontend) app.
+ * Admin UI stylesheet entry — Tailwind CSS v4, isolated inside Payload 3 (ADR 0002).
+ *
+ * - Imported only by AdminUIProvider (admin.components.providers); the (frontend) app never loads it.
+ * - Prefix `acn`: utilities are written `acn:flex`, `acn:hover:bg-muted`. Unprefixed class names
+ *   (Payload's `.table`, `.btn`, …) can never produce Tailwind CSS.
+ * - No Preflight: it would reset Payload's own styles. A minimal reset scoped to shadcn parts
+ *   (elements with `data-slot`) replaces it below.
+ * - Only src/components/admin is scanned for class names.
+ * - Dark mode follows Payload's theme switch: html[data-theme='dark'].
  */
 
+/* Payload declares `payload-default, payload`; Tailwind's layers come after, in this order. */
+@layer payload-default, payload, theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme) prefix(acn);
+@import 'tailwindcss/utilities.css' layer(utilities) source(none);
+@import 'tw-animate-css';
+
+@source '../../components/admin';
+
+@import './shadcn.css';
 @import './tokens.css';
 @import './payload-overrides.css';
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@theme inline {
+  /* Tier 2 → Tier 3: shadcn colour tokens as acn:* utilities */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Typography: Inter via Payload's --font-body (ADR 0003), px sizes for the 13px admin root */
+  --font-sans: var(--font-body);
+  --font-heading: var(--font-body);
+  --font-mono: var(--font-mono);
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-sm: 13px;
+  --text-sm--line-height: 20px;
+  --text-base: 14px;
+  --text-base--line-height: 22px;
+  --text-lg: 16px;
+  --text-lg--line-height: 24px;
+  --text-xl: 18px;
+  --text-xl--line-height: 26px;
+  --text-2xl: 22px;
+  --text-2xl--line-height: 30px;
+  --text-3xl: 28px;
+  --text-3xl--line-height: 36px;
+  --text-4xl: 34px;
+  --text-4xl--line-height: 40px;
+
+  /* Payload's spacing scale (ADR 0004): --base is 20px, so 1 step = 4px */
+  --spacing: calc(var(--base) / 5);
+
+  /* Radius scale from --radius (AdminCN's multipliers) */
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Breakpoints and container widths in px, so the 13px root does not shrink them */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+  --container-3xs: 256px;
+  --container-2xs: 288px;
+  --container-xs: 320px;
+  --container-sm: 384px;
+  --container-md: 448px;
+  --container-lg: 512px;
+  --container-xl: 576px;
+  --container-2xl: 672px;
+  --container-3xl: 768px;
+  --container-4xl: 896px;
+  --container-5xl: 1024px;
+  --container-6xl: 1152px;
+  --container-7xl: 1280px;
+}
+
+/*
+ * Scoped reset (instead of Preflight). Every shadcn part carries a `data-slot` attribute and Payload
+ * never does, so these rules can only reach admin design-system elements. `:where()` keeps their
+ * specificity at zero, so any utility wins.
+ */
+@layer base {
+  :where([data-slot]),
+  :where([data-slot])::before,
+  :where([data-slot])::after {
+    box-sizing: border-box;
+    border: 0 solid var(--border);
+  }
+
+  :where(button[data-slot], input[data-slot], select[data-slot], textarea[data-slot]) {
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    background-color: transparent;
+    color: inherit;
+    font: inherit;
+    font-feature-settings: inherit;
+    letter-spacing: inherit;
+  }
+
+  :where(button[data-slot], [role='button'][data-slot]) {
+    cursor: pointer;
+  }
+
+  :where(button[data-slot]:disabled, [data-slot][aria-disabled='true']) {
+    cursor: default;
+  }
+
+  :where(
+      p[data-slot],
+      h1[data-slot],
+      h2[data-slot],
+      h3[data-slot],
+      h4[data-slot],
+      ul[data-slot],
+      ol[data-slot],
+      dl[data-slot],
+      dd[data-slot],
+      figure[data-slot],
+      hr[data-slot]
+    ) {
+    margin: 0;
+  }
+
+  :where(ul[data-slot], ol[data-slot]) {
+    padding: 0;
+    list-style: none;
+  }
+
+  :where(a[data-slot]) {
+    color: inherit;
+    text-decoration: inherit;
+  }
+
+  :where(table[data-slot]) {
+    border-collapse: collapse;
+    text-indent: 0;
+  }
+
+  :where(img[data-slot], video[data-slot]) {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* lucide icons are only used by admin components */
+  :where(svg.lucide) {
+    flex-shrink: 0;
+    vertical-align: middle;
+  }
+
+  /* Base UI popups render in a portal on <body>; keep them above Payload drawers (z 30). */
+  :where([data-slot$='-content'][data-side], [data-slot$='-positioner']) {
+    z-index: var(--z-popup);
+  }
+}

@@ -61,8 +61,9 @@ jobs:
           git diff --exit-code -- src/payload-types.ts 'src/app/(payload)/admin/importMap.js'
 
       - name: Admin token contrast (WCAG AA)
-        run: |
-          if [ -f scripts/check-contrast.mjs ]; then node scripts/check-contrast.mjs; fi
+        run: pnpm check:contrast
+      - name: Admin Tailwind classes carry the acn prefix
+        run: pnpm check:tw-prefix
 
       - name: Integration tests
         run: pnpm test:int
