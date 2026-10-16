@@ -33,6 +33,25 @@ start`), Chromium, logged in as an admin. "Compressed" is what the browser downl
 |---|---|---|
 | P0 baseline | 645.2 | 45.2 |
 | After P5 | 666.2 (**+21.0**, budget +60) | 58.6 (**+13.4**, budget +25) |
+| After the admin shell (`76c2e02`) | 666.4 (**+21.2**, budget +60) | 61.2 (**+16.0**, budget +25) |
+
+## After the admin shell (2026-10-16, `76c2e02`, same setup)
+
+Sidebar icons and icon rail, header theme switch, cache refresh, list summaries, 14px body text and
+article Live Preview.
+
+| Route | JS files | JS kB (compressed) | JS kB (decoded) | CSS files | CSS kB (compressed) | CSS kB (decoded) |
+|---|---|---|---|---|---|---|
+| `/admin/login` | 12 | 666.4 | 2250.9 | 7 | 61.2 | 423.3 |
+| `/admin` | 12 | 666.4 | 2250.9 | 7 | 61.2 | 423.3 |
+| `/admin/collections/articles` | 14 | 676.6 | 2283.2 | 7 | 61.2 | 423.3 |
+| `/admin/collections/articles/create` | 13 | 666.6 | 2251.1 | 7 | 61.2 | 423.3 |
+
+- JS: +0.2 kB. The new client pieces are small and reuse what the admin already loads
+  (`buttonVariants`, Payload's `toast` and `useTheme`); the list summary is a server component.
+- CSS: +2.6 kB, mostly the 14 generated icon masks (data-URI SVGs) and the rail styles.
+- Public article page: none of its initial chunks contain Live Preview code. The live renderer
+  (2.1 kB compressed) loads only when the page runs inside a frame.
 
 Both budgets hold. List pages load the TanStack Table chunk on top (+10.2 kB, `/admin/collections/*`).
 
