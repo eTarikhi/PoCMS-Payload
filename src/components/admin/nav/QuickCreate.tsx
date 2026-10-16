@@ -5,11 +5,11 @@ import { QuickCreateMenu, type QuickCreateItem } from './QuickCreateMenu'
 
 /** Collections offered in the sidebar "Create" menu, in display order. */
 const QUICK_CREATE: { slug: string; label: string; icon: QuickCreateItem['icon'] }[] = [
-  { slug: 'articles', label: 'Article', icon: 'article' },
-  { slug: 'projects', label: 'Project', icon: 'project' },
+  { slug: 'articles', label: 'New article', icon: 'article' },
+  { slug: 'projects', label: 'New project', icon: 'project' },
   { slug: 'media', label: 'Upload media', icon: 'media' },
-  { slug: 'experiences', label: 'Experience', icon: 'experience' },
-  { slug: 'certificates', label: 'Certificate', icon: 'certificate' },
+  { slug: 'experiences', label: 'New experience', icon: 'experience' },
+  { slug: 'certificates', label: 'New certificate', icon: 'certificate' },
 ]
 
 /**

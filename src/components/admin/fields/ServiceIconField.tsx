@@ -1,31 +1,13 @@
 'use client'
 
-import type { SelectFieldClientComponent } from 'payload'
-import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
-import { faCode, faCodeBranch, faCropAlt, faLaptopCode } from '@fortawesome/free-solid-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import React from 'react'
+import dynamic from 'next/dynamic'
 
-import { OptionTiles } from './OptionTiles'
-
-/** The Font Awesome icons the public site maps for services (src/app/(frontend)/components/icons.tsx). */
-export const SERVICE_ICONS: Record<string, IconDefinition> = {
-  faCode,
-  faCropAlt,
-  faLaptopCode,
-  faCodeBranch,
-}
-
-/** Services icon: the actual icons as tiles, so editors see what the site will show. */
-export const ServiceIconField: SelectFieldClientComponent = (props) => (
-  <OptionTiles
-    {...props}
-    renderVisual={(value) =>
-      SERVICE_ICONS[value] ? (
-        <FontAwesomeIcon icon={SERVICE_ICONS[value]} className="acn:size-4" aria-hidden />
-      ) : null
-    }
-  />
+/**
+ * Field entry point registered in the import map. Font Awesome loads only where the field renders
+ * (Services edit view) instead of in every admin page's bundle.
+ */
+export const ServiceIconField = dynamic(() =>
+  import('./ServiceIconPicker').then((mod) => mod.ServiceIconPicker),
 )
 
 export default ServiceIconField

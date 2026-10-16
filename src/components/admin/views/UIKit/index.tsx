@@ -6,7 +6,7 @@ import { notFound, redirect } from 'next/navigation'
 
 import { isAdmin } from '@/access/roles'
 
-import { UIKitClient } from './UIKitClient'
+import { UIKitLazy } from './UIKitLazy'
 
 /**
  * /admin/ui-kit — the admin's living style guide: design tokens and every shadcn primitive in its
@@ -26,7 +26,9 @@ export function UIKitView({
   const { req, visibleEntities } = initPageResult
 
   if (!req.user) {
-    redirect(`${payload.config.routes.admin}/login?redirect=${encodeURIComponent(`${payload.config.routes.admin}/ui-kit`)}`)
+    redirect(
+      `${payload.config.routes.admin}/login?redirect=${encodeURIComponent(`${payload.config.routes.admin}/ui-kit`)}`,
+    )
   }
   if (!isAdmin(req.user)) notFound()
 
@@ -43,7 +45,7 @@ export function UIKitView({
       visibleEntities={visibleEntities}
     >
       <Gutter>
-        <UIKitClient />
+        <UIKitLazy />
       </Gutter>
     </DefaultTemplate>
   )

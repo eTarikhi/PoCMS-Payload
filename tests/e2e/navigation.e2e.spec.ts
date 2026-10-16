@@ -30,7 +30,7 @@ test.describe('Admin navigation and branding', () => {
       await page.locator('.nav-toggler').first().click()
       await expect(openNavigation).toHaveCount(1)
     }
-    return page.getByRole('button', { name: 'Create', exact: true })
+    return page.getByTestId('quick-create').locator('summary')
   }
 
   test('uses the PoCMS title suffix', async () => {
@@ -52,7 +52,10 @@ test.describe('Admin navigation and branding', () => {
   test('Create menu opens the create form', async () => {
     await page.goto(`${base}/admin`)
     await (await openNav()).click()
-    await page.getByRole('menuitem', { name: 'Article' }).click()
+    await page
+      .getByTestId('quick-create')
+      .getByRole('link', { name: 'New article', exact: true })
+      .click()
     await expect(page).toHaveURL(/\/admin\/collections\/articles\/create/)
   })
 

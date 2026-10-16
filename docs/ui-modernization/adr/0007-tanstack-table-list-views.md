@@ -41,5 +41,7 @@
   links, drawer selection and custom `Cell` components behave exactly as before. Payload's
   `heading-*` ids, `cell-*` classes, `row-N` classes and `data-id` attributes are kept.
 - Relationship/upload drawers reuse the collection's list view, so they get the same table.
+- `LazyDataTable` loads the table through `next/dynamic` (server rendering kept), so TanStack Table
+  is fetched only on pages that show a list, not on every admin page.
 - Field cells: `ProgressCell` (Skills value), `ContextColorCell` (Skills color swatch).
 - Tests: `tests/e2e/list.e2e.spec.ts` (table present, selection state, sort via URL).

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import React from 'react'
 
 import { Badge } from '../ui/badge'
-import { Button } from '../ui/button'
+import { buttonVariants } from '../ui/button'
 import { adminURL } from './lib'
 import { WidgetCard } from './WidgetCard'
 
@@ -38,33 +38,36 @@ export function WelcomeWidget({ req, user, permissions }: WidgetServerProps) {
     >
       <div className="acn:flex acn:flex-wrap acn:gap-2">
         {canCreate('articles') ? (
-          <Button
-            nativeButton={false}
-            render={<Link href={`${adminURL(req, 'articles')}/create`} />}
+          <Link
+            href={`${adminURL(req, 'articles')}/create`}
+            data-slot="button"
+            className={buttonVariants()}
           >
             <FilePlus2Icon aria-hidden />
             New article
-          </Button>
+          </Link>
         ) : null}
         {canCreate('media') ? (
-          <Button
-            variant="outline"
-            nativeButton={false}
-            render={<Link href={`${adminURL(req, 'media')}/create`} />}
+          <Link
+            href={`${adminURL(req, 'media')}/create`}
+            data-slot="button"
+            className={buttonVariants({ variant: 'outline' })}
           >
             <ImageUpIcon aria-hidden />
             Upload media
-          </Button>
+          </Link>
         ) : null}
-        <Button
-          variant="ghost"
-          nativeButton={false}
-          render={<a href={siteURL} target="_blank" rel="noopener noreferrer" />}
+        <a
+          href={siteURL}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-slot="button"
+          className={buttonVariants({ variant: 'ghost' })}
         >
           View site
           <ExternalLinkIcon aria-hidden />
           <span className="acn:sr-only">(opens in a new tab)</span>
-        </Button>
+        </a>
       </div>
     </WidgetCard>
   )

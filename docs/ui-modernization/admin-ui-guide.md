@@ -21,7 +21,7 @@ state or access control. The work adds four layers on top:
 | `src/styles/admin/payload-overrides.css` | Small, documented overrides of Payload classes |
 | `src/styles/admin/admin-ui.css` | Tailwind v4 entry: `prefix(acn)`, theme bridge, scoped reset |
 | `src/styles/admin/shadcn.css` | Ejected `tw-animate-css` variants used by the primitives |
-| `src/components/admin/providers/AdminUIProvider.tsx` | Loads the styles and Inter, shared tooltip delay |
+| `src/components/admin/providers/AdminUIProvider.tsx` | Loads the admin styles and Inter |
 | `src/components/admin/ui/*` | Base UI primitives (button, select, dialog, table, chart, ...) |
 | `src/components/admin/lib/utils.ts` | `cn()` with a prefix-aware `tailwind-merge` |
 | `src/components/admin/graphics/*` | Logo, Icon, initials avatar |
@@ -130,7 +130,8 @@ checkbox is a `span[role=checkbox]`, so name it with `aria-labelledby` or `aria-
 - Sidebar groups come from `admin.group`: **Content**, **Profile**, **Admin**. Payload orders
   groups by first appearance, collections before globals, so the collection order in
   `payload.config.ts` sets the group order.
-- `beforeNavLinks`: the **Create** menu lists only collections the user may create.
+- `beforeNavLinks`: the **Create** control lists only collections the user may create. It is a
+  native disclosure (`details`/`summary`) holding links, closed by Escape or an outside click.
 - `afterNavLinks`: **View site** (`NEXT_PUBLIC_SITE_URL`, or the same origin) and the **UI kit**
   for admins. Payload's gear `settingsMenu` isn't used because it opens an empty popup for users
   whose items all render nothing.
@@ -150,8 +151,16 @@ To add a widget:
    per-instance settings, as the **Content count** widget does for its collection.
 4. Run `pnpm generate:types` (widget slugs are typed) and `pnpm generate:importmap`.
 
-Keep heavy client libraries out of the shared bundle: the publishing chart loads Recharts with
-`next/dynamic` inside a small client island.
+The publishing chart is plain server-rendered HTML (bars plus a visually hidden table), so the
+dashboard adds no chart library to the bundle.
+
+## Bundle size
+
+Payload's admin is one Next.js route, so every client component reachable from the import map is
+shipped to every admin page. Keep heavy parts behind a small `'use client'` wrapper that calls
+`next/dynamic`, and reference the wrapper from the config: see `UIKitLazy`, `LazyDataTable`,
+`ServiceIconField` and `IconCell`. Prefer server components and native elements for things that
+render everywhere (nav, avatar). Budgets and current numbers: [`perf-budget.md`](./perf-budget.md).
 
 ## List views
 

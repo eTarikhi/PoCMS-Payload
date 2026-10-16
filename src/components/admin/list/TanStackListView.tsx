@@ -2,7 +2,8 @@ import type { ListViewServerProps } from 'payload'
 import { DefaultListView } from '@payloadcms/ui'
 import React from 'react'
 
-import { DataTable, type PayloadColumn } from './DataTable'
+import type { PayloadColumn } from './DataTable'
+import { LazyDataTable } from './LazyDataTable'
 
 /** Server-only props Payload adds to list views; they must not reach the client list view. */
 const SERVER_ONLY = [
@@ -60,7 +61,7 @@ export function TanStackListView(props: ListViewServerProps) {
       {...listProps}
       Table={
         <div className="table-wrap">
-          <DataTable
+          <LazyDataTable
             appearance={table.appearance}
             collectionSlug={props.collectionSlug}
             columns={table.columns}
