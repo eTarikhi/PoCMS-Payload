@@ -1,28 +1,48 @@
 import type { WidgetServerProps } from 'payload'
 import React from 'react'
 
+import {
+  DEFAULT_RANGE,
+  monthListURL,
+  PUBLISHING_MONTHS,
+  PUBLISHING_SERIES,
+  SERIES_KEYS,
+  type PublishingPoint,
+} from './publishing'
+import { PublishingChartLazy } from './PublishingChartLazy'
 import { WidgetCard } from './WidgetCard'
 
-type PublishingPoint = { key: string; month: string; label: string; articles: number }
-
-const MONTHS = 24
-
 /**
- * Articles per publish month over the last two years. The bars are plain server-rendered HTML (no
- * chart library, no client JS); a visually hidden table carries the same numbers for screen readers.
+ * Articles published and projects added per month. The server counts the last 24 months; the
+ * interactive chart (range, series, tooltips, month drill-down) is a client island loaded only
+ * here. Until it loads, the same numbers show as plain server-rendered bars, and a visually hidden
+ * table with links carries them for screen readers.
  */
 export async function PublishingWidget({ req }: WidgetServerProps) {
   const now = new Date()
-  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (MONTHS - 1), 1))
-  const { docs } = await req.payload.find({
-    collection: 'articles',
-    req,
-    overrideAccess: false,
-    depth: 0,
-    pagination: false,
-    where: { publishedAt: { greater_than_equal: start.toISOString() } },
-    select: { publishedAt: true },
-  })
+  const start = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (PUBLISHING_MONTHS - 1), 1),
+  ).toISOString()
+  const [articles, projects] = await Promise.all([
+    req.payload.find({
+      collection: 'articles',
+      req,
+      overrideAccess: false,
+      depth: 0,
+      pagination: false,
+      where: { publishedAt: { greater_than_equal: start } },
+      select: { publishedAt: true },
+    }),
+    req.payload.find({
+      collection: 'projects',
+      req,
+      overrideAccess: false,
+      depth: 0,
+      pagination: false,
+      where: { createdAt: { greater_than_equal: start } },
+      select: { createdAt: true },
+    }),
+  ])
 
   const language = req.i18n.language || 'en'
   const short = new Intl.DateTimeFormat(language, { month: 'short', timeZone: 'UTC' })
@@ -31,33 +51,42 @@ export async function PublishingWidget({ req }: WidgetServerProps) {
     year: 'numeric',
     timeZone: 'UTC',
   })
-  const points: PublishingPoint[] = Array.from({ length: MONTHS }, (_, i) => {
-    const month = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + i, 1))
+  const first = new Date(start)
+  const points: PublishingPoint[] = Array.from({ length: PUBLISHING_MONTHS }, (_, i) => {
+    const month = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + i, 1))
     return {
       key: month.toISOString().slice(0, 7),
       month: short.format(month),
       label: long.format(month),
       articles: 0,
+      projects: 0,
     }
   })
-  for (const doc of docs) {
-    const key = doc.publishedAt?.slice(0, 7)
-    const point = points.find((p) => p.key === key)
-    if (point) point.articles += 1
+  const bucket = (date: string | null | undefined, series: 'articles' | 'projects') => {
+    const point = points.find((p) => p.key === date?.slice(0, 7))
+    if (point) point[series] += 1
   }
-  const total = points.reduce((sum, p) => sum + p.articles, 0)
+  articles.docs.forEach((doc) => bucket(doc.publishedAt, 'articles'))
+  projects.docs.forEach((doc) => bucket(doc.createdAt, 'projects'))
+  const total = points.reduce((sum, p) => sum + p.articles + p.projects, 0)
+  const adminRoute = req.payload.config.routes.admin
 
   return (
     <WidgetCard
       title="Publishing activity"
-      description={`Articles by publish month, last ${MONTHS} months: ${total} in total.`}
+      description="Articles published and projects added per month."
     >
       {total === 0 ? (
         <p className="acn:text-sm acn:text-muted-foreground">
-          No articles were published in this period.
+          No articles or projects in the last {PUBLISHING_MONTHS} months.
         </p>
       ) : (
-        <PublishingBars points={points} />
+        <>
+          <PublishingChartLazy points={points} adminRoute={adminRoute}>
+            <PublishingBars points={points.slice(-DEFAULT_RANGE)} />
+          </PublishingChartLazy>
+          <PublishingTable points={points} adminRoute={adminRoute} />
+        </>
       )}
     </WidgetCard>
   )
@@ -65,10 +94,11 @@ export async function PublishingWidget({ req }: WidgetServerProps) {
 
 export default PublishingWidget
 
+/** Static stand-in for the chart while it loads: articles per month, plain HTML. */
 function PublishingBars({ points }: { points: PublishingPoint[] }) {
   const max = Math.max(1, ...points.map((p) => p.articles))
   return (
-    <figure className="acn:m-0">
+    <figure aria-hidden className="acn:m-0">
       <div aria-hidden className="acn:flex acn:gap-2">
         <div className="acn:flex acn:h-40 acn:flex-col acn:justify-between acn:text-right acn:text-xs acn:text-muted-foreground acn:tabular-nums">
           <span>{max}</span>
@@ -103,23 +133,47 @@ function PublishingBars({ points }: { points: PublishingPoint[] }) {
           </span>
         ))}
       </div>
-      <table className="acn:sr-only">
-        <caption>Articles published per month</caption>
-        <thead>
-          <tr>
-            <th scope="col">Month</th>
-            <th scope="col">Articles</th>
-          </tr>
-        </thead>
-        <tbody>
-          {points.map((point) => (
-            <tr key={point.key}>
-              <th scope="row">{point.label}</th>
-              <td>{point.articles}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </figure>
+  )
+}
+
+/** The same numbers for screen readers, with links to each month's documents. */
+function PublishingTable({
+  points,
+  adminRoute,
+}: {
+  points: PublishingPoint[]
+  adminRoute: string
+}) {
+  return (
+    <table className="acn:sr-only">
+      <caption>Articles published and projects added per month</caption>
+      <thead>
+        <tr>
+          <th scope="col">Month</th>
+          {SERIES_KEYS.map((series) => (
+            <th key={series} scope="col">
+              {PUBLISHING_SERIES[series].label}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {points.map((point) => (
+          <tr key={point.key}>
+            <th scope="row">{point.label}</th>
+            {SERIES_KEYS.map((series) => (
+              <td key={series}>
+                {point[series] > 0 ? (
+                  <a href={monthListURL(adminRoute, series, point.key)}>{point[series]}</a>
+                ) : (
+                  0
+                )}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
   )
 }

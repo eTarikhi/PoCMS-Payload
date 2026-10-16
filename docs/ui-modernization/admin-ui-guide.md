@@ -228,8 +228,25 @@ To add a widget:
    per-instance settings, as the **Content count** widget does for its collection.
 4. Run `pnpm generate:types` (widget slugs are typed) and `pnpm generate:importmap`.
 
-The publishing chart is plain server-rendered HTML (bars plus a visually hidden table), so the
-dashboard adds no chart library to the bundle.
+### Publishing chart
+
+`PublishingWidget` (server) counts articles by `publishedAt` and projects by `createdAt` over the
+last 24 months and hands the months to `PublishingChartLazy`, which loads `PublishingChart`
+(Recharts) with `React.lazy` only when the widget is on screen. Until then, and on the server, the
+same numbers show as plain HTML bars, so there is no empty frame.
+
+- **Range:** 6, 12 or 24 months, remembered in localStorage (`pocms-publishing-range`).
+- **Series:** Articles and Projects toggle buttons with totals for the range; at least one stays
+  on. Series, colours and date fields live in `dashboard/publishing.ts`.
+- **Tooltip** on hover with the month and both counts.
+- **Selected month:** the latest month with activity, or the bar you click, or the one you step to
+  with the Previous/Next buttons. Its axis label turns into a pill, and the counts below link to the
+  list filtered to that month (`monthListURL`, a `where` on the series' date field).
+- **Accessibility:** the plot is `aria-hidden`; the controls, the month details (announced
+  politely) and a visually hidden table with links to every month carry the same data. The range
+  buttons' names start with their visible text (WCAG 2.5.3). Animation is off with reduced motion.
+- To add a series, add it to `PUBLISHING_SERIES`, count it in the widget and add the field to
+  `PublishingPoint`.
 
 ## Bundle size
 
