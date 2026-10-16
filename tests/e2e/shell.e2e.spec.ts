@@ -34,6 +34,8 @@ test.describe('Admin shell', () => {
 
   test('the header switches between light and dark', async () => {
     await page.goto(`${base}/admin`)
+    // The toggle is server-rendered; wait for hydration so the click is handled.
+    await expect(page.locator('.nav.nav--nav-hydrated')).toHaveCount(1, { timeout: 60_000 })
     const html = page.locator('html')
     const before = await html.getAttribute('data-theme')
     const after = before === 'dark' ? 'light' : 'dark'
@@ -42,6 +44,7 @@ test.describe('Admin shell', () => {
     await expect(html).toHaveAttribute('data-theme', after)
     await page.reload()
     await expect(html).toHaveAttribute('data-theme', after)
+    await expect(page.locator('.nav.nav--nav-hydrated')).toHaveCount(1, { timeout: 60_000 })
 
     await page.getByTestId('theme-toggle').click()
     await expect(html).toHaveAttribute('data-theme', before ?? 'light')

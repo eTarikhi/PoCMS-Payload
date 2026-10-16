@@ -139,9 +139,39 @@ checkbox is a `span[role=checkbox]`, so name it with `aria-labelledby` or `aria-
   cache tag at once (`expire: 0`). Saves only mark it stale, so the first visitor after a save can
   still get the old page; seeds, imports and database edits don't touch it at all. Don't put
   role-specific items here: the popup opens empty for users whose items all render nothing.
-- `actions` (header): the light/dark switch (`header/ThemeToggle.tsx`), through Payload's
-  `useTheme`, so the choice is Payload's own theme cookie.
+- `actions` (header): the command menu button and the light/dark switch
+  (`header/ThemeToggle.tsx`, through Payload's `useTheme`, so the choice is Payload's own theme
+  cookie).
 - `admin.dateFormat` is `d MMM yyyy, HH:mm`. Fields with their own `date.displayFormat` keep it.
+
+### Command menu
+
+- **Ctrl+K / Cmd+K** anywhere in the admin, or the **Search…** button in the header
+  (`command/CommandMenuTrigger.tsx`, the only part on every page). The menu itself
+  (`command/CommandMenu.tsx`) is a separate chunk, fetched when the pointer reaches the button or on
+  the first shortcut.
+- Groups: **Recent** (documents and globals you opened, kept in localStorage, named from the edit
+  view heading), **Go to** (dashboard, every collection and global you can see, account, UI kit
+  for admins), **Create** (collections you may create in), **Documents** (title search) and
+  **Actions** (theme, sidebar, refresh site cache, view site, log out).
+- Document search: two or more letters search each readable collection's `useAsTitle` field over
+  REST with the user's own access (`like`, four hits per collection, debounced, stale requests
+  aborted). Collections titled by `id` are skipped.
+- Ranking (`command/match.ts`): prefix beats word start beats substring, every query word must
+  match the label or a keyword, accents and case are ignored. With a query, the group holding the
+  best match comes first, so Enter runs the most likely command.
+- Accessibility: Base UI dialog; the input is an ARIA combobox controlling a grouped listbox
+  (`aria-activedescendant`); arrow keys move, Enter runs, Escape closes. Covered by axe in
+  `tests/e2e/command-menu.e2e.spec.ts`.
+- To add a command, add an item to the list in `CommandMenu.tsx` (group, label, keywords, icon,
+  `run`).
+
+### Theme switch animation
+
+Switching the theme (header button or command menu) spreads the new theme as a circle from the
+button, with the View Transitions API (`header/themeTransition.ts`, styles at the end of
+`nav-rail.css`). Browsers without the API, and users who prefer reduced motion, get an instant
+switch.
 
 ### Sidebar icons and the icon rail
 
@@ -194,8 +224,10 @@ dashboard adds no chart library to the bundle.
 Payload's admin is one Next.js route, so every client component reachable from the import map is
 shipped to every admin page. Keep heavy parts behind a small `'use client'` wrapper that calls
 `next/dynamic`, and reference the wrapper from the config: see `UIKitLazy`, `LazyDataTable`,
-`ServiceIconField` and `IconCell`. Prefer server components and native elements for things that
-render everywhere (nav, avatar). Budgets and current numbers: [`perf-budget.md`](./perf-budget.md).
+`ServiceIconField` and `IconCell`, or load on first use with `import()` like the command menu.
+Prefer server components and native elements for things that render everywhere (nav, avatar).
+Budget (raised to +150 kB JS / +40 kB CSS over the P0 baseline) and current numbers:
+[`perf-budget.md`](./perf-budget.md).
 
 ## List views
 

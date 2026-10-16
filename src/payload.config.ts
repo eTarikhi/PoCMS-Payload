@@ -69,8 +69,11 @@ export default buildConfig({
       afterNavLinks: ['/components/admin/nav/NavExtraLinks#NavExtraLinks'],
       // Gear menu at the bottom of the sidebar (every signed-in user).
       settingsMenu: ['/components/admin/nav/RefreshSiteCache#RefreshSiteCache'],
-      // Header: light/dark switch.
-      actions: ['/components/admin/header/ThemeToggle#ThemeToggle'],
+      // Header: command menu (Ctrl+K / Cmd+K) and the light/dark switch.
+      actions: [
+        '/components/admin/command/CommandMenuTrigger#CommandMenuTrigger',
+        '/components/admin/header/ThemeToggle#ThemeToggle',
+      ],
       views: {
         // Living style guide (admins only): tokens and primitives inside Payload's shell.
         uiKit: {

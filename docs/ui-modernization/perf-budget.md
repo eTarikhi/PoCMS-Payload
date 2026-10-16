@@ -15,10 +15,16 @@ start`), Chromium, logged in as an admin. "Compressed" is what the browser downl
 
 ## Budget
 
-- Admin JS: at most **+60 kB compressed** over the baseline on `/admin` after the dashboard (P4).
-- Admin CSS: at most **+25 kB compressed** (Tailwind utilities are generated only for the scanned
-  admin components, and Preflight is not included).
-- Charts (Recharts) load only in the dashboard's chart island.
+Raised on 2026-10-17 (was +60 kB JS / +25 kB CSS) to make room for the frontier features: the
+command menu, motion and richer interactive views.
+
+- Admin JS: at most **+150 kB compressed** over the P0 baseline on `/admin` (645.2 kB, so at most
+  about 795 kB).
+- Admin CSS: at most **+40 kB compressed** (45.2 kB, so at most about 85 kB). Tailwind utilities are
+  generated only for the scanned admin components, and Preflight is not included.
+- The rule stays: a feature that isn't needed on every page loads on demand (`next/dynamic`, a
+  dynamic `import()` on first use, or a server component). The command menu, the TanStack table,
+  the UI kit and Recharts all follow it. The budget is for what every admin page loads.
 
 ## After P5 (2026-10-16, same setup)
 
@@ -32,8 +38,8 @@ start`), Chromium, logged in as an admin. "Compressed" is what the browser downl
 | | JS kB (compressed) on `/admin` | CSS kB (compressed) |
 |---|---|---|
 | P0 baseline | 645.2 | 45.2 |
-| After P5 | 666.2 (**+21.0**, budget +60) | 58.6 (**+13.4**, budget +25) |
-| After the admin shell (`76c2e02`) | 666.4 (**+21.2**, budget +60) | 61.2 (**+16.0**, budget +25) |
+| After P5 | 666.2 (**+21.0**, budget then +60) | 58.6 (**+13.4**, budget then +25) |
+| After the admin shell (`76c2e02`) | 666.4 (**+21.2**, budget then +60) | 61.2 (**+16.0**, budget then +25) |
 
 ## After the admin shell (2026-10-16, `76c2e02`, same setup)
 
