@@ -1,11 +1,21 @@
-// Date and read time row (article page spec §5.2). The text comes from lib/format.ts, so it matches the homepage.
+import type { Locale } from '@/i18n/locales'
+import { getMessages } from '@/i18n/messages'
+
 type ArticleMetaProps = {
+  locale: Locale
   publishedAt: string | null
   publishedDisplay: string
   readTimeDisplay: string
 }
 
-export function ArticleMeta({ publishedAt, publishedDisplay, readTimeDisplay }: ArticleMetaProps) {
+export function ArticleMeta({
+  locale,
+  publishedAt,
+  publishedDisplay,
+  readTimeDisplay,
+}: ArticleMetaProps) {
+  const messages = getMessages(locale)
+
   if (!publishedDisplay && !readTimeDisplay) return null
 
   return (
@@ -14,7 +24,11 @@ export function ArticleMeta({ publishedAt, publishedDisplay, readTimeDisplay }: 
         <time dateTime={publishedAt ?? undefined}>{publishedDisplay}</time>
       ) : null}
       {publishedDisplay && readTimeDisplay ? <span aria-hidden="true"> • </span> : null}
-      {readTimeDisplay ? <span>{readTimeDisplay} read</span> : null}
+      {readTimeDisplay ? (
+        <span>
+          {readTimeDisplay} {messages.article.read}
+        </span>
+      ) : null}
     </p>
   )
 }

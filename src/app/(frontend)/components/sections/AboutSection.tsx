@@ -3,14 +3,16 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCheck } from '@fortawesome/free-solid-svg-icons'
 
 import type { AboutContent } from '@/app/(frontend)/lib/types'
-
-// Ported from vTarikhi/components/sections/about.tsx. Markup and copy are unchanged.
+import type { Locale } from '@/i18n/locales'
+import { getMessages } from '@/i18n/messages'
 
 export type AboutSectionProps = {
   about: AboutContent | null
+  locale: Locale
 }
 
-export function AboutSection({ about }: AboutSectionProps) {
+export function AboutSection({ about, locale }: AboutSectionProps) {
+  const messages = getMessages(locale)
   if (!about) {
     return null
   }
@@ -27,7 +29,7 @@ export function AboutSection({ about }: AboutSectionProps) {
                   <h2>
                     <span className="display-1 mb-0">{about.experience.years}+</span>
                     <br className="g-0" />
-                    <span className="years mb-0">Years</span>
+                    <span className="years mb-0">{messages.about.years}</span>
                   </h2>
                 </div>
                 <div className="col-md-4 text-center me-4 mt-4">
@@ -51,7 +53,7 @@ export function AboutSection({ about }: AboutSectionProps) {
                     <Image
                       className="img-fluid rounded"
                       src={src}
-                      alt="About Amir v.Tarikhi"
+                      alt={messages.about.imageAlt}
                       width={400}
                       height={400}
                     />

@@ -727,3 +727,22 @@ fieldset:disabled .btn {
     left: 0.5rem;
     z-index: 1100;
 }
+
+/* Locale shell: Persian content uses RTL flow while embedded identifiers and URLs retain their direction. */
+.locale-fa {
+    direction: rtl;
+    text-align: right;
+}
+
+.locale-fa .navbar-brand,
+.locale-fa .typed-text-output,
+.locale-fa .article-meta,
+.locale-fa [dir='ltr'] {
+    direction: ltr;
+}
+
+.locale-fa .article-footer-nav,
+.locale-fa .article-meta,
+.locale-fa .portfolio-btn {
+    text-align: start;
+}

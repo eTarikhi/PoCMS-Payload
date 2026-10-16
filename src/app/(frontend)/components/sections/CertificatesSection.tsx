@@ -2,14 +2,16 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 import type { CertificateItem } from '@/app/(frontend)/lib/types'
-
-// Ported from vTarikhi/components/sections/certificates.tsx. The "View Certificate" link only renders when a link exists.
+import type { Locale } from '@/i18n/locales'
+import { getMessages } from '@/i18n/messages'
 
 export type CertificatesSectionProps = {
   certificates: CertificateItem[]
+  locale: Locale
 }
 
-export function CertificatesSection({ certificates }: CertificatesSectionProps) {
+export function CertificatesSection({ certificates, locale }: CertificatesSectionProps) {
+  const messages = getMessages(locale)
   return (
     <section id="certificate">
       <div className="container-xxl py-5">
@@ -17,7 +19,7 @@ export function CertificatesSection({ certificates }: CertificatesSectionProps) 
           <div className="col-12 wow fadeInUp" data-wow-delay="0.1s">
             <div className="row g-5 mb-5 wow fadeInUp" data-wow-delay="0.1s">
               <div className="col-lg-6">
-                <h2 className="display-5 mb-0">Recent Certificates</h2>
+                <h2 className="display-5 mb-0">{messages.certificates.recentCertificates}</h2>
               </div>
               <div className="col-lg-6 text-lg-end">
                 <Link
@@ -25,13 +27,13 @@ export function CertificatesSection({ certificates }: CertificatesSectionProps) 
                   target="_blank"
                   href="https://www.linkedin.com/in/etarikhi/details/certifications/"
                 >
-                  All Certificates &gt;
+                  {messages.certificates.allCertificates}
                 </Link>
               </div>
             </div>
             <div className="row gy-1 gx-4 align-items-center">
               {certificates.map((certificate) => (
-                <CertificateCard key={certificate.id} certificate={certificate} />
+                <CertificateCard key={certificate.id} certificate={certificate} locale={locale} />
               ))}
             </div>
           </div>
@@ -41,7 +43,14 @@ export function CertificatesSection({ certificates }: CertificatesSectionProps) 
   )
 }
 
-function CertificateCard({ certificate }: { certificate: CertificateItem }) {
+function CertificateCard({
+  certificate,
+  locale,
+}: {
+  certificate: CertificateItem
+  locale: Locale
+}) {
+  const messages = getMessages(locale)
   return (
     <div className="col-lg-4 col-md-6">
       <div className="service-item rounded h-100 p-4 p-lg-5 my-2 wow fadeInUp">
@@ -57,7 +66,9 @@ function CertificateCard({ certificate }: { certificate: CertificateItem }) {
         </div>
         <div className="p-6">
           <h3 className="my-2">{certificate.title}</h3>
-          <p className="mb-2">Issued by: {certificate.issuer}</p>
+          <p className="mb-2">
+            {messages.certificates.issuedBy}: {certificate.issuer}
+          </p>
           <p className="mb-4">{certificate.date}</p>
           {certificate.link && (
             <Link
@@ -66,7 +77,7 @@ function CertificateCard({ certificate }: { certificate: CertificateItem }) {
               rel="noopener noreferrer"
               className="btn btn-primary mx-1"
             >
-              View Certificate →
+              {messages.certificates.viewCertificate}
             </Link>
           )}
         </div>

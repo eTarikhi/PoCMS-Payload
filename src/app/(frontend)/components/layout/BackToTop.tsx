@@ -10,7 +10,7 @@ const SCROLL_DURATION_MS = 1500
 // Ease-in-out curve used for the scroll animation.
 const easeInOut = (t: number) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t)
 
-export function BackToTop() {
+export function BackToTop({ ariaLabel }: { ariaLabel: string }) {
   const [showButton, setShowButton] = useState(false)
 
   // Shown once the page is scrolled more than 300px down.
@@ -48,6 +48,7 @@ export function BackToTop() {
   return (
     <motion.button
       className="btn btn-lg btn-primary btn-lg-square back-to-top wow fadeInUp"
+      aria-label={ariaLabel}
       onClick={scrollToTop}
       initial={{ scale: 0 }}
       animate={{ scale: 1 }}

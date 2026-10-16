@@ -23,6 +23,7 @@ import type {
   Skill,
 } from '@/payload-types'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/locales'
+import { getMessages } from '@/i18n/messages'
 
 import { articlePagePath, hasArticlePage } from './article-page'
 import { formatDisplayDate, formatReadTime, joinDisplay } from './format'
@@ -63,17 +64,17 @@ export type RawPortfolioDocs = {
 }
 
 /**
- * Project filter bar. The original site defines these in `database.json`
- * (`projects.categories`). They are kept in code because `All Projects` is a UI-only entry.
- * The `value`s must match the `categories` select options in `src/collections/Projects.ts`.
- * A unit test asserts this equivalence against the original data.
+ * Project filter values are stable CMS values; their visible labels come from frontend messages.
  */
-export const PROJECT_FILTERS: ProjectFilter[] = [
-  { label: 'All Projects', value: '*' },
-  { label: 'Front-End', value: 'front-end' },
-  { label: 'Back-End', value: 'back-end' },
-  { label: 'CMS-CRM', value: 'cms-crm' },
-]
+const projectFilters = (locale: Locale): ProjectFilter[] => {
+  const messages = getMessages(locale).projects
+  return [
+    { label: messages.all, value: '*' },
+    { label: messages.frontend, value: 'front-end' },
+    { label: messages.backend, value: 'back-end' },
+    { label: messages.cmsCrm, value: 'cms-crm' },
+  ]
+}
 
 /** Returns the resolved URL of an upload, or `null` when the relation is not populated. */
 export const resolveMediaUrl = (media: number | Media | null | undefined): string | null => {
@@ -200,8 +201,8 @@ export const mapServices = (docs: Service[], hiringCta: HiringCta | null): Servi
  * The thumbnail is the legacy `placeHolder` URL, and falls back to the upload.
  * Payload's `media.sizes` is not configured yet (see the migration analysis, F-10).
  */
-export const mapProjects = (docs: Project[]): ProjectsContent => ({
-  filters: PROJECT_FILTERS,
+export const mapProjects = (docs: Project[], locale: Locale = DEFAULT_LOCALE): ProjectsContent => ({
+  filters: projectFilters(locale),
   items: docs.map((doc): ProjectItem => {
     const uploadUrl = resolveMediaUrl(doc.image)
     return {
@@ -263,6 +264,6 @@ export const mapPortfolioContent = (
   certificates: mapCertificates(raw.certificates, locale),
   articles: mapArticles(raw.articles, locale),
   services: mapServices(raw.services, mapHiringCta(raw.footer)),
-  projects: mapProjects(raw.projects),
+  projects: mapProjects(raw.projects, locale),
   footer: mapFooter(raw.footer),
 })

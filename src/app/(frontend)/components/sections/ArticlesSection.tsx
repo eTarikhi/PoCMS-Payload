@@ -1,15 +1,19 @@
 import Link from 'next/link'
 
 import type { ArticleItem } from '@/app/(frontend)/lib/types'
-import { CoverImage } from '../ui/CoverImage'
+import type { Locale } from '@/i18n/locales'
+import { getMessages } from '@/i18n/messages'
 
-// Ported from vTarikhi/components/sections/articles.tsx. All articles are shown (D-12).
+import { CoverImage } from '../ui/CoverImage'
 
 export type ArticlesSectionProps = {
   articles: ArticleItem[]
+  locale: Locale
 }
 
-export function ArticlesSection({ articles }: ArticlesSectionProps) {
+export function ArticlesSection({ articles, locale }: ArticlesSectionProps) {
+  const messages = getMessages(locale)
+
   return (
     <section id="article">
       <div className="container-xxl py-5">
@@ -17,7 +21,7 @@ export function ArticlesSection({ articles }: ArticlesSectionProps) {
           <div className="col-12 wow fadeInUp" data-wow-delay="0.1s">
             <div className="row g-5 mb-5 wow fadeInUp" data-wow-delay="0.1s">
               <div className="col-lg-6">
-                <h2 className="display-6 mb-0">Latest Articles</h2>
+                <h2 className="display-6 mb-0">{messages.articles.latestArticles}</h2>
               </div>
               <div className="col-lg-6 text-lg-end">
                 <Link
@@ -25,13 +29,13 @@ export function ArticlesSection({ articles }: ArticlesSectionProps) {
                   target="_blank"
                   href="https://www.linkedin.com/in/etarikhi/recent-activity/articles/"
                 >
-                  All Articles &gt;
+                  {messages.articles.allArticles}
                 </Link>
               </div>
             </div>
             <div className="row gy-1 gx-4 align-items-center">
               {articles.map((article) => (
-                <ArticleCard key={article.id} article={article} />
+                <ArticleCard key={article.id} article={article} locale={locale} />
               ))}
             </div>
           </div>
@@ -41,7 +45,9 @@ export function ArticlesSection({ articles }: ArticlesSectionProps) {
   )
 }
 
-function ArticleCard({ article }: { article: ArticleItem }) {
+function ArticleCard({ article, locale }: { article: ArticleItem; locale: Locale }) {
+  const messages = getMessages(locale)
+
   return (
     <article className="col-lg-4 col-md-6">
       <div className="service-item rounded h-100 p-1 my-2 wow fadeInUp">
@@ -64,11 +70,12 @@ function ArticleCard({ article }: { article: ArticleItem }) {
         </Link>
         <div className="px-4 pb-4 mt-auto">
           <p className="text-xs text-muted-foreground">
-            Issued: {article.author} • {article.readTime} read
+            {messages.articles.issued}: {article.author} • {article.readTime}{' '}
+            {messages.article.read}
           </p>
           {article.pagePath ? (
             <Link href={article.pagePath} className="small">
-              Read on this site
+              {messages.articles.readOnSite}
             </Link>
           ) : null}
         </div>

@@ -1,4 +1,6 @@
 import type { ArticleDetail } from '../../lib/article-mappers'
+import type { Locale } from '@/i18n/locales'
+
 import { ArticleBody } from './ArticleBody'
 import { ArticleCover } from './ArticleCover'
 import { ArticleFooterNav } from './ArticleFooterNav'
@@ -7,7 +9,7 @@ import { ReadingProgress } from './ReadingProgress'
 
 // The article, in reading order (article page spec §5.2). The text column is 68ch wide (§8).
 // The article page composes this inside SiteChrome, so navigation and footer are not repeated here.
-export function ArticleLayout({ article }: { article: ArticleDetail }) {
+export function ArticleLayout({ article, locale }: { article: ArticleDetail; locale: Locale }) {
   return (
     <>
       <ReadingProgress />
@@ -16,13 +18,14 @@ export function ArticleLayout({ article }: { article: ArticleDetail }) {
           title={article.title}
           excerpt={article.excerpt}
           category={article.category}
+          locale={locale}
           publishedAt={article.publishedAt}
           publishedDisplay={article.publishedDisplay}
           readTimeDisplay={article.readTimeDisplay}
         />
         {article.coverUrl ? <ArticleCover src={article.coverUrl} alt={article.coverAlt} /> : null}
         <ArticleBody paragraphs={article.paragraphs} />
-        <ArticleFooterNav externalLink={article.externalLink} />
+        <ArticleFooterNav externalLink={article.externalLink} locale={locale} />
       </article>
     </>
   )

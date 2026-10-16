@@ -3,11 +3,9 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
-// Ported from vTarikhi/components/navigation.jsx. The original called require('bootstrap') inside the handler.
-// The Bootstrap module is loaded the same way (D-15). A module-scope import would run Bootstrap's `document`
-// setup while the server prerenders the page, and that fails.
+import { DEFAULT_LOCALE, localizePath, type Locale } from '@/i18n/locales'
+import { getMessages } from '@/i18n/messages'
 
-// Collapses the mobile menu. Called on every link click and on the toggler button (original handleLinkClick).
 const hideNavbarCollapse = async () => {
   const navbarCollapse = document.getElementById('navbarCollapse')
   if (navbarCollapse) {
@@ -16,10 +14,17 @@ const hideNavbarCollapse = async () => {
   }
 }
 
-export function Navigation() {
-  const [isVisible, setIsVisible] = useState(false)
+type NavigationProps = {
+  currentPath: string
+  locale: Locale
+}
 
-  // The bar gets the extra `d-flex` class once the page is scrolled past 300px.
+export function Navigation({ currentPath, locale }: NavigationProps) {
+  const [isVisible, setIsVisible] = useState(false)
+  const messages = getMessages(locale)
+  const homePath = localizePath(locale)
+  const alternateLocale = locale === DEFAULT_LOCALE ? 'fa' : DEFAULT_LOCALE
+
   useEffect(() => {
     const handleScroll = () => {
       setIsVisible(window.scrollY > 300)
@@ -34,7 +39,7 @@ export function Navigation() {
       className={`navbar navbar-expand-lg bg-dark navbar-dark fixed-top shadow py-lg-0 px-4 px-lg-5 wow fadeIn ${isVisible ? 'd-flex' : ''}`}
       data-wow-delay="0.1s"
     >
-      <Link href="/" className="navbar-brand d-block d-lg-none">
+      <Link href={homePath} className="navbar-brand d-block d-lg-none">
         <h2 className="h1 text-primary fw-bold m-0">eTarikhi</h2>
       </Link>
       <button type="button" className="navbar-toggler" onClick={hideNavbarCollapse}>
@@ -46,43 +51,61 @@ export function Navigation() {
       >
         <div className="navbar-nav ms-auto py-0">
           <Link
-            href="/#home"
+            href={`${homePath}#home`}
             className="nav-item text-light nav-link active"
             onClick={hideNavbarCollapse}
           >
-            Home
+            {messages.navigation.home}
           </Link>
-          <Link href="/#about" className="nav-item text-light nav-link" onClick={hideNavbarCollapse}>
-            About
+          <Link
+            href={`${homePath}#about`}
+            className="nav-item text-light nav-link"
+            onClick={hideNavbarCollapse}
+          >
+            {messages.navigation.about}
           </Link>
-          <Link href="/#skill" className="nav-item text-light nav-link" onClick={hideNavbarCollapse}>
-            Skills
+          <Link
+            href={`${homePath}#skill`}
+            className="nav-item text-light nav-link"
+            onClick={hideNavbarCollapse}
+          >
+            {messages.navigation.skills}
           </Link>
         </div>
-        <Link href="/" className="navbar-brand bg-primary py-3 px-4 mx-3 d-none d-lg-block">
+        <Link href={homePath} className="navbar-brand bg-primary py-3 px-4 mx-3 d-none d-lg-block">
           <h2 className="h1 text-white fw-bold m-0">eTarikhi</h2>
         </Link>
         <div className="navbar-nav me-auto py-0">
           <Link
-            href="/#service"
+            href={`${homePath}#service`}
             className="nav-item text-light nav-link"
             onClick={hideNavbarCollapse}
           >
-            Services
+            {messages.navigation.services}
           </Link>
           <Link
-            href="/#project"
+            href={`${homePath}#project`}
             className="nav-item text-light nav-link"
             onClick={hideNavbarCollapse}
           >
-            Projects
+            {messages.navigation.projects}
           </Link>
           <Link
-            href="/#contact"
+            href={`${homePath}#contact`}
             className="nav-item text-light nav-link"
             onClick={hideNavbarCollapse}
           >
-            Contact
+            {messages.navigation.contact}
+          </Link>
+          <Link
+            href={localizePath(alternateLocale, currentPath)}
+            className="nav-item text-secondary nav-link"
+            aria-label={messages.language.label}
+            onClick={hideNavbarCollapse}
+          >
+            {alternateLocale === DEFAULT_LOCALE
+              ? messages.language.switchToEnglish
+              : messages.language.switchToPersian}
           </Link>
         </div>
       </div>

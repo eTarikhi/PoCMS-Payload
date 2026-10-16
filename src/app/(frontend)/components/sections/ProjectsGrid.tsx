@@ -9,6 +9,8 @@ import { config } from '@fortawesome/fontawesome-svg-core'
 import { faEye, faLink } from '@fortawesome/free-solid-svg-icons'
 
 import type { ProjectFilter, ProjectItem } from '@/app/(frontend)/lib/types'
+import type { Locale } from '@/i18n/locales'
+import { getMessages } from '@/i18n/messages'
 
 // The root layout loads the Font Awesome CSS. Icons in this client bundle must not inject their own copy.
 config.autoAddCss = false
@@ -20,13 +22,16 @@ config.autoAddCss = false
 export type ProjectsGridProps = {
   filters: ProjectFilter[]
   items: ProjectItem[]
+  locale: Locale
 }
 
 // "*" means all projects. Any other value matches a project's categories.
 const filterItems = (items: ProjectItem[], filter: string): ProjectItem[] =>
   filter === '*' ? items : items.filter((item) => item.categories.includes(filter))
 
-export function ProjectsGrid({ filters, items }: ProjectsGridProps) {
+export function ProjectsGrid({ filters, items, locale }: ProjectsGridProps) {
+  const messages = getMessages(locale)
+
   // activeFilter drives the highlighted button at once. appliedFilter drives the grid after a 100ms delay.
   const [activeFilter, setActiveFilter] = useState('*')
   const [appliedFilter, setAppliedFilter] = useState('*')
@@ -47,7 +52,7 @@ export function ProjectsGrid({ filters, items }: ProjectsGridProps) {
     <>
       <div className="row g-5 mb-5 align-items-center wow fadeInUp" data-wow-delay="0.1s">
         <div className="col-lg-6">
-          <h2 className="h1 display-5 mb-0">My Projects</h2>
+          <h2 className="h1 display-5 mb-0">{messages.projects.myProjects}</h2>
         </div>
         <div className="col-lg-6 text-lg-end">
           <motion.ul className="list-inline mx-auto mb-0" id="portfolio-flters">
@@ -75,7 +80,7 @@ export function ProjectsGrid({ filters, items }: ProjectsGridProps) {
           transition={{ duration: 0.3 }}
         >
           {visibleItems.map((item) => (
-            <ProjectCard key={item.id} item={item} />
+            <ProjectCard key={item.id} item={item} locale={locale} />
           ))}
         </motion.div>
       </AnimatePresence>
@@ -83,7 +88,9 @@ export function ProjectsGrid({ filters, items }: ProjectsGridProps) {
   )
 }
 
-function ProjectCard({ item }: { item: ProjectItem }) {
+function ProjectCard({ item, locale }: { item: ProjectItem; locale: Locale }) {
+  const messages = getMessages(locale)
+
   // The grid shows a small thumbnail first. Once it loads, the full-size image replaces it (original behaviour).
   const handleImageOverride = (event: SyntheticEvent<HTMLImageElement>) => {
     event.currentTarget.src = item.imageUrl
@@ -117,7 +124,7 @@ function ProjectCard({ item }: { item: ProjectItem }) {
             data-lightbox="portfolio"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            aria-label={`View full image of ${item.title}`}
+            aria-label={messages.projects.viewFullImage(item.title)}
           >
             <FontAwesomeIcon icon={faEye} className="text-xl"></FontAwesomeIcon>
           </motion.a>
@@ -128,7 +135,7 @@ function ProjectCard({ item }: { item: ProjectItem }) {
             rel="noopener noreferrer"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            aria-label={`Visit ${item.title}`}
+            aria-label={messages.projects.visitProject(item.title)}
           >
             <FontAwesomeIcon icon={faLink} className="text-xl"></FontAwesomeIcon>
           </motion.a>

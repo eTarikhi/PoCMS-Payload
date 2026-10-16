@@ -1,18 +1,22 @@
 import Link from 'next/link'
 
-// Back link and the original publication link (article page spec §5.2). A div, not a nav,
-// so the page keeps one navigation (the shared one in SiteChrome).
+import { localizePath, type Locale } from '@/i18n/locales'
+import { getMessages } from '@/i18n/messages'
+
 type ArticleFooterNavProps = {
   externalLink: string | null
+  locale: Locale
 }
 
-export function ArticleFooterNav({ externalLink }: ArticleFooterNavProps) {
+export function ArticleFooterNav({ externalLink, locale }: ArticleFooterNavProps) {
+  const messages = getMessages(locale)
+
   return (
     <div className="article-footer-nav">
-      <Link href="/#article">Back to articles</Link>
+      <Link href={`${localizePath(locale)}#article`}>{messages.article.backToArticles}</Link>
       {externalLink ? (
         <a href={externalLink} target="_blank" rel="noopener noreferrer">
-          Originally published at
+          {messages.article.originallyPublishedAt}
         </a>
       ) : null}
     </div>

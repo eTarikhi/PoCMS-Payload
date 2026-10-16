@@ -1,3 +1,5 @@
+import type { Metadata } from 'next'
+
 import { Hero } from '@/app/(frontend)/components/layout/Hero'
 import { SiteChrome } from '@/app/(frontend)/components/layout/SiteChrome'
 import { AboutSection } from '@/app/(frontend)/components/sections/AboutSection'
@@ -8,32 +10,34 @@ import { ProjectsSection } from '@/app/(frontend)/components/sections/ProjectsSe
 import { ArticlesSection } from '@/app/(frontend)/components/sections/ArticlesSection'
 import { JsonLd } from '@/app/(frontend)/components/seo/JsonLd'
 import { getCachedPortfolioContent } from '@/app/(frontend)/lib/cache'
-import { buildPersonJsonLd } from '@/app/(frontend)/lib/seo'
+import { buildPersonJsonLd, homeMetadata } from '@/app/(frontend)/lib/seo'
+import { DEFAULT_LOCALE } from '@/i18n/locales'
 
-// Composition only, in the order of vTarikhi/pages/index.js.
-// The page reads cached content and never calls headers(), cookies(), or payload.auth(), so Next can
-// prerender it as static (roadmap §3.3). Editors refresh it by saving in /admin (hooks.ts).
+export const generateMetadata = (): Metadata => homeMetadata(DEFAULT_LOCALE)
+
 export default async function HomePage() {
-  const content = await getCachedPortfolioContent()
+  const locale = DEFAULT_LOCALE
+  const content = await getCachedPortfolioContent(locale)
 
   return (
     <>
-      <SiteChrome footer={content.footer}>
-        {content.header ? <Hero header={content.header} /> : null}
+      <SiteChrome currentPath="/" footer={content.footer} locale={locale}>
+        {content.header ? <Hero header={content.header} locale={locale} /> : null}
         <main id="main-content" data-bs-spy="scroll" data-bs-target=".navbar" data-bs-offset="51">
-          <AboutSection about={content.about} />
-          <ServicesSection services={content.services} />
+          <AboutSection about={content.about} locale={locale} />
+          <ServicesSection services={content.services} locale={locale} />
           <SkillsSection
             skills={content.skills}
             experiences={content.experiences}
             educations={content.educations}
+            locale={locale}
           />
-          <CertificatesSection certificates={content.certificates} />
-          <ProjectsSection projects={content.projects} />
-          <ArticlesSection articles={content.articles} />
+          <CertificatesSection certificates={content.certificates} locale={locale} />
+          <ProjectsSection projects={content.projects} locale={locale} />
+          <ArticlesSection articles={content.articles} locale={locale} />
         </main>
       </SiteChrome>
-      <JsonLd data={buildPersonJsonLd(content.header, content.footer)} />
+      <JsonLd data={buildPersonJsonLd(content.header, content.footer, locale)} />
     </>
   )
 }

@@ -3,27 +3,27 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faGem } from '@fortawesome/free-solid-svg-icons'
 
 import type { FooterContent } from '@/app/(frontend)/lib/types'
+import type { Locale } from '@/i18n/locales'
+import { getMessages } from '@/i18n/messages'
+
 import { getFooterIcon } from '../icons'
 import { EmailReveal } from '../ui/EmailReveal'
 
-// Ported from vTarikhi/components/footer.tsx. The copyright year comes from the CMS (D-6).
-// The original computed currentYear but never used it, so it is not ported.
-
 export type FooterProps = {
   footer: FooterContent
+  locale: Locale
 }
 
-export function Footer({ footer }: FooterProps) {
+export function Footer({ footer, locale }: FooterProps) {
+  const messages = getMessages(locale)
+
   return (
     <footer className="text-center text-lg-start bg-dark text-white">
-      {/* Section: Social media */}
       <section>
         <div className="container d-flex justify-content-center justify-content-lg-between p-4">
-          {/* Left */}
           <div className="me-5 d-none d-lg-block">
-            <span>Get connected with me on social networks:</span>
+            <span>{messages.footer.socialIntro}</span>
           </div>
-          {/* Right */}
           <div className="ml-4">
             {footer.socialLinks.map((social, index) => (
               <Link
@@ -41,11 +41,9 @@ export function Footer({ footer }: FooterProps) {
         </div>
       </section>
 
-      {/* Section: Links */}
       <section>
         <div className="container text-center text-md-start px-md-4 mt-5">
           <div className="row mt-3">
-            {/* Personal Info Column */}
             <aside className="col-md-5 mx-auto mb-4">
               <h2 className="h6 text-uppercase fw-bold mb-4">
                 <FontAwesomeIcon
@@ -62,9 +60,8 @@ export function Footer({ footer }: FooterProps) {
               </ul>
             </aside>
 
-            {/* Profiles Column */}
             <nav className="col-md-4 mx-auto mb-4">
-              <h2 className="h6 text-uppercase fw-bold mb-4">My Profiles</h2>
+              <h2 className="h6 text-uppercase fw-bold mb-4">{messages.footer.myProfiles}</h2>
               {footer.profiles.map((profile, index) => (
                 <p key={index}>
                   <Link
@@ -79,14 +76,18 @@ export function Footer({ footer }: FooterProps) {
               ))}
             </nav>
 
-            {/* Contact Column */}
             <nav className="col-md-3 mx-auto mb-md-0 mb-4" id="contact">
-              <h2 className="h6 text-uppercase fw-bold mb-4">Contact</h2>
+              <h2 className="h6 text-uppercase fw-bold mb-4">{messages.footer.contact}</h2>
               {footer.contactInfo.map((contact, index) => (
                 <p key={index}>
                   {getFooterIcon(contact.iconName)}
                   {contact.type === 'email' ? (
-                    <EmailReveal email={contact.content} className={contact.className} />
+                    <EmailReveal
+                      email={contact.content}
+                      className={contact.className}
+                      clickToEmail={messages.email.clickToEmail}
+                      clickToReveal={messages.email.clickToReveal}
+                    />
                   ) : contact.isLink ? (
                     <Link
                       className={contact.className}
@@ -106,13 +107,12 @@ export function Footer({ footer }: FooterProps) {
         </div>
       </section>
 
-      {/* Copyright */}
       <div className="text-center p-3" style={{ backgroundColor: '#0e1017', fontSize: 'smaller' }}>
-        Copyright © {footer.copyright.year}{' '}
+        {messages.footer.copyright} © {footer.copyright.year}{' '}
         <Link className="text-white" href={footer.copyright.url}>
           {footer.copyright.website}{' '}
         </Link>
-        , All Rights Reserved.
+        , {messages.footer.allRightsReserved}
       </div>
     </footer>
   )
