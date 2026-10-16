@@ -2,6 +2,8 @@ import { vercelPostgresAdapter } from '@payloadcms/db-vercel-postgres'
 import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { GraphQL } from '@payloadcms/graphql/types'
+import { en } from '@payloadcms/translations/languages/en'
+import { fa } from '@payloadcms/translations/languages/fa'
 
 import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
 import { resendAdapter } from '@payloadcms/email-resend'
@@ -75,6 +77,24 @@ export default buildConfig({
     Media,
   ],
   globals: [Footer],
+  /**
+   * Editorial content is English-first, with Persian translations available per localized field.
+   * Persian falls back to English only while a translation is incomplete; public locale routing will
+   * make that fallback explicit in the next implementation step.
+   */
+  localization: {
+    locales: [
+      { code: 'en', label: 'English' },
+      { code: 'fa', label: 'فارسی', rtl: true, fallbackLocale: 'en' },
+    ],
+    defaultLocale: 'en',
+    fallback: true,
+  },
+  /** Payload Admin UI language support is independent from editorial-content localization. */
+  i18n: {
+    fallbackLanguage: 'en',
+    supportedLanguages: { en, fa },
+  },
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
