@@ -9,8 +9,9 @@
   - A server component (`src/components/admin/list/TanStackListView.tsx`) is registered as
     `admin.components.views.list.Component` for every collection by the `adminUI` config plugin. It
     renders Payload's `DefaultListView` and passes a custom `Table`.
-  - The table (`DataTable.tsx`, client) is a headless `useReactTable` instance
-    (`@tanstack/react-table` v8) over the documents Payload already fetched. Cells are the
+  - The table (`DataTable.tsx`, client) is a headless TanStack Table v9 instance (`useTable` with
+    `tableFeatures`, the current stable major and the pattern used in shadcnstudio's table
+    masterclass) over the documents Payload already fetched. Cells are the
     server-rendered cells from Payload's column state, so custom `Cell` components, relationship
     labels and the drawer "select" behaviour keep working.
   - Sorting is manual: TanStack's sorting state is derived from the `?sort=` query and changes call

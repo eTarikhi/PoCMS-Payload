@@ -67,6 +67,13 @@
     --chart-4: color-mix(in oklab, var(--primary) 35%, var(--background));
     --chart-5: color-mix(in oklab, var(--primary) 20%, var(--background));
     --radius: 10px;
+    /* Plain custom properties as well as Tailwind theme keys: shadcn components reference them in
+       arbitrary values (rounded-[min(var(--radius-md),8px)]), and the acn prefix renames the theme's
+       own variables to --acn-*. */
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
   }
 
   html[data-theme='dark'] {

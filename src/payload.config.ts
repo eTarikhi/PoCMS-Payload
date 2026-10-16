@@ -36,9 +36,19 @@ const dirname = path.dirname(filename)
 export default buildConfig({
   admin: {
     user: Users.slug,
+    // Initials on the design-system Avatar instead of Gravatar (no third-party request).
+    avatar: { Component: '/components/admin/graphics/AccountAvatar#AccountAvatar' },
     components: {
       // Admin design system: Inter, design tokens, Payload overrides, Tailwind (acn:*) utilities.
       providers: ['/components/admin/providers/AdminUIProvider#AdminUIProvider'],
+      views: {
+        // Living style guide (admins only): tokens and primitives inside Payload's shell.
+        uiKit: {
+          Component: '/components/admin/views/UIKit#UIKitView',
+          path: '/ui-kit',
+          meta: { title: 'UI kit' },
+        },
+      },
     },
     livePreview: {
       breakpoints: [
@@ -84,6 +94,9 @@ export default buildConfig({
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
+    // Generated files are written only by `pnpm generate:all` (scripts/generate.mjs), so local runs
+    // without a Blob token no longer rewrite them in a different shape. CI checks they are current.
+    autoGenerate: false,
   },
   db: vercelPostgresAdapter({
     pool: {
