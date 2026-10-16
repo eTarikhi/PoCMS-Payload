@@ -113,6 +113,11 @@ export interface Config {
   };
   locale: null;
   widgets: {
+    welcome: WelcomeWidget;
+    'content-health': ContentHealthWidget;
+    'content-count': ContentCountWidget;
+    'publishing-activity': PublishingActivityWidget;
+    'recent-changes': RecentChangesWidget;
     collections: CollectionsWidget;
   };
   user: User;
@@ -967,6 +972,57 @@ export interface FooterSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "welcome_widget".
+ */
+export interface WelcomeWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "content-health_widget".
+ */
+export interface ContentHealthWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'small' | 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "content-count_widget".
+ */
+export interface ContentCountWidget {
+  data?: {
+    collection:
+      'articles' | 'projects' | 'media' | 'certificates' | 'experiences' | 'educations' | 'skills' | 'services';
+  };
+  width: 'x-small' | 'small' | 'medium';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "publishing-activity_widget".
+ */
+export interface PublishingActivityWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "recent-changes_widget".
+ */
+export interface RecentChangesWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'small' | 'medium' | 'large' | 'x-large' | 'full';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

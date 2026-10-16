@@ -19,6 +19,9 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000'
  */
 export default defineConfig({
   testDir: './tests',
+  // The local dev server compiles routes and chunks on first use, which can take most of the
+  // default 30 s budget in a fresh worker; the CI production build is far faster.
+  timeout: 60_000,
   testMatch: ['e2e/**/*.e2e.spec.ts', 'visual/**/*.visual.spec.ts'],
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
@@ -29,6 +32,7 @@ export default defineConfig({
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'html',
   expect: {
+    timeout: 15_000,
     toHaveScreenshot: { maxDiffPixelRatio: 0.01, animations: 'disabled' },
   },
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */

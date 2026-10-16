@@ -27,6 +27,7 @@ import { Projects } from './collections/Projects'
 import { Services } from './collections/Services'
 import { Skills } from './collections/Skills'
 import { Media } from './collections/Media'
+import { dashboard } from './components/admin/dashboard/config'
 
 // import { MediaWithPrefix } from './collections/MediaWithPrefix'
 
@@ -71,6 +72,8 @@ export default buildConfig({
         },
       },
     },
+    // Dashboard widgets (P4): welcome, content health, counts, publishing chart, recent changes.
+    dashboard,
     livePreview: {
       breakpoints: [
         {

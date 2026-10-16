@@ -6,6 +6,11 @@ import { NavExtraLinks as NavExtraLinks_700740d072e8454ecc3891cae76c4088 } from 
 import { QuickCreate as QuickCreate_40af7464928ae24d32e94dc581ae3dc7 } from '../../../components/admin/nav/QuickCreate'
 import { AdminUIProvider as AdminUIProvider_2e693efb1c8fbc92da8884e85d9ef9cf } from '../../../components/admin/providers/AdminUIProvider'
 import { UIKitView as UIKitView_b28cb988b9fdfc2241f37c6d08c3df10 } from '../../../components/admin/views/UIKit'
+import { WelcomeWidget as WelcomeWidget_533d0d6e4b140c25dc06df5afd44867a } from '../../../components/admin/dashboard/WelcomeWidget'
+import { ContentHealthWidget as ContentHealthWidget_868237aceb10904922b77cc16b993aa4 } from '../../../components/admin/dashboard/ContentHealthWidget'
+import { StatWidget as StatWidget_f1c25d9ede3328c3a51c2b7113d11587 } from '../../../components/admin/dashboard/StatWidget'
+import { PublishingWidget as PublishingWidget_9c1d6c7d484ddb37cdd53fc7956377fe } from '../../../components/admin/dashboard/PublishingWidget'
+import { RecentChangesWidget as RecentChangesWidget_c557bc1a103be128cacaac5808272a43 } from '../../../components/admin/dashboard/RecentChangesWidget'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 import { VercelBlobClientUploadHandler as VercelBlobClientUploadHandler_16c82c5e25f430251a3e3ba57219ff4e } from '@payloadcms/storage-vercel-blob/client'
 
@@ -19,6 +24,11 @@ export const importMap = {
   "/components/admin/nav/QuickCreate#QuickCreate": QuickCreate_40af7464928ae24d32e94dc581ae3dc7,
   "/components/admin/providers/AdminUIProvider#AdminUIProvider": AdminUIProvider_2e693efb1c8fbc92da8884e85d9ef9cf,
   "/components/admin/views/UIKit#UIKitView": UIKitView_b28cb988b9fdfc2241f37c6d08c3df10,
+  "/components/admin/dashboard/WelcomeWidget#WelcomeWidget": WelcomeWidget_533d0d6e4b140c25dc06df5afd44867a,
+  "/components/admin/dashboard/ContentHealthWidget#ContentHealthWidget": ContentHealthWidget_868237aceb10904922b77cc16b993aa4,
+  "/components/admin/dashboard/StatWidget#StatWidget": StatWidget_f1c25d9ede3328c3a51c2b7113d11587,
+  "/components/admin/dashboard/PublishingWidget#PublishingWidget": PublishingWidget_9c1d6c7d484ddb37cdd53fc7956377fe,
+  "/components/admin/dashboard/RecentChangesWidget#RecentChangesWidget": RecentChangesWidget_c557bc1a103be128cacaac5808272a43,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1,
   "@payloadcms/storage-vercel-blob/client#VercelBlobClientUploadHandler": VercelBlobClientUploadHandler_16c82c5e25f430251a3e3ba57219ff4e
 }
