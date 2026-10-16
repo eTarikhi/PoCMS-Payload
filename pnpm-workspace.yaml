@@ -7,8 +7,3 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - '@axe-core/playwright@4.14.0'
-
-onlyBuiltDependencies:
-  - sharp
-  - esbuild
-  - sunrs-resolver
