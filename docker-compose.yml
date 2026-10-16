@@ -1,43 +1,48 @@
-version: '3'
+# Local development stack: Payload/Next.js + PostgreSQL.
+#
+#   cp .env.example .env      # then set PAYLOAD_SECRET
+#   docker compose up         # http://localhost:3000/admin
+#   docker compose exec payload pnpm seed
+#
+# The app reads `.env`, but POSTGRES_URL is overridden below so it points at the `postgres`
+# service instead of localhost. To run Next.js on the host instead, start only the database
+# (`docker compose up postgres`) and keep POSTGRES_URL=postgres://postgres:postgres@127.0.0.1:5432/pocms.
 
 services:
   payload:
-    image: node:20-alpine
+    image: node:22-alpine
     ports:
       - '3000:3000'
     volumes:
       - .:/home/node/app
       - node_modules:/home/node/app/node_modules
     working_dir: /home/node/app/
-    command: sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install && pnpm dev"
+    command: sh -c "corepack enable && corepack prepare pnpm@11 --activate && pnpm install --frozen-lockfile && pnpm dev"
     depends_on:
-      - mongo
-      # - postgres
+      postgres:
+        condition: service_healthy
     env_file:
       - .env
+    environment:
+      POSTGRES_URL: postgres://postgres:postgres@postgres:5432/pocms
 
-  # Ensure your DATABASE_URL uses 'mongo' as the hostname ie. mongodb://mongo/my-db-name
-  mongo:
-    image: mongo:latest
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: pocms
     ports:
-      - '27017:27017'
-    command:
-      - --storageEngine=wiredTiger
+      - '5432:5432'
     volumes:
-      - data:/data/db
-    logging:
-      driver: none
-
-  # Uncomment the following to use postgres
-  # postgres:
-  #   restart: always
-  #   image: postgres:latest
-  #   volumes:
-  #     - pgdata:/var/lib/postgresql/data
-  #   ports:
-  #     - "5432:5432"
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d pocms']
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
-  data:
-  # pgdata:
+  pgdata:
   node_modules:

@@ -32,7 +32,17 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(dirname),
   },
-  allowedDevOrigins: ['127.0.0.1', 'localhost', 'http://127.0.0.1:3000', 'http://localhost:3000']
+  // Extra dev origins (comma-separated hostnames, wildcards allowed), e.g. a tunnel or a cloud IDE
+  // preview host: DEV_ALLOWED_ORIGINS="*.example.dev". Development only; ignored by `next build`.
+  allowedDevOrigins: [
+    '127.0.0.1',
+    'localhost',
+    'http://127.0.0.1:3000',
+    'http://localhost:3000',
+    ...(process.env.DEV_ALLOWED_ORIGINS?.split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean) ?? []),
+  ],
 }
 
 export default withPayload(nextConfig, { devBundleServerPackages: false })

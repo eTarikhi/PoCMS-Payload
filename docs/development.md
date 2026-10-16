@@ -37,11 +37,11 @@ git push origin feature/your-feature
 ### Database connection issues
 
 ```bash
-# Check DATABASE_URI format
+# Check POSTGRES_URL format
 # Should look like:
-# postgresql://user:password@host:port/dbname
+# postgres://user:password@host:port/dbname
 
-psql $DATABASE_URI -c "SELECT 1"
+psql $POSTGRES_URL -c "SELECT 1"
 ```
 
 ### Build failures
@@ -57,9 +57,10 @@ pnpm build
 ### Missing environment variables
 
 ```bash
-echo $DATABASE_URI
+echo $POSTGRES_URL
 echo $BLOB_READ_WRITE_TOKEN
 echo $PAYLOAD_SECRET
+echo $NEXT_PUBLIC_SITE_URL
 ```
 
 ### Vercel Blob issues

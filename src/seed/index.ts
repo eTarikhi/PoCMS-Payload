@@ -1,3 +1,5 @@
+import fs from 'fs/promises'
+import path from 'path'
 import type { Payload, PayloadRequest, File } from 'payload'
 
 import { headerData } from './header.js'
@@ -148,7 +150,7 @@ export const seed = async ({
     const certificatesResults = await Promise.allSettled(
       certificatesData().map(async (certificate) => {
         try {
-          const imageBuffer = await fetchFileByURL(certificate.imageUrl)
+          const image = await createMediaFromURL(payload, certificate.imageUrl, certificate.title)
           return await payload.create({
             collection: 'certificates',
             data: {
@@ -156,8 +158,8 @@ export const seed = async ({
               issuer: certificate.issuer,
               issuedAt: certificate.issuedAt,
               link: certificate.link,
+              image,
             },
-            file: imageBuffer,
             overrideAccess: true,
           })
         } catch (error) {
@@ -191,7 +193,7 @@ export const seed = async ({
     const articlesResults = await Promise.allSettled(
       articlesData().map(async (article) => {
         try {
-          const imageBuffer = await fetchFileByURL(article.imageUrl)
+          const image = await createMediaFromURL(payload, article.imageUrl, article.title)
           return await payload.create({
             collection: 'articles',
             data: {
@@ -201,8 +203,8 @@ export const seed = async ({
               publishedAt: article.publishedAt,
               readTime: article.readTime,
               link: article.link,
+              image,
             },
-            file: imageBuffer,
             overrideAccess: true,
           })
         } catch (error) {
@@ -255,7 +257,7 @@ export const seed = async ({
     const projectsResults = await Promise.allSettled(
       projectsData().map(async (project) => {
         try {
-          const imageBuffer = await fetchFileByURL(project.src)
+          const image = await createMediaFromURL(payload, project.src, project.title)
           return await payload.create({
             collection: 'projects',
             data: {
@@ -266,8 +268,8 @@ export const seed = async ({
               order: project.order,
               placeHolder: project.placeHolder,
               src: project.src,
+              image,
             },
-            file: imageBuffer,
             overrideAccess: true,
           })
         } catch (error) {
@@ -313,31 +315,68 @@ export const seed = async ({
   payload.logger.info('✅ Portfolio database seeded successfully!')
 }
 
+const MIME_TYPES: Record<string, string> = {
+  avif: 'image/avif',
+  gif: 'image/gif',
+  jpeg: 'image/jpeg',
+  jpg: 'image/jpeg',
+  png: 'image/png',
+  svg: 'image/svg+xml',
+  webp: 'image/webp',
+}
+
 /**
- * Utility function to fetch files from URL
+ * Uploads the image at `url` to the `media` collection and returns the new document ID,
+ * so seeded documents reference a real upload (thumbnails in the admin, `image` relations).
+ */
+async function createMediaFromURL(payload: Payload, url: string, alt: string): Promise<number> {
+  const file = await fetchFileByURL(url)
+  const media = await payload.create({
+    collection: 'media',
+    data: { alt },
+    file,
+    overrideAccess: true,
+  })
+  return media.id
+}
+
+/**
+ * Loads a file for seeding.
+ *
+ * - Root-relative paths (`/images/profile.webp`) are read from this repository's `public/` folder,
+ *   so `pnpm seed` works offline and without a running server.
+ * - Absolute URLs are downloaded.
  */
 async function fetchFileByURL(url: string): Promise<File> {
   try {
-    const res = await fetch(url, {
-      credentials: 'include',
-      method: 'GET',
-    })
+    const filename = url.split('/').pop()?.split('?')[0] || `file-${Date.now()}`
+    const extension = filename.split('.').pop()?.toLowerCase() || 'webp'
 
-    if (!res.ok) {
-      throw new Error(`Failed to fetch file from ${url}, status: ${res.status}`)
+    let data: Buffer
+    if (url.startsWith('/')) {
+      const publicDir = path.join(process.cwd(), 'public')
+      const filePath = path.normalize(path.join(publicDir, url))
+      if (!filePath.startsWith(publicDir)) {
+        throw new Error(`Refusing to read outside public/: ${url}`)
+      }
+      data = await fs.readFile(filePath)
+    } else {
+      const res = await fetch(url, { method: 'GET' })
+      if (!res.ok) {
+        throw new Error(`Failed to fetch file from ${url}, status: ${res.status}`)
+      }
+      data = Buffer.from(await res.arrayBuffer())
     }
-
-    const data = await res.arrayBuffer()
-    const extension = url.split('.').pop() || 'webp'
-    const filename = url.split('/').pop() || `file-${Date.now()}`
 
     return {
       name: filename,
-      data: Buffer.from(data),
-      mimetype: `image/${extension}`,
+      data,
+      mimetype: MIME_TYPES[extension] ?? `image/${extension}`,
       size: data.byteLength,
     }
   } catch (error) {
-    throw new Error(`Error fetching file from ${url}: ${error instanceof Error ? error.message : String(error)}`)
+    throw new Error(
+      `Error fetching file from ${url}: ${error instanceof Error ? error.message : String(error)}`,
+    )
   }
 }

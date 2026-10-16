@@ -7,13 +7,15 @@ The repository includes a `docker-compose.yml` file for local development and se
 ### Start local services
 
 ```bash
-docker-compose up
+cp .env.example .env   # set PAYLOAD_SECRET
+docker compose up
 ```
 
-Then, in another terminal, run:
+The `payload` service runs `pnpm dev`, which pushes the schema to the `postgres` service on first
+start. To load the portfolio content, run in another terminal:
 
 ```bash
-npx payload migrate:fresh
+docker compose exec payload pnpm seed
 ```
 
 After that, open the admin UI at:
@@ -36,10 +38,11 @@ The docker environment is intended to provide:
 1. Push the project to GitHub.
 2. Import the repo in Vercel.
 3. Add environment variables in the Vercel dashboard:
-   - `DATABASE_URI`
+   - `POSTGRES_URL`
    - `BLOB_READ_WRITE_TOKEN`
    - `PAYLOAD_SECRET`
-   - `PAYLOAD_PUBLIC_SERVER_URL`
+   - `NEXT_PUBLIC_SITE_URL`
+   - `RESEND_API_KEY`
 4. Deploy the application.
 
 ## Production environment checklist
@@ -49,12 +52,12 @@ Before deployment, verify the following:
 - a secure `PAYLOAD_SECRET` is defined
 - the database connection string is valid
 - the blob token has read/write access
-- `PAYLOAD_PUBLIC_SERVER_URL` points to the production domain
+- `NEXT_PUBLIC_SITE_URL` points to the production domain
 - `NODE_ENV` is set appropriately
 
 ## Security notes
 
-- Keep `.env.local` out of source control
+- Keep `.env` and `.env*.local` out of source control (only `.env.example` is committed)
 - Use HTTPS in production
 - Rely on provider-managed database security and backups
 - Use Payload's built-in auth and access control features
