@@ -13,15 +13,16 @@ import {
   uniqueIndex,
   foreignKey,
   integer,
+  serial,
   varchar,
   timestamp,
-  serial,
   numeric,
   boolean,
   jsonb,
   pgEnum,
 } from '@payloadcms/db-vercel-postgres/drizzle/pg-core'
 import { sql, relations } from '@payloadcms/db-vercel-postgres/drizzle'
+export const enum_users_roles = pgEnum('enum_users_roles', ['admin', 'editor'])
 export const enum_articles_category = pgEnum('enum_articles_category', ['articles', 'others'])
 export const enum_projects_categories = pgEnum('enum_projects_categories', [
   'front-end',
@@ -93,6 +94,25 @@ export const enum_footer_contact_info_class_name = pgEnum('enum_footer_contact_i
   'text-danger',
 ])
 
+export const users_roles = pgTable(
+  'users_roles',
+  {
+    order: integer('order').notNull(),
+    parent: integer('parent_id').notNull(),
+    value: enum_users_roles('value'),
+    id: serial('id').primaryKey(),
+  },
+  (columns) => [
+    index('users_roles_order_idx').on(columns.order),
+    index('users_roles_parent_idx').on(columns.parent),
+    foreignKey({
+      columns: [columns['parent']],
+      foreignColumns: [users.id],
+      name: 'users_roles_parent_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
 export const users_sessions = pgTable(
   'users_sessions',
   {
@@ -121,6 +141,7 @@ export const users = pgTable(
   'users',
   {
     id: serial('id').primaryKey(),
+    name: varchar('name'),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
@@ -829,6 +850,13 @@ export const footer_texts = pgTable(
   ],
 )
 
+export const relations_users_roles = relations(users_roles, ({ one }) => ({
+  parent: one(users, {
+    fields: [users_roles.parent],
+    references: [users.id],
+    relationName: 'roles',
+  }),
+}))
 export const relations_users_sessions = relations(users_sessions, ({ one }) => ({
   _parentID: one(users, {
     fields: [users_sessions._parentID],
@@ -837,6 +865,9 @@ export const relations_users_sessions = relations(users_sessions, ({ one }) => (
   }),
 }))
 export const relations_users = relations(users, ({ many }) => ({
+  roles: many(users_roles, {
+    relationName: 'roles',
+  }),
   sessions: many(users_sessions, {
     relationName: 'sessions',
   }),
@@ -1081,6 +1112,7 @@ export const relations_footer = relations(footer, ({ many }) => ({
 }))
 
 type DatabaseSchema = {
+  enum_users_roles: typeof enum_users_roles
   enum_articles_category: typeof enum_articles_category
   enum_projects_categories: typeof enum_projects_categories
   enum_services_icon_font: typeof enum_services_icon_font
@@ -1091,6 +1123,7 @@ type DatabaseSchema = {
   enum_footer_contact_info_type: typeof enum_footer_contact_info_type
   enum_footer_contact_info_icon_name: typeof enum_footer_contact_info_icon_name
   enum_footer_contact_info_class_name: typeof enum_footer_contact_info_class_name
+  users_roles: typeof users_roles
   users_sessions: typeof users_sessions
   users: typeof users
   about_images: typeof about_images
@@ -1120,6 +1153,7 @@ type DatabaseSchema = {
   footer_contact_info: typeof footer_contact_info
   footer: typeof footer
   footer_texts: typeof footer_texts
+  relations_users_roles: typeof relations_users_roles
   relations_users_sessions: typeof relations_users_sessions
   relations_users: typeof relations_users
   relations_about_images: typeof relations_about_images

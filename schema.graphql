@@ -64,6 +64,8 @@ type Query {
 
 type User {
   id: Int!
+  name: String
+  roles: [User_roles!]
   updatedAt: DateTime
   createdAt: DateTime
   email: EmailAddress!
@@ -75,6 +77,11 @@ type User {
   loginAttempts: Float
   lockUntil: DateTime
   sessions: [User_Sessions!]
+}
+
+enum User_roles {
+  admin
+  editor
 }
 
 """
@@ -108,6 +115,8 @@ type Users {
 }
 
 input User_where {
+  name: User_name_operator
+  roles: User_roles_operator
   updatedAt: User_updatedAt_operator
   createdAt: User_createdAt_operator
   email: User_email_operator
@@ -117,6 +126,31 @@ input User_where {
   id: User_id_operator
   AND: [User_where_and]
   OR: [User_where_or]
+}
+
+input User_name_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
+}
+
+input User_roles_operator {
+  equals: User_roles_Input
+  not_equals: User_roles_Input
+  in: [User_roles_Input]
+  not_in: [User_roles_Input]
+  all: [User_roles_Input]
+  exists: Boolean
+}
+
+enum User_roles_Input {
+  admin
+  editor
 }
 
 input User_updatedAt_operator {
@@ -193,6 +227,8 @@ input User_id_operator {
 }
 
 input User_where_and {
+  name: User_name_operator
+  roles: User_roles_operator
   updatedAt: User_updatedAt_operator
   createdAt: User_createdAt_operator
   email: User_email_operator
@@ -205,6 +241,8 @@ input User_where_and {
 }
 
 input User_where_or {
+  name: User_name_operator
+  roles: User_roles_operator
   updatedAt: User_updatedAt_operator
   createdAt: User_createdAt_operator
   email: User_email_operator
@@ -230,10 +268,58 @@ type usersDocAccess {
 }
 
 type UsersDocAccessFields {
+  name: UsersDocAccessFields_name
+  roles: UsersDocAccessFields_roles
   updatedAt: UsersDocAccessFields_updatedAt
   createdAt: UsersDocAccessFields_createdAt
   email: UsersDocAccessFields_email
   sessions: UsersDocAccessFields_sessions
+}
+
+type UsersDocAccessFields_name {
+  create: UsersDocAccessFields_name_Create
+  read: UsersDocAccessFields_name_Read
+  update: UsersDocAccessFields_name_Update
+  delete: UsersDocAccessFields_name_Delete
+}
+
+type UsersDocAccessFields_name_Create {
+  permission: Boolean!
+}
+
+type UsersDocAccessFields_name_Read {
+  permission: Boolean!
+}
+
+type UsersDocAccessFields_name_Update {
+  permission: Boolean!
+}
+
+type UsersDocAccessFields_name_Delete {
+  permission: Boolean!
+}
+
+type UsersDocAccessFields_roles {
+  create: UsersDocAccessFields_roles_Create
+  read: UsersDocAccessFields_roles_Read
+  update: UsersDocAccessFields_roles_Update
+  delete: UsersDocAccessFields_roles_Delete
+}
+
+type UsersDocAccessFields_roles_Create {
+  permission: Boolean!
+}
+
+type UsersDocAccessFields_roles_Read {
+  permission: Boolean!
+}
+
+type UsersDocAccessFields_roles_Update {
+  permission: Boolean!
+}
+
+type UsersDocAccessFields_roles_Delete {
+  permission: Boolean!
 }
 
 type UsersDocAccessFields_updatedAt {
@@ -6602,10 +6688,58 @@ type usersAccess {
 }
 
 type UsersFields {
+  name: UsersFields_name
+  roles: UsersFields_roles
   updatedAt: UsersFields_updatedAt
   createdAt: UsersFields_createdAt
   email: UsersFields_email
   sessions: UsersFields_sessions
+}
+
+type UsersFields_name {
+  create: UsersFields_name_Create
+  read: UsersFields_name_Read
+  update: UsersFields_name_Update
+  delete: UsersFields_name_Delete
+}
+
+type UsersFields_name_Create {
+  permission: Boolean!
+}
+
+type UsersFields_name_Read {
+  permission: Boolean!
+}
+
+type UsersFields_name_Update {
+  permission: Boolean!
+}
+
+type UsersFields_name_Delete {
+  permission: Boolean!
+}
+
+type UsersFields_roles {
+  create: UsersFields_roles_Create
+  read: UsersFields_roles_Read
+  update: UsersFields_roles_Update
+  delete: UsersFields_roles_Delete
+}
+
+type UsersFields_roles_Create {
+  permission: Boolean!
+}
+
+type UsersFields_roles_Read {
+  permission: Boolean!
+}
+
+type UsersFields_roles_Update {
+  permission: Boolean!
+}
+
+type UsersFields_roles_Delete {
+  permission: Boolean!
 }
 
 type UsersFields_updatedAt {
@@ -10642,6 +10776,8 @@ type Mutation {
 }
 
 input mutationUserInput {
+  name: String
+  roles: [User_roles_MutationInput]
   updatedAt: String
   createdAt: String
   email: String!
@@ -10656,6 +10792,11 @@ input mutationUserInput {
   password: String!
 }
 
+enum User_roles_MutationInput {
+  admin
+  editor
+}
+
 input mutationUser_SessionsInput {
   id: String!
   createdAt: String
@@ -10663,6 +10804,8 @@ input mutationUser_SessionsInput {
 }
 
 input mutationUserUpdateInput {
+  name: String
+  roles: [UserUpdate_roles_MutationInput]
   updatedAt: String
   createdAt: String
   email: String
@@ -10675,6 +10818,11 @@ input mutationUserUpdateInput {
   lockUntil: String
   sessions: [mutationUserUpdate_SessionsInput]
   password: String
+}
+
+enum UserUpdate_roles_MutationInput {
+  admin
+  editor
 }
 
 input mutationUserUpdate_SessionsInput {
@@ -10691,8 +10839,14 @@ type usersRefreshedUser {
 }
 
 type usersJWT {
+  roles: [usersJWT_roles!]
   email: EmailAddress!
   collection: String!
+}
+
+enum usersJWT_roles {
+  admin
+  editor
 }
 
 type usersLoginResult {

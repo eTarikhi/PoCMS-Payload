@@ -6,6 +6,9 @@ export const testUser = {
   password: 'test',
 }
 
+/** The e2e suites exercise admin-only screens (Users, UI kit), so the test user is an admin. */
+const testUserRoles: ('admin' | 'editor')[] = ['admin']
+
 /**
  * Seeds a test user for e2e admin tests.
  */
@@ -25,7 +28,7 @@ export async function seedTestUser(): Promise<void> {
   // Create fresh test user
   await payload.create({
     collection: 'users',
-    data: testUser,
+    data: { ...testUser, roles: testUserRoles },
   })
 }
 

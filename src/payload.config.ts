@@ -13,6 +13,7 @@ import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
+import { ensureAdminExists } from './access/roles'
 import { Footer } from './globals/Footer'
 
 import { Users } from './collections/Users'
@@ -98,6 +99,10 @@ export default buildConfig({
   //   }),
   // ],
   sharp,
+  // Roles (ADR 0008): never leave a database without an admin.
+  onInit: async (payload) => {
+    await ensureAdminExists(payload)
+  },
   plugins: [
     vercelBlobStorage({
       enabled: true,
