@@ -105,6 +105,8 @@ export default buildConfig({
     },
     migrationDir: path.resolve(dirname, 'migrations'),
     prodMigrations: migrations,
+    // Existing deployments are migrated explicitly; never let a dev boot mutate this schema.
+    push: false,
   }),
   // storage: [
   //   vercelBlobStorage({
