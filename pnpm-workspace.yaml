@@ -5,6 +5,9 @@ allowBuilds:
   unrs-resolver: true
   workerd: true
 
+minimumReleaseAgeExclude:
+  - '@axe-core/playwright@4.14.0'
+
 onlyBuiltDependencies:
   - sharp
   - esbuild

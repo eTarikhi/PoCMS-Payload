@@ -1,0 +1,89 @@
+/*
+ * PoCMS admin design tokens (Payload 3.9x). Loaded only by the admin, via AdminUIProvider.
+ *
+ *   Tier 0  brand primitives, from src/app/(frontend)/styles/main.css
+ *   Tier 1  Payload theme variables: font, radius, focus outline, navy-tinted dark neutrals
+ *   Tier 2  shadcn semantic tokens, expressed through Payload variables so light/dark follow
+ *           Payload's theme switch (html[data-theme]) automatically
+ *   Tier 3  Tailwind utilities: the `@theme inline` block in admin-ui.css maps Tier 2 to acn:* classes
+ *
+ * Everything sits in `@layer payload`, which Payload orders after its own `payload-default` layer,
+ * so these values win without !important or specificity tricks.
+ * Contrast of every text/UI pair is checked by scripts/check-contrast.mjs (CI). Hex values here are
+ * parsed by that script, so keep Tier 0 and the dark neutrals in hex.
+ * Payload 4 mapping: docs/ui-modernization/admin-ui-guide.md#payload-4-readiness.
+ */
+
+@layer payload {
+  :root {
+    /* Tier 0 — brand primitives */
+    --brand-amber-500: #da9100; /* oklch(0.713 0.151 73.5) — the site's primary */
+    --brand-amber-700: #996600; /* oklch(0.551 0.116 74.8) — AA-safe amber for light surfaces */
+    --brand-gold-400: #ffc448; /* oklch(0.853 0.151 82.3) */
+    --brand-navy-950: #0d0f17; /* oklch(0.170 0.017 273.6) — the site's background */
+    --brand-navy-900: #12141d; /* oklch(0.194 0.018 274.8) */
+    --brand-on-light: #ffffff;
+
+    /* Tier 1 — Payload theme variables */
+    --font-body:
+      'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+      Arial, sans-serif;
+    --style-radius-s: 6px;
+    --style-radius-m: 8px;
+    --style-radius-l: 12px;
+    --accessibility-outline: 2px solid var(--ring);
+
+    /* Tier 2 — shadcn semantic tokens */
+    --background: var(--theme-bg);
+    --foreground: var(--theme-text);
+    --card: var(--theme-elevation-0);
+    --card-foreground: var(--theme-text);
+    --popover: var(--theme-elevation-0);
+    --popover-foreground: var(--theme-text);
+    --primary: var(--brand-amber-700);
+    --primary-foreground: var(--brand-on-light);
+    --secondary: var(--theme-elevation-100);
+    --secondary-foreground: var(--theme-elevation-800);
+    --muted: var(--theme-elevation-50);
+    /* elevation-600, not 500: 5.83:1 on white (500 would fail at 3.95:1) */
+    --muted-foreground: var(--theme-elevation-600);
+    --accent: var(--theme-elevation-100);
+    --accent-foreground: var(--theme-elevation-900);
+    /* Payload's theme-* status scales flip in dark mode, so step 600 reads well on both. */
+    --destructive: var(--theme-error-600);
+    --destructive-foreground: var(--theme-elevation-0);
+    --success: var(--theme-success-600);
+    --success-soft: var(--theme-success-100);
+    --warning: var(--theme-warning-600);
+    --warning-soft: var(--theme-warning-100);
+    --destructive-soft: var(--theme-error-100);
+    --border: var(--theme-elevation-150);
+    --input: var(--theme-elevation-150);
+    --ring: var(--primary);
+    /* Single-hue chart palette (AdminCN). Charts always ship a text summary too. */
+    --chart-1: var(--primary);
+    --chart-2: color-mix(in oklab, var(--primary) 75%, var(--background));
+    --chart-3: color-mix(in oklab, var(--primary) 55%, var(--background));
+    --chart-4: color-mix(in oklab, var(--primary) 35%, var(--background));
+    --chart-5: color-mix(in oklab, var(--primary) 20%, var(--background));
+    --radius: 10px;
+  }
+
+  html[data-theme='dark'] {
+    /* Tier 1 — navy-tinted dark neutrals: Payload's lightness steps, hue 275 (the site's navy). */
+    --theme-elevation-0: #12141d;
+    --theme-elevation-50: #1f212c;
+    --theme-elevation-100: #2c2e39;
+    --theme-elevation-150: #393c46;
+    --theme-elevation-200: #474a54;
+    --theme-elevation-250: #55575f;
+    --theme-elevation-300: #63656c;
+
+    /* Tier 2 — dark overrides */
+    --card: var(--theme-elevation-50);
+    --popover: var(--theme-elevation-50);
+    --primary: var(--brand-amber-500);
+    --primary-foreground: var(--brand-navy-900);
+    --destructive-foreground: var(--brand-navy-900);
+  }
+}

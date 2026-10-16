@@ -28,17 +28,21 @@
     "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts"
   },
   "dependencies": {
-
-    "payload": "3.90.2",
+    "@apollo/client": "^4.3.2",
+    "@base-ui/react": "^1.9.0",
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fortawesome/fontawesome-svg-core": "^6.7.2",
+    "@fortawesome/free-brands-svg-icons": "^6.7.2",
+    "@fortawesome/free-solid-svg-icons": "^6.7.2",
+    "@fortawesome/react-fontawesome": "^3.5.0",
     "@payloadcms/admin-bar": "3.90.2",
     "@payloadcms/db-postgres": "3.90.2",
     "@payloadcms/db-vercel-postgres": "3.90.2",
     "@payloadcms/email-nodemailer": "3.90.2",
     "@payloadcms/email-resend": "3.90.2",
-    "@payloadcms/live-preview-react": "3.90.2",
     "@payloadcms/graphql": "^3.90.2",
+    "@payloadcms/live-preview-react": "3.90.2",
     "@payloadcms/next": "3.90.2",
-
     "@payloadcms/plugin-form-builder": "3.90.2",
     "@payloadcms/plugin-nested-docs": "3.90.2",
     "@payloadcms/plugin-redirects": "3.90.2",
@@ -48,51 +52,48 @@
     "@payloadcms/storage-vercel-blob": "3.90.2",
     "@payloadcms/translations": "3.90.2",
     "@payloadcms/ui": "3.90.2",
-
+    "@popperjs/core": "^2.11.8",
     "@radix-ui/react-accordion": "1.2.11",
     "@radix-ui/react-checkbox": "^1.0.4",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-label": "^2.0.2",
     "@radix-ui/react-select": "^2.0.0",
     "@radix-ui/react-slot": "^1.0.2",
-
+    "@tanstack/react-table": "^9.3.1",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
-    
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
-    "framer-motion": "^12.43.0",
-    "@popperjs/core": "^2.11.8",
-    "@fortawesome/fontawesome-svg-core": "^6.7.2",
-    "@fortawesome/free-brands-svg-icons": "^6.7.2",
-    "@fortawesome/free-solid-svg-icons": "^6.7.2",
-    "@fortawesome/react-fontawesome": "^3.5.0",
-
+    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.0",
     "cross-env": "^7.0.3",
     "date-fns": "^4.1.0",
     "dotenv": "16.4.7",
+    "embla-carousel-auto-scroll": "^8.1.5",
+    "embla-carousel-react": "^8.5.2",
+    "framer-motion": "^12.43.0",
     "graphql": "^16.8.1",
-    "@apollo/client": "^4.3.2",
     "jsonwebtoken": "9.0.1",
-    "lucide-react": "0.563.0",
+    "lucide-react": "^1.57.0",
     "next": "16.3.8",
     "next-sitemap": "^4.2.3",
     "next-themes": "0.4.6",
+    "payload": "3.90.2",
     "prism-react-renderer": "^2.3.1",
     "qs-esm": "8.0.1",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "react-hook-form": "7.71.1",
-    "embla-carousel-react": "^8.5.2",
-    "embla-carousel-auto-scroll": "^8.1.5",
+    "recharts": "^3.10.1",
     "sharp": "0.35.4",
     "sonner": "^1.7.2",
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@eslint/eslintrc": "^3.3.7",
     "@playwright/test": "1.58.2",
+    "@tailwindcss/postcss": "^4.3.3",
     "@testing-library/react": "16.3.0",
     "@types/node": "22.19.9",
     "@types/react": "19.2.14",
@@ -102,7 +103,10 @@
     "eslint-config-next": "16.3.3",
     "jsdom": "28.0.0",
     "prettier": "^3.4.2",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "tailwindcss": "^4.3.3",
     "tsx": "4.23.15",
+    "tw-animate-css": "^1.4.0",
     "typescript": "5.7.3",
     "vite-tsconfig-paths": "6.0.5",
     "vitest": "4.0.18"
@@ -112,7 +116,11 @@
     "pnpm": "^9 || ^10 || ^11"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["sharp", "esbuild","sunrs-resolver"]
+    "onlyBuiltDependencies": [
+      "sharp",
+      "esbuild",
+      "sunrs-resolver"
+    ]
   },
   "allowScripts": {
     "esbuild": true,

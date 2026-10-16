@@ -1,0 +1,7 @@
+/*
+ * Admin UI stylesheet entry. Imported only by AdminUIProvider (admin.components.providers),
+ * never by the (frontend) app.
+ */
+
+@import './tokens.css';
+@import './payload-overrides.css';

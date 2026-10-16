@@ -35,6 +35,10 @@ const dirname = path.dirname(filename)
 export default buildConfig({
   admin: {
     user: Users.slug,
+    components: {
+      // Admin design system: Inter, design tokens, Payload overrides, Tailwind (acn:*) utilities.
+      providers: ['/components/admin/providers/AdminUIProvider#AdminUIProvider'],
+    },
     livePreview: {
       breakpoints: [
         {

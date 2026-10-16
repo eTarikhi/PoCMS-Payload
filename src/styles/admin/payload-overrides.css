@@ -1,0 +1,21 @@
+/*
+ * The only class-level overrides of Payload 3 components. Keep this file tiny.
+ * Payload 4 replaces these with tokens (--color-bg-brand, --color-text-onbrand); delete the file then.
+ */
+
+@layer payload {
+  /* Brand-coloured primary buttons. Disabled buttons keep Payload's own styling. */
+  .btn--style-primary:not(.btn--disabled) {
+    --bg-color: var(--primary);
+    --color: var(--primary-foreground);
+    --hover-bg: color-mix(in oklab, var(--primary) 85%, var(--foreground));
+    --hover-color: var(--primary-foreground);
+  }
+
+  /* Tabular figures keep numbers aligned in list tables and counters. */
+  .table td,
+  .page-controls,
+  .collection-list__page-info {
+    font-variant-numeric: tabular-nums;
+  }
+}
