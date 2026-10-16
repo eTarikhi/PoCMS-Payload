@@ -50,15 +50,12 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      # Generated files must be committed. A dummy token in the documented format enables the Vercel
-      # Blob plugin, so the types match production (media._objectKey). No Blob API call is made.
+      # Generated files must be committed and current (scripts/generate.mjs supplies a placeholder
+      # Blob token so they match production; no Blob API call is made).
       - name: Generated files are up to date
-        env:
-          BLOB_READ_WRITE_TOKEN: vercel_blob_rw_ci0000_ci0000
         run: |
-          pnpm generate:types
-          pnpm generate:importmap
-          git diff --exit-code -- src/payload-types.ts 'src/app/(payload)/admin/importMap.js'
+          pnpm generate:all
+          git diff --exit-code -- src/payload-types.ts src/payload-generated-schema.ts schema.graphql 'src/app/(payload)/admin/importMap.js'
 
       - name: Admin token contrast (WCAG AA)
         run: pnpm check:contrast
