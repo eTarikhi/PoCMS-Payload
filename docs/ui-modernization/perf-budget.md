@@ -40,6 +40,7 @@ command menu, motion and richer interactive views.
 | P0 baseline | 645.2 | 45.2 |
 | After P5 | 666.2 (**+21.0**, budget then +60) | 58.6 (**+13.4**, budget then +25) |
 | After the admin shell (`76c2e02`) | 666.4 (**+21.2**, budget then +60) | 61.2 (**+16.0**, budget then +25) |
+| After the command menu and shortcuts (`df2ce9b`) | 669.1 (**+23.9**, budget +150) | 61.6 (**+16.4**, budget +40) |
 
 ## After the admin shell (2026-10-16, `76c2e02`, same setup)
 
@@ -75,4 +76,18 @@ What brought it back:
 Rule for new admin components: anything heavy that is not needed on every admin page goes behind a
 small `'use client'` wrapper that calls `next/dynamic`, and that wrapper is what the config
 references.
+
+## After the command menu and shortcuts (2026-10-17, `df2ce9b`, same setup)
+
+| Route | JS files | JS kB (compressed) | JS kB (decoded) | CSS files | CSS kB (compressed) | CSS kB (decoded) |
+|---|---|---|---|---|---|---|
+| `/admin/login` | 12 | 669.1 | 2256.6 | 7 | 61.6 | 425.5 |
+| `/admin` | 12 | 669.1 | 2256.6 | 7 | 61.6 | 425.5 |
+| `/admin/collections/articles` | 14 | 679.2 | 2289.0 | 7 | 61.6 | 425.5 |
+| `/admin/collections/articles/create` | 13 | 669.3 | 2256.8 | 7 | 61.6 | 425.5 |
+
+- Every page: +2.7 kB JS for the header trigger, the shortcut listener, recent-document tracking
+  and the theme transition. The menu and the shortcuts help are one 6.5 kB (gzip) chunk, fetched
+  when the pointer reaches the search button or on the first shortcut.
+- 126 kB of the raised JS budget and 23.6 kB of the CSS budget are still free.
 
