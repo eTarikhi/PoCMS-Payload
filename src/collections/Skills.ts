@@ -15,9 +15,9 @@ export const Skills: CollectionConfig = {
     defaultColumns: ['label', 'group', 'value', 'color', 'order'],
   },
   defaultSort: 'order',
-    access: {
-        read: () => true,
-    },
+  access: {
+    read: () => true,
+  },
   fields: [
     orderField,
     { name: 'label', type: 'text', required: true },
@@ -38,7 +38,10 @@ export const Skills: CollectionConfig = {
       required: true,
       min: 0,
       max: 100,
-      admin: { description: 'Proficiency, 0-100.' },
+      admin: {
+        description: 'Proficiency, 0-100.',
+        components: { Cell: '/components/admin/list/cells/ProgressCell#ProgressCell' },
+      },
     },
     {
       name: 'color',
@@ -46,7 +49,10 @@ export const Skills: CollectionConfig = {
       required: true,
       defaultValue: 'primary',
       options: ['primary', 'secondary', 'success', 'info', 'warning', 'danger'],
-      admin: { description: 'Bootstrap contextual color of the progress bar.' },
+      admin: {
+        description: 'Bootstrap contextual color of the progress bar.',
+        components: { Cell: '/components/admin/list/cells/ContextColorCell#ContextColorCell' },
+      },
     },
   ],
 }

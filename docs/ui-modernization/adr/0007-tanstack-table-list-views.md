@@ -25,3 +25,21 @@
   Payload changes `DefaultListView`'s props, only `TanStackListView.tsx` needs to change.
 - **Alternatives considered:** Payload's table with CSS only (no TanStack); a fully custom list view
   with its own queries (would duplicate access control, presets and bulk actions).
+
+## Implementation notes (P5, 2026-10-16)
+
+- `src/plugins/adminUI.ts` registers `TanStackListView` as the list view of every collection that
+  does not define its own (singletons keep `SingletonListView`), is not `orderable`, and does not set
+  `custom: { tanstackList: false }`. It also gives checkbox fields the `BooleanCell` (Payload's
+  default cell printed the raw key `general:null` for unset values).
+- `TanStackListView` (server) strips the server-only props and renders Payload's `DefaultListView`,
+  replacing only its `Table` prop. Grouped (`groupBy`) and orderable tables are detected from the
+  element Payload built and are left to Payload.
+- `DataTable` (client) is a TanStack Table v9 instance (`useTable`, `tableFeatures({
+  columnVisibilityFeature })`). Column definitions wrap the headings and cells Payload rendered on
+  the server, so sorting (`SortColumn`), selection (`SelectAll`/`SelectRow` + `useSelection`),
+  links, drawer selection and custom `Cell` components behave exactly as before. Payload's
+  `heading-*` ids, `cell-*` classes, `row-N` classes and `data-id` attributes are kept.
+- Relationship/upload drawers reuse the collection's list view, so they get the same table.
+- Field cells: `ProgressCell` (Skills value), `ContextColorCell` (Skills color swatch).
+- Tests: `tests/e2e/list.e2e.spec.ts` (table present, selection state, sort via URL).

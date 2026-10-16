@@ -28,6 +28,7 @@ import { Services } from './collections/Services'
 import { Skills } from './collections/Skills'
 import { Media } from './collections/Media'
 import { dashboard } from './components/admin/dashboard/config'
+import { adminUIPlugin } from './plugins/adminUI'
 
 // import { MediaWithPrefix } from './collections/MediaWithPrefix'
 
@@ -153,6 +154,8 @@ export default buildConfig({
       },
       token: process.env.BLOB_READ_WRITE_TOKEN || '',
     }),
+    // Last, so it sees every field other plugins add: TanStack list views, boolean cells (ADR 0007).
+    adminUIPlugin(),
   ],
   graphQL: {
     validationRules: (args) => [NoProductionIntrospection],
