@@ -1,4 +1,5 @@
 import type { Article } from '@/payload-types'
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/locales'
 
 import { hasArticlePage, splitArticleBody } from './article-page'
 import { formatDisplayDate, formatReadTime } from './format'
@@ -29,7 +30,10 @@ export type ArticleDetail = {
  * Maps an article to its page view model, or returns null when the article has no page (no slug, or no
  * body). The route calls `notFound()` for null.
  */
-export const mapArticleDetail = (doc: Article): ArticleDetail | null => {
+export const mapArticleDetail = (
+  doc: Article,
+  locale: Locale = DEFAULT_LOCALE,
+): ArticleDetail | null => {
   if (!doc.slug || !hasArticlePage(doc)) return null
 
   return {
@@ -38,8 +42,8 @@ export const mapArticleDetail = (doc: Article): ArticleDetail | null => {
     excerpt: doc.excerpt,
     category: doc.category ?? null,
     publishedAt: doc.publishedAt ?? null,
-    publishedDisplay: formatDisplayDate(doc.publishedAt),
-    readTimeDisplay: formatReadTime(doc.readTime),
+    publishedDisplay: formatDisplayDate(doc.publishedAt, locale),
+    readTimeDisplay: formatReadTime(doc.readTime, locale),
     coverUrl: resolveMediaUrl(doc.image) ?? (doc.imageUrl || null),
     coverAlt: (typeof doc.image === 'object' && doc.image?.alt) || doc.title,
     paragraphs: splitArticleBody(doc.description ?? ''),

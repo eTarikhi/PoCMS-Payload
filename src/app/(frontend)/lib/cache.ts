@@ -1,17 +1,18 @@
 import { unstable_cache } from 'next/cache'
 
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/locales'
+
 import { getPortfolioContent } from './payload-source'
 import { PORTFOLIO_CACHE_TAG } from './revalidate'
 import type { PortfolioContent } from './types'
 
 /**
- * The home-page content, cached until `revalidatePortfolio()` marks the `portfolio` tag stale.
- *
- * The key parts are fixed, so the cache entry is shared by every request. Editors trigger a refresh
- * by saving a document in /admin (see `hooks.ts`), not by a time-based expiry.
+ * Returns content cached per locale until an editor refreshes the shared portfolio tag. Locale is a
+ * cache-key component: English and Persian can never serve each other's rendered content.
  */
-export const getCachedPortfolioContent: () => Promise<PortfolioContent> = unstable_cache(
-  () => getPortfolioContent(),
-  ['portfolio-content'],
-  { tags: [PORTFOLIO_CACHE_TAG] },
-)
+export const getCachedPortfolioContent = (
+  locale: Locale = DEFAULT_LOCALE,
+): Promise<PortfolioContent> =>
+  unstable_cache(() => getPortfolioContent(locale), ['portfolio-content', locale], {
+    tags: [PORTFOLIO_CACHE_TAG],
+  })()

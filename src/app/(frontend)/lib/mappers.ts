@@ -22,6 +22,7 @@ import type {
   Service,
   Skill,
 } from '@/payload-types'
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/locales'
 
 import { articlePagePath, hasArticlePage } from './article-page'
 import { formatDisplayDate, formatReadTime, joinDisplay } from './format'
@@ -156,12 +157,15 @@ export const mapEducations = (docs: Education[]): EducationItem[] =>
     location: joinDisplay([doc.institution, doc.location]),
   }))
 
-export const mapCertificates = (docs: Certificate[]): CertificateItem[] =>
+export const mapCertificates = (
+  docs: Certificate[],
+  locale: Locale = DEFAULT_LOCALE,
+): CertificateItem[] =>
   docs.map((doc) => ({
     id: idToString(doc.id),
     title: doc.title,
     issuer: doc.issuer,
-    date: formatDisplayDate(doc.issuedAt),
+    date: formatDisplayDate(doc.issuedAt, locale),
     imageUrl: resolveMediaUrl(doc.image) ?? withFallback(doc.imageUrl, ''),
     link: doc.link && doc.link.length > 0 ? doc.link : null,
   }))
@@ -170,16 +174,16 @@ export const mapCertificates = (docs: Certificate[]): CertificateItem[] =>
  * `author` is the publication date, because the original site printed the date in
  * that field. `readTime` is stored as minutes and rendered as "<n> min".
  */
-export const mapArticles = (docs: Article[]): ArticleItem[] =>
+export const mapArticles = (docs: Article[], locale: Locale = DEFAULT_LOCALE): ArticleItem[] =>
   docs.map((doc) => ({
     id: idToString(doc.id),
     title: doc.title,
     excerpt: doc.excerpt,
-    author: formatDisplayDate(doc.publishedAt),
-    readTime: formatReadTime(doc.readTime),
+    author: formatDisplayDate(doc.publishedAt, locale),
+    readTime: formatReadTime(doc.readTime, locale),
     imageUrl: resolveMediaUrl(doc.image) ?? withFallback(doc.imageUrl, ''),
     link: doc.link,
-    pagePath: doc.slug && hasArticlePage(doc) ? articlePagePath(doc.slug) : null,
+    pagePath: doc.slug && hasArticlePage(doc) ? articlePagePath(doc.slug, locale) : null,
   }))
 
 export const mapServices = (docs: Service[], hiringCta: HiringCta | null): ServicesContent => ({
@@ -247,14 +251,17 @@ export const mapHiringCta = (doc: Footer | null): HiringCta | null => {
 }
 
 /** Builds the full home-page view model from raw documents. Pure and deterministic. */
-export const mapPortfolioContent = (raw: RawPortfolioDocs): PortfolioContent => ({
+export const mapPortfolioContent = (
+  raw: RawPortfolioDocs,
+  locale: Locale = DEFAULT_LOCALE,
+): PortfolioContent => ({
   header: mapHeader(raw.header),
   about: mapAbout(raw.about),
   skills: mapSkills(raw.skills),
   experiences: mapExperiences(raw.experiences),
   educations: mapEducations(raw.educations),
-  certificates: mapCertificates(raw.certificates),
-  articles: mapArticles(raw.articles),
+  certificates: mapCertificates(raw.certificates, locale),
+  articles: mapArticles(raw.articles, locale),
   services: mapServices(raw.services, mapHiringCta(raw.footer)),
   projects: mapProjects(raw.projects),
   footer: mapFooter(raw.footer),

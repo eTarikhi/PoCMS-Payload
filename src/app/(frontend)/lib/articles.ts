@@ -1,26 +1,27 @@
 import { unstable_cache } from 'next/cache'
 
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/locales'
+
 import { mapArticleDetail, type ArticleDetail } from './article-mappers'
 import { fetchArticleBySlug, fetchPublishedArticleSlugs } from './payload-source'
 import { PORTFOLIO_CACHE_TAG } from './revalidate'
 
-/**
- * One article's page data, cached under its own key and the shared `portfolio` tag (article page spec §5.1, §6).
- * Saving any content in /admin marks the tag stale, which refreshes these entries too (D-A8).
- * Returns null when there is no article with that slug, or it has no page (no body).
- */
-export const getCachedArticleBySlug = (slug: string): Promise<ArticleDetail | null> =>
+/** Returns an article page model cached under both its stable slug and requested locale. */
+export const getCachedArticleBySlug = (
+  slug: string,
+  locale: Locale = DEFAULT_LOCALE,
+): Promise<ArticleDetail | null> =>
   unstable_cache(
     async () => {
-      const doc = await fetchArticleBySlug(slug)
-      return doc ? mapArticleDetail(doc) : null
+      const doc = await fetchArticleBySlug(slug, locale)
+      return doc ? mapArticleDetail(doc, locale) : null
     },
-    ['portfolio-article', slug],
+    ['portfolio-article', locale, slug],
     { tags: [PORTFOLIO_CACHE_TAG] },
   )()
 
-/** The slugs of every article that has a page. Used by `generateStaticParams`. */
-export const getCachedArticleSlugs = (): Promise<string[]> =>
-  unstable_cache(() => fetchPublishedArticleSlugs(), ['portfolio-article-slugs'], {
+/** The slugs of every article with a body in the requested locale. */
+export const getCachedArticleSlugs = (locale: Locale = DEFAULT_LOCALE): Promise<string[]> =>
+  unstable_cache(() => fetchPublishedArticleSlugs(locale), ['portfolio-article-slugs', locale], {
     tags: [PORTFOLIO_CACHE_TAG],
   })()

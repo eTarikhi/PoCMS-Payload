@@ -1,48 +1,59 @@
+import { DEFAULT_LOCALE, LOCALE_DETAILS, type Locale } from '@/i18n/locales'
+
 /**
  * Display formatting helpers.
  *
- * Dates in Payload are stored as ISO timestamps. The original vTarikhi site
- * shows plain strings such as "January 9, 2025". Formatting uses UTC so that
- * a date-only value does not shift to the previous day in negative-offset
- * time zones.
+ * Dates in Payload are stored as ISO timestamps. Formatting uses UTC so that a date-only value
+ * does not shift to the previous day in negative-offset time zones. Both date and number output
+ * are keyed by the requested public locale.
  */
 
-const monthDayYear = new Intl.DateTimeFormat('en-US', {
-  month: 'long',
-  day: 'numeric',
-  year: 'numeric',
-  timeZone: 'UTC',
-})
+const dateFormatters: Record<Locale, Intl.DateTimeFormat> = {
+  en: new Intl.DateTimeFormat(LOCALE_DETAILS.en.dateLocale, {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }),
+  fa: new Intl.DateTimeFormat(LOCALE_DETAILS.fa.dateLocale, {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }),
+}
+
+const numberFormatters: Record<Locale, Intl.NumberFormat> = {
+  en: new Intl.NumberFormat(LOCALE_DETAILS.en.dateLocale),
+  fa: new Intl.NumberFormat(LOCALE_DETAILS.fa.dateLocale),
+}
 
 /**
- * Formats an ISO date string or Date as "MMMM d, yyyy" in UTC.
+ * Formats an ISO date string or Date in the requested locale.
  * Returns an empty string for empty or invalid input.
- *
- * @example formatDisplayDate('2025-02-02T12:00:00.000Z') // "February 2, 2025"
  */
-export const formatDisplayDate = (value: string | Date | null | undefined): string => {
+export const formatDisplayDate = (
+  value: string | Date | null | undefined,
+  locale: Locale = DEFAULT_LOCALE,
+): string => {
   if (!value) return ''
   const date = value instanceof Date ? value : new Date(value)
   if (Number.isNaN(date.getTime())) return ''
-  return monthDayYear.format(date)
+  return dateFormatters[locale].format(date)
 }
 
-/**
- * Formats a read time in minutes as "<n> min".
- * Returns an empty string when the value is missing or not positive.
- *
- * @example formatReadTime(3) // "3 min"
- */
-export const formatReadTime = (minutes: number | null | undefined): string => {
+/** Formats a read time in minutes in the requested locale. */
+export const formatReadTime = (
+  minutes: number | null | undefined,
+  locale: Locale = DEFAULT_LOCALE,
+): string => {
   if (typeof minutes !== 'number' || !Number.isFinite(minutes) || minutes <= 0) return ''
-  return `${minutes} min`
+
+  const value = numberFormatters[locale].format(minutes)
+  return locale === 'fa' ? `${value} دقیقه` : `${value} min`
 }
 
-/**
- * Joins non-empty parts with the separator used by the original education rows.
- *
- * @example joinDisplay(['Payam-e Nur University', 'Tabriz, Iran']) // "Payam-e Nur University / Tabriz, Iran"
- */
+/** Joins non-empty parts with the separator used by the original education rows. */
 export const joinDisplay = (parts: Array<string | null | undefined>, separator = ' / '): string =>
   parts
     .filter((part): part is string => typeof part === 'string' && part.trim() !== '')

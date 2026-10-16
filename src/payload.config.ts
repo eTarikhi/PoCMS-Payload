@@ -16,6 +16,7 @@ import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
 import { Footer } from './globals/Footer'
+import { DEFAULT_LOCALE, PAYLOAD_LOCALES } from './i18n/locales'
 import { migrations } from './migrations'
 
 import { Users } from './collections/Users'
@@ -84,11 +85,8 @@ export default buildConfig({
    * make that fallback explicit in the next implementation step.
    */
   localization: {
-    locales: [
-      { code: 'en', label: 'English' },
-      { code: 'fa', label: 'فارسی', rtl: true, fallbackLocale: 'en' },
-    ],
-    defaultLocale: 'en',
+    locales: PAYLOAD_LOCALES,
+    defaultLocale: DEFAULT_LOCALE,
     fallback: true,
   },
   /** Payload Admin UI language support is independent from editorial-content localization. */
