@@ -57,7 +57,7 @@ async function capture(page: Page, name: string) {
 test.describe.configure({ mode: 'serial' })
 
 test.describe('Admin visual baseline', () => {
-  let ids: Record<string, string> = {}
+  const ids: Record<string, string> = {}
 
   test.beforeAll(async () => {
     await seedTestUser()
