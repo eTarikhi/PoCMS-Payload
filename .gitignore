@@ -53,4 +53,9 @@ test.env
 src/seed/portfolio-data.json
 /.kilo
 /.github
+
+schema.graphql
+src/payload-generated-schema.ts
+src/payload-types.ts
 src/app/(payload)/admin/importMap.js
+src/styles/admin/nav-icons.css
