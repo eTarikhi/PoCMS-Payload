@@ -44,6 +44,22 @@ export const enum_skills_color = pgEnum('enum_skills_color', [
   'danger',
 ])
 export const enum_users_roles = pgEnum('enum_users_roles', ['admin', 'editor'])
+export const enum_payload_query_presets_access_read_constraint = pgEnum(
+  'enum_payload_query_presets_access_read_constraint',
+  ['everyone', 'onlyMe', 'specificUsers'],
+)
+export const enum_payload_query_presets_access_update_constraint = pgEnum(
+  'enum_payload_query_presets_access_update_constraint',
+  ['everyone', 'onlyMe', 'specificUsers'],
+)
+export const enum_payload_query_presets_access_delete_constraint = pgEnum(
+  'enum_payload_query_presets_access_delete_constraint',
+  ['everyone', 'onlyMe', 'specificUsers'],
+)
+export const enum_payload_query_presets_related_collection = pgEnum(
+  'enum_payload_query_presets_related_collection',
+  ['articles', 'projects', 'media', 'skills'],
+)
 export const enum_footer_social_links_platform = pgEnum('enum_footer_social_links_platform', [
   'facebook',
   'twitter',
@@ -121,6 +137,7 @@ export const articles = pgTable(
     createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
+    deletedAt: timestamp('deleted_at', { mode: 'string', withTimezone: true, precision: 3 }),
   },
   (columns) => [
     uniqueIndex('articles_slug_idx').on(columns.slug),
@@ -129,6 +146,7 @@ export const articles = pgTable(
     index('articles_image_idx').on(columns.image),
     index('articles_updated_at_idx').on(columns.updatedAt),
     index('articles_created_at_idx').on(columns.createdAt),
+    index('articles_deleted_at_idx').on(columns.deletedAt),
   ],
 )
 
@@ -171,6 +189,7 @@ export const projects = pgTable(
     createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
+    deletedAt: timestamp('deleted_at', { mode: 'string', withTimezone: true, precision: 3 }),
   },
   (columns) => [
     index('projects_order_idx').on(columns.order),
@@ -178,6 +197,7 @@ export const projects = pgTable(
     index('projects_image_idx').on(columns.image),
     index('projects_updated_at_idx').on(columns.updatedAt),
     index('projects_created_at_idx').on(columns.createdAt),
+    index('projects_deleted_at_idx').on(columns.deletedAt),
   ],
 )
 
@@ -194,11 +214,13 @@ export const services = pgTable(
     createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
+    deletedAt: timestamp('deleted_at', { mode: 'string', withTimezone: true, precision: 3 }),
   },
   (columns) => [
     index('services_order_idx').on(columns.order),
     index('services_updated_at_idx').on(columns.updatedAt),
     index('services_created_at_idx').on(columns.createdAt),
+    index('services_deleted_at_idx').on(columns.deletedAt),
   ],
 )
 
@@ -233,6 +255,7 @@ export const media = pgTable(
     createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
+    deletedAt: timestamp('deleted_at', { mode: 'string', withTimezone: true, precision: 3 }),
     url: varchar('url'),
     thumbnailURL: varchar('thumbnail_u_r_l'),
     filename: varchar('filename'),
@@ -252,6 +275,7 @@ export const media = pgTable(
   (columns) => [
     index('media_updated_at_idx').on(columns.updatedAt),
     index('media_created_at_idx').on(columns.createdAt),
+    index('media_deleted_at_idx').on(columns.deletedAt),
     uniqueIndex('media_filename_idx').on(columns.filename),
     index('media_sizes_thumbnail_sizes_thumbnail_filename_idx').on(
       columns.sizes_thumbnail_filename,
@@ -406,11 +430,13 @@ export const experiences = pgTable(
     createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
+    deletedAt: timestamp('deleted_at', { mode: 'string', withTimezone: true, precision: 3 }),
   },
   (columns) => [
     index('experiences_order_idx').on(columns.order),
     index('experiences_updated_at_idx').on(columns.updatedAt),
     index('experiences_created_at_idx').on(columns.createdAt),
+    index('experiences_deleted_at_idx').on(columns.deletedAt),
   ],
 )
 
@@ -429,11 +455,13 @@ export const educations = pgTable(
     createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
+    deletedAt: timestamp('deleted_at', { mode: 'string', withTimezone: true, precision: 3 }),
   },
   (columns) => [
     index('educations_order_idx').on(columns.order),
     index('educations_updated_at_idx').on(columns.updatedAt),
     index('educations_created_at_idx').on(columns.createdAt),
+    index('educations_deleted_at_idx').on(columns.deletedAt),
   ],
 )
 
@@ -452,12 +480,14 @@ export const skills = pgTable(
     createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
+    deletedAt: timestamp('deleted_at', { mode: 'string', withTimezone: true, precision: 3 }),
   },
   (columns) => [
     index('skills_order_idx').on(columns.order),
     index('skills_group_idx').on(columns.group),
     index('skills_updated_at_idx').on(columns.updatedAt),
     index('skills_created_at_idx').on(columns.createdAt),
+    index('skills_deleted_at_idx').on(columns.deletedAt),
   ],
 )
 
@@ -483,12 +513,14 @@ export const certificates = pgTable(
     createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
+    deletedAt: timestamp('deleted_at', { mode: 'string', withTimezone: true, precision: 3 }),
   },
   (columns) => [
     index('certificates_issued_at_idx').on(columns.issuedAt),
     index('certificates_image_idx').on(columns.image),
     index('certificates_updated_at_idx').on(columns.updatedAt),
     index('certificates_created_at_idx').on(columns.createdAt),
+    index('certificates_deleted_at_idx').on(columns.deletedAt),
   ],
 )
 
@@ -759,6 +791,66 @@ export const payload_migrations = pgTable(
   (columns) => [
     index('payload_migrations_updated_at_idx').on(columns.updatedAt),
     index('payload_migrations_created_at_idx').on(columns.createdAt),
+  ],
+)
+
+export const payload_query_presets = pgTable(
+  'payload_query_presets',
+  {
+    id: serial('id').primaryKey(),
+    title: varchar('title').notNull(),
+    isShared: boolean('is_shared').default(false),
+    access_read_constraint:
+      enum_payload_query_presets_access_read_constraint('access_read_constraint').default('onlyMe'),
+    access_update_constraint: enum_payload_query_presets_access_update_constraint(
+      'access_update_constraint',
+    ).default('onlyMe'),
+    access_delete_constraint: enum_payload_query_presets_access_delete_constraint(
+      'access_delete_constraint',
+    ).default('onlyMe'),
+    where: jsonb('where'),
+    columns: jsonb('columns'),
+    groupBy: varchar('group_by'),
+    relatedCollection:
+      enum_payload_query_presets_related_collection('related_collection').notNull(),
+    isTemp: boolean('is_temp'),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index('payload_query_presets_updated_at_idx').on(columns.updatedAt),
+    index('payload_query_presets_created_at_idx').on(columns.createdAt),
+  ],
+)
+
+export const payload_query_presets_rels = pgTable(
+  'payload_query_presets_rels',
+  {
+    id: serial('id').primaryKey(),
+    order: integer('order'),
+    parent: integer('parent_id').notNull(),
+    path: varchar('path').notNull(),
+    usersID: integer('users_id'),
+  },
+  (columns) => [
+    index('payload_query_presets_rels_order_idx').on(columns.order),
+    index('payload_query_presets_rels_parent_idx').on(columns.parent),
+    index('payload_query_presets_rels_path_idx').on(columns.path),
+    index('payload_query_presets_rels_users_id_idx').on(columns.usersID),
+    foreignKey({
+      columns: [columns['parent']],
+      foreignColumns: [payload_query_presets.id],
+      name: 'payload_query_presets_rels_parent_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [columns['usersID']],
+      foreignColumns: [users.id],
+      name: 'payload_query_presets_rels_users_fk',
+    }).onDelete('cascade'),
   ],
 )
 
@@ -1077,6 +1169,26 @@ export const relations_payload_preferences = relations(payload_preferences, ({ m
   }),
 }))
 export const relations_payload_migrations = relations(payload_migrations, () => ({}))
+export const relations_payload_query_presets_rels = relations(
+  payload_query_presets_rels,
+  ({ one }) => ({
+    parent: one(payload_query_presets, {
+      fields: [payload_query_presets_rels.parent],
+      references: [payload_query_presets.id],
+      relationName: '_rels',
+    }),
+    usersID: one(users, {
+      fields: [payload_query_presets_rels.usersID],
+      references: [users.id],
+      relationName: 'users',
+    }),
+  }),
+)
+export const relations_payload_query_presets = relations(payload_query_presets, ({ many }) => ({
+  _rels: many(payload_query_presets_rels, {
+    relationName: '_rels',
+  }),
+}))
 export const relations_footer_social_links = relations(footer_social_links, ({ one }) => ({
   _parentID: one(footer, {
     fields: [footer_social_links._parentID],
@@ -1127,6 +1239,10 @@ type DatabaseSchema = {
   enum_skills_group: typeof enum_skills_group
   enum_skills_color: typeof enum_skills_color
   enum_users_roles: typeof enum_users_roles
+  enum_payload_query_presets_access_read_constraint: typeof enum_payload_query_presets_access_read_constraint
+  enum_payload_query_presets_access_update_constraint: typeof enum_payload_query_presets_access_update_constraint
+  enum_payload_query_presets_access_delete_constraint: typeof enum_payload_query_presets_access_delete_constraint
+  enum_payload_query_presets_related_collection: typeof enum_payload_query_presets_related_collection
   enum_footer_social_links_platform: typeof enum_footer_social_links_platform
   enum_footer_social_links_icon_name: typeof enum_footer_social_links_icon_name
   enum_footer_contact_info_type: typeof enum_footer_contact_info_type
@@ -1157,6 +1273,8 @@ type DatabaseSchema = {
   payload_preferences: typeof payload_preferences
   payload_preferences_rels: typeof payload_preferences_rels
   payload_migrations: typeof payload_migrations
+  payload_query_presets: typeof payload_query_presets
+  payload_query_presets_rels: typeof payload_query_presets_rels
   footer_social_links: typeof footer_social_links
   footer_profiles: typeof footer_profiles
   footer_contact_info: typeof footer_contact_info
@@ -1187,6 +1305,8 @@ type DatabaseSchema = {
   relations_payload_preferences_rels: typeof relations_payload_preferences_rels
   relations_payload_preferences: typeof relations_payload_preferences
   relations_payload_migrations: typeof relations_payload_migrations
+  relations_payload_query_presets_rels: typeof relations_payload_query_presets_rels
+  relations_payload_query_presets: typeof relations_payload_query_presets
   relations_footer_social_links: typeof relations_footer_social_links
   relations_footer_profiles: typeof relations_footer_profiles
   relations_footer_contact_info: typeof relations_footer_contact_info

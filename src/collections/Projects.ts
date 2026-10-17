@@ -1,3 +1,4 @@
+import { trashOrAdmin } from '@/access/roles'
 import type { CollectionConfig } from 'payload'
 import { portfolioAfterChange, portfolioAfterDelete } from '../app/(frontend)/lib/hooks'
 import { orderField } from '../fields/order'
@@ -15,8 +16,13 @@ export const Projects: CollectionConfig = {
     defaultColumns: ['title', 'categories', 'order'],
   },
   defaultSort: 'order',
+  // Saved views (filters and columns) in the list, see queryPresets in payload.config.ts.
+  enableQueryPresets: true,
+  // Deleting moves documents to the trash (restorable); only admins delete permanently.
+  trash: true,
   access: {
     read: () => true,
+    delete: trashOrAdmin,
   },
   fields: [
     orderField,

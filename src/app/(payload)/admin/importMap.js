@@ -8,6 +8,13 @@ import { SingletonListView as SingletonListView_5435722dddf5a4a9debf735ac4adfd02
 import { ProgressCell as ProgressCell_ce7d71ece6670be02c77e1a05755168d } from '../../../components/admin/list/cells/ProgressCell'
 import { ContextColorCell as ContextColorCell_9acbc8403de42ef89586417006cc4931 } from '../../../components/admin/list/cells/ContextColorCell'
 import { ContextColorField as ContextColorField_60cce06ca32c5b7ec535269105bfddb2 } from '../../../components/admin/fields/ContextColorField'
+import { QueryPresetsAccessCell as QueryPresetsAccessCell_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
+import { QueryPresetsWhereCell as QueryPresetsWhereCell_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
+import { QueryPresetsWhereField as QueryPresetsWhereField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
+import { QueryPresetsColumnsCell as QueryPresetsColumnsCell_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
+import { QueryPresetsColumnField as QueryPresetsColumnField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
+import { QueryPresetsGroupByCell as QueryPresetsGroupByCell_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
+import { QueryPresetsGroupByField as QueryPresetsGroupByField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
 import { AccountAvatar as AccountAvatar_c3bba9300643314266b9f8dbd31e71aa } from '../../../components/admin/graphics/AccountAvatar'
 import { RefreshSiteCache as RefreshSiteCache_f09a5e442c01eaea263e7fcd3a43ac8a } from '../../../components/admin/nav/RefreshSiteCache'
 import { Icon as Icon_8c7579001d094aae258586b09a2f4a85 } from '../../../components/admin/graphics/Icon'
@@ -38,6 +45,13 @@ export const importMap = {
   "/components/admin/list/cells/ProgressCell#ProgressCell": ProgressCell_ce7d71ece6670be02c77e1a05755168d,
   "/components/admin/list/cells/ContextColorCell#ContextColorCell": ContextColorCell_9acbc8403de42ef89586417006cc4931,
   "/components/admin/fields/ContextColorField#ContextColorField": ContextColorField_60cce06ca32c5b7ec535269105bfddb2,
+  "@payloadcms/next/client#QueryPresetsAccessCell": QueryPresetsAccessCell_2b8867833a34864a02ddf429b0728a40,
+  "@payloadcms/next/client#QueryPresetsWhereCell": QueryPresetsWhereCell_2b8867833a34864a02ddf429b0728a40,
+  "@payloadcms/next/client#QueryPresetsWhereField": QueryPresetsWhereField_2b8867833a34864a02ddf429b0728a40,
+  "@payloadcms/next/client#QueryPresetsColumnsCell": QueryPresetsColumnsCell_2b8867833a34864a02ddf429b0728a40,
+  "@payloadcms/next/client#QueryPresetsColumnField": QueryPresetsColumnField_2b8867833a34864a02ddf429b0728a40,
+  "@payloadcms/next/client#QueryPresetsGroupByCell": QueryPresetsGroupByCell_2b8867833a34864a02ddf429b0728a40,
+  "@payloadcms/next/client#QueryPresetsGroupByField": QueryPresetsGroupByField_2b8867833a34864a02ddf429b0728a40,
   "/components/admin/graphics/AccountAvatar#AccountAvatar": AccountAvatar_c3bba9300643314266b9f8dbd31e71aa,
   "/components/admin/nav/RefreshSiteCache#RefreshSiteCache": RefreshSiteCache_f09a5e442c01eaea263e7fcd3a43ac8a,
   "/components/admin/graphics/Icon#Icon": Icon_8c7579001d094aae258586b09a2f4a85,

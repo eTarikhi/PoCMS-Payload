@@ -1,3 +1,4 @@
+import { trashOrAdmin } from '@/access/roles'
 import type { CollectionConfig } from 'payload'
 import { portfolioAfterChange, portfolioAfterDelete } from '../app/(frontend)/lib/hooks'
 
@@ -14,8 +15,11 @@ export const Certificates: CollectionConfig = {
     defaultColumns: ['title', 'issuer', 'issuedAt'],
   },
   defaultSort: 'issuedAt',
+  // Deleting moves documents to the trash (restorable); only admins delete permanently.
+  trash: true,
   access: {
     read: () => true,
+    delete: trashOrAdmin,
   },
   fields: [
     { name: 'title', type: 'text', required: true },

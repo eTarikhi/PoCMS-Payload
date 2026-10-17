@@ -48,9 +48,10 @@ export const countWithAccess = async (
   { payload, user }: { payload: BasePayload; user: TypedUser | null | undefined },
   collection: CollectionSlug,
   where?: Where,
+  trash?: boolean,
 ) =>
   payload
-    .count({ collection, where, user: user ?? undefined, overrideAccess: false })
+    .count({ collection, where, trash, user: user ?? undefined, overrideAccess: false })
     .then((result) => result.totalDocs)
     .catch((error: unknown) => {
       payload.logger.warn({ msg: `List summary: count on ${collection} failed`, err: error })

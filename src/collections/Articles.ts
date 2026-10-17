@@ -1,3 +1,4 @@
+import { trashOrAdmin } from '@/access/roles'
 import { articlePagePath, hasArticlePage } from '@/app/(frontend)/lib/article-page'
 import type { CollectionConfig } from 'payload'
 import {
@@ -26,8 +27,13 @@ export const Articles: CollectionConfig = {
     preview: (doc) => (hasArticlePage(doc) ? articlePagePath(String(doc.slug)) : null),
   },
   defaultSort: 'publishedAt',
+  // Saved views (filters and columns) in the list, see queryPresets in payload.config.ts.
+  enableQueryPresets: true,
+  // Deleting moves documents to the trash (restorable); only admins delete permanently.
+  trash: true,
   access: {
     read: () => true,
+    delete: trashOrAdmin,
   },
   fields: [
     { name: 'title', type: 'text', required: true },

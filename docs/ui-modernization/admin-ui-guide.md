@@ -292,6 +292,43 @@ Body text is 14px instead of Payload's 13px (`tokens.css`). Payload computes `--
 `20 / --base-body-size` rem, so raising both keeps `--base` at 20px and the spacing scale at 4px:
 only text grows.
 
+## Trash and saved views
+
+Both are built into Payload 3.9x; the project turns them on and adds the role rules.
+
+### Trash (soft delete)
+
+- On Articles, Projects, Services, Experiences, Educations, Certificates, Skills and Media
+  (`trash: true`). Deleting moves documents to the collection's **Trash** tab
+  (`/collections/<slug>/trash`), where they are read-only and can be restored. Normal queries,
+  the public site and the dashboard leave trashed documents out.
+- Access (`trashOrAdmin` in `src/access/roles.ts`): every signed-in user can move documents to
+  the trash and restore them; only admins delete permanently ("Delete permanently", "Empty trash",
+  the "skip trash" option). Payload computes the two permissions separately, so editors see
+  Delete and Restore but no permanent delete.
+- Trashing is an update, so the `afterChange` hooks run and the site cache is refreshed;
+  `afterDelete` runs only on permanent deletes. A trashed media file stays in storage until it is
+  deleted permanently.
+- The list summary links to the trash when it holds documents ("2 in the trash"); on the trash
+  view it says what can be done there.
+- Not combined with Payload folders yet: the folder view's delete skips the trash dialog
+  (payloadcms/payload#16327).
+
+### Saved views (query presets)
+
+- On Articles, Projects, Media and Skills (`enableQueryPresets: true`): the bar above the list
+  saves the current filters and columns as a named view, and **Select Saved view** applies one.
+  Stored in the `payload-query-presets` collection (hidden from the sidebar), labelled "Saved
+  view".
+- Sharing (`queryPresets` in `payload.config.ts`): only admins can share a view with everyone;
+  editors keep views to themselves or share them with specific users.
+
+### Database
+
+Both add schema: a `deleted_at` column on the eight tables and the `payload_query_presets` tables.
+Development pushes the schema automatically; for a database without push, create and run a
+migration (`npx payload migrate:create`, then `npx payload migrate`).
+
 ## Roles
 
 Users have `roles` (`admin`, `editor`; new users are editors, the first user is an admin).

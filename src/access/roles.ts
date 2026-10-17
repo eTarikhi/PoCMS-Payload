@@ -28,6 +28,14 @@ export const adminsOrSelf: Access = ({ req }) => {
 }
 
 /** Field access: only admins can set or change the field (prevents self-promotion). */
+/**
+ * Delete access for collections with Trash: every signed-in user can move documents to the trash
+ * (Payload sends `data.deletedAt`), only admins delete permanently (including "Empty trash").
+ */
+export const trashOrAdmin: Access = ({ req, data }) =>
+  isAdmin(req.user) ||
+  (Boolean(req.user) && Boolean((data as { deletedAt?: unknown } | undefined)?.deletedAt))
+
 export const adminsOnlyField: FieldAccess = ({ req }) => isAdmin(req.user)
 
 /**

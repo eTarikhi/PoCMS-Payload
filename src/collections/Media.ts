@@ -1,3 +1,4 @@
+import { trashOrAdmin } from '@/access/roles'
 import type { CollectionConfig } from 'payload'
 import { portfolioAfterChange, portfolioAfterDelete } from '../app/(frontend)/lib/hooks'
 
@@ -12,8 +13,13 @@ export const Media: CollectionConfig = {
     description: 'Images and files used across the site. Alt text is required for accessibility.',
     defaultColumns: ['filename', 'alt', 'mimeType', 'filesize', 'updatedAt'],
   },
+  // Saved views (filters and columns) in the list, see queryPresets in payload.config.ts.
+  enableQueryPresets: true,
+  // Deleting moves documents to the trash (restorable); only admins delete permanently.
+  trash: true,
   access: {
     read: () => true,
+    delete: trashOrAdmin,
   },
   fields: [
     {

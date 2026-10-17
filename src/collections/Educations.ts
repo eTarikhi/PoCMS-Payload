@@ -1,3 +1,4 @@
+import { trashOrAdmin } from '@/access/roles'
 import type { CollectionConfig } from 'payload'
 import { portfolioAfterChange, portfolioAfterDelete } from '../app/(frontend)/lib/hooks'
 import { orderField } from '../fields/order'
@@ -15,8 +16,11 @@ export const Educations: CollectionConfig = {
     defaultColumns: ['title', 'institution', 'date', 'order'],
   },
   defaultSort: 'order',
+  // Deleting moves documents to the trash (restorable); only admins delete permanently.
+  trash: true,
   access: {
     read: () => true,
+    delete: trashOrAdmin,
   },
   fields: [
     orderField,
