@@ -97,6 +97,38 @@ test.describe('Admin shell', () => {
     await expect(tools.getByRole('link', { name: /My permissions/ })).toBeHidden()
   })
 
+  test('admins can run the code generators from the header (development only)', async () => {
+    const dryRun = await page.request.post(`${base}/api/dev-generate?target=nav-icons&dryRun=1`)
+    await page.goto(`${base}/admin`)
+    await openNav()
+    const tools = page.getByTestId('dev-tools')
+    await tools.locator('summary').click()
+    if (dryRun.status() !== 200) {
+      // Production build: no generators.
+      expect(dryRun.status()).toBe(404)
+      await expect(tools.getByTestId('dev-generate')).toHaveCount(0)
+      return
+    }
+    for (const target of ['types', 'importmap', 'db-schema', 'graphql', 'nav-icons', 'all']) {
+      await expect(tools.getByTestId(`dev-generate-${target}`)).toBeVisible()
+    }
+    // Nav icons is fast and its output is deterministic, so the run leaves the file unchanged.
+    await tools.getByTestId('dev-generate-nav-icons').click()
+    await expect(tools.getByTestId('dev-generate').getByRole('status')).toHaveText(
+      /Nav icons: done in/,
+      {
+        timeout: 60_000,
+      },
+    )
+    await page.keyboard.press('Escape')
+
+    // Only the listed targets run, and only for admins.
+    expect((await page.request.post(`${base}/api/dev-generate?target=rm`)).status()).toBe(400)
+    const anonymous = await request.newContext()
+    expect((await anonymous.post(`${base}/api/dev-generate?target=types`)).status()).toBe(403)
+    await anonymous.dispose()
+  })
+
   test('one sidebar control: rail toggle on desktop, Payload menu button on small screens', async () => {
     await page.goto(`${base}/admin`)
     await openNav()

@@ -149,6 +149,13 @@ checkbox is a `span[role=checkbox]`, so name it with `aria-labelledby` or `aria-
   deletes Turbopack's persistent cache and Next's other on-disk caches and purges every page; the
   next dev start compiles from scratch), the JSON behind the current page, the user's permissions,
   the signed-in user and the Payload docs.
+- **Generate** (same menu, development only): buttons for each code generator (Types, Import map,
+  DB schema, GraphQL schema: `node scripts/generate.mjs <target>`; Nav icons:
+  `node scripts/generate-nav-icons.mjs`) and **Run generate:all**, through
+  `POST /api/dev-generate?target=…` (`src/endpoints/devGenerate.ts`): admins only, a fixed list of
+  targets, one run at a time, output tail in the response and the run's result in the menu. Use it
+  after changing collections or admin components instead of a terminal; the dev server picks up the
+  regenerated files.
 - One sidebar control (`nav/SidebarToggle` → `SidebarToggleButton`, `beforeNavLinks`): on
   desktop it sits at the top of the sidebar (top-right corner, or centred above the icons in the
   rail) and collapses the sidebar to the icon rail and back; Payload's own toggler, which only hid

@@ -18,6 +18,7 @@ import { Footer } from './globals/Footer'
 
 import { Users } from './collections/Users'
 import { isAdmin } from './access/roles'
+import { devGenerateEndpoint } from './endpoints/devGenerate'
 import { resetBundlerCacheEndpoint } from './endpoints/resetBundlerCache'
 import { revalidateSiteEndpoint } from './endpoints/revalidateSite'
 import { About } from './collections/About'
@@ -174,7 +175,7 @@ export default buildConfig({
           ),
   },
   // Custom REST endpoints (under /api).
-  endpoints: [revalidateSiteEndpoint, resetBundlerCacheEndpoint],
+  endpoints: [revalidateSiteEndpoint, resetBundlerCacheEndpoint, devGenerateEndpoint],
   // Roles (ADR 0008): never leave a database without an admin.
   onInit: async (payload) => {
     await ensureAdminExists(payload)

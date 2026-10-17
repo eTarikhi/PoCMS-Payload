@@ -1,7 +1,14 @@
 'use client'
 
 import { toast } from '@payloadcms/ui'
-import { BugIcon, DatabaseZapIcon, ExternalLinkIcon, RefreshCwIcon } from 'lucide-react'
+import {
+  BugIcon,
+  DatabaseZapIcon,
+  ExternalLinkIcon,
+  LoaderCircleIcon,
+  PlayIcon,
+  RefreshCwIcon,
+} from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import React, { useRef, useState } from 'react'
 
@@ -26,6 +33,15 @@ function GraphQLIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   )
 }
+
+/** The code generators (`POST /api/dev-generate`), as in package.json's generate scripts. */
+const GENERATORS = [
+  { target: 'types', label: 'Types', command: 'node scripts/generate.mjs types' },
+  { target: 'importmap', label: 'Import map', command: 'node scripts/generate.mjs importmap' },
+  { target: 'db-schema', label: 'DB schema', command: 'node scripts/generate.mjs db-schema' },
+  { target: 'graphql', label: 'GraphQL schema', command: 'node scripts/generate.mjs graphql' },
+  { target: 'nav-icons', label: 'Nav icons', command: 'node scripts/generate-nav-icons.mjs' },
+] as const
 
 /** The REST URL behind the current admin page, if it shows a list, a document or a global. */
 function restURLFor(pathname: string, adminRoute: string, apiRoute: string) {
@@ -52,8 +68,8 @@ const iconButton = cn(
 
 /**
  * GraphQL Playground button and a "Developer tools" disclosure (native details/summary: no popup
- * library on every page): cache actions (site cache; bundler cache in development) and links that
- * open in a new tab. Escape and outside clicks close the menu.
+ * library on every page): cache actions (site cache; bundler cache in development), the code
+ * generators in development, and links that open in a new tab. Escape and outside clicks close the menu.
  */
 export function DevToolsMenu({
   adminRoute,
@@ -67,6 +83,8 @@ export function DevToolsMenu({
   /** Development only: the bundler cache can't be reset in a production build. */
   canResetBundler: boolean
 }) {
+  // Code generators and the bundler reset only make sense on the development server.
+  const devServer = canResetBundler
   const pathname = usePathname()
   const ref = useRef<HTMLDetailsElement>(null)
   const pageJSON = restURLFor(pathname, adminRoute, apiRoute)
@@ -91,6 +109,30 @@ export function DevToolsMenu({
       toast.error(failure)
     } finally {
       setBusy(null)
+    }
+  }
+
+  const [generating, setGenerating] = useState<string | null>(null)
+  const [lastRun, setLastRun] = useState<{ target: string; ok: boolean; text: string } | null>(null)
+
+  const generate = async (target: string, label: string) => {
+    setGenerating(target)
+    try {
+      const res = await fetch(`${apiRoute}/dev-generate?target=${target}`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+      const body = (await res.json()) as { ok?: boolean; durationMs?: number; error?: string }
+      const seconds = ((body.durationMs ?? 0) / 1000).toFixed(1)
+      if (!res.ok || !body.ok) throw new Error(body.error || String(res.status))
+      setLastRun({ target, ok: true, text: `${label}: done in ${seconds}s` })
+      toast.success(`${label}: generated in ${seconds}s.`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'failed'
+      setLastRun({ target, ok: false, text: `${label}: ${message}` })
+      toast.error(`${label} failed: ${message}`)
+    } finally {
+      setGenerating(null)
     }
   }
 
@@ -159,7 +201,7 @@ export function DevToolsMenu({
         </summary>
         <nav
           aria-label="Developer tools"
-          className="acn:absolute acn:top-full acn:right-0 acn:z-50 acn:mt-2 acn:w-56 acn:rounded-md acn:bg-popover acn:p-1 acn:text-popover-foreground acn:shadow-md acn:ring-1 acn:ring-foreground/10"
+          className="acn:absolute acn:top-full acn:right-0 acn:z-50 acn:mt-2 acn:w-64 acn:rounded-md acn:bg-popover acn:p-1 acn:text-popover-foreground acn:shadow-md acn:ring-1 acn:ring-foreground/10"
         >
           <p className="acn:m-0 acn:px-2 acn:pt-1 acn:pb-1.5 acn:text-xs acn:font-medium acn:text-muted-foreground">
             Developer tools
@@ -181,6 +223,61 @@ export function DevToolsMenu({
               </li>
             ))}
           </ul>
+          {devServer ? (
+            <section aria-label="Generate" data-testid="dev-generate" className="acn:mt-1">
+              <div role="separator" className="acn:mb-1 acn:h-px acn:bg-border" />
+              <p className="acn:m-0 acn:px-2 acn:pt-1 acn:pb-1.5 acn:text-xs acn:font-medium acn:text-muted-foreground">
+                Generate
+              </p>
+              <div className="acn:grid acn:grid-cols-2 acn:gap-1 acn:px-1">
+                {GENERATORS.map((generator) => (
+                  <button
+                    key={generator.target}
+                    type="button"
+                    title={generator.command}
+                    data-testid={`dev-generate-${generator.target}`}
+                    onClick={() => generate(generator.target, generator.label)}
+                    disabled={generating !== null}
+                    aria-busy={generating === generator.target}
+                    className="acn:flex acn:cursor-pointer acn:items-center acn:gap-1.5 acn:rounded-sm acn:border acn:border-border acn:bg-transparent acn:px-2 acn:py-1 acn:text-left acn:text-xs acn:text-popover-foreground acn:outline-none acn:hover:bg-accent acn:focus-visible:ring-2 acn:focus-visible:ring-ring/50 acn:disabled:cursor-wait acn:disabled:opacity-60"
+                  >
+                    {generating === generator.target ? (
+                      <LoaderCircleIcon aria-hidden className="acn:size-3.5 acn:animate-spin" />
+                    ) : null}
+                    {generator.label}
+                  </button>
+                ))}
+              </div>
+              <div className="acn:px-1 acn:pt-1">
+                <button
+                  type="button"
+                  title="pnpm generate:all"
+                  data-testid="dev-generate-all"
+                  onClick={() => generate('all', 'generate:all')}
+                  disabled={generating !== null}
+                  aria-busy={generating === 'all'}
+                  className="acn:flex acn:w-full acn:cursor-pointer acn:items-center acn:justify-center acn:gap-1.5 acn:rounded-sm acn:border-0 acn:bg-primary acn:px-2 acn:py-1.5 acn:text-xs acn:font-medium acn:text-primary-foreground acn:outline-none acn:hover:bg-primary/90 acn:focus-visible:ring-2 acn:focus-visible:ring-ring/50 acn:disabled:cursor-wait acn:disabled:opacity-60"
+                >
+                  {generating === 'all' ? (
+                    <LoaderCircleIcon aria-hidden className="acn:size-3.5 acn:animate-spin" />
+                  ) : (
+                    <PlayIcon aria-hidden className="acn:size-3.5" />
+                  )}
+                  Run generate:all
+                </button>
+              </div>
+              <p
+                role="status"
+                aria-live="polite"
+                className={cn(
+                  'acn:m-0 acn:min-h-5 acn:px-2 acn:pt-1 acn:text-xs acn:text-muted-foreground',
+                  lastRun && !lastRun.ok && 'acn:text-destructive',
+                )}
+              >
+                {generating ? 'Running…' : (lastRun?.text ?? '')}
+              </p>
+            </section>
+          ) : null}
           <div role="separator" className="acn:my-1 acn:h-px acn:bg-border" />
           <ul className="acn:m-0 acn:list-none acn:p-0">
             {links.map((link) => (
