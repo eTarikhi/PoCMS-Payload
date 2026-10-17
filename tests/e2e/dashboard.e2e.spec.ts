@@ -48,6 +48,8 @@ test.describe('Dashboard widgets', () => {
     // The chart island replaces the server-rendered bars once its chunk has loaded.
     const chart = page.getByTestId('publishing-chart')
     await expect(chart).toBeVisible({ timeout: 60_000 })
+    // Count cards carry a server-rendered sparkline of additions per month.
+    await expect(page.locator('[data-slot="sparkline"]')).toHaveCount(4)
 
     // Range: 24 months, remembered across reloads.
     await chart.getByRole('button', { name: /^24M/ }).click()

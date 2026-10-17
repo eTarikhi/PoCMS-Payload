@@ -228,6 +228,12 @@ To add a widget:
    per-instance settings, as the **Content count** widget does for its collection.
 4. Run `pnpm generate:types` (widget slugs are typed) and `pnpm generate:importmap`.
 
+### Count cards
+
+Each count card (`StatWidget`) shows the total, the additions in the last 30 days and a sparkline
+of additions per month over the last year: a server-rendered SVG (no client JavaScript), drawn
+with `--chart-1`, decorative because the numbers beside it say the same.
+
 ### Publishing chart
 
 `PublishingWidget` (server) counts articles by `publishedAt` and projects by `createdAt` over the
