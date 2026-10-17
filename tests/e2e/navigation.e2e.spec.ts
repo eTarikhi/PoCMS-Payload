@@ -19,17 +19,10 @@ test.describe('Admin navigation and branding', () => {
     await cleanupTestUser()
   })
 
-  /**
-   * A closed sidebar stays in the DOM (inert, behind the page), so check the open state, after
-   * hydration: the client applies the saved nav preference.
-   */
+  /** On desktop the sidebar is always open (collapsed or not); wait for hydration to apply it. */
   async function openNav() {
     await expect(page.locator('.nav.nav--nav-hydrated')).toHaveCount(1, { timeout: 60_000 })
-    const openNavigation = page.locator('.nav.nav--nav-open')
-    if ((await openNavigation.count()) === 0) {
-      await page.locator('.nav-toggler').first().click()
-      await expect(openNavigation).toHaveCount(1)
-    }
+    await expect(page.locator('.nav.nav--nav-open')).toHaveCount(1)
     return page.getByTestId('quick-create').locator('summary')
   }
 

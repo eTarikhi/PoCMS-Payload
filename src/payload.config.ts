@@ -18,6 +18,7 @@ import { Footer } from './globals/Footer'
 
 import { Users } from './collections/Users'
 import { isAdmin } from './access/roles'
+import { resetBundlerCacheEndpoint } from './endpoints/resetBundlerCache'
 import { revalidateSiteEndpoint } from './endpoints/revalidateSite'
 import { About } from './collections/About'
 import { Header } from './collections/Header'
@@ -66,13 +67,19 @@ export default buildConfig({
         Icon: '/components/admin/graphics/Icon#Icon',
       },
       // Sidebar: a permission-aware "Create" menu on top; "View site" (and the UI kit for admins) below.
-      beforeNavLinks: ['/components/admin/nav/QuickCreate#QuickCreate'],
+      beforeNavLinks: [
+        // Desktop sidebar collapse control (icon rail), at the top of the sidebar.
+        '/components/admin/nav/SidebarToggle#SidebarToggle',
+        '/components/admin/nav/QuickCreate#QuickCreate',
+      ],
       afterNavLinks: ['/components/admin/nav/NavExtraLinks#NavExtraLinks'],
-      // Gear menu at the bottom of the sidebar (every signed-in user).
-      settingsMenu: ['/components/admin/nav/RefreshSiteCache#RefreshSiteCache'],
+      // Log out is in the header account menu.
+      logout: { Button: '/components/admin/nav/HiddenLogout#HiddenLogout' },
       // Header: command menu (Ctrl+K / Cmd+K) and the light/dark switch.
       // (Payload renders the actions right to left, so the search button lands first.)
       actions: [
+        // Account menu (replaces Payload's avatar link): account settings and log out.
+        '/components/admin/header/AccountMenu#AccountMenu',
         '/components/admin/header/ThemeToggle#ThemeToggle',
         // Admins: GraphQL Playground and debugging links.
         '/components/admin/header/DevTools#DevTools',
@@ -167,7 +174,7 @@ export default buildConfig({
           ),
   },
   // Custom REST endpoints (under /api).
-  endpoints: [revalidateSiteEndpoint],
+  endpoints: [revalidateSiteEndpoint, resetBundlerCacheEndpoint],
   // Roles (ADR 0008): never leave a database without an admin.
   onInit: async (payload) => {
     await ensureAdminExists(payload)

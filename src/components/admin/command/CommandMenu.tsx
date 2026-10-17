@@ -221,32 +221,30 @@ export default function CommandMenu({
           switchTheme(setTheme, theme === 'dark' ? 'light' : 'dark')
         },
       },
-      {
-        id: 'action:sidebar',
-        group: 'Actions',
-        label: navOpen ? 'Hide sidebar' : 'Show sidebar',
-        keywords: ['sidebar', 'navigation', 'menu', 'toggle'],
-        icon: <PanelLeftIcon aria-hidden />,
-        run: () => {
-          close()
-          document.querySelector<HTMLButtonElement>('.nav-toggler')?.click()
-        },
-      },
-      ...(navOpen && document.querySelector('#nav-rail-toggle')
-        ? [
-            {
-              id: 'action:rail',
-              group: 'Actions' as const,
-              label: rail ? 'Expand sidebar' : 'Collapse sidebar to icons',
-              keywords: ['sidebar', 'rail', 'icons', 'compact'],
-              icon: <PanelLeftIcon aria-hidden />,
-              run: () => {
-                close()
-                document.querySelector<HTMLButtonElement>('#nav-rail-toggle')?.click()
-              },
+      // Desktop: collapse/expand to the icon rail. Mobile: Payload's menu button.
+      window.matchMedia('(min-width: 1025px)').matches
+        ? {
+            id: 'action:rail',
+            group: 'Actions' as const,
+            label: rail ? 'Expand sidebar' : 'Collapse sidebar to icons',
+            keywords: ['sidebar', 'rail', 'icons', 'compact', 'navigation'],
+            icon: <PanelLeftIcon aria-hidden />,
+            run: () => {
+              close()
+              document.querySelector<HTMLButtonElement>('#nav-rail-toggle')?.click()
             },
-          ]
-        : []),
+          }
+        : {
+            id: 'action:sidebar',
+            group: 'Actions' as const,
+            label: navOpen ? 'Close menu' : 'Open menu',
+            keywords: ['sidebar', 'navigation', 'menu', 'toggle'],
+            icon: <PanelLeftIcon aria-hidden />,
+            run: () => {
+              close()
+              document.querySelector<HTMLButtonElement>('.nav-toggler')?.click()
+            },
+          },
       {
         id: 'action:refresh-cache',
         group: 'Actions',

@@ -1,11 +1,13 @@
 'use client'
 
-import { BugIcon, ExternalLinkIcon } from 'lucide-react'
+import { toast } from '@payloadcms/ui'
+import { BugIcon, DatabaseZapIcon, ExternalLinkIcon, RefreshCwIcon } from 'lucide-react'
 import { usePathname } from 'next/navigation'
-import React, { useEffect, useRef } from 'react'
+import React, { useRef, useState } from 'react'
 
 import { cn } from '../lib/utils'
 import { buttonVariants } from '../ui/button'
+import { useDismissable } from './useDismissable'
 
 /** The GraphQL logo (simplified), drawn with currentColor. */
 function GraphQLIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -50,41 +52,80 @@ const iconButton = cn(
 
 /**
  * GraphQL Playground button and a "Developer tools" disclosure (native details/summary: no popup
- * library on every page). Links open in a new tab. Escape and outside clicks close the menu.
+ * library on every page): cache actions (site cache; bundler cache in development) and links that
+ * open in a new tab. Escape and outside clicks close the menu.
  */
 export function DevToolsMenu({
   adminRoute,
   apiRoute,
   playgroundURL,
+  canResetBundler,
 }: {
   adminRoute: string
   apiRoute: string
   playgroundURL: string | null
+  /** Development only: the bundler cache can't be reset in a production build. */
+  canResetBundler: boolean
 }) {
   const pathname = usePathname()
   const ref = useRef<HTMLDetailsElement>(null)
   const pageJSON = restURLFor(pathname, adminRoute, apiRoute)
 
-  useEffect(() => {
-    const close = (event: Event) => {
-      const details = ref.current
-      if (!details?.open) return
-      if (
-        event instanceof KeyboardEvent
-          ? event.key === 'Escape'
-          : !details.contains(event.target as Node)
-      ) {
-        details.open = false
-        if (event instanceof KeyboardEvent) details.querySelector('summary')?.focus()
-      }
+  useDismissable(ref)
+  const [busy, setBusy] = useState<string | null>(null)
+
+  const run = async (
+    trigger: HTMLElement,
+    key: string,
+    endpoint: string,
+    success: string,
+    failure: string,
+  ) => {
+    setBusy(key)
+    try {
+      const res = await fetch(`${apiRoute}${endpoint}`, { method: 'POST', credentials: 'include' })
+      if (!res.ok) throw new Error(String(res.status))
+      toast.success(success)
+      trigger.closest('details')?.removeAttribute('open')
+    } catch {
+      toast.error(failure)
+    } finally {
+      setBusy(null)
     }
-    document.addEventListener('keydown', close)
-    document.addEventListener('pointerdown', close)
-    return () => {
-      document.removeEventListener('keydown', close)
-      document.removeEventListener('pointerdown', close)
-    }
-  }, [])
+  }
+
+  const actions = [
+    {
+      key: 'site',
+      label: 'Refresh site cache',
+      icon: <RefreshCwIcon aria-hidden />,
+      onClick: (trigger: HTMLElement) =>
+        run(
+          trigger,
+          'site',
+          '/revalidate-site',
+          'The site will show the latest content on the next visit.',
+          'Could not refresh the site cache. Try again.',
+        ),
+    },
+    ...(canResetBundler
+      ? [
+          {
+            key: 'bundler',
+            label: 'Reset bundler cache',
+            icon: <DatabaseZapIcon aria-hidden />,
+            onClick: (trigger: HTMLElement) =>
+              run(
+                trigger,
+                'bundler',
+                '/reset-bundler-cache',
+                'Bundler cache cleared and every page purged. Restart the dev server for a clean rebuild.',
+                'Could not reset the bundler cache.',
+              ),
+          },
+        ]
+      : []),
+  ]
 
   const links = [
     ...(pageJSON ? [pageJSON] : []),
@@ -123,6 +164,24 @@ export function DevToolsMenu({
           <p className="acn:m-0 acn:px-2 acn:pt-1 acn:pb-1.5 acn:text-xs acn:font-medium acn:text-muted-foreground">
             Developer tools
           </p>
+          <ul className="acn:m-0 acn:list-none acn:p-0">
+            {actions.map((action) => (
+              <li key={action.key}>
+                <button
+                  type="button"
+                  data-testid={`dev-action-${action.key}`}
+                  onClick={(event) => action.onClick(event.currentTarget)}
+                  disabled={busy !== null}
+                  aria-busy={busy === action.key}
+                  className="acn:flex acn:w-full acn:cursor-pointer acn:items-center acn:gap-2 acn:rounded-sm acn:border-0 acn:bg-transparent acn:px-2 acn:py-1.5 acn:text-left acn:text-sm acn:text-popover-foreground acn:outline-none acn:hover:bg-accent acn:focus-visible:bg-accent acn:focus-visible:ring-2 acn:focus-visible:ring-ring/50 acn:disabled:cursor-wait acn:disabled:opacity-60 acn:[&_svg]:size-4 acn:[&_svg]:text-muted-foreground"
+                >
+                  {action.icon}
+                  {busy === action.key ? 'Working…' : action.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div role="separator" className="acn:my-1 acn:h-px acn:bg-border" />
           <ul className="acn:m-0 acn:list-none acn:p-0">
             {links.map((link) => (
               <li key={link.label}>

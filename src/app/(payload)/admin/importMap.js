@@ -16,13 +16,15 @@ import { QueryPresetsColumnField as QueryPresetsColumnField_2b8867833a34864a02dd
 import { QueryPresetsGroupByCell as QueryPresetsGroupByCell_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
 import { QueryPresetsGroupByField as QueryPresetsGroupByField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
 import { AccountAvatar as AccountAvatar_c3bba9300643314266b9f8dbd31e71aa } from '../../../components/admin/graphics/AccountAvatar'
-import { RefreshSiteCache as RefreshSiteCache_f09a5e442c01eaea263e7fcd3a43ac8a } from '../../../components/admin/nav/RefreshSiteCache'
+import { HiddenLogout as HiddenLogout_0b87bd55f4d244b27d7b4e405bf54f07 } from '../../../components/admin/nav/HiddenLogout'
 import { Icon as Icon_8c7579001d094aae258586b09a2f4a85 } from '../../../components/admin/graphics/Icon'
 import { Logo as Logo_da4f7e8a6c72793056168c73c78f997f } from '../../../components/admin/graphics/Logo'
+import { AccountMenu as AccountMenu_cc123314fa28a708e7d7d01484b62912 } from '../../../components/admin/header/AccountMenu'
 import { ThemeToggle as ThemeToggle_65deb6683786a06b1500e5a7b73e4b51 } from '../../../components/admin/header/ThemeToggle'
 import { DevTools as DevTools_343c7d625e2ad63638a5cef79a0ef4e6 } from '../../../components/admin/header/DevTools'
 import { CommandMenuTrigger as CommandMenuTrigger_9bae43b9801496547d35f1607c4bad66 } from '../../../components/admin/command/CommandMenuTrigger'
 import { NavExtraLinks as NavExtraLinks_700740d072e8454ecc3891cae76c4088 } from '../../../components/admin/nav/NavExtraLinks'
+import { SidebarToggle as SidebarToggle_a76174464917710a175c5cd60d5d20c2 } from '../../../components/admin/nav/SidebarToggle'
 import { QuickCreate as QuickCreate_40af7464928ae24d32e94dc581ae3dc7 } from '../../../components/admin/nav/QuickCreate'
 import { AdminUIProvider as AdminUIProvider_2e693efb1c8fbc92da8884e85d9ef9cf } from '../../../components/admin/providers/AdminUIProvider'
 import { UIKitView as UIKitView_b28cb988b9fdfc2241f37c6d08c3df10 } from '../../../components/admin/views/UIKit'
@@ -54,13 +56,15 @@ export const importMap = {
   "@payloadcms/next/client#QueryPresetsGroupByCell": QueryPresetsGroupByCell_2b8867833a34864a02ddf429b0728a40,
   "@payloadcms/next/client#QueryPresetsGroupByField": QueryPresetsGroupByField_2b8867833a34864a02ddf429b0728a40,
   "/components/admin/graphics/AccountAvatar#AccountAvatar": AccountAvatar_c3bba9300643314266b9f8dbd31e71aa,
-  "/components/admin/nav/RefreshSiteCache#RefreshSiteCache": RefreshSiteCache_f09a5e442c01eaea263e7fcd3a43ac8a,
+  "/components/admin/nav/HiddenLogout#HiddenLogout": HiddenLogout_0b87bd55f4d244b27d7b4e405bf54f07,
   "/components/admin/graphics/Icon#Icon": Icon_8c7579001d094aae258586b09a2f4a85,
   "/components/admin/graphics/Logo#Logo": Logo_da4f7e8a6c72793056168c73c78f997f,
+  "/components/admin/header/AccountMenu#AccountMenu": AccountMenu_cc123314fa28a708e7d7d01484b62912,
   "/components/admin/header/ThemeToggle#ThemeToggle": ThemeToggle_65deb6683786a06b1500e5a7b73e4b51,
   "/components/admin/header/DevTools#DevTools": DevTools_343c7d625e2ad63638a5cef79a0ef4e6,
   "/components/admin/command/CommandMenuTrigger#CommandMenuTrigger": CommandMenuTrigger_9bae43b9801496547d35f1607c4bad66,
   "/components/admin/nav/NavExtraLinks#NavExtraLinks": NavExtraLinks_700740d072e8454ecc3891cae76c4088,
+  "/components/admin/nav/SidebarToggle#SidebarToggle": SidebarToggle_a76174464917710a175c5cd60d5d20c2,
   "/components/admin/nav/QuickCreate#QuickCreate": QuickCreate_40af7464928ae24d32e94dc581ae3dc7,
   "/components/admin/providers/AdminUIProvider#AdminUIProvider": AdminUIProvider_2e693efb1c8fbc92da8884e85d9ef9cf,
   "/components/admin/views/UIKit#UIKitView": UIKitView_b28cb988b9fdfc2241f37c6d08c3df10,

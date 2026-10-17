@@ -20,8 +20,9 @@
     flex: none;
     width: 1rem;
     height: 1rem;
-    background-color: currentColor;
-    opacity: 0.75;
+    /* Per-item tone from nav-icons.css (theme tokens in tokens.css), else the text colour. */
+    background-color: var(--nav-icon-color, currentColor);
+    opacity: 0.9;
     mask: var(--nav-icon) center / contain no-repeat;
   }
 
@@ -30,37 +31,63 @@
     opacity: 1;
   }
 
-  /* The collapse toggle draws its own Lucide icon. */
-  .nav .nav-rail-toggle {
-    width: 100%;
-    margin-top: calc(var(--base) * 0.25);
-    border: 0;
-    background: transparent;
-    color: var(--theme-elevation-500);
-    font: inherit;
+  /* The sidebar collapse control (SidebarToggleButton), at the top of the sidebar. */
+  .nav .sidebar-toggle {
+    position: absolute;
+    z-index: 2;
+    top: calc((var(--app-header-height) - 1.75rem) / 2);
+    right: calc(var(--base) * 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border: 1px solid var(--theme-elevation-150);
+    border-radius: var(--style-radius-s);
+    background: var(--theme-bg);
+    color: var(--theme-elevation-600);
     cursor: pointer;
-    text-align: start;
   }
 
-  .nav .nav-rail-toggle::before {
-    display: none;
+  .nav .sidebar-toggle:hover {
+    color: var(--theme-text);
+    background: var(--theme-elevation-50);
   }
 
-  .nav .nav-rail-toggle svg {
-    flex: none;
+  .nav .sidebar-toggle:focus-visible {
+    outline: var(--accessibility-outline);
+    outline-offset: 2px;
+  }
+
+  .nav .sidebar-toggle svg {
     width: 1rem;
     height: 1rem;
   }
 
-  .nav .nav-rail-toggle:hover,
-  .nav .nav-rail-toggle:focus-visible {
-    color: var(--theme-text);
-  }
-
+  /* Mobile and tablet: Payload's toggler is the menu button, the rail doesn't apply. */
   @media (max-width: 1024px) {
-    .nav .nav-rail-toggle {
+    .nav .sidebar-toggle {
       display: none;
     }
+  }
+
+  /* Desktop: one control, ours. Payload's toggler would only hide the whole sidebar. */
+  @media (min-width: 1025px) {
+    .template-default__nav-toggler-wrapper {
+      display: none;
+    }
+
+    .template-default--nav-open:has(.nav [data-nav-rail='true']) .nav .sidebar-toggle {
+      right: auto;
+      left: 50%;
+      translate: -50% 0;
+    }
+  }
+
+  /* Log out lives in the header account menu (AccountMenu), which replaces Payload's avatar link. */
+  .app-header__account {
+    display: none;
   }
 
   @media (min-width: 1025px) {
@@ -211,30 +238,6 @@
     }
     to {
       clip-path: circle(150vmax at var(--theme-reveal-x) var(--theme-reveal-y));
-    }
-  }
-}
-
-/*
- * Sidebar controls inside the sidebar (desktop). Payload draws its sidebar toggler in a sticky strip
- * at the top left of the page (a sibling of .template-default, so matched through body:has()),
- * over the sidebar. When the sidebar is open, that strip spans the sidebar instead: the toggler
- * sits in the sidebar's top-right corner (full width) or centred above the icons (rail). When the
- * sidebar is closed it stays where Payload puts it.
- */
-@layer payload {
-  @media (min-width: 1025px) {
-    body:has(.template-default--nav-open) .template-default__nav-toggler-wrapper {
-      width: var(--nav-width, 275px);
-      justify-content: flex-end;
-      padding-inline-end: calc(var(--base) * 0.6);
-    }
-
-    body:has(.template-default--nav-open .nav [data-nav-rail='true'])
-      .template-default__nav-toggler-wrapper {
-      width: 4rem;
-      justify-content: center;
-      padding-inline-end: 0;
     }
   }
 }

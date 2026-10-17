@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, request, type Page } from '@playwright/test'
 
 import { login } from '../helpers/login'
 import { seedTestUser, cleanupTestUser, testUser } from '../helpers/seedUser'
@@ -22,14 +22,11 @@ test.describe('Admin shell', () => {
     await cleanupTestUser()
   })
 
-  /** The closed sidebar stays in the DOM (inert), so wait for hydration and open it if needed. */
+  /** On desktop the sidebar is always open (collapsed or not); wait for hydration to apply it. */
   async function openNav() {
     // Generous: the first visit to a route compiles it on the dev server.
     await expect(page.locator('.nav.nav--nav-hydrated')).toHaveCount(1, { timeout: 60_000 })
-    if ((await page.locator('.nav.nav--nav-open').count()) === 0) {
-      await page.locator('.nav-toggler').first().click()
-      await expect(page.locator('.nav.nav--nav-open')).toHaveCount(1)
-    }
+    await expect(page.locator('.nav.nav--nav-open')).toHaveCount(1)
   }
 
   test('the header switches between light and dark', async () => {
@@ -100,23 +97,25 @@ test.describe('Admin shell', () => {
     await expect(tools.getByRole('link', { name: /My permissions/ })).toBeHidden()
   })
 
-  test('the sidebar toggler and the Create menu stay inside or beside the sidebar', async () => {
+  test('one sidebar control: rail toggle on desktop, Payload menu button on small screens', async () => {
     await page.goto(`${base}/admin`)
     await openNav()
     const nav = page.locator('aside.nav')
+    const toggle = page.locator('#nav-rail-toggle')
+    // Desktop: Payload's toggler (which hid the whole sidebar) is gone; ours sits inside the sidebar.
+    await expect(page.locator('.template-default__nav-toggler-wrapper')).toBeHidden()
     const inside = async () => {
       const box = (await nav.boundingBox())!
-      const toggler = (await page.locator('.nav-toggler').first().boundingBox())!
-      expect(toggler.x).toBeGreaterThanOrEqual(box.x)
-      expect(toggler.x + toggler.width).toBeLessThanOrEqual(box.x + box.width)
+      const own = (await toggle.boundingBox())!
+      expect(own.x).toBeGreaterThanOrEqual(box.x)
+      expect(own.x + own.width).toBeLessThanOrEqual(box.x + box.width)
       return box
     }
     await inside()
 
-    // Rail: the toggler is centred above the icons, and Create opens to the right of the rail.
-    const rail = page.locator('#nav-rail-toggle')
-    await rail.click()
-    await expect(rail).toHaveAttribute('aria-pressed', 'true')
+    // Rail: the control is centred above the icons, and Create opens to the right of the rail.
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true')
     await expect.poll(async () => (await nav.boundingBox())?.width ?? 0).toBeLessThan(80)
     const box = await inside()
     await page.getByTestId('quick-create').locator('summary').click()
@@ -124,18 +123,53 @@ test.describe('Admin shell', () => {
     await expect(menu).toBeVisible()
     expect((await menu.boundingBox())!.x).toBeGreaterThanOrEqual(box.x + box.width)
     await page.keyboard.press('Escape')
-    await rail.click()
-    await expect(rail).toHaveAttribute('aria-pressed', 'false')
+    await toggle.click()
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false')
+
+    // Small screens: Payload's menu button is back, ours is hidden.
+    await page.setViewportSize({ width: 800, height: 900 })
+    await expect(page.locator('.nav-toggler').first()).toBeVisible()
+    await expect(toggle).toBeHidden()
+    await page.setViewportSize({ width: 1440, height: 900 })
   })
 
-  test('the settings menu refreshes the site cache', async () => {
+  test('the header holds account and cache actions; the sidebar has neither', async () => {
     await page.goto(`${base}/admin`)
     await openNav()
-    await page.locator('.settings-menu-button').getByRole('button').first().click()
-    await page.getByTestId('refresh-site-cache').click()
+    await expect(page.locator('.nav .nav__log-out')).toHaveCount(0)
+    await expect(page.locator('.settings-menu-button')).toHaveCount(0)
+
+    const account = page.getByTestId('account-menu')
+    await account.locator('summary').click()
+    await expect(account.getByRole('link', { name: 'Account settings' })).toHaveAttribute(
+      'href',
+      '/admin/account',
+    )
+    await expect(account.getByRole('link', { name: 'Log out' })).toHaveAttribute(
+      'href',
+      '/admin/logout',
+    )
+    await page.keyboard.press('Escape')
+
+    const tools = page.getByTestId('dev-tools')
+    await tools.locator('summary').click()
+    await tools.getByTestId('dev-action-site').click()
     await expect(
       page.getByText('The site will show the latest content on the next visit.'),
     ).toBeVisible()
+
+    // Reset bundler cache: admins only, development only (dry run, so nothing is deleted).
+    const dryRun = await page.request.post(`${base}/api/reset-bundler-cache?dryRun=1`)
+    await tools.locator('summary').click()
+    if (dryRun.status() === 200) await expect(tools.getByTestId('dev-action-bundler')).toBeVisible()
+    else {
+      expect(dryRun.status()).toBe(404)
+      await expect(tools.getByTestId('dev-action-bundler')).toHaveCount(0)
+    }
+    await page.keyboard.press('Escape')
+    const anonymous = await request.newContext()
+    expect((await anonymous.post(`${base}/api/reset-bundler-cache?dryRun=1`)).status()).toBe(403)
+    await anonymous.dispose()
   })
 
   test('lists open with a summary line', async () => {

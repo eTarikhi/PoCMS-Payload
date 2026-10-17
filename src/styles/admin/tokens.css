@@ -109,3 +109,32 @@
     font-size: 14px;
   }
 }
+
+/*
+ * Sidebar icon tones: nav-icons.css gives each item one. Light theme: 700 shades, dark theme: 400
+ * shades, so every icon keeps at least 3:1 against the sidebar background (WCAG 1.4.11). Amber is
+ * the brand colour.
+ */
+@layer payload {
+  :root {
+    --nav-tone-amber: var(--primary);
+    --nav-tone-orange: #c2410c;
+    --nav-tone-rose: #be123c;
+    --nav-tone-violet: #6d28d9;
+    --nav-tone-blue: #1d4ed8;
+    --nav-tone-teal: #0f766e;
+    --nav-tone-green: #15803d;
+    --nav-tone-slate: #475569;
+  }
+
+  html[data-theme='dark'] {
+    --nav-tone-amber: var(--primary);
+    --nav-tone-orange: #fb923c;
+    --nav-tone-rose: #fb7185;
+    --nav-tone-violet: #a78bfa;
+    --nav-tone-blue: #60a5fa;
+    --nav-tone-teal: #2dd4bf;
+    --nav-tone-green: #4ade80;
+    --nav-tone-slate: #94a3b8;
+  }
+}

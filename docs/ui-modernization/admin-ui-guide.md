@@ -134,27 +134,27 @@ checkbox is a `span[role=checkbox]`, so name it with `aria-labelledby` or `aria-
   native disclosure (`details`/`summary`) holding links, closed by Escape or an outside click.
 - `afterNavLinks`: **View site** (`NEXT_PUBLIC_SITE_URL`, or the same origin), the **UI kit** for
   admins and **Collapse sidebar**.
-- `settingsMenu` (gear): **Refresh site cache**, for every signed-in user. It calls
-  `POST /api/revalidate-site` (`src/endpoints/revalidateSite.ts`), which expires the `portfolio`
-  cache tag at once (`expire: 0`). Saves only mark it stale, so the first visitor after a save can
-  still get the old page; seeds, imports and database edits don't touch it at all. Don't put
-  role-specific items here: the popup opens empty for users whose items all render nothing.
+- No `settingsMenu` (gear) and no sidebar log out (`logout.Button` is `nav/HiddenLogout`): the
+  site cache refresh is in the developer tools menu and log out in the account menu, both in the
+  header. `POST /api/revalidate-site` (`src/endpoints/revalidateSite.ts`) expires the `portfolio`
+  cache tag at once (`expire: 0`); saves only mark it stale.
 - `actions` (header, rendered right to left): the command menu button, **developer tools** for
-  admins and the light/dark switch (`header/ThemeToggle.tsx`, through Payload's `useTheme`, so the
-  choice is Payload's own theme cookie).
+  admins, the light/dark switch (`header/ThemeToggle.tsx`, Payload's `useTheme`) and the **account
+  menu** (`header/AccountMenu.tsx`: name, email, role, Account settings, Log out), which replaces
+  Payload's avatar link (hidden in `nav-rail.css`).
 - Developer tools (`header/DevTools.tsx`, server; `DevToolsMenu.tsx`, client): a **GraphQL
-  Playground** button (`/api/graphql-playground`, shown only where Payload serves it: GraphQL on,
-  and development or `disablePlaygroundInProduction: false`; production also blocks introspection,
-  so the playground's schema docs only load in development) and a bug-icon menu with the JSON
-  behind the current page (list, document or global over REST), the user's permissions
-  (`/api/access`), the signed-in user (`/api/users/me`) and the Payload docs. Links open in a new
-  tab; the menu is a native disclosure, like Create.
-- Sidebar controls stay in the sidebar on desktop: Payload's toggler (a sticky strip outside
-  `.template-default`, matched with `body:has()`) moves to the sidebar's top-right corner when it is
-  open, and is centred above the icons in the rail. The account controls (settings, log out) sit at
-  the bottom of the sidebar; the Next.js dev indicator is moved to the bottom right
-  (`devIndicators` in `next.config.ts`) so it no longer covers them.
-- `admin.dateFormat` is `d MMM yyyy, HH:mm`. Fields with their own `date.displayFormat` keep it.
+  Playground** button (`/api/graphql-playground`, only where Payload serves it; production blocks
+  introspection, so its schema docs only load in development) and a bug-icon menu with **Refresh
+  site cache**, **Reset bundler cache** (development only: `POST /api/reset-bundler-cache`, admins,
+  deletes Turbopack's persistent cache and Next's other on-disk caches and purges every page; the
+  next dev start compiles from scratch), the JSON behind the current page, the user's permissions,
+  the signed-in user and the Payload docs.
+- One sidebar control (`nav/SidebarToggle` → `SidebarToggleButton`, `beforeNavLinks`): on
+  desktop it sits at the top of the sidebar (top-right corner, or centred above the icons in the
+  rail) and collapses the sidebar to the icon rail and back; Payload's own toggler, which only hid
+  the whole sidebar, is hidden there, and a sidebar closed by an older preference is reopened. Below
+  1025px Payload's toggler is the mobile menu button and ours is hidden. The Next.js dev indicator
+  sits at the bottom right (`devIndicators` in `next.config.ts`).
 
 ### Command menu
 
@@ -204,9 +204,11 @@ switch.
   add the collection or global to `NAV_ICONS` in `scripts/generate-nav-icons.mjs` and run
   `pnpm generate:nav-icons` (part of `generate:all`, so CI catches a stale
   `src/styles/admin/nav-icons.css`). Links without an entry get a generic file icon.
-- **Collapse sidebar** (desktop, 1025 px and up) shrinks the open sidebar to a 4rem icon rail.
-  Payload's own toggler still hides the sidebar completely, and smaller screens keep Payload's
-  overlay. The state is a cookie (`pocms-nav-rail`), so the server renders the rail directly on the
+- Each entry also names a tone (amber, orange, rose, violet, blue, teal, green, slate): theme
+  tokens `--nav-tone-*` in `tokens.css` with a light value (700 shade, amber is the brand primary)
+  and a dark value (400 shade), so icons keep 3:1 contrast in both themes.
+- The sidebar control (desktop, 1025 px and up) shrinks the sidebar to a 4rem icon rail and back;
+  smaller screens keep Payload's overlay menu. The state is a cookie (`pocms-nav-rail`), so the server renders the rail directly on the
   next visit, and a `data-nav-rail` attribute that `nav-rail.css` reads with `:has()`.
 - In the rail, labels are hidden visually only (links keep their accessible names), the group
   headings become separators, collapsed groups stay visible and hover or keyboard focus shows a
