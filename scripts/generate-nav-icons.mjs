@@ -34,6 +34,13 @@ const NAV_ICONS = {
   'nav-view-site': ['ExternalLink', 'slate'],
   'nav-ui-kit': ['Palette', 'rose'],
 }
+/** Sidebar group (admin.group label) -> [Lucide component name, tone]; matched by Payload's group id. */
+const NAV_GROUP_ICONS = {
+  Content: ['LayoutGrid', 'amber'],
+  Profile: ['IdCard', 'blue'],
+  Admin: ['ShieldCheck', 'teal'],
+}
+
 const FALLBACK = 'File'
 
 const svg = (name) => {
@@ -53,6 +60,10 @@ const lines = [
     ([id, [name, tone]]) =>
       `  #${id} { --nav-icon: ${svg(name)}; --nav-icon-color: var(--nav-tone-${tone}); }`,
   ),
+  ...Object.entries(NAV_GROUP_ICONS).map(
+    ([group, [name, tone]]) =>
+      `  [id='nav-group-${group}'] { --nav-group-icon: ${svg(name)}; --nav-group-color: var(--nav-tone-${tone}); }`,
+  ),
   '}',
   '',
 ]
@@ -62,4 +73,6 @@ const out = path.resolve(
   '../src/styles/admin/nav-icons.css',
 )
 fs.writeFileSync(out, lines.join('\n'))
-console.log(`Wrote ${path.relative(process.cwd(), out)} (${Object.keys(NAV_ICONS).length} icons)`)
+console.log(
+  `Wrote ${path.relative(process.cwd(), out)} (${Object.keys(NAV_ICONS).length} items, ${Object.keys(NAV_GROUP_ICONS).length} groups)`,
+)

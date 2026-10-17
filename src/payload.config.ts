@@ -17,7 +17,6 @@ import { ensureAdminExists } from './access/roles'
 import { Footer } from './globals/Footer'
 
 import { Users } from './collections/Users'
-import { isAdmin } from './access/roles'
 import { devGenerateEndpoint } from './endpoints/devGenerate'
 import { devMigrateEndpoint } from './endpoints/devMigrate'
 import { devRestartEndpoint } from './endpoints/devRestart'
@@ -165,19 +164,6 @@ export default buildConfig({
   //   }),
   // ],
   sharp,
-  // Saved list views ("query presets") on Articles, Projects, Media and Skills. Only admins can share
-  // a view with everyone; editors keep views to themselves or share them with specific people.
-  queryPresets: {
-    access: {},
-    constraints: {},
-    labels: { singular: 'Saved view', plural: 'Saved views' },
-    filterConstraints: ({ options, req }) =>
-      isAdmin(req.user)
-        ? options
-        : options.filter(
-            (option) => (typeof option === 'string' ? option : option.value) !== 'everyone',
-          ),
-  },
   // Custom REST endpoints (under /api).
   endpoints: [
     revalidateSiteEndpoint,

@@ -16,8 +16,6 @@ export const Skills: CollectionConfig = {
     defaultColumns: ['label', 'group', 'value', 'color', 'order'],
   },
   defaultSort: 'order',
-  // Saved views (filters and columns) in the list, see queryPresets in payload.config.ts.
-  enableQueryPresets: true,
   // Deleting moves documents to the trash (restorable); only admins delete permanently.
   trash: true,
   access: {

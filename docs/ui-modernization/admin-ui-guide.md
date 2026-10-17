@@ -223,6 +223,9 @@ switch.
   add the collection or global to `NAV_ICONS` in `scripts/generate-nav-icons.mjs` and run
   `pnpm generate:nav-icons` (part of `generate:all`, so CI catches a stale
   `src/styles/admin/nav-icons.css`). Links without an entry get a generic file icon.
+- Group headings (Content, Profile, Admin) have icons too (`NAV_GROUP_ICONS`, matched by
+  Payload's `#nav-group-<label>`). In the rail they stay as icon buttons that still collapse and
+  expand their group, with the group name as a tooltip and a dimmed icon while collapsed.
 - Each entry also names a tone (amber, orange, rose, violet, blue, teal, green, slate): theme
   tokens `--nav-tone-*` in `tokens.css` with a light value (700 shade, amber is the brand primary)
   and a dark value (400 shade), so icons keep 3:1 contrast in both themes.
@@ -230,8 +233,7 @@ switch.
   smaller screens keep Payload's overlay menu. The state is a cookie (`pocms-nav-rail`), so the server renders the rail directly on the
   next visit, and a `data-nav-rail` attribute that `nav-rail.css` reads with `:has()`.
 - In the rail, labels are hidden visually only (links keep their accessible names), the group
-  headings become separators, collapsed groups stay visible and hover or keyboard focus shows a
-  tooltip with the label. Create becomes an icon and its menu opens to the right.
+  headings become icon buttons, and hover or keyboard focus shows a tooltip with the label. Create becomes an icon and its menu opens to the right.
 - Payload marks the _closed_ sidebar `inert`, which is why the rail is a width mode of the open
   sidebar rather than a styled closed one.
 
@@ -331,9 +333,9 @@ Body text is 14px instead of Payload's 13px (`tokens.css`). Payload computes `--
 `20 / --base-body-size` rem, so raising both keeps `--base` at 20px and the spacing scale at 4px:
 only text grows.
 
-## Trash and saved views
+## Trash
 
-Both are built into Payload 3.9x; the project turns them on and adds the role rules.
+Built into Payload 3.9x; the project turns it on and adds the role rules.
 
 ### Trash (soft delete)
 
@@ -353,18 +355,11 @@ Both are built into Payload 3.9x; the project turns them on and adds the role ru
 - Not combined with Payload folders yet: the folder view's delete skips the trash dialog
   (payloadcms/payload#16327).
 
-### Saved views (query presets)
-
-- On Articles, Projects, Media and Skills (`enableQueryPresets: true`): the bar above the list
-  saves the current filters and columns as a named view, and **Select Saved view** applies one.
-  Stored in the `payload-query-presets` collection (hidden from the sidebar), labelled "Saved
-  view".
-- Sharing (`queryPresets` in `payload.config.ts`): only admins can share a view with everyone;
-  editors keep views to themselves or share them with specific users.
 
 ### Database
 
-Both add schema: a `deleted_at` column on the eight tables and the `payload_query_presets` tables.
+Trash adds schema: a `deleted_at` column on the eight tables. (Saved views, Payload's query
+presets, were tried and removed; their `payload_query_presets` tables are dropped again.)
 Development pushes the schema automatically; for a database without push, create and run a
 migration (`npx payload migrate:create`, then `npx payload migrate`).
 

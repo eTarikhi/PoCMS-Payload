@@ -28,6 +28,10 @@ export function SidebarToggleButton({ initialRail }: { initialRail: boolean }) {
       const label = link.querySelector('.nav__link-label')?.textContent?.trim()
       if (label) link.dataset.navLabel = label
     })
+    document.querySelectorAll<HTMLElement>('.nav .nav-group__toggle').forEach((toggle) => {
+      const label = toggle.querySelector('.nav-group__label')?.textContent?.trim()
+      if (label) toggle.dataset.navLabel = label
+    })
   }, [rail])
 
   useEffect(() => {

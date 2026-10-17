@@ -5,8 +5,8 @@ import { seedTestUser, cleanupTestUser, testUser } from '../helpers/seedUser'
 
 const base = 'http://localhost:3000'
 
-/** Trash (soft delete with restore) and saved list views (query presets), in the admin UI. */
-test.describe('Trash and saved views', () => {
+/** Trash (soft delete with restore) in the admin UI. */
+test.describe('Trash', () => {
   let page: Page
   const stamp = Date.now()
   const label = `E2E trash ${stamp}`
@@ -69,33 +69,5 @@ test.describe('Trash and saved views', () => {
 
     await openSkills()
     await expect(page.getByRole('row', { name: new RegExp(label) })).toHaveCount(1)
-  })
-
-  test('a saved view filters the list', async () => {
-    const created = await page.request.post(`${base}/api/payload-query-presets`, {
-      data: {
-        title: `Only ${stamp}`,
-        relatedCollection: 'skills',
-        where: { and: [{ label: { like: String(stamp) } }] },
-        access: {
-          read: { constraint: 'onlyMe' },
-          update: { constraint: 'onlyMe' },
-          delete: { constraint: 'onlyMe' },
-        },
-      },
-    })
-    expect(created.ok()).toBe(true)
-    const presetId = (await created.json()).doc.id
-
-    try {
-      await openSkills()
-      await page.getByRole('button', { name: /Select Saved view/ }).click()
-      await page.getByText(`Only ${stamp}`).click()
-      await expect(page).toHaveURL(/preset=/)
-      await expect(page.locator('table tbody tr')).toHaveCount(1)
-      await expect(page.getByRole('row', { name: new RegExp(label) })).toHaveCount(1)
-    } finally {
-      await page.request.delete(`${base}/api/payload-query-presets/${presetId}`)
-    }
   })
 })
