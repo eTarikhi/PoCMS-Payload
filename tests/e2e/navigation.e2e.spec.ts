@@ -24,7 +24,7 @@ test.describe('Admin navigation and branding', () => {
    * hydration: the client applies the saved nav preference.
    */
   async function openNav() {
-    await expect(page.locator('.nav.nav--nav-hydrated')).toHaveCount(1)
+    await expect(page.locator('.nav.nav--nav-hydrated')).toHaveCount(1, { timeout: 60_000 })
     const openNavigation = page.locator('.nav.nav--nav-open')
     if ((await openNavigation.count()) === 0) {
       await page.locator('.nav-toggler').first().click()

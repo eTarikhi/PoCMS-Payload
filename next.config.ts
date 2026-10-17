@@ -7,6 +7,8 @@ const __filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(__filename)
 
 const nextConfig: NextConfig = {
+  // Dev-only indicator: bottom right, so it doesn't cover the admin sidebar's account controls.
+  devIndicators: { position: 'bottom-right' },
   images: {
     dangerouslyAllowLocalIP: true,
     localPatterns: [

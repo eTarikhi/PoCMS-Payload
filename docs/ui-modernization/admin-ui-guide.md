@@ -139,9 +139,21 @@ checkbox is a `span[role=checkbox]`, so name it with `aria-labelledby` or `aria-
   cache tag at once (`expire: 0`). Saves only mark it stale, so the first visitor after a save can
   still get the old page; seeds, imports and database edits don't touch it at all. Don't put
   role-specific items here: the popup opens empty for users whose items all render nothing.
-- `actions` (header): the command menu button and the light/dark switch
-  (`header/ThemeToggle.tsx`, through Payload's `useTheme`, so the choice is Payload's own theme
-  cookie).
+- `actions` (header, rendered right to left): the command menu button, **developer tools** for
+  admins and the light/dark switch (`header/ThemeToggle.tsx`, through Payload's `useTheme`, so the
+  choice is Payload's own theme cookie).
+- Developer tools (`header/DevTools.tsx`, server; `DevToolsMenu.tsx`, client): a **GraphQL
+  Playground** button (`/api/graphql-playground`, shown only where Payload serves it: GraphQL on,
+  and development or `disablePlaygroundInProduction: false`; production also blocks introspection,
+  so the playground's schema docs only load in development) and a bug-icon menu with the JSON
+  behind the current page (list, document or global over REST), the user's permissions
+  (`/api/access`), the signed-in user (`/api/users/me`) and the Payload docs. Links open in a new
+  tab; the menu is a native disclosure, like Create.
+- Sidebar controls stay in the sidebar on desktop: Payload's toggler (a sticky strip outside
+  `.template-default`, matched with `body:has()`) moves to the sidebar's top-right corner when it is
+  open, and is centred above the icons in the rail. The account controls (settings, log out) sit at
+  the bottom of the sidebar; the Next.js dev indicator is moved to the bottom right
+  (`devIndicators` in `next.config.ts`) so it no longer covers them.
 - `admin.dateFormat` is `d MMM yyyy, HH:mm`. Fields with their own `date.displayFormat` keep it.
 
 ### Command menu

@@ -77,6 +77,57 @@ test.describe('Admin shell', () => {
     await expect.poll(async () => (await nav.boundingBox())?.width ?? 0).toBeGreaterThan(200)
   })
 
+  test('admins get GraphQL Playground and developer tools in the header', async () => {
+    await page.goto(`${base}/admin/collections/articles`)
+    await expect(page.locator('.nav.nav--nav-hydrated')).toHaveCount(1, { timeout: 60_000 })
+    const tools = page.getByTestId('dev-tools')
+    await expect(tools.getByRole('link', { name: /GraphQL Playground/ })).toHaveAttribute(
+      'href',
+      '/api/graphql-playground',
+    )
+    expect((await page.request.get(`${base}/api/graphql-playground`)).status()).toBe(200)
+
+    await tools.locator('summary').click()
+    await expect(tools.getByRole('link', { name: /This list \(REST\)/ })).toHaveAttribute(
+      'href',
+      '/api/articles?depth=0&limit=10',
+    )
+    await expect(tools.getByRole('link', { name: /My permissions/ })).toHaveAttribute(
+      'href',
+      '/api/access',
+    )
+    await page.keyboard.press('Escape')
+    await expect(tools.getByRole('link', { name: /My permissions/ })).toBeHidden()
+  })
+
+  test('the sidebar toggler and the Create menu stay inside or beside the sidebar', async () => {
+    await page.goto(`${base}/admin`)
+    await openNav()
+    const nav = page.locator('aside.nav')
+    const inside = async () => {
+      const box = (await nav.boundingBox())!
+      const toggler = (await page.locator('.nav-toggler').first().boundingBox())!
+      expect(toggler.x).toBeGreaterThanOrEqual(box.x)
+      expect(toggler.x + toggler.width).toBeLessThanOrEqual(box.x + box.width)
+      return box
+    }
+    await inside()
+
+    // Rail: the toggler is centred above the icons, and Create opens to the right of the rail.
+    const rail = page.locator('#nav-rail-toggle')
+    await rail.click()
+    await expect(rail).toHaveAttribute('aria-pressed', 'true')
+    await expect.poll(async () => (await nav.boundingBox())?.width ?? 0).toBeLessThan(80)
+    const box = await inside()
+    await page.getByTestId('quick-create').locator('summary').click()
+    const menu = page.getByTestId('quick-create').locator('nav')
+    await expect(menu).toBeVisible()
+    expect((await menu.boundingBox())!.x).toBeGreaterThanOrEqual(box.x + box.width)
+    await page.keyboard.press('Escape')
+    await rail.click()
+    await expect(rail).toHaveAttribute('aria-pressed', 'false')
+  })
+
   test('the settings menu refreshes the site cache', async () => {
     await page.goto(`${base}/admin`)
     await openNav()
@@ -96,6 +147,8 @@ test.describe('Admin shell', () => {
   })
 
   test('Live Preview follows the article as it is edited', async () => {
+    // The preview iframe's first render compiles the article page on the dev server.
+    test.setTimeout(120_000)
     const created = await page.request.post(`${base}/api/articles`, {
       data: {
         title: 'Live preview e2e',

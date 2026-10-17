@@ -179,15 +179,16 @@
       justify-content: center;
     }
 
-    .template-default--nav-open:has(.nav [data-nav-rail='true']) [data-testid='quick-create'] nav {
-      inset-inline: calc(100% + 0.5rem) auto;
-      top: 0;
-      width: 14rem;
-      margin-top: 0;
-    }
-
     .template-default--nav-open:has(.nav [data-nav-rail='true']) .nav__controls {
       align-items: center;
+      align-self: stretch;
+    }
+
+    .template-default--nav-open:has(.nav [data-nav-rail='true']) .nav__controls > * {
+      display: flex;
+      justify-content: center;
+      width: 2.5rem;
+      margin-inline: auto;
     }
   }
 }
@@ -210,6 +211,50 @@
     }
     to {
       clip-path: circle(150vmax at var(--theme-reveal-x) var(--theme-reveal-y));
+    }
+  }
+}
+
+/*
+ * Sidebar controls inside the sidebar (desktop). Payload draws its sidebar toggler in a sticky strip
+ * at the top left of the page (a sibling of .template-default, so matched through body:has()),
+ * over the sidebar. When the sidebar is open, that strip spans the sidebar instead: the toggler
+ * sits in the sidebar's top-right corner (full width) or centred above the icons (rail). When the
+ * sidebar is closed it stays where Payload puts it.
+ */
+@layer payload {
+  @media (min-width: 1025px) {
+    body:has(.template-default--nav-open) .template-default__nav-toggler-wrapper {
+      width: var(--nav-width, 275px);
+      justify-content: flex-end;
+      padding-inline-end: calc(var(--base) * 0.6);
+    }
+
+    body:has(.template-default--nav-open .nav [data-nav-rail='true'])
+      .template-default__nav-toggler-wrapper {
+      width: 4rem;
+      justify-content: center;
+      padding-inline-end: 0;
+    }
+  }
+}
+
+/*
+ * Rail overrides for elements styled with Tailwind utilities: these must live in the utilities
+ * layer to win (layer order: payload < … < utilities). The Create menu opens to the right of the
+ * rail instead of over the icons.
+ */
+@layer utilities {
+  @media (min-width: 1025px) {
+    .template-default--nav-open:has(.nav [data-nav-rail='true'])
+      [data-testid='quick-create']
+      > nav {
+      top: 0;
+      right: auto;
+      /* The trigger is centred in the 4rem rail: clear the rail's edge, plus a small gap. */
+      left: calc(100% + 1.25rem);
+      width: 14rem;
+      margin-top: 0;
     }
   }
 }

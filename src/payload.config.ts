@@ -74,6 +74,8 @@ export default buildConfig({
       // (Payload renders the actions right to left, so the search button lands first.)
       actions: [
         '/components/admin/header/ThemeToggle#ThemeToggle',
+        // Admins: GraphQL Playground and debugging links.
+        '/components/admin/header/DevTools#DevTools',
         '/components/admin/command/CommandMenuTrigger#CommandMenuTrigger',
       ],
       views: {

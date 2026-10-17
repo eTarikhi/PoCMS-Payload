@@ -20,6 +20,7 @@ import { RefreshSiteCache as RefreshSiteCache_f09a5e442c01eaea263e7fcd3a43ac8a }
 import { Icon as Icon_8c7579001d094aae258586b09a2f4a85 } from '../../../components/admin/graphics/Icon'
 import { Logo as Logo_da4f7e8a6c72793056168c73c78f997f } from '../../../components/admin/graphics/Logo'
 import { ThemeToggle as ThemeToggle_65deb6683786a06b1500e5a7b73e4b51 } from '../../../components/admin/header/ThemeToggle'
+import { DevTools as DevTools_343c7d625e2ad63638a5cef79a0ef4e6 } from '../../../components/admin/header/DevTools'
 import { CommandMenuTrigger as CommandMenuTrigger_9bae43b9801496547d35f1607c4bad66 } from '../../../components/admin/command/CommandMenuTrigger'
 import { NavExtraLinks as NavExtraLinks_700740d072e8454ecc3891cae76c4088 } from '../../../components/admin/nav/NavExtraLinks'
 import { QuickCreate as QuickCreate_40af7464928ae24d32e94dc581ae3dc7 } from '../../../components/admin/nav/QuickCreate'
@@ -57,6 +58,7 @@ export const importMap = {
   "/components/admin/graphics/Icon#Icon": Icon_8c7579001d094aae258586b09a2f4a85,
   "/components/admin/graphics/Logo#Logo": Logo_da4f7e8a6c72793056168c73c78f997f,
   "/components/admin/header/ThemeToggle#ThemeToggle": ThemeToggle_65deb6683786a06b1500e5a7b73e4b51,
+  "/components/admin/header/DevTools#DevTools": DevTools_343c7d625e2ad63638a5cef79a0ef4e6,
   "/components/admin/command/CommandMenuTrigger#CommandMenuTrigger": CommandMenuTrigger_9bae43b9801496547d35f1607c4bad66,
   "/components/admin/nav/NavExtraLinks#NavExtraLinks": NavExtraLinks_700740d072e8454ecc3891cae76c4088,
   "/components/admin/nav/QuickCreate#QuickCreate": QuickCreate_40af7464928ae24d32e94dc581ae3dc7,
