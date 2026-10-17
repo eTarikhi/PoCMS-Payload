@@ -142,13 +142,25 @@ checkbox is a `span[role=checkbox]`, so name it with `aria-labelledby` or `aria-
   admins, the light/dark switch (`header/ThemeToggle.tsx`, Payload's `useTheme`) and the **account
   menu** (`header/AccountMenu.tsx`: name, email, role, Account settings, Log out), which replaces
   Payload's avatar link (hidden in `nav-rail.css`).
-- Developer tools (`header/DevTools.tsx`, server; `DevToolsMenu.tsx`, client): a **GraphQL
-  Playground** button (`/api/graphql-playground`, only where Payload serves it; production blocks
-  introspection, so its schema docs only load in development) and a bug-icon menu with **Refresh
-  site cache**, **Reset bundler cache** (development only: `POST /api/reset-bundler-cache`, admins,
-  deletes Turbopack's persistent cache and Next's other on-disk caches and purges every page; the
-  next dev start compiles from scratch), the JSON behind the current page, the user's permissions,
-  the signed-in user and the Payload docs.
+- Developer tools (`header/DevTools.tsx`, server; `DevToolsMenu.tsx`, client), admins only. A
+  **GraphQL Playground** button (where Payload serves it; production blocks introspection, so its
+  schema docs only load in development) and a bug-icon menu whose items depend on the environment.
+  A badge shows it: Development, Production build, or Vercel's environment and commit.
+
+  | Item | Development | Production build / deployment |
+  |---|---|---|
+  | Refresh site cache (`POST /api/revalidate-site`) | yes | yes |
+  | Purge all cached pages (`POST /api/purge-pages`, `revalidatePath('/', 'layout')`) | yes | yes |
+  | Migration status (`GET /api/migration-status`: migrations recorded in this database) | yes | yes |
+  | This page, My permissions, Signed-in user (REST JSON); Payload docs | yes | yes |
+  | Reset bundler cache (`POST /api/reset-bundler-cache`) | yes | no: the build is immutable |
+  | Restart dev server (`POST /api/dev-restart`: touches `next.config.ts`, the page reloads when the server is back) | yes | no: the platform runs the server |
+  | Create migration (`POST /api/dev-migrate?name=`: `payload migrate:create --skip-empty`) | yes | no: write migrations in development, deployments run `payload migrate` |
+  | Generate (below) | yes | no: generated code is part of the build |
+
+  Development-only endpoints return 404 in production, and every endpoint requires an admin.
+  `src/migrations` is git-ignored in this repository, so created migrations stay local until that
+  changes.
 - **Generate** (same menu, development only): buttons for each code generator (Types, Import map,
   DB schema, GraphQL schema: `node scripts/generate.mjs <target>`; Nav icons:
   `node scripts/generate-nav-icons.mjs`) and **Run generate:all**, through

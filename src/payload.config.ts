@@ -19,6 +19,10 @@ import { Footer } from './globals/Footer'
 import { Users } from './collections/Users'
 import { isAdmin } from './access/roles'
 import { devGenerateEndpoint } from './endpoints/devGenerate'
+import { devMigrateEndpoint } from './endpoints/devMigrate'
+import { devRestartEndpoint } from './endpoints/devRestart'
+import { migrationStatusEndpoint } from './endpoints/migrationStatus'
+import { purgePagesEndpoint } from './endpoints/purgePages'
 import { resetBundlerCacheEndpoint } from './endpoints/resetBundlerCache'
 import { revalidateSiteEndpoint } from './endpoints/revalidateSite'
 import { About } from './collections/About'
@@ -175,7 +179,16 @@ export default buildConfig({
           ),
   },
   // Custom REST endpoints (under /api).
-  endpoints: [revalidateSiteEndpoint, resetBundlerCacheEndpoint, devGenerateEndpoint],
+  endpoints: [
+    revalidateSiteEndpoint,
+    purgePagesEndpoint,
+    migrationStatusEndpoint,
+    // Development only (they return 404 in production).
+    resetBundlerCacheEndpoint,
+    devGenerateEndpoint,
+    devMigrateEndpoint,
+    devRestartEndpoint,
+  ],
   // Roles (ADR 0008): never leave a database without an admin.
   onInit: async (payload) => {
     await ensureAdminExists(payload)

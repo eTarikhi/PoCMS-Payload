@@ -114,18 +114,61 @@ test.describe('Admin shell', () => {
     }
     // Nav icons is fast and its output is deterministic, so the run leaves the file unchanged.
     await tools.getByTestId('dev-generate-nav-icons').click()
-    await expect(tools.getByTestId('dev-generate').getByRole('status')).toHaveText(
-      /Nav icons: done in/,
-      {
-        timeout: 60_000,
-      },
-    )
+    await expect(page.getByTestId('dev-status')).toHaveText(/Nav icons: done in/, {
+      timeout: 60_000,
+    })
     await page.keyboard.press('Escape')
 
     // Only the listed targets run, and only for admins.
     expect((await page.request.post(`${base}/api/dev-generate?target=rm`)).status()).toBe(400)
     const anonymous = await request.newContext()
     expect((await anonymous.post(`${base}/api/dev-generate?target=types`)).status()).toBe(403)
+    await anonymous.dispose()
+  })
+
+  test('developer tools adapt to the environment', async () => {
+    await page.goto(`${base}/admin`)
+    await openNav()
+    const tools = page.getByTestId('dev-tools')
+    await tools.locator('summary').click()
+    await expect(page.getByTestId('dev-environment')).toHaveText(/Development|Production|Preview/)
+
+    // Everywhere: purge every cached page, and the migration status of this database.
+    await page.getByTestId('dev-action-purge').click()
+    await expect(page.getByTestId('dev-status')).toHaveText(/re-render on its next visit/)
+    await expect(tools.getByRole('link', { name: /Migration status/ })).toHaveAttribute(
+      'href',
+      '/api/migration-status',
+    )
+    const migrations = await page.request.get(`${base}/api/migration-status`)
+    expect(migrations.status()).toBe(200)
+    expect(Array.isArray((await migrations.json()).migrations)).toBe(true)
+
+    // Development only: restart and migrations (not run here: they restart the server or write files).
+    const restart = await page.request.post(`${base}/api/dev-restart?dryRun=1`)
+    if (restart.status() === 200) {
+      await expect(page.getByTestId('dev-action-restart')).toBeVisible()
+      await expect(page.getByTestId('dev-action-migrate')).toBeVisible()
+      expect((await page.request.post(`${base}/api/dev-migrate?name=%21%21`)).status()).toBe(400)
+      expect((await page.request.post(`${base}/api/dev-migrate?name=ok&dryRun=1`)).status()).toBe(
+        200,
+      )
+    } else {
+      expect(restart.status()).toBe(404)
+      await expect(page.getByTestId('dev-action-restart')).toHaveCount(0)
+      await expect(page.getByTestId('dev-database')).toHaveCount(0)
+    }
+    await page.keyboard.press('Escape')
+
+    const anonymous = await request.newContext()
+    for (const [method, url] of [
+      ['post', '/api/purge-pages'],
+      ['post', '/api/dev-restart?dryRun=1'],
+      ['post', '/api/dev-migrate?name=x&dryRun=1'],
+      ['get', '/api/migration-status'],
+    ] as const) {
+      expect((await anonymous[method](`${base}${url}`)).status()).toBe(403)
+    }
     await anonymous.dispose()
   })
 
@@ -187,12 +230,14 @@ test.describe('Admin shell', () => {
     await tools.locator('summary').click()
     await tools.getByTestId('dev-action-site').click()
     await expect(
-      page.getByText('The site will show the latest content on the next visit.'),
+      page
+        .getByTestId('dev-status')
+        .getByText('The site will show the latest content on the next visit.'),
     ).toBeVisible()
 
     // Reset bundler cache: admins only, development only (dry run, so nothing is deleted).
     const dryRun = await page.request.post(`${base}/api/reset-bundler-cache?dryRun=1`)
-    await tools.locator('summary').click()
+    // The menu stays open after an action, so its items are still on screen.
     if (dryRun.status() === 200) await expect(tools.getByTestId('dev-action-bundler')).toBeVisible()
     else {
       expect(dryRun.status()).toBe(404)
