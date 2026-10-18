@@ -265,5 +265,11 @@
     [data-slot='data-table'] [data-slot='table-cell']:is(.cell-_select, [data-primary])::before {
       content: none;
     }
+
+    /* A thumbnail in the title (media): centre the checkbox on it instead of the first line. */
+    [data-slot='data-table'] [data-slot='table-row']:has([data-primary] img) > .cell-_select {
+      align-self: center;
+      padding-top: 0;
+    }
   }
 }
