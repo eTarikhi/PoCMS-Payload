@@ -122,6 +122,16 @@
     width: 100%;
   }
 
+  /* Payload's sort arrows in list headers: at least 24px targets (WCAG 2.5.8), on every screen. */
+  [data-slot='data-table'] .sort-column__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* px, not rem: the target size is defined in CSS pixels (the admin's rem is 14px). */
+    min-width: 24px;
+    min-height: 24px;
+  }
+
   /* Touch: sidebar group headings and breadcrumb links get at least a 24px target (WCAG 2.5.8). */
   @media (pointer: coarse) {
     .nav .nav-group__toggle {
@@ -138,6 +148,122 @@
     /* Keyboard hints mean nothing on touch screens. */
     [data-testid='command-menu-hints'] {
       display: none;
+    }
+  }
+}
+
+/*
+ * Lists on phones (under 640px): each row of the TanStack list (DataTable) becomes a card. The
+ * checkbox and the first data column form the card's title row; every other visible column is a
+ * "label  value" line, the label coming from the cell's data-label. The header row turns into a
+ * wrapping row of sort chips, so sorting and "select all" stay available. Payload's selection,
+ * links and cells are the same elements as on desktop; only the layout changes, so nothing jumps
+ * after hydration.
+ *
+ * In the utilities layer: it has to win over the table primitives' Tailwind classes.
+ */
+@layer utilities {
+  @media (max-width: 639px) {
+    [data-slot='data-table'] {
+      overflow: visible;
+      border: 0;
+      border-radius: 0;
+    }
+
+    [data-slot='data-table'] [data-slot='table-container'] {
+      overflow: visible;
+    }
+
+    [data-slot='data-table'] [data-slot='table'],
+    [data-slot='data-table'] [data-slot='table-body'] {
+      display: block;
+      width: 100%;
+    }
+
+    /* Header: sort chips. */
+    [data-slot='data-table'] [data-slot='table-header'] {
+      display: block;
+      background: none;
+    }
+
+    [data-slot='data-table'] [data-slot='table-header'] [data-slot='table-row'] {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+      padding-bottom: 0.75rem;
+      border: 0;
+    }
+
+    [data-slot='data-table'] [data-slot='table-head'] {
+      display: flex;
+      align-items: center;
+      width: auto;
+      height: 2rem;
+      padding: 0 0.625rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 0.8125rem;
+      white-space: nowrap;
+    }
+
+    /* Rows: cards. */
+    [data-slot='data-table'] [data-slot='table-body'] [data-slot='table-row'] {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: start;
+      gap: 0.375rem 0.75rem;
+      margin-bottom: 0.625rem;
+      padding: 0.875rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg, 0.625rem);
+      background: var(--card);
+    }
+
+    [data-slot='data-table']
+      [data-slot='table-body']
+      [data-slot='table-row'][data-state='selected'] {
+      border-color: var(--primary);
+      background: color-mix(in oklab, var(--primary) 6%, var(--card));
+    }
+
+    [data-slot='data-table'] [data-slot='table-cell'] {
+      display: grid;
+      grid-column: 1 / -1;
+      grid-template-columns: minmax(5.5rem, 35%) minmax(0, 1fr);
+      align-items: center;
+      gap: 0.75rem;
+      width: auto;
+      min-width: 0;
+      padding: 0;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    [data-slot='data-table'] [data-slot='table-cell']::before {
+      content: attr(data-label);
+      color: var(--muted-foreground);
+      font-size: 0.8125rem;
+    }
+
+    /* Title row: checkbox, then the first data column, no labels. */
+    [data-slot='data-table'] [data-slot='table-cell'].cell-_select {
+      display: block;
+      grid-column: 1;
+      grid-row: 1;
+      padding-top: 0.125rem;
+    }
+
+    [data-slot='data-table'] [data-slot='table-cell'][data-primary] {
+      display: block;
+      grid-column: 2;
+      grid-row: 1;
+      padding-bottom: 0.25rem;
+      font-size: 0.9375rem;
+      font-weight: 600;
+    }
+
+    [data-slot='data-table'] [data-slot='table-cell']:is(.cell-_select, [data-primary])::before {
+      content: none;
     }
   }
 }

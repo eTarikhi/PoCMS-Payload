@@ -349,8 +349,18 @@ Audited in Chrome with mobile emulation at 360×740, 390×844, 768×1024 and 102
 - **Dashboard:** count cards two per row on phones. Payload forces widgets to `width: 100%
   !important` there, which a later layer can't override, so the dashboard becomes a two-column grid
   instead (count cards one cell, other widgets the full row; not while editing the layout).
-- **Lists:** cells wrap, so titles are readable; the table still scrolls sideways for more columns.
-  The bulk actions bar spans the screen and wraps (Delete used to end off screen).
+- **Lists:** cells wrap, so titles are readable; the table still scrolls sideways for more columns
+  above 640px. The bulk actions bar spans the screen and wraps (Delete used to end off screen).
+- **Lists on phones (below 640px): cards.** Each row becomes a card: the checkbox and the first
+  visible column form the title line, and every other column shows as a label and value line. The
+  header row turns into wrapping sort chips (Payload's sort arrows still work). It is CSS only, in
+  the `@layer utilities` block of `responsive.css`: `DataTable` puts `data-label` (the column's
+  label) and `data-primary` (the title cell) on each cell and keeps explicit table roles, since
+  `display: grid` on a table drops them in some browsers. Hiding or reordering columns changes the
+  cards too.
+- **List accessibility:** Payload's row checkboxes have an empty `aria-label`, so `DataTable` wraps
+  them in a label ("Select" plus the row title). Payload's sort arrows get 24px targets on every
+  screen.
 - **Touch:** group headings and breadcrumb links get at least 24px targets (WCAG 2.5.8); the
   command menu hides its keyboard hints.
 - Payload's mobile sidebar header was `100vw` wide (scrollbar included): 20px of sideways scroll

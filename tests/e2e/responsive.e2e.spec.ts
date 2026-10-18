@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright'
 import { test, expect, type Page } from '@playwright/test'
 
 import { login } from '../helpers/login'
@@ -59,6 +60,40 @@ test.describe('Responsive admin on a phone', () => {
     ]
     expect(Math.abs(first.y - second.y)).toBeLessThan(2)
     expect(second.x).toBeGreaterThan(first.x)
+  })
+
+  test('lists show each row as a card with labelled values', async ({ page }) => {
+    await login({ page, user: testUser })
+    await open(page, '/admin/collections/skills')
+    const card = page.locator('[data-slot="table-body"] [data-slot="table-row"]').first()
+    await expect(card).toHaveCSS('display', 'grid')
+    // A value line shows its column name; the title cell doesn't.
+    const group = card.locator('[data-label="Group"]')
+    expect(await group.evaluate((el) => getComputedStyle(el, '::before').content)).toBe('"Group"')
+    expect(
+      await card
+        .locator('[data-primary]')
+        .evaluate((el) => getComputedStyle(el, '::before').content),
+    ).toBe('none')
+    // Rows keep their table semantics, and sorting stays available as chips.
+    await expect(page.getByRole('row').nth(1)).toBeVisible()
+    await expect(
+      page.locator('[data-slot="table-head"]').filter({ hasText: 'Label' }),
+    ).toBeVisible()
+    await noSidewaysScroll(page)
+    // Row checkboxes are named after their row, and the sort arrows are big enough to tap.
+    const title = (await card.locator('[data-primary]').innerText()).trim()
+    await expect(card.getByRole('checkbox', { name: `Select ${title}` })).toBeAttached()
+    const results = await new AxeBuilder({ page })
+      .include('[data-slot="data-table"]')
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+      .analyze()
+    const serious = results.violations.filter(
+      (v) => v.impact === 'serious' || v.impact === 'critical',
+    )
+    expect(
+      serious.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`),
+    ).toEqual([])
   })
 
   test('menus and the bulk actions bar stay on screen', async ({ page }) => {
