@@ -192,6 +192,8 @@ export function DevToolsMenu({
     })
 
   const links = [
+    // Also in the header as an icon, which phones hide for room.
+    ...(playgroundURL ? [{ label: 'GraphQL Playground', href: playgroundURL }] : []),
     ...(pageJSON ? [pageJSON] : []),
     { label: 'Migration status', href: `${apiRoute}/migration-status` },
     { label: 'My permissions', href: `${apiRoute}/access` },
@@ -209,7 +211,8 @@ export function DevToolsMenu({
           data-slot="button"
           aria-label="GraphQL Playground (opens in a new tab)"
           title="GraphQL Playground"
-          className={iconButton}
+          // Phones: hidden for room; the menu's Inspect section links to it too.
+          className={cn(iconButton, 'acn:max-sm:hidden')}
         >
           <GraphQLIcon aria-hidden />
         </a>
@@ -224,7 +227,7 @@ export function DevToolsMenu({
         </summary>
         <nav
           aria-label="Developer tools"
-          className="acn:absolute acn:top-full acn:right-0 acn:z-50 acn:mt-2 acn:max-h-[calc(100vh-5rem)] acn:w-72 acn:overflow-y-auto acn:rounded-md acn:bg-popover acn:p-1 acn:text-popover-foreground acn:shadow-md acn:ring-1 acn:ring-foreground/10"
+          className="acn:absolute acn:top-full acn:right-0 acn:z-50 acn:mt-2 acn:max-h-[calc(100vh-5rem)] acn:w-72 acn:overflow-y-auto acn:max-sm:fixed acn:max-sm:inset-x-2 acn:max-sm:top-[calc(var(--app-header-height)+0.25rem)] acn:max-sm:mt-0 acn:max-sm:w-auto acn:rounded-md acn:bg-popover acn:p-1 acn:text-popover-foreground acn:shadow-md acn:ring-1 acn:ring-foreground/10"
         >
           <div className="acn:flex acn:items-center acn:justify-between acn:gap-2 acn:px-2 acn:pt-1 acn:pb-1.5">
             <span className="acn:text-xs acn:font-medium acn:text-muted-foreground">

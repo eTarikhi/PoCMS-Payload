@@ -1,0 +1,143 @@
+/*
+ * Small screens and touch (audited at 360×740, 390×844, 768×1024 and 1024×768 in Chrome with
+ * mobile emulation). Payload's own layout handles the rest; these rules fix what the admin's
+ * additions and a few Payload defaults do on narrow screens.
+ *
+ * Note: Payload marks some mobile rules !important in the earlier payload-default layer, and for
+ * !important declarations the earlier layer wins, so those are worked around, not overridden.
+ */
+@layer payload {
+  /*
+   * Header: the actions keep their size and the breadcrumbs take what is left, ending in an
+   * ellipsis, instead of pushing the actions off screen or wrapping under them.
+   */
+  @media (max-width: 767px) {
+    .app-header__step-nav-wrapper {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .app-header__actions-wrapper {
+      flex: none;
+      margin-right: calc(var(--base) * 0.25);
+    }
+
+    .app-header .step-nav {
+      min-width: 0;
+      flex-wrap: nowrap;
+      white-space: nowrap;
+    }
+
+    .app-header .step-nav > * {
+      flex: none;
+    }
+
+    .app-header__actions {
+      gap: 0.25rem;
+    }
+
+    .app-header .step-nav > .step-nav__last {
+      flex: 0 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Payload's dashboard breadcrumb select (react-select, unlayered emotion styles) wraps its arrow
+       under the label on narrow screens. */
+    .app-header .dashboard-breadcrumb-select .rs__control {
+      flex-wrap: nowrap !important;
+    }
+  }
+
+  /*
+   * Dashboard on phones: count cards two per row instead of four full-width cards. Payload sets
+   * every widget to width:100% !important there, so the container becomes a two-column grid and
+   * widgets fill their cells (count cards one cell, everything else the full row).
+   */
+  @media (max-width: 767px) {
+    .modular-dashboard:not(.editing) {
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .modular-dashboard:not(.editing) > .widget {
+      grid-column: 1 / -1;
+    }
+
+    .modular-dashboard:not(.editing) > .widget:has([data-stat-widget]) {
+      grid-column: span 1;
+    }
+  }
+
+  /* Lists on phones: cells wrap (full titles), the table still scrolls sideways for more columns. */
+  @media (max-width: 767px) {
+    .collection-list .table td {
+      white-space: normal;
+      min-width: 7rem;
+    }
+
+    .collection-list .table td:nth-child(2) {
+      min-width: 11rem;
+    }
+  }
+
+  /*
+   * Bulk actions bar (Payload, fixed at the bottom when rows are selected): it starts at the list's
+   * left edge but is 100% of the viewport wide, so on phones and tablets "Delete" ended off screen.
+   * Span the viewport and let the actions wrap.
+   */
+  @media (max-width: 1024px) {
+    .collection-list__list-selection {
+      left: 0;
+      right: 0;
+      width: auto;
+      padding-inline: var(--gutter-h);
+    }
+
+    .collection-list__list-selection .list-selection,
+    .collection-list__list-selection-actions {
+      flex-wrap: wrap;
+      row-gap: 0.25rem;
+    }
+  }
+
+  /* Payload fades the header actions with a gradient overlay when it thinks they scroll; the overlay
+     caught taps meant for the account menu on phones. It is decoration: never a tap target. */
+  .app-header__gradient-placeholder {
+    pointer-events: none;
+  }
+
+  @media (max-width: 767px) {
+    .app-header__gradient-placeholder {
+      display: none;
+    }
+  }
+
+  /* Payload's mobile sidebar header is 100vw wide, which includes the scrollbar: 20px of sideways
+     scroll at tablet widths. */
+  .nav__header {
+    width: 100%;
+  }
+
+  /* Touch: sidebar group headings and breadcrumb links get at least a 24px target (WCAG 2.5.8). */
+  @media (pointer: coarse) {
+    .nav .nav-group__toggle {
+      min-height: 2rem;
+    }
+
+    .app-header .step-nav a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 1.75rem;
+      min-width: 1.75rem;
+    }
+
+    /* Keyboard hints mean nothing on touch screens. */
+    [data-testid='command-menu-hints'] {
+      display: none;
+    }
+  }
+}

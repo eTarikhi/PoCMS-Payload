@@ -24,6 +24,7 @@
 @import './payload-overrides.css';
 @import './nav-icons.css';
 @import './nav-rail.css';
+@import './responsive.css';
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 

@@ -54,6 +54,7 @@ export async function StatWidget({ req, widgetData }: WidgetServerProps) {
   return (
     <Link
       data-dashboard-widget=""
+      data-stat-widget=""
       href={adminURL(req, slug)}
       className="acn:group acn:flex acn:h-full acn:flex-col acn:justify-between acn:gap-3 acn:rounded-xl acn:bg-card acn:p-5 acn:text-card-foreground acn:no-underline acn:ring-1 acn:ring-border acn:transition-colors acn:hover:bg-muted/60 acn:focus-visible:ring-3 acn:focus-visible:ring-ring/50 acn:focus-visible:outline-none"
     >
@@ -100,7 +101,7 @@ function Sparkline({ values }: { values: number[] }) {
       aria-hidden
       data-slot="sparkline"
       viewBox={`0 0 ${width} ${height}`}
-      className="acn:h-7 acn:w-24 acn:shrink-0 acn:overflow-visible"
+      className="acn:h-7 acn:w-16 acn:shrink-0 acn:overflow-visible acn:sm:w-24"
       preserveAspectRatio="none"
     >
       <polygon points={area} fill="var(--chart-1)" opacity={0.12} />

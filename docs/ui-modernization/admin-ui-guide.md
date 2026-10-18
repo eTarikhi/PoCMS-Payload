@@ -333,6 +333,29 @@ Body text is 14px instead of Payload's 13px (`tokens.css`). Payload computes `--
 `20 / --base-body-size` rem, so raising both keeps `--base` at 20px and the spacing scale at 4px:
 only text grows.
 
+## Responsive layout
+
+Audited in Chrome with mobile emulation at 360×740, 390×844, 768×1024 and 1024×768
+(`tests/e2e/responsive.e2e.spec.ts` checks the phone case). Fixes live in
+`src/styles/admin/responsive.css`, plus a few Tailwind `max-sm:` classes:
+
+- **Header:** the actions keep their size and the breadcrumbs take what is left, ending in an
+  ellipsis (they used to push the account menu off screen or wrap under the actions; Payload's
+  dashboard breadcrumb select no longer wraps its arrow). On phones the GraphQL button hides; the
+  developer tools menu links to the playground and opens as a full-width sheet under the header.
+  Payload's header gradient overlay no longer catches taps (it blocked the account menu).
+- **Sidebar:** Payload's overlay menu below 1025px, with the same icons and colours; the rail
+  toggle is desktop only.
+- **Dashboard:** count cards two per row on phones. Payload forces widgets to `width: 100%
+  !important` there, which a later layer can't override, so the dashboard becomes a two-column grid
+  instead (count cards one cell, other widgets the full row; not while editing the layout).
+- **Lists:** cells wrap, so titles are readable; the table still scrolls sideways for more columns.
+  The bulk actions bar spans the screen and wraps (Delete used to end off screen).
+- **Touch:** group headings and breadcrumb links get at least 24px targets (WCAG 2.5.8); the
+  command menu hides its keyboard hints.
+- Payload's mobile sidebar header was `100vw` wide (scrollbar included): 20px of sideways scroll
+  at 1024px. It is `100%` now.
+
 ## Trash
 
 Built into Payload 3.9x; the project turns it on and adds the role rules.

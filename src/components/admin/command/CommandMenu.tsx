@@ -478,7 +478,10 @@ export default function CommandMenu({
               })
             )}
           </div>
-          <div className="acn:flex acn:items-center acn:gap-4 acn:border-t acn:border-border acn:px-4 acn:py-2 acn:text-xs acn:text-muted-foreground">
+          <div
+            data-testid="command-menu-hints"
+            className="acn:flex acn:items-center acn:gap-4 acn:border-t acn:border-border acn:px-4 acn:py-2 acn:text-xs acn:text-muted-foreground"
+          >
             <span>
               <kbd className="acn:font-sans">↑↓</kbd> to move
             </span>
