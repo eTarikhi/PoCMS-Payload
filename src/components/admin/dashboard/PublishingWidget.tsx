@@ -137,7 +137,10 @@ function PublishingBars({ points }: { points: PublishingPoint[] }) {
   )
 }
 
-/** The same numbers for screen readers, with links to each month's documents. */
+/**
+ * The same numbers for screen readers, with links to each month's documents. The wrapper is the
+ * visually hidden box: a table ignores the 1px size of sr-only and lays out at full size.
+ */
 function PublishingTable({
   points,
   adminRoute,
@@ -146,34 +149,36 @@ function PublishingTable({
   adminRoute: string
 }) {
   return (
-    <table className="acn:sr-only">
-      <caption>Articles published and projects added per month</caption>
-      <thead>
-        <tr>
-          <th scope="col">Month</th>
-          {SERIES_KEYS.map((series) => (
-            <th key={series} scope="col">
-              {PUBLISHING_SERIES[series].label}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {points.map((point) => (
-          <tr key={point.key}>
-            <th scope="row">{point.label}</th>
+    <div className="acn:sr-only">
+      <table>
+        <caption>Articles published and projects added per month</caption>
+        <thead>
+          <tr>
+            <th scope="col">Month</th>
             {SERIES_KEYS.map((series) => (
-              <td key={series}>
-                {point[series] > 0 ? (
-                  <a href={monthListURL(adminRoute, series, point.key)}>{point[series]}</a>
-                ) : (
-                  0
-                )}
-              </td>
+              <th key={series} scope="col">
+                {PUBLISHING_SERIES[series].label}
+              </th>
             ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {points.map((point) => (
+            <tr key={point.key}>
+              <th scope="row">{point.label}</th>
+              {SERIES_KEYS.map((series) => (
+                <td key={series}>
+                  {point[series] > 0 ? (
+                    <a href={monthListURL(adminRoute, series, point.key)}>{point[series]}</a>
+                  ) : (
+                    0
+                  )}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }

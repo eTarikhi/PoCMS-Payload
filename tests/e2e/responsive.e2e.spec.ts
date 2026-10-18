@@ -6,6 +6,32 @@ import { seedTestUser, cleanupTestUser, testUser } from '../helpers/seedUser'
 
 const base = 'http://localhost:3000'
 
+async function open(page: Page, path: string) {
+  await page.goto(`${base}${path}`)
+  await expect(page.locator('.nav.nav--nav-hydrated')).toHaveCount(1, { timeout: 60_000 })
+}
+
+/**
+ * Nothing to scroll sideways. Measured against the visual viewport: with mobile emulation, content
+ * wider than the screen widens the layout viewport (innerWidth) along with it, so comparing the
+ * page with innerWidth never fails.
+ */
+const noSidewaysScroll = (page: Page) =>
+  expect
+    .poll(() =>
+      page.evaluate(
+        () => document.documentElement.scrollWidth - Math.round(window.visualViewport!.width),
+      ),
+    )
+    .toBeLessThanOrEqual(0)
+
+async function withinViewport(page: Page, selector: string) {
+  const width = page.viewportSize()!.width
+  const box = (await page.locator(selector).first().boundingBox())!
+  expect(box.x).toBeGreaterThanOrEqual(0)
+  expect(box.x + box.width).toBeLessThanOrEqual(width)
+}
+
 /** Phone layout (Chrome mobile emulation, 360×740): nothing off screen, nothing to scroll sideways. */
 test.describe('Responsive admin on a phone', () => {
   test.use({ viewport: { width: 360, height: 740 }, isMobile: true, hasTouch: true })
@@ -17,22 +43,6 @@ test.describe('Responsive admin on a phone', () => {
   test.afterAll(async () => {
     await cleanupTestUser()
   })
-
-  async function open(page: Page, path: string) {
-    await page.goto(`${base}${path}`)
-    await expect(page.locator('.nav.nav--nav-hydrated')).toHaveCount(1, { timeout: 60_000 })
-  }
-
-  const noSidewaysScroll = (page: Page) =>
-    expect
-      .poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth))
-      .toBeLessThanOrEqual(0)
-
-  async function withinViewport(page: Page, selector: string) {
-    const box = (await page.locator(selector).first().boundingBox())!
-    expect(box.x).toBeGreaterThanOrEqual(0)
-    expect(box.x + box.width).toBeLessThanOrEqual(360)
-  }
 
   test('pages fit the screen and the header keeps its actions', async ({ page }) => {
     await login({ page, user: testUser })
@@ -94,6 +104,34 @@ test.describe('Responsive admin on a phone', () => {
     expect(
       serious.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`),
     ).toEqual([])
+    // The checkbox only selects; a tap anywhere else on the card opens the document.
+    await card.getByRole('checkbox').tap()
+    await expect(card).toHaveAttribute('data-state', 'selected')
+    await card.getByRole('checkbox').tap()
+    await expect(card).not.toHaveAttribute('data-state', 'selected')
+    const value = (await group.boundingBox())!
+    await page.touchscreen.tap(value.x + value.width - 12, value.y + value.height / 2)
+    await expect(page).toHaveURL(/\/admin\/collections\/skills\/\d+/)
+  })
+
+  test('form fields use 16px text, so phones do not zoom into them', async ({ page }) => {
+    await login({ page, user: testUser })
+    await open(page, '/admin/collections/articles/create')
+    await expect(page.locator('#field-title')).toHaveCSS('font-size', '16px')
+    await expect(page.locator('#field-excerpt')).toHaveCSS('font-size', '16px')
+    await open(page, '/admin/collections/articles')
+    await expect(page.locator('.search-filter__input')).toHaveCSS('font-size', '16px')
+  })
+
+  test('the command menu opens at the top, without keyboard hints', async ({ page }) => {
+    await login({ page, user: testUser })
+    await open(page, '/admin')
+    await page.getByTestId('command-menu-trigger').tap()
+    const menu = page.getByTestId('command-menu')
+    await expect(menu).toBeVisible()
+    await expect(page.getByRole('combobox')).toHaveCSS('font-size', '16px')
+    expect((await menu.boundingBox())!.y).toBeLessThan(16)
+    await expect(page.getByTestId('command-menu-hints')).toBeHidden()
   })
 
   test('menus and the bulk actions bar stay on screen', async ({ page }) => {
@@ -116,5 +154,37 @@ test.describe('Responsive admin on a phone', () => {
     await expect(remove).toBeVisible()
     const box = (await remove.boundingBox())!
     expect(box.x + box.width).toBeLessThanOrEqual(360)
+  })
+})
+
+/** Small tablet (iPad mini portrait, 768px): Payload's phone layout starts here too. */
+test.describe('Responsive admin on a small tablet', () => {
+  test.use({ viewport: { width: 768, height: 1024 }, isMobile: true, hasTouch: true })
+
+  test.beforeAll(async () => {
+    await seedTestUser()
+  })
+
+  test.afterAll(async () => {
+    await cleanupTestUser()
+  })
+
+  test('the header keeps its actions and the count cards share a row', async ({ page }) => {
+    await login({ page, user: testUser })
+    for (const path of ['/admin/collections/articles', '/admin/account', '/admin']) {
+      await open(page, path)
+      await noSidewaysScroll(page)
+      await withinViewport(page, '[data-testid="account-menu"] summary')
+    }
+    const cards = page.locator('[data-stat-widget]')
+    await expect(cards).toHaveCount(4)
+    const first = (await cards.nth(0).boundingBox())!
+    const last = (await cards.nth(3).boundingBox())!
+    expect(Math.abs(first.y - last.y)).toBeLessThan(2)
+    // The browser toolbar follows the admin's theme.
+    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute(
+      'content',
+      /^#[0-9a-f]{6}$/,
+    )
   })
 })

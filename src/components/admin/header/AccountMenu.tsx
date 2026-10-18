@@ -8,7 +8,7 @@ import { initialsOf } from '../graphics/AccountAvatar'
 import { useDismissable } from './useDismissable'
 
 const item =
-  'acn:flex acn:items-center acn:gap-2 acn:rounded-sm acn:px-2 acn:py-1.5 acn:text-sm acn:text-popover-foreground acn:no-underline acn:outline-none acn:hover:bg-accent acn:focus-visible:bg-accent acn:focus-visible:ring-2 acn:focus-visible:ring-ring/50 acn:[&_svg]:size-4 acn:[&_svg]:text-muted-foreground'
+  'acn:flex acn:items-center acn:gap-2 acn:rounded-sm acn:px-2 acn:py-1.5 acn:pointer-coarse:min-h-10 acn:text-sm acn:text-popover-foreground acn:no-underline acn:outline-none acn:hover:bg-accent acn:focus-visible:bg-accent acn:focus-visible:ring-2 acn:focus-visible:ring-ring/50 acn:[&_svg]:size-4 acn:[&_svg]:text-muted-foreground'
 
 /**
  * Header account menu (replaces Payload's avatar link, which nav-rail.css hides): who is signed
@@ -35,7 +35,7 @@ export function AccountMenu() {
       </summary>
       <nav
         aria-label="Account"
-        className="acn:absolute acn:top-full acn:right-0 acn:z-50 acn:mt-2 acn:w-60 acn:rounded-md acn:bg-popover acn:p-1 acn:text-popover-foreground acn:shadow-md acn:ring-1 acn:ring-foreground/10"
+        className="acn:absolute acn:top-full acn:right-0 acn:z-50 acn:mt-2 acn:w-60 acn:rounded-md acn:bg-popover acn:p-1 acn:text-popover-foreground acn:shadow-md acn:ring-1 acn:ring-foreground/10 acn:[details:not([open])>&]:hidden"
       >
         <div className="acn:border-b acn:border-border acn:px-2 acn:pt-1 acn:pb-2">
           <p className="acn:m-0 acn:truncate acn:text-sm acn:font-medium">{name}</p>

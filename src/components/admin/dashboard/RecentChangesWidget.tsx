@@ -76,7 +76,7 @@ export async function RecentChangesWidget({ req }: WidgetServerProps) {
             >
               <Link
                 href={adminURL(req, row.slug, row.id)}
-                className="acn:min-w-0 acn:flex-1 acn:truncate acn:text-sm acn:font-medium acn:text-foreground acn:no-underline acn:hover:underline"
+                className="acn:min-w-0 acn:flex-1 acn:truncate acn:text-sm acn:font-medium acn:text-foreground acn:no-underline acn:hover:underline acn:pointer-coarse:-my-2 acn:pointer-coarse:py-2"
               >
                 {row.title}
               </Link>

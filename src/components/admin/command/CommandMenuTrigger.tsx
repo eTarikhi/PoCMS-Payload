@@ -97,7 +97,7 @@ export function CommandMenuTrigger() {
       >
         <SearchIcon aria-hidden />
         <span className="acn:sr-only acn:sm:not-sr-only">Search…</span>
-        <kbd className="acn:ml-auto acn:hidden acn:rounded acn:border acn:border-border acn:px-1.5 acn:font-sans acn:text-xs acn:sm:inline">
+        <kbd className="acn:ml-auto acn:hidden acn:rounded acn:border acn:border-border acn:px-1.5 acn:font-sans acn:text-xs acn:sm:inline acn:pointer-coarse:hidden">
           {mac ? '⌘K' : 'Ctrl K'}
         </kbd>
       </button>

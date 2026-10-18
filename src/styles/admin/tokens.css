@@ -107,6 +107,14 @@
 
   html {
     font-size: 14px;
+    /* Phones in landscape: no automatic text inflation (Safari on iOS enlarges text otherwise). */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Separate rule: next to the prefixed one, Lightning CSS (Tailwind) drops the -webkit- form
+     Safari needs. */
+  :root {
+    text-size-adjust: 100%;
   }
 }
 

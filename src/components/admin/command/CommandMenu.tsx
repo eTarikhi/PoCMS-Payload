@@ -23,7 +23,16 @@ import {
   UserRoundIcon,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import React, { type ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react'
+import React, {
+  type CSSProperties,
+  type ReactNode,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
 
 import { isAdmin } from '@/access/roles'
 
@@ -32,6 +41,18 @@ import { cn } from '../lib/utils'
 import { matchScore } from './match'
 import { readRecent } from './recent'
 import { GO_SHORTCUTS, keyShortcutsEnabled, setKeyShortcutsEnabled } from './shortcuts'
+
+/*
+ * Height of the part of the page the user can see. On phones the on-screen keyboard covers the
+ * bottom of the page without resizing it, so a dialog sized in vh hides its last results behind
+ * the keyboard; the visual viewport shrinks instead, and the dialog's max height follows it.
+ */
+const subscribeVisibleHeight = (onChange: () => void) => {
+  window.visualViewport?.addEventListener('resize', onChange)
+  return () => window.visualViewport?.removeEventListener('resize', onChange)
+}
+const visibleHeight = () => Math.round(window.visualViewport?.height ?? window.innerHeight)
+const useVisibleHeight = () => useSyncExternalStore(subscribeVisibleHeight, visibleHeight, () => 0)
 
 type Item = {
   id: string
@@ -84,6 +105,7 @@ export default function CommandMenu({
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
   const listRef = useRef<HTMLDivElement>(null)
+  const visibleViewportHeight = useVisibleHeight()
 
   const admin = config.routes.admin
   const language = 'en'
@@ -375,7 +397,13 @@ export default function CommandMenu({
         <DialogPrimitive.Backdrop className="acn:fixed acn:inset-0 acn:z-[80] acn:bg-black/30 acn:supports-backdrop-filter:backdrop-blur-xs acn:data-open:animate-in acn:data-open:fade-in-0 acn:data-closed:animate-out acn:data-closed:fade-out-0" />
         <DialogPrimitive.Popup
           data-testid="command-menu"
-          className="acn:fixed acn:top-[12vh] acn:left-1/2 acn:z-[81] acn:flex acn:max-h-[70vh] acn:w-[min(40rem,calc(100vw-2rem))] acn:-translate-x-1/2 acn:flex-col acn:overflow-hidden acn:rounded-xl acn:border acn:border-border acn:bg-popover acn:text-popover-foreground acn:shadow-2xl acn:outline-none acn:data-open:animate-in acn:data-open:fade-in-0 acn:data-open:zoom-in-95 acn:data-closed:animate-out acn:data-closed:fade-out-0 acn:data-closed:zoom-out-95"
+          // Phones: at the top of the screen, above the on-screen keyboard (see useVisibleHeight).
+          style={
+            visibleViewportHeight
+              ? ({ '--command-vh': `${visibleViewportHeight}px` } as CSSProperties)
+              : undefined
+          }
+          className="acn:fixed acn:top-[12vh] acn:left-1/2 acn:z-[81] acn:flex acn:max-h-[min(70vh,calc(var(--command-vh,100dvh)-12vh-1rem))] acn:w-[min(40rem,calc(100vw-2rem))] acn:-translate-x-1/2 acn:flex-col acn:overflow-hidden acn:rounded-xl acn:border acn:border-border acn:bg-popover acn:text-popover-foreground acn:shadow-2xl acn:outline-none acn:max-sm:top-2 acn:max-sm:max-h-[calc(var(--command-vh,100dvh)-1rem)] acn:max-sm:w-[calc(100vw-1rem)] acn:data-open:animate-in acn:data-open:fade-in-0 acn:data-open:zoom-in-95 acn:data-closed:animate-out acn:data-closed:fade-out-0 acn:data-closed:zoom-out-95"
         >
           <DialogPrimitive.Title className="acn:sr-only">Command menu</DialogPrimitive.Title>
           <div className="acn:flex acn:items-center acn:gap-3 acn:border-b acn:border-border acn:px-4">
@@ -413,7 +441,7 @@ export default function CommandMenu({
             id={listId}
             role="listbox"
             aria-label="Results"
-            className="acn:overflow-y-auto acn:p-2"
+            className="acn:overflow-y-auto acn:overscroll-contain acn:p-2"
           >
             {visible.length === 0 ? (
               <p
@@ -467,7 +495,10 @@ export default function CommandMenu({
                           {selected ? (
                             <CornerDownLeftIcon
                               aria-hidden
-                              className={cn(!item.hint && 'acn:ml-auto')}
+                              className={cn(
+                                !item.hint && 'acn:ml-auto',
+                                'acn:pointer-coarse:hidden',
+                              )}
                             />
                           ) : null}
                         </div>
@@ -480,7 +511,8 @@ export default function CommandMenu({
           </div>
           <div
             data-testid="command-menu-hints"
-            className="acn:flex acn:items-center acn:gap-4 acn:border-t acn:border-border acn:px-4 acn:py-2 acn:text-xs acn:text-muted-foreground"
+            // Keyboard hints mean nothing on touch screens.
+            className="acn:flex acn:items-center acn:gap-4 acn:border-t acn:border-border acn:px-4 acn:py-2 acn:text-xs acn:text-muted-foreground acn:pointer-coarse:hidden"
           >
             <span>
               <kbd className="acn:font-sans">↑↓</kbd> to move

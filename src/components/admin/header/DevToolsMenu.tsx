@@ -69,9 +69,9 @@ const iconButton = cn(
   'acn:rounded-full acn:text-muted-foreground acn:hover:text-foreground',
 )
 const menuItem =
-  'acn:flex acn:w-full acn:cursor-pointer acn:items-center acn:gap-2 acn:rounded-sm acn:border-0 acn:bg-transparent acn:px-2 acn:py-1.5 acn:text-left acn:text-sm acn:text-popover-foreground acn:no-underline acn:outline-none acn:hover:bg-accent acn:focus-visible:bg-accent acn:focus-visible:ring-2 acn:focus-visible:ring-ring/50 acn:disabled:cursor-wait acn:disabled:opacity-60 acn:[&_svg]:size-4 acn:[&_svg]:shrink-0 acn:[&_svg]:text-muted-foreground'
+  'acn:flex acn:w-full acn:cursor-pointer acn:items-center acn:gap-2 acn:rounded-sm acn:border-0 acn:bg-transparent acn:px-2 acn:py-1.5 acn:pointer-coarse:min-h-10 acn:text-left acn:text-sm acn:text-popover-foreground acn:no-underline acn:outline-none acn:hover:bg-accent acn:focus-visible:bg-accent acn:focus-visible:ring-2 acn:focus-visible:ring-ring/50 acn:disabled:cursor-wait acn:disabled:opacity-60 acn:[&_svg]:size-4 acn:[&_svg]:shrink-0 acn:[&_svg]:text-muted-foreground'
 const chip =
-  'acn:flex acn:cursor-pointer acn:items-center acn:gap-1.5 acn:rounded-sm acn:border acn:border-border acn:bg-transparent acn:px-2 acn:py-1 acn:text-left acn:text-xs acn:text-popover-foreground acn:outline-none acn:hover:bg-accent acn:focus-visible:ring-2 acn:focus-visible:ring-ring/50 acn:disabled:cursor-wait acn:disabled:opacity-60'
+  'acn:flex acn:cursor-pointer acn:items-center acn:gap-1.5 acn:rounded-sm acn:border acn:border-border acn:bg-transparent acn:px-2 acn:py-1 acn:pointer-coarse:min-h-9 acn:text-left acn:text-xs acn:text-popover-foreground acn:outline-none acn:hover:bg-accent acn:focus-visible:ring-2 acn:focus-visible:ring-ring/50 acn:disabled:cursor-wait acn:disabled:opacity-60'
 
 function Section({
   title,
@@ -227,7 +227,7 @@ export function DevToolsMenu({
         </summary>
         <nav
           aria-label="Developer tools"
-          className="acn:absolute acn:top-full acn:right-0 acn:z-50 acn:mt-2 acn:max-h-[calc(100vh-5rem)] acn:w-72 acn:overflow-y-auto acn:max-sm:fixed acn:max-sm:inset-x-2 acn:max-sm:top-[calc(var(--app-header-height)+0.25rem)] acn:max-sm:mt-0 acn:max-sm:w-auto acn:rounded-md acn:bg-popover acn:p-1 acn:text-popover-foreground acn:shadow-md acn:ring-1 acn:ring-foreground/10"
+          className="acn:absolute acn:top-full acn:right-0 acn:z-50 acn:mt-2 acn:max-h-[calc(100dvh-5rem)] acn:w-72 acn:overflow-y-auto acn:overscroll-contain acn:rounded-md acn:bg-popover acn:p-1 acn:text-popover-foreground acn:shadow-md acn:ring-1 acn:ring-foreground/10 acn:max-sm:fixed acn:max-sm:inset-x-2 acn:max-sm:top-[calc(var(--app-header-height)+0.25rem)] acn:max-sm:mt-0 acn:max-sm:max-h-[calc(100dvh-var(--app-header-height)-0.75rem)] acn:max-sm:w-auto acn:[details:not([open])>&]:hidden"
         >
           <div className="acn:flex acn:items-center acn:justify-between acn:gap-2 acn:px-2 acn:pt-1 acn:pb-1.5">
             <span className="acn:text-xs acn:font-medium acn:text-muted-foreground">
@@ -236,7 +236,7 @@ export function DevToolsMenu({
             <span
               data-testid="dev-environment"
               className={cn(
-                'acn:rounded-full acn:px-2 acn:text-[0.6875rem] acn:leading-5 acn:font-medium',
+                'acn:rounded-full acn:px-2 acn:text-xs acn:leading-5 acn:font-medium',
                 devServer
                   ? 'acn:bg-warning-soft acn:text-warning'
                   : 'acn:bg-muted acn:text-foreground',
@@ -334,7 +334,7 @@ export function DevToolsMenu({
                   onChange={(event) => setMigration(event.target.value)}
                   placeholder="migration_name"
                   maxLength={60}
-                  className="acn:h-7 acn:min-w-0 acn:flex-1 acn:rounded-sm acn:border acn:border-border acn:bg-transparent acn:px-2 acn:text-xs acn:text-foreground acn:outline-none acn:focus-visible:ring-2 acn:focus-visible:ring-ring/50"
+                  className="acn:h-7 acn:min-w-0 acn:flex-1 acn:rounded-sm acn:border acn:border-border acn:bg-transparent acn:px-2 acn:text-xs acn:text-foreground acn:outline-none acn:focus-visible:ring-2 acn:focus-visible:ring-ring/50 acn:pointer-coarse:h-9"
                 />
                 <button
                   type="submit"

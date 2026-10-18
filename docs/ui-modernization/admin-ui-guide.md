@@ -335,36 +335,74 @@ only text grows.
 
 ## Responsive layout
 
-Audited in Chrome with mobile emulation at 360×740, 390×844, 768×1024 and 1024×768
-(`tests/e2e/responsive.e2e.spec.ts` checks the phone case). Fixes live in
-`src/styles/admin/responsive.css`, plus a few Tailwind `max-sm:` classes:
+Audited in Chrome with mobile emulation at 360×740, 390×844, 844×390, 768×1024, 820×1180 and
+1024×768 (`tests/e2e/responsive.e2e.spec.ts` checks a phone and a 768px tablet). Fixes live in
+`src/styles/admin/responsive.css`, plus Tailwind `max-sm:` and `pointer-coarse:` classes.
 
-- **Header:** the actions keep their size and the breadcrumbs take what is left, ending in an
-  ellipsis (they used to push the account menu off screen or wrap under the actions; Payload's
-  dashboard breadcrumb select no longer wraps its arrow). On phones the GraphQL button hides; the
-  developer tools menu links to the playground and opens as a full-width sheet under the header.
-  Payload's header gradient overlay no longer catches taps (it blocked the account menu).
+Breakpoints: phone rules use `max-width: 768px`, Payload's own small break. At exactly 768px
+(iPad mini portrait) Payload already switches to its phone layout, so rules that stopped at 767px
+left that width broken (header actions off screen, count cards one per row). "Touch" below means
+`(pointer: coarse)`.
+
+- **Header:** up to 1024px the actions keep their size and the breadcrumbs take what is left,
+  ending in an ellipsis. Payload caps the actions at 150px (300px up to 1024px), less than search,
+  developer tools, theme and account need. On phones the GraphQL button hides; the developer tools
+  menu links to the playground and opens as a full-width sheet under the header. Payload's header
+  gradient overlay no longer catches taps (it blocked the account menu). Touch screens hide the
+  search button's Ctrl K hint.
+- **Browser toolbar:** `ThemeToggle` renders `<meta name="theme-color">` (React puts it in the
+  head) with the page background of the current theme, so Chrome on Android and Safari tint their
+  toolbar to match, and it changes with the theme switch.
 - **Sidebar:** Payload's overlay menu below 1025px, with the same icons and colours; the rail
   toggle is desktop only.
-- **Dashboard:** count cards two per row on phones. Payload forces widgets to `width: 100%
-  !important` there, which a later layer can't override, so the dashboard becomes a two-column grid
-  instead (count cards one cell, other widgets the full row; not while editing the layout).
+- **Dashboard:** count cards two per row on phones and four per row from 600px to 768px. Payload
+  forces widgets to `width: 100% !important` there, which a later layer can't override, so the
+  dashboard becomes a grid instead (count cards one cell, other widgets the full row; not while
+  editing the layout).
+- **Documents:** on phones the title wraps to two lines at 24.5px instead of one cut-off line.
+  Payload keeps "Last modified / Created" as a strip that scrolls sideways, with a fade.
 - **Lists:** cells wrap, so titles are readable; the table still scrolls sideways for more columns
   above 640px. The bulk actions bar spans the screen and wraps (Delete used to end off screen).
 - **Lists on phones (below 640px): cards.** Each row becomes a card: the checkbox and the first
   visible column form the title line, and every other column shows as a label and value line. The
-  header row turns into wrapping sort chips (Payload's sort arrows still work). It is CSS only, in
-  the `@layer utilities` block of `responsive.css`: `DataTable` puts `data-label` (the column's
-  label) and `data-primary` (the title cell) on each cell and keeps explicit table roles, since
+  header row turns into wrapping sort chips (Payload's sort arrows still work). Tapping anywhere on
+  a card opens the document (the title link stretches over the card; the checkbox and any other
+  control stay on top), and the card darkens while pressed. It is CSS only, in the
+  `@layer utilities` block of `responsive.css`: `DataTable` puts `data-label` (the column's label)
+  and `data-primary` (the title cell) on each cell and keeps explicit table roles, since
   `display: grid` on a table drops them in some browsers. Hiding or reordering columns changes the
   cards too.
 - **List accessibility:** Payload's row checkboxes have an empty `aria-label`, so `DataTable` wraps
   them in a label ("Select" plus the row title). Payload's sort arrows get 24px targets on every
   screen.
-- **Touch:** group headings and breadcrumb links get at least 24px targets (WCAG 2.5.8); the
-  command menu hides its keyboard hints.
-- Payload's mobile sidebar header was `100vw` wide (scrollbar included): 20px of sideways scroll
-  at 1024px. It is `100%` now.
+- **Text sizes:** nothing in the admin is smaller than 12px (the text scale in `admin-ui.css` is in
+  px; avoid `rem` in arbitrary values, since the admin's rem is 14px). Form fields on touch screens
+  use 16px text: iPhone browsers, Chrome included, zoom into any field under 16px when it gets
+  focus. That covers Payload's inputs, textareas, selects, react-select, the rich text editor,
+  list search and the admin's own inputs (`!important`, because Payload, react-select and Tailwind
+  utilities all set smaller sizes; the header's breadcrumb select is left out). Phones in landscape
+  don't inflate text (`-webkit-text-size-adjust`).
+- **Menus:** on touch screens menu rows are at least 40px tall: the header's account, developer
+  tools and Create menus, Payload's popups (document and array row actions, per page) and
+  react-select options. Payload's popups then get more height before they scroll, because their
+  scrollbar is hidden and the last action ("Remove") would sit out of sight. Closed header menus
+  are `display: none` (`[details:not([open])>&]:hidden`): Chrome still laid out the closed panels,
+  which widened the page on phones. The developer tools menu fits the screen with `dvh` and keeps
+  its scrolling to itself (`overscroll-contain`).
+- **Command menu on phones:** it opens at the top of the screen, full width, and its height follows
+  the visual viewport (`useVisibleHeight`), so the on-screen keyboard no longer hides the last
+  results. Touch screens hide the keyboard hints.
+- **Touch targets:** sidebar group headings and breadcrumb links get at least 24px (WCAG 2.5.8).
+  Payload's small icon buttons (array row actions, copy, remove chip), "Collapse all", "Show all"
+  and per page get 32px. The date picker gets 35px days with 14px numbers and month arrows with a
+  40px hit area; its clear button gets a 32px hit area without moving (both through transparent
+  pseudo elements, since Payload draws the arrows as CSS triangles in a fixed box). Recent changes
+  rows are tappable over their full height.
+- **Sideways scroll fixes:** Payload's mobile sidebar header was `100vw` wide (scrollbar included):
+  20px of sideways scroll at 1024px; it is `100%` now. The dividers around "Payload Settings" on
+  the account page were 100% + 100px wide: 68px of sideways scroll on a phone; they are full bleed
+  now. The e2e check measures the page against the visual viewport: with mobile emulation, a wider
+  page widens `innerWidth` along with it, so comparing with `innerWidth` never failed.
 
 ## Trash
 

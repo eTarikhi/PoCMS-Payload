@@ -80,7 +80,7 @@ export function QuickCreateMenu({ items }: { items: QuickCreateItem[] }) {
       </summary>
       <nav
         aria-label="Create new"
-        className="acn:absolute acn:inset-x-0 acn:top-full acn:z-50 acn:mt-1 acn:rounded-md acn:bg-popover acn:p-1 acn:text-popover-foreground acn:shadow-md acn:ring-1 acn:ring-foreground/10"
+        className="acn:absolute acn:inset-x-0 acn:top-full acn:z-50 acn:mt-1 acn:rounded-md acn:bg-popover acn:p-1 acn:text-popover-foreground acn:shadow-md acn:ring-1 acn:ring-foreground/10 acn:[details:not([open])>&]:hidden"
       >
         <ul className="acn:m-0 acn:list-none acn:p-0">
           {items.map(({ href, label, icon }) => {
@@ -90,7 +90,7 @@ export function QuickCreateMenu({ items }: { items: QuickCreateItem[] }) {
                 <Link
                   href={href}
                   onClick={() => ref.current?.removeAttribute('open')}
-                  className="acn:flex acn:items-center acn:gap-2 acn:rounded-sm acn:px-2 acn:py-1.5 acn:text-sm acn:text-popover-foreground acn:no-underline acn:outline-none acn:hover:bg-accent acn:focus-visible:bg-accent acn:focus-visible:ring-2 acn:focus-visible:ring-ring/50 acn:[&_svg]:size-4 acn:[&_svg]:text-muted-foreground"
+                  className="acn:flex acn:items-center acn:gap-2 acn:rounded-sm acn:px-2 acn:py-1.5 acn:text-sm acn:text-popover-foreground acn:no-underline acn:outline-none acn:hover:bg-accent acn:focus-visible:bg-accent acn:focus-visible:ring-2 acn:focus-visible:ring-ring/50 acn:pointer-coarse:min-h-10 acn:[&_svg]:size-4 acn:[&_svg]:text-muted-foreground"
                 >
                   <Icon aria-hidden />
                   {label}
