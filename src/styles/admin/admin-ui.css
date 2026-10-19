@@ -55,6 +55,9 @@
   --color-success-soft: var(--success-soft);
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
+  --color-rating-good: var(--rating-good);
+  --color-rating-average: var(--rating-average);
+  --color-rating-poor: var(--rating-poor);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);

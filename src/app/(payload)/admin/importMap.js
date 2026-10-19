@@ -29,6 +29,7 @@ import { ContentCountWidget as ContentCountWidget_0f60f33e106bbdc01e5390e7f570ae
 import { PublishingActivityWidget as PublishingActivityWidget_4deaf95869c48c202dd0addd8f0fe384 } from '../../../components/admin/widgets/PublishingActivity'
 import { RecentChangesWidget as RecentChangesWidget_fb33cc5a5014deed35f426cf4c2687ae } from '../../../components/admin/widgets/RecentChanges'
 import { SiteTrafficWidget as SiteTrafficWidget_7008647aaaeb956c9da669685c17f896 } from '../../../components/admin/widgets/SiteTraffic'
+import { PageSpeedWidget as PageSpeedWidget_e81bcd229986c638ee661f8f424e4e98 } from '../../../components/admin/widgets/PageSpeed'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 import { VercelBlobClientUploadHandler as VercelBlobClientUploadHandler_16c82c5e25f430251a3e3ba57219ff4e } from '@payloadcms/storage-vercel-blob/client'
 
@@ -65,6 +66,7 @@ export const importMap = {
   "/components/admin/widgets/PublishingActivity#PublishingActivityWidget": PublishingActivityWidget_4deaf95869c48c202dd0addd8f0fe384,
   "/components/admin/widgets/RecentChanges#RecentChangesWidget": RecentChangesWidget_fb33cc5a5014deed35f426cf4c2687ae,
   "/components/admin/widgets/SiteTraffic#SiteTrafficWidget": SiteTrafficWidget_7008647aaaeb956c9da669685c17f896,
+  "/components/admin/widgets/PageSpeed#PageSpeedWidget": PageSpeedWidget_e81bcd229986c638ee661f8f424e4e98,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1,
   "@payloadcms/storage-vercel-blob/client#VercelBlobClientUploadHandler": VercelBlobClientUploadHandler_16c82c5e25f430251a3e3ba57219ff4e
 }

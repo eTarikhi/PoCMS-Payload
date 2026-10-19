@@ -38,10 +38,11 @@ import { ContentCountWidget } from '@/components/admin/widgets/ContentCount'
 import { ContentHealthWidget } from '@/components/admin/widgets/ContentHealth'
 import { PublishingActivityWidget } from '@/components/admin/widgets/PublishingActivity'
 import { RecentChangesWidget } from '@/components/admin/widgets/RecentChanges'
+import { FieldReportView, PageSpeedWidget } from '@/components/admin/widgets/PageSpeed'
 import { SiteTrafficWidget, TrafficReportView } from '@/components/admin/widgets/SiteTraffic'
 import { WelcomeWidget } from '@/components/admin/widgets/Welcome'
 
-import { SAMPLE_TRAFFIC } from './samples'
+import { SAMPLE_FIELD, SAMPLE_TRAFFIC } from './samples'
 import type { RegistryEntry } from './registry'
 import { ComponentPath, Specimen } from './Section'
 
@@ -156,6 +157,17 @@ export function WidgetsPreview({
             links={{ '/articles/sample-article': { href: '#', title: 'Sample article' } }}
             siteURL=""
           />
+        </div>
+      </Specimen>
+      <Specimen
+        title="Page speed"
+        path={find('PageSpeedWidget')}
+        meta={`${sizes('page-speed')} · widget data: { formFactor } · capability: viewAnalytics · live, then sample data`}
+        className="acn:lg:col-span-3"
+      >
+        <div className="acn:grid acn:gap-3 acn:lg:grid-cols-2">
+          <PageSpeedWidget {...props('page-speed', { formFactor: 'PHONE' })} />
+          <FieldReportView report={SAMPLE_FIELD} origin="https://example.com" formFactor="PHONE" />
         </div>
       </Specimen>
     </div>

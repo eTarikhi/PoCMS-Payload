@@ -125,6 +125,7 @@ export interface Config {
     'publishing-activity': PublishingActivityWidget;
     'recent-changes': RecentChangesWidget;
     'site-traffic': SiteTrafficWidget;
+    'page-speed': PageSpeedWidget;
     collections: CollectionsWidget;
   };
   user: User;
@@ -1221,6 +1222,16 @@ export interface SiteTrafficWidget {
     period: '7' | '30' | '90';
   };
   width: 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "page-speed_widget".
+ */
+export interface PageSpeedWidget {
+  data?: {
+    formFactor: 'PHONE' | 'DESKTOP' | 'ALL';
+  };
+  width: 'small' | 'medium' | 'large' | 'x-large' | 'full';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

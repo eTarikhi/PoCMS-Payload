@@ -85,6 +85,25 @@ export const dashboard: DashboardConfig = {
       fields: [periodField],
       minWidth: 'medium',
     },
+    {
+      slug: 'page-speed',
+      label: 'Page speed',
+      Component: `${dir}/PageSpeed#PageSpeedWidget`,
+      fields: [
+        {
+          name: 'formFactor',
+          type: 'select',
+          required: true,
+          defaultValue: 'PHONE',
+          options: [
+            { label: 'Phones', value: 'PHONE' },
+            { label: 'Desktops', value: 'DESKTOP' },
+            { label: 'All devices', value: 'ALL' },
+          ],
+        },
+      ],
+      minWidth: 'small',
+    },
   ],
   // New users start with this layout (Payload keeps each user's changes in their preferences);
   // integration widgets only appear for roles with their capability.
@@ -97,7 +116,10 @@ export const dashboard: DashboardConfig = {
       { widgetSlug: 'content-count', width: 'x-small', data: { collection: 'media' } },
       { widgetSlug: 'content-count', width: 'x-small', data: { collection: 'certificates' } },
       ...(analytics
-        ? [{ widgetSlug: 'site-traffic', width: 'large', data: { period: '7' } } as WidgetInstance]
+        ? ([
+            { widgetSlug: 'site-traffic', width: 'medium', data: { period: '7' } },
+            { widgetSlug: 'page-speed', width: 'medium', data: { formFactor: 'PHONE' } },
+          ] as WidgetInstance[])
         : []),
       { widgetSlug: 'publishing-activity', width: 'large' },
       { widgetSlug: 'content-health', width: 'small' },

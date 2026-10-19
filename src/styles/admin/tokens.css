@@ -71,6 +71,11 @@
     --warning: var(--theme-warning-600);
     --warning-soft: var(--theme-warning-100);
     --destructive-soft: var(--theme-error-100);
+    /* Ratings (Core Web Vitals, scores): the web's green / orange / red convention, 700 shades in
+       light mode so they pass as text on the canvas and on cards. */
+    --rating-good: #15803d;
+    --rating-average: #b45309;
+    --rating-poor: #b91c1c;
     --border: var(--theme-elevation-150);
     --input: var(--theme-elevation-150);
     --ring: var(--primary);
@@ -108,6 +113,9 @@
     --primary: var(--brand-amber-500);
     --primary-foreground: var(--brand-navy-900);
     --destructive-foreground: var(--brand-navy-900);
+    --rating-good: #4ade80;
+    --rating-average: #fbbf24;
+    --rating-poor: #f87171;
   }
 }
 

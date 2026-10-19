@@ -77,6 +77,9 @@ const themes = {
     'success-soft': payload.light['success-100'],
     warning: payload.light['warning-600'],
     'warning-soft': payload.light['warning-100'],
+    'rating-good': rootHex['rating-good'],
+    'rating-average': rootHex['rating-average'],
+    'rating-poor': rootHex['rating-poor'],
   },
   dark: {
     background: payload.dark['elevation-0'],
@@ -93,6 +96,9 @@ const themes = {
     'success-soft': payload.dark['success-100'],
     warning: payload.dark['warning-600'],
     'warning-soft': payload.dark['warning-100'],
+    'rating-good': darkHex['rating-good'],
+    'rating-average': darkHex['rating-average'],
+    'rating-poor': darkHex['rating-poor'],
   },
 }
 
@@ -115,6 +121,12 @@ const pairs = [
   ['warning', 'background', 'text'],
   ['warning', 'warning-soft', 'text'],
   ['primary', 'background', 'ui'], // focus ring (--ring = --primary)
+  ['rating-good', 'background', 'text'],
+  ['rating-good', 'card', 'text'],
+  ['rating-average', 'background', 'text'],
+  ['rating-average', 'card', 'text'],
+  ['rating-poor', 'background', 'text'],
+  ['rating-poor', 'card', 'text'],
 ]
 
 const toLinear = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)

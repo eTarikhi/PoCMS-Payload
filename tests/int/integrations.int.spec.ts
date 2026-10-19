@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { fieldData, rate, WEB_VITALS } from '@/integrations/google'
 import { siteTraffic } from '@/integrations/vercel'
 
 /**
@@ -93,5 +94,81 @@ describe('Vercel Web Analytics', () => {
       status: 'error',
       message: 'api.vercel.com answered 403: Not authorized',
     })
+  })
+})
+
+describe('Chrome UX Report', () => {
+  it('rates values with the web.dev thresholds', () => {
+    const [lcp, , cls] = WEB_VITALS
+    expect(rate(2500, lcp)).toBe('good')
+    expect(rate(2501, lcp)).toBe('average')
+    expect(rate(4001, lcp)).toBe('poor')
+    expect(rate(0.1, cls)).toBe('good')
+    expect(rate(0.3, cls)).toBe('poor')
+  })
+
+  it('reads p75, distribution and the weekly trend (CLS arrives as a string)', async () => {
+    process.env.GOOGLE_API_KEY = 'key-1'
+    const calls = mockFetch((url) => {
+      if (url.pathname.endsWith(':queryHistoryRecord')) {
+        return {
+          body: {
+            record: {
+              metrics: {
+                largest_contentful_paint: { percentilesTimeseries: { p75s: [2400, null, 2100] } },
+              },
+            },
+          },
+        }
+      }
+      return {
+        body: {
+          record: {
+            metrics: {
+              largest_contentful_paint: {
+                histogram: [
+                  { start: 0, end: 2500, density: 0.8 },
+                  { start: 2500, end: 4000, density: 0.15 },
+                  { start: 4000, density: 0.05 },
+                ],
+                percentiles: { p75: 2100 },
+              },
+              cumulative_layout_shift: { percentiles: { p75: '0.12' } },
+            },
+            collectionPeriod: {
+              firstDate: { year: 2026, month: 9, day: 20 },
+              lastDate: { year: 2026, month: 10, day: 17 },
+            },
+          },
+        },
+      }
+    })
+    const result = await fieldData('https://example.com', 'PHONE')
+    expect(result.status).toBe('ok')
+    if (result.status !== 'ok' || !result.data) return
+    const [lcp, inp, cls] = result.data.metrics
+    expect(lcp).toMatchObject({
+      p75: 2100,
+      rating: 'good',
+      distribution: [0.8, 0.15, 0.05],
+      trend: [2400, null, 2100],
+    })
+    expect(inp).toMatchObject({ p75: null, rating: null })
+    expect(cls).toMatchObject({ p75: 0.12, rating: 'average' })
+    expect(result.data.period).toEqual({ first: '2026-09-20', last: '2026-10-17' })
+    expect(calls[0].url.searchParams.get('key')).toBe('key-1')
+    expect(JSON.parse(String(calls[0].init.body))).toMatchObject({
+      origin: 'https://example.com',
+      formFactor: 'PHONE',
+    })
+  })
+
+  it('treats a missing record (404) as "no field data yet"', async () => {
+    process.env.GOOGLE_API_KEY = 'key-1'
+    mockFetch(() => ({
+      status: 404,
+      body: { error: { message: 'chrome ux report data not found' } },
+    }))
+    expect(await fieldData('https://example.com')).toEqual({ status: 'ok', data: null })
   })
 })
