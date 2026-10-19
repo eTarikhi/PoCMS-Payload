@@ -1,7 +1,7 @@
 import type { ServerProps } from 'payload'
 import React from 'react'
 
-import { isAdmin } from '@/access/roles'
+import { hasCapability } from '@/access/permissions'
 
 import { DevToolsMenu } from './Menu'
 
@@ -23,7 +23,7 @@ function environment(): { label: string; commit?: string } {
 }
 
 export function DevTools({ payload, user }: ServerProps) {
-  if (!isAdmin(user)) return null
+  if (!hasCapability(user, 'useDeveloperTools')) return null
   const { graphQL, routes } = payload.config
   const playgroundAvailable =
     !graphQL.disable &&

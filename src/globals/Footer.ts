@@ -1,4 +1,5 @@
 import type { GlobalConfig } from 'payload'
+import { globalAccess, hiddenWithout } from '../access/roles'
 import { portfolioAfterChange } from '../app/(frontend)/lib/hooks'
 
 export const Footer: GlobalConfig = {
@@ -8,12 +9,11 @@ export const Footer: GlobalConfig = {
   },
   label: 'Footer',
   admin: {
+    hidden: hiddenWithout('footer'),
     group: 'Site settings',
     description: 'Social links, roles and marketplace profiles shown in the site footer.',
   },
-  access: {
-    read: () => true,
-  },
+  access: globalAccess('footer'),
   fields: [
     {
       name: 'socialLinks',

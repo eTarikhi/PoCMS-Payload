@@ -13,7 +13,9 @@ import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
-import { ensureAdminExists } from './access/roles'
+import { governedEntities } from './access/permissions'
+import { ensureRoles } from './access/roles'
+import { createRoles } from './collections/Roles'
 import { Footer } from './globals/Footer'
 
 import { Users } from './collections/Users'
@@ -41,6 +43,22 @@ import { adminUIPlugin } from './plugins/adminUI'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
+
+/** Collections that hold site content, in sidebar order (see `collections` below). */
+const contentCollections = [
+  Articles,
+  Projects,
+  Media,
+  About,
+  Services,
+  Skills,
+  Experiences,
+  Educations,
+  Certificates,
+  Header,
+]
+
+const globals = [Footer]
 
 export default buildConfig({
   admin: {
@@ -129,20 +147,13 @@ export default buildConfig({
   // Order sets the sidebar order of the admin.group sections: Content, Profile, Site settings,
   // Admin. Profile follows the section order of the public home page. Payload lists collections
   // before globals, so the Footer global joins Site settings after the Header collection.
+  // Roles get an access-level row for every governed collection and global (ADR 0011).
   collections: [
-    Articles,
-    Projects,
-    Media,
-    About,
-    Services,
-    Skills,
-    Experiences,
-    Educations,
-    Certificates,
-    Header,
+    ...contentCollections,
     Users,
+    createRoles(governedEntities({ collections: contentCollections, globals })),
   ],
-  globals: [Footer],
+  globals,
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
@@ -176,9 +187,9 @@ export default buildConfig({
     devMigrateEndpoint,
     devRestartEndpoint,
   ],
-  // Roles (ADR 0008): never leave a database without an admin.
+  // Roles (ADR 0011): built-in roles, the one-time move from the old select, never no admin.
   onInit: async (payload) => {
-    await ensureAdminExists(payload)
+    await ensureRoles(payload)
   },
   plugins: [
     vercelBlobStorage({

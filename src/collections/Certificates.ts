@@ -1,4 +1,4 @@
-import { trashOrAdmin } from '@/access/roles'
+import { contentAccess, hiddenWithout } from '@/access/roles'
 import type { CollectionConfig } from 'payload'
 import { portfolioAfterChange, portfolioAfterDelete } from '../app/(frontend)/lib/hooks'
 
@@ -9,18 +9,17 @@ export const Certificates: CollectionConfig = {
     afterDelete: [portfolioAfterDelete],
   },
   admin: {
+    hidden: hiddenWithout('certificates'),
     group: 'Profile',
     description: 'Certificates and credentials.',
     useAsTitle: 'title',
     defaultColumns: ['title', 'issuer', 'issuedAt'],
   },
   defaultSort: 'issuedAt',
-  // Deleting moves documents to the trash (restorable); only admins delete permanently.
+  // Deleting moves documents to the trash (restorable); deleting for good needs the Full level.
   trash: true,
-  access: {
-    read: () => true,
-    delete: trashOrAdmin,
-  },
+  // Levels from the user's roles (ADR 0011): public read, edit and trash, full to delete for good.
+  access: contentAccess('certificates'),
   fields: [
     { name: 'title', type: 'text', required: true },
     { name: 'issuer', type: 'text', required: true },

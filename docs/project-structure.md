@@ -20,7 +20,7 @@ PoCMS-Payload/
 │   │   └── hooks/, utilities/
 │   ├── styles/admin/         # Admin design tokens, Tailwind entry, Payload overrides
 │   ├── plugins/              # Config plugins (adminUI: list view, list summary, cells)
-│   ├── access/               # Access control helpers (roles, singletons)
+│   ├── access/               # Roles and permissions (ADR 0011), singleton create access
 │   ├── endpoints/            # Custom API endpoints
 │   ├── fields/               # Shared field definitions
 │   ├── seed/                 # Seed script and data

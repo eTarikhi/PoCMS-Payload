@@ -1,4 +1,4 @@
-import { trashOrAdmin } from '@/access/roles'
+import { contentAccess, hiddenWithout } from '@/access/roles'
 import { articlePagePath, hasArticlePage } from '@/app/(frontend)/lib/article-page'
 import type { CollectionConfig } from 'payload'
 import {
@@ -15,6 +15,7 @@ export const Articles: CollectionConfig = {
     afterDelete: [portfolioAfterDelete],
   },
   admin: {
+    hidden: hiddenWithout('articles'),
     group: 'Content',
     description: 'Blog posts, listed under /articles.',
     useAsTitle: 'title',
@@ -27,12 +28,10 @@ export const Articles: CollectionConfig = {
     preview: (doc) => (hasArticlePage(doc) ? articlePagePath(String(doc.slug)) : null),
   },
   defaultSort: 'publishedAt',
-  // Deleting moves documents to the trash (restorable); only admins delete permanently.
+  // Deleting moves documents to the trash (restorable); deleting for good needs the Full level.
   trash: true,
-  access: {
-    read: () => true,
-    delete: trashOrAdmin,
-  },
+  // Levels from the user's roles (ADR 0011): public read, edit and trash, full to delete for good.
+  access: contentAccess('articles'),
   fields: [
     { name: 'title', type: 'text', required: true },
     { name: 'excerpt', type: 'textarea', required: true },

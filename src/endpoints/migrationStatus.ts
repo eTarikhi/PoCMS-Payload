@@ -1,6 +1,6 @@
 import type { Endpoint } from 'payload'
 
-import { isAdmin } from '@/access/roles'
+import { hasCapability } from '@/access/permissions'
 
 /**
  * GET /api/migration-status (admins, every environment): the migrations recorded in this
@@ -11,7 +11,8 @@ export const migrationStatusEndpoint: Endpoint = {
   path: '/migration-status',
   method: 'get',
   handler: async (req) => {
-    if (!isAdmin(req.user)) return Response.json({ error: 'Admins only.' }, { status: 403 })
+    if (!hasCapability(req.user, 'useDeveloperTools'))
+      return Response.json({ error: 'Needs the Developer tools permission.' }, { status: 403 })
     const { docs, totalDocs } = await req.payload.find({
       collection: 'payload-migrations',
       sort: '-createdAt',

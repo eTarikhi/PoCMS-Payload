@@ -36,6 +36,29 @@
       var(--theme-bg);
   }
 
+  /* Roles: each access level is one row, name on the left and the levels on the right, so the
+     group reads as a matrix (collections down, levels across). Phones keep Payload's stacking. */
+  @media (min-width: 769px) {
+    .roles-levels .radio-group--layout-horizontal {
+      display: grid;
+      grid-template-columns: minmax(9rem, 14rem) 1fr;
+      align-items: center;
+      column-gap: var(--base);
+      margin: 0;
+      padding-block: calc(var(--base) * 0.35);
+      border-bottom: 1px solid var(--theme-elevation-100);
+    }
+
+    .roles-levels .radio-group--layout-horizontal:last-child {
+      border-bottom: 0;
+    }
+
+    .roles-levels .radio-group--layout-horizontal > .field-label {
+      margin: 0;
+      padding: 0;
+    }
+  }
+
   /* Tabular figures keep numbers aligned in list tables and counters. */
   .table td,
   .page-controls,

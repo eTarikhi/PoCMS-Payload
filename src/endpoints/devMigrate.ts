@@ -3,7 +3,7 @@ import { execFile } from 'node:child_process'
 import path from 'node:path'
 import { promisify } from 'node:util'
 
-import { isAdmin } from '@/access/roles'
+import { hasCapability } from '@/access/permissions'
 
 const execFileAsync = promisify(execFile)
 const stripAnsi = (text: string) => text.replace(/\u001b\[[0-9;]*[A-Za-z]/g, '')
@@ -27,7 +27,8 @@ export const devMigrateEndpoint: Endpoint = {
   path: '/dev-migrate',
   method: 'post',
   handler: async (req) => {
-    if (!isAdmin(req.user)) return Response.json({ error: 'Admins only.' }, { status: 403 })
+    if (!hasCapability(req.user, 'useDeveloperTools'))
+      return Response.json({ error: 'Needs the Developer tools permission.' }, { status: 403 })
     if (process.env.NODE_ENV === 'production') {
       return Response.json({ error: 'Only available in development.' }, { status: 404 })
     }

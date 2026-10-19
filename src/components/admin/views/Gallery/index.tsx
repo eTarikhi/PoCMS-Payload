@@ -4,7 +4,7 @@ import { Gutter, SetStepNav } from '@payloadcms/ui'
 import { notFound, redirect } from 'next/navigation'
 import React from 'react'
 
-import { isAdmin } from '@/access/roles'
+import { hasCapability } from '@/access/permissions'
 import { buttonVariants } from '@/components/admin/elements/Button'
 
 import { ElementsLazy } from './ElementsLazy'
@@ -27,7 +27,8 @@ const SECTIONS = [
  * into Payload, rendered live inside Payload's own shell and grouped like Payload's documentation.
  * The registry table is read from the running config; graphics, widgets, the list summary, field
  * components and cells are the real components with live or sample data. Server rendered; only
- * the building-block demos at the end are a client chunk, loaded on demand. Admins only.
+ * the building-block demos at the end are a client chunk, loaded on demand. Needs the Developer
+ * tools capability (ADR 0011).
  */
 export function GalleryView({
   i18n,
@@ -45,7 +46,7 @@ export function GalleryView({
   if (!req.user) {
     redirect(`${adminRoute}/login?redirect=${encodeURIComponent(`${adminRoute}/gallery`)}`)
   }
-  if (!isAdmin(req.user)) notFound()
+  if (!hasCapability(req.user, 'useDeveloperTools')) notFound()
 
   const entries = collectRegistry(payload.config)
 

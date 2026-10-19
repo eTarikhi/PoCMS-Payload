@@ -49,9 +49,9 @@ Outside that folder:
 | `src/styles/admin/nav-rail.css`, `responsive.css` | Icon rail and theme animation; responsive and touch fixes |
 | `src/plugins/adminUI.ts` | Gives every collection the list view, list summary and checkbox cell |
 | `src/endpoints/*` | Admin endpoints: site cache, migrations, developer tools |
-| `src/access/roles.ts`, `src/access/singleton.ts` | Role helpers, one-document create access |
+| `src/access/permissions.ts`, `src/access/roles.ts`, `src/access/singleton.ts` | Permission checks (client-safe), access functions and role hooks, one-document create access |
 
-The **component gallery** at **`/admin/gallery`** (admins only) shows all of it inside Payload's
+The **component gallery** at **`/admin/gallery`** (Developer tools capability) shows all of it inside Payload's
 shell: a registry of every registered component, read from the running config, then the graphics,
 the dashboard widgets with your data, the list summary, the field components inside a Payload form,
 every cell with sample values, and finally the elements and design tokens.
@@ -175,7 +175,7 @@ checkbox is a `span[role=checkbox]`, so name it with `aria-labelledby` or `aria-
 - `beforeNavLinks`: the **Create** control lists only collections the user may create. It is a
   native disclosure (`details`/`summary`) holding links, closed by Escape or an outside click.
 - `afterNavLinks` (`nav/NavExtraLinks`): **View site** (`NEXT_PUBLIC_SITE_URL`, or the same
-  origin) and, for admins, the **Component gallery**.
+  origin) and, with the Developer tools capability, the **Component gallery**.
 - No `settingsMenu` (gear) and no sidebar log out (`logout.Button` is `nav/HiddenLogout`): the
   site cache refresh is in the developer tools menu and log out in the account menu, both in the
   header. `POST /api/revalidate-site` (`src/endpoints/revalidateSite.ts`) expires the `portfolio`
@@ -185,7 +185,7 @@ checkbox is a `span[role=checkbox]`, so name it with `aria-labelledby` or `aria-
   menu** (`actions/AccountMenu`: name, email, role, Account settings, Log out), which replaces
   Payload's avatar link (hidden in `nav-rail.css`).
 - Developer tools (`actions/DevTools`: `index.tsx` on the server, `Menu.tsx` on the client),
-  admins only. A
+  for roles with the Developer tools capability. A
   **GraphQL Playground** button (where Payload serves it; production blocks introspection, so its
   schema docs only load in development) and a bug-icon menu whose items depend on the environment.
   A badge shows it: Development, Production build, or Vercel's environment and commit.
@@ -207,7 +207,7 @@ checkbox is a `span[role=checkbox]`, so name it with `aria-labelledby` or `aria-
 - **Generate** (same menu, development only): buttons for each code generator (Types, Import map,
   DB schema, GraphQL schema: `node scripts/generate.mjs <target>`; Nav icons:
   `node scripts/generate-nav-icons.mjs`) and **Run generate:all**, through
-  `POST /api/dev-generate?target=…` (`src/endpoints/devGenerate.ts`): admins only, a fixed list of
+  `POST /api/dev-generate?target=…` (`src/endpoints/devGenerate.ts`): Developer tools capability, a fixed list of
   targets, one run at a time, output tail in the response and the run's result in the menu. Use it
   after changing collections or admin components instead of a terminal; the dev server picks up the
   regenerated files.
@@ -226,7 +226,7 @@ checkbox is a `span[role=checkbox]`, so name it with `aria-labelledby` or `aria-
   the first shortcut.
 - Groups: **Recent** (documents and globals you opened, kept in localStorage, named from the edit
   view heading), **Go to** (dashboard, every collection and global you can see, account, component
-  gallery for admins), **Create** (collections you may create in), **Documents** (title search) and
+  gallery with the Developer tools capability), **Create** (collections you may create in), **Documents** (title search) and
   **Actions** (theme, sidebar, refresh site cache, view site, log out).
 - Document search: two or more letters search each readable collection's `useAsTitle` field over
   REST with the user's own access (`like`, four hits per collection, debounced, stale requests
@@ -369,7 +369,7 @@ list view (`SingletonListView`) redirects to the document, or to the create form
 
 `adminUIPlugin` adds `ListSummary` (`beforeListTable`) to every collection: total, edited in the
 last 30 days, last edit and collection-specific counts from `views/List/summaryFacts.ts` (articles with
-a page, featured and without an image; projects without an image; admins and editors). Counts use
+a page, featured and without an image; projects without an image; users without a role; roles with full access). Counts use
 the signed-in user's access and ignore the current search and filters; a failing count is logged
 and left out. It is a server component, so it adds no client JavaScript. Opt out with
 `custom: { listSummary: false }`.
@@ -453,7 +453,7 @@ left that width broken (header actions off screen, count cards one per row). "To
 
 ## Trash
 
-Built into Payload 3.9x; the project turns it on and adds the role rules.
+Built into Payload 3.9x; the project turns it on and adds the access-level rules.
 
 ### Trash (soft delete)
 
@@ -461,10 +461,10 @@ Built into Payload 3.9x; the project turns it on and adds the role rules.
   (`trash: true`). Deleting moves documents to the collection's **Trash** tab
   (`/collections/<slug>/trash`), where they are read-only and can be restored. Normal queries,
   the public site and the dashboard leave trashed documents out.
-- Access (`trashOrAdmin` in `src/access/roles.ts`): every signed-in user can move documents to
-  the trash and restore them; only admins delete permanently ("Delete permanently", "Empty trash",
-  the "skip trash" option). Payload computes the two permissions separately, so editors see
-  Delete and Restore but no permanent delete.
+- Access (`contentAccess` in `src/access/roles.ts`, ADR 0011): users whose role gives Edit can
+  move documents to the trash and restore them; deleting permanently ("Delete permanently",
+  "Empty trash", the "skip trash" option) needs Full. Payload computes the two permissions
+  separately, so an Edit user sees Delete and Restore but no permanent delete.
 - Trashing is an update, so the `afterChange` hooks run and the site cache is refreshed;
   `afterDelete` runs only on permanent deletes. A trashed media file stays in storage until it is
   deleted permanently.
@@ -481,15 +481,38 @@ presets, were tried and removed; their `payload_query_presets` tables are droppe
 Development pushes the schema automatically; for a database without push, create and run a
 migration (`npx payload migrate:create`, then `npx payload migrate`).
 
-## Roles
+## Roles and permissions
 
-Users have `roles` (`admin`, `editor`; new users are editors, the first user is an admin).
+Admin › **Roles** (`src/collections/Roles.ts`, ADR 0011) is where access is managed:
 
-- Admins manage users and roles and see admin-only tools (Users, component gallery).
-- Editors manage content and their own account; they can't change roles.
-- The last admin can't be demoted or deleted (`ensureAdminExists`).
+- A role gives an **access level** per collection and global (No access, Read only, Edit, Full;
+  globals stop at Edit), **capabilities** for the tools (traffic, deployments, audit log, jobs,
+  system, developer tools, terminal), or **Full access**. The level rows are generated from the
+  config, grouped like the sidebar; a new collection gets its row automatically (opt out with
+  `custom: { permissions: false }`).
+- Users get roles on their account (`users.roles`, administrators only). With several roles the
+  highest level and every capability apply. Users without a role can't open the admin.
+- The roles list starts with an **access overview** (collections and tools down, roles across).
+  The role form lists its members (a join field).
+- Built in: **Administrator** (full access; can't be deleted or lose full access) and **Editor**
+  (Edit everywhere, traffic and deployment widgets, given to new users). The first user is an
+  administrator; the last administrator can't be demoted or deleted.
 
-Helpers are in `src/access/roles.ts`; the behaviour is covered by `tests/int/roles.int.spec.ts`.
+In code, read permissions from the user, never from role names:
+
+```ts
+import { can, hasCapability, isAdmin } from '@/access/permissions'
+
+can(req.user, 'articles', 'update') // access level allows the operation
+hasCapability(user, 'viewAuditLog') // a tool
+isAdmin(user) // full access
+```
+
+`user.permissions` is a virtual field merged from the roles on every read, so it is current in
+access functions, server components and client components (`useAuth().user`). Collection configs
+use the factories in `src/access/roles.ts`: `contentAccess(slug)`, `globalAccess(slug)`,
+`hiddenWithout(slug)` for `admin.hidden`, `capabilityAccess(capability)`, `adminsOnly`. Behaviour
+is covered by `tests/int/roles.int.spec.ts` and `tests/e2e/roles.e2e.spec.ts`.
 
 ## Generated files
 

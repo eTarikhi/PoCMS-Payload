@@ -78,12 +78,17 @@ export interface Config {
     certificates: Certificate;
     header: Header;
     users: User;
+    roles: Role;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
-  collectionsJoins: {};
+  collectionsJoins: {
+    roles: {
+      members: 'users';
+    };
+  };
   collectionsSelect: {
     articles: ArticlesSelect<false> | ArticlesSelect<true>;
     projects: ProjectsSelect<false> | ProjectsSelect<true>;
@@ -96,6 +101,7 @@ export interface Config {
     certificates: CertificatesSelect<false> | CertificatesSelect<true>;
     header: HeaderSelect<false> | HeaderSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    roles: RolesSelect<false> | RolesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -424,7 +430,7 @@ export interface Header {
   createdAt: string;
 }
 /**
- * People who can sign in to this admin. Only admins can manage users and roles.
+ * People who can sign in to this admin. Administrators manage users and their roles.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
@@ -436,9 +442,19 @@ export interface User {
    */
   name?: string | null;
   /**
-   * Admins manage users and see admin-only tools. Editors manage content.
+   * What this person may do; with several roles the highest access wins. Define roles under Admin › Roles.
    */
-  roles?: ('admin' | 'editor')[] | null;
+  roles?: (number | Role)[] | null;
+  permissions?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  legacyRoles?: ('admin' | 'editor')[] | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -458,6 +474,88 @@ export interface User {
     | null;
   password?: string | null;
   collection: 'users';
+}
+/**
+ * What each kind of user may do: an access level per collection and global, plus admin tools. Users get roles on their account; with several roles the highest level wins.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "roles".
+ */
+export interface Role {
+  id: number;
+  name: string;
+  /**
+   * New users get the roles marked here unless you pick roles for them.
+   */
+  isDefault?: boolean | null;
+  /**
+   * What the role is for. Shown in the roles list.
+   */
+  description?: string | null;
+  /**
+   * Everything, including users, roles and every tool. Replaces the access levels below.
+   */
+  fullAccess?: boolean | null;
+  system?: boolean | null;
+  /**
+   * Read only: Browse and open documents, change nothing. Edit: Create and edit documents, move them to the trash and restore them. Full: Everything Edit allows, plus deleting permanently (and emptying the trash). Without read access a collection is hidden from the sidebar.
+   */
+  levels?: {
+    articles?: ('none' | 'read' | 'edit' | 'full') | null;
+    projects?: ('none' | 'read' | 'edit' | 'full') | null;
+    media?: ('none' | 'read' | 'edit' | 'full') | null;
+    about?: ('none' | 'read' | 'edit' | 'full') | null;
+    services?: ('none' | 'read' | 'edit' | 'full') | null;
+    skills?: ('none' | 'read' | 'edit' | 'full') | null;
+    experiences?: ('none' | 'read' | 'edit' | 'full') | null;
+    educations?: ('none' | 'read' | 'edit' | 'full') | null;
+    certificates?: ('none' | 'read' | 'edit' | 'full') | null;
+    header?: ('none' | 'read' | 'edit' | 'full') | null;
+    footer?: ('none' | 'read' | 'edit') | null;
+  };
+  /**
+   * Admin tools this role may use.
+   */
+  capabilities?: {
+    /**
+     * Dashboard widgets with visits, top pages and Core Web Vitals.
+     */
+    viewAnalytics?: boolean | null;
+    /**
+     * Dashboard widgets with the latest Vercel deployments and GitHub Actions runs.
+     */
+    viewDeployments?: boolean | null;
+    /**
+     * Who changed what, signed in or out, and when.
+     */
+    viewAuditLog?: boolean | null;
+    /**
+     * See the job queue, run jobs now and cancel queued ones.
+     */
+    manageJobs?: boolean | null;
+    /**
+     * Versions, environment, database and configured integrations.
+     */
+    viewSystem?: boolean | null;
+    /**
+     * The header developer menu (generators, migrations, caches, GraphQL) and the component gallery.
+     */
+    useDeveloperTools?: boolean | null;
+    /**
+     * Run shell commands from the admin. Development only; never available in production.
+     */
+    useTerminal?: boolean | null;
+  };
+  /**
+   * Users with this role. Change roles on the user’s account.
+   */
+  members?: {
+    docs?: (number | User)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -526,6 +624,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'users';
         value: number | User;
+      } | null)
+    | ({
+        relationTo: 'roles';
+        value: number | Role;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -766,6 +868,8 @@ export interface HeaderSelect<T extends boolean = true> {
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
   roles?: T;
+  permissions?: T;
+  legacyRoles?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -783,6 +887,46 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "roles_select".
+ */
+export interface RolesSelect<T extends boolean = true> {
+  name?: T;
+  isDefault?: T;
+  description?: T;
+  fullAccess?: T;
+  system?: T;
+  levels?:
+    | T
+    | {
+        articles?: T;
+        projects?: T;
+        media?: T;
+        about?: T;
+        services?: T;
+        skills?: T;
+        experiences?: T;
+        educations?: T;
+        certificates?: T;
+        header?: T;
+        footer?: T;
+      };
+  capabilities?:
+    | T
+    | {
+        viewAnalytics?: T;
+        viewDeployments?: T;
+        viewAuditLog?: T;
+        manageJobs?: T;
+        viewSystem?: T;
+        useDeveloperTools?: T;
+        useTerminal?: T;
+      };
+  members?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

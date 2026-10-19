@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { portfolioAfterChange, portfolioAfterDelete } from '../app/(frontend)/lib/hooks'
+import { contentAccess, hiddenWithout } from '../access/roles'
 import { createWhileEmpty } from '../access/singleton'
 
 export const Header: CollectionConfig = {
@@ -13,6 +14,7 @@ export const Header: CollectionConfig = {
     plural: 'Header',
   },
   admin: {
+    hidden: hiddenWithout('header'),
     group: 'Site settings',
     description:
       'The hero section: name, job titles and CV link. One document: the site shows the first one.',
@@ -24,7 +26,7 @@ export const Header: CollectionConfig = {
     },
   },
   access: {
-    read: () => true,
+    ...contentAccess('header'),
     create: createWhileEmpty('header'),
   },
   fields: [

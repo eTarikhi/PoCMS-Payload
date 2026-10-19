@@ -5,8 +5,9 @@ import config from '@/payload.config'
 import type { Skill, User } from '@/payload-types'
 
 /**
- * Trash on content collections: editors move documents to the trash and restore them; only admins
- * delete permanently (access `trashOrAdmin`). Exercised through the Local API with access control on.
+ * Trash on content collections: users with the Edit level (the Editor role) move documents to the
+ * trash and restore them; deleting permanently needs Full (access `contentAccess`, ADR 0011).
+ * Exercised through the Local API with access control on.
  */
 describe('Trash', () => {
   let payload: Payload
@@ -17,12 +18,17 @@ describe('Trash', () => {
 
   beforeAll(async () => {
     payload = await getPayload({ config: await config })
+    const { docs: administrator } = await payload.find({
+      collection: 'roles',
+      where: { system: { equals: true } },
+      limit: 1,
+    })
     admin = await payload.create({
       collection: 'users',
       data: {
         email: `trash-admin-${stamp}@example.test`,
         password: 'int-test-1',
-        roles: ['admin'],
+        roles: administrator.map((role) => role.id),
       },
     })
     editor = await payload.create({

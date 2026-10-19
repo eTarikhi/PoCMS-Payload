@@ -1,7 +1,7 @@
 import type { BeforeListTableServerProps, CollectionSlug } from 'payload'
 import React from 'react'
 
-import { isAdmin } from '@/access/roles'
+import { can } from '@/access/permissions'
 import { cn } from '@/components/admin/utilities/cn'
 import { daysAgoISO, relativeTime } from '@/components/admin/utilities/dates'
 
@@ -43,9 +43,9 @@ export async function ListSummary({
       >
         <strong className="acn:font-semibold acn:text-foreground">{inTrash ?? 0}</strong> in the
         trash.{' '}
-        {isAdmin(user)
+        {can(user, slug, 'delete')
           ? 'Restore documents, or delete them permanently.'
-          : 'Restore documents here; only admins can delete permanently.'}
+          : 'Restore documents here; deleting permanently needs the Full access level.'}
       </section>
     )
   }

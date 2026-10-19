@@ -35,9 +35,10 @@ export const SUMMARY_FACTS: Partial<Record<CollectionSlug, SummaryFact[]>> = {
     },
   ],
   users: [
-    { label: 'admins', where: { roles: { contains: 'admin' } } },
-    { label: 'editors', where: { roles: { contains: 'editor' } } },
+    // Without a role nobody can open the admin (ADR 0011).
+    { label: 'without a role', where: { roles: { exists: false } }, attention: true },
   ],
+  roles: [{ label: 'with full access', where: { fullAccess: { equals: true } } }],
 }
 
 /**

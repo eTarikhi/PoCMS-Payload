@@ -6,8 +6,19 @@ export const testUser = {
   password: 'test',
 }
 
-/** The e2e suites exercise admin-only screens (Users, component gallery), so the test user is an admin. */
-const testUserRoles: ('admin' | 'editor')[] = ['admin']
+/**
+ * The e2e suites exercise admin-only screens (Users, Roles, component gallery), so the test user
+ * gets the built-in Administrator role (created by `ensureRoles` on init, ADR 0011).
+ */
+async function administratorRoleIds(payload: Awaited<ReturnType<typeof getPayload>>) {
+  const { docs } = await payload.find({
+    collection: 'roles',
+    where: { system: { equals: true } },
+    depth: 0,
+    limit: 1,
+  })
+  return docs.map((doc) => doc.id)
+}
 
 /**
  * Seeds a test user for e2e admin tests.
@@ -28,7 +39,7 @@ export async function seedTestUser(): Promise<void> {
   // Create fresh test user
   await payload.create({
     collection: 'users',
-    data: { ...testUser, roles: testUserRoles },
+    data: { ...testUser, roles: await administratorRoleIds(payload) },
   })
 }
 

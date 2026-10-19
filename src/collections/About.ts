@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { portfolioAfterChange, portfolioAfterDelete } from '../app/(frontend)/lib/hooks'
+import { contentAccess, hiddenWithout } from '../access/roles'
 import { createWhileEmpty } from '../access/singleton'
 
 export const About: CollectionConfig = {
@@ -13,6 +14,7 @@ export const About: CollectionConfig = {
     plural: 'About',
   },
   admin: {
+    hidden: hiddenWithout('about'),
     group: 'Profile',
     description: 'The About section. One document: the site shows the first one.',
     useAsTitle: 'title',
@@ -23,7 +25,7 @@ export const About: CollectionConfig = {
     },
   },
   access: {
-    read: () => true,
+    ...contentAccess('about'),
     create: createWhileEmpty('about'),
   },
   fields: [

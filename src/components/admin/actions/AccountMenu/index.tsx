@@ -4,6 +4,7 @@ import { useAuth, useConfig } from '@payloadcms/ui'
 import { LogOutIcon, UserRoundCogIcon } from 'lucide-react'
 import React, { useRef } from 'react'
 
+import { permissionsOf } from '@/access/permissions'
 import { initialsOf } from '@/components/admin/graphics/AccountAvatar'
 import { useDismissable } from '@/components/admin/hooks/useDismissable'
 
@@ -21,7 +22,7 @@ export function AccountMenu() {
   useDismissable(ref)
   if (!user) return null
   const name = (user as { name?: string | null }).name || user.email || 'Account'
-  const roles = ((user as { roles?: string[] | null }).roles ?? []).join(', ')
+  const roles = (permissionsOf(user)?.roles ?? []).join(', ')
   const admin = config.routes.admin
 
   return (
@@ -44,9 +45,7 @@ export function AccountMenu() {
               {user.email}
             </p>
           ) : null}
-          {roles ? (
-            <p className="acn:m-0 acn:text-xs acn:text-muted-foreground acn:capitalize">{roles}</p>
-          ) : null}
+          {roles ? <p className="acn:m-0 acn:text-xs acn:text-muted-foreground">{roles}</p> : null}
         </div>
         <ul className="acn:m-0 acn:mt-1 acn:list-none acn:p-0">
           <li>

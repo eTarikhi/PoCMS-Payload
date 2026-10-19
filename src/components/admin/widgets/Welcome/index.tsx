@@ -3,15 +3,16 @@ import { ExternalLinkIcon, FilePlus2Icon, ImageUpIcon } from 'lucide-react'
 import Link from 'next/link'
 import React from 'react'
 
+import { isAdmin, permissionsOf } from '@/access/permissions'
 import { Badge } from '@/components/admin/elements/Badge'
 import { buttonVariants } from '@/components/admin/elements/Button'
 import { WidgetCard } from '@/components/admin/elements/WidgetCard'
 import { adminURL } from '@/components/admin/utilities/collections'
 
-/** Greeting with the user's role and the most common actions they are allowed to take. */
+/** Greeting with the user's roles and the most common actions they are allowed to take. */
 export function WelcomeWidget({ req, user, permissions }: WidgetServerProps) {
   const name = (user as { name?: string | null } | null)?.name || user?.email?.split('@')[0] || ''
-  const roles = ((user as { roles?: string[] | null } | null)?.roles ?? []).filter(Boolean)
+  const roles = permissionsOf(user)?.roles ?? []
   const canCreate = (slug: 'articles' | 'media') =>
     Boolean(permissions?.collections?.[slug]?.create)
   const siteURL = process.env.NEXT_PUBLIC_SITE_URL || '/'
@@ -26,8 +27,7 @@ export function WelcomeWidget({ req, user, permissions }: WidgetServerProps) {
             {roles.map((role) => (
               <Badge
                 key={role}
-                variant={role === 'admin' ? 'default' : 'secondary'}
-                className="acn:capitalize"
+                variant={isAdmin(user) && roles.length === 1 ? 'default' : 'secondary'}
               >
                 {role}
               </Badge>

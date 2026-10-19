@@ -1,6 +1,7 @@
 # ADR 0008 — Roles on Users (`admin`, `editor`)
 
-- **Status:** Accepted (2026-10-16, decision D8)
+- **Status:** Superseded by [ADR 0011](0011-roles-collection.md) (2026-10-19). Accepted 2026-10-16,
+  decision D8.
 - **Context:** Every logged-in user can currently do everything, including managing other users.
   Role-aware dashboards and navigation need a role.
 - **Decision:**

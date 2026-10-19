@@ -31,6 +31,7 @@ const NAV_ICONS = {
   'nav-certificates': ['Award', 'amber'],
   'nav-global-footer': ['PanelBottom', 'slate'],
   'nav-users': ['Users', 'teal'],
+  'nav-roles': ['KeyRound', 'orange'],
   'nav-view-site': ['ExternalLink', 'slate'],
   'nav-gallery': ['Component', 'rose'],
 }

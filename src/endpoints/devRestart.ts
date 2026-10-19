@@ -2,7 +2,7 @@ import type { Endpoint } from 'payload'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 
-import { isAdmin } from '@/access/roles'
+import { hasCapability } from '@/access/permissions'
 
 /**
  * POST /api/dev-restart (admins, development only): restarts the Next.js dev server the way Next
@@ -13,7 +13,8 @@ export const devRestartEndpoint: Endpoint = {
   path: '/dev-restart',
   method: 'post',
   handler: async (req) => {
-    if (!isAdmin(req.user)) return Response.json({ error: 'Admins only.' }, { status: 403 })
+    if (!hasCapability(req.user, 'useDeveloperTools'))
+      return Response.json({ error: 'Needs the Developer tools permission.' }, { status: 403 })
     if (process.env.NODE_ENV === 'production') {
       return Response.json({ error: 'Only available in development.' }, { status: 404 })
     }

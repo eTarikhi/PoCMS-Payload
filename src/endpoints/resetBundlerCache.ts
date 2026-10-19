@@ -3,7 +3,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { revalidatePath } from 'next/cache'
 
-import { isAdmin } from '@/access/roles'
+import { hasCapability } from '@/access/permissions'
 
 /**
  * Persistent caches that are safe to drop while the dev server runs (it keeps its in-memory state
@@ -30,7 +30,8 @@ export const resetBundlerCacheEndpoint: Endpoint = {
   path: '/reset-bundler-cache',
   method: 'post',
   handler: async (req) => {
-    if (!isAdmin(req.user)) return Response.json({ error: 'Admins only.' }, { status: 403 })
+    if (!hasCapability(req.user, 'useDeveloperTools'))
+      return Response.json({ error: 'Needs the Developer tools permission.' }, { status: 403 })
     if (process.env.NODE_ENV === 'production') {
       return Response.json({ error: 'Only available in development.' }, { status: 404 })
     }

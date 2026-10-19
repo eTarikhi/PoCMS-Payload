@@ -2,7 +2,7 @@ import type { ServerProps } from 'payload'
 import Link from 'next/link'
 import React from 'react'
 
-import { isAdmin } from '@/access/roles'
+import { hasCapability } from '@/access/permissions'
 
 /**
  * `admin.components.afterNavLinks`: "View site" for everyone and the component gallery for admins, styled with
@@ -24,7 +24,7 @@ export function NavExtraLinks({ payload, user }: ServerProps) {
           View site<span className="acn:sr-only"> (opens in a new tab)</span>
         </span>
       </a>
-      {isAdmin(user) ? (
+      {hasCapability(user, 'useDeveloperTools') ? (
         <Link
           className="nav__link"
           href={`${payload.config.routes.admin}/gallery`}

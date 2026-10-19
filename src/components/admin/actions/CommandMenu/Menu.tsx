@@ -34,7 +34,7 @@ import React, {
   useSyncExternalStore,
 } from 'react'
 
-import { isAdmin } from '@/access/roles'
+import { hasCapability } from '@/access/permissions'
 import { cn } from '@/components/admin/utilities/cn'
 import { switchTheme } from '@/components/admin/utilities/themeTransition'
 
@@ -207,7 +207,7 @@ export default function CommandMenu({
         icon: <UserRoundIcon aria-hidden />,
         run: () => go(`${admin}/account`),
       },
-      ...(isAdmin(user)
+      ...(hasCapability(user, 'useDeveloperTools')
         ? [
             {
               id: 'go:gallery',

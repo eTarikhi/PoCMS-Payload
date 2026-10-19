@@ -31,7 +31,7 @@ src/components/admin/
 ├── actions/
 │   ├── AccountMenu/        index.tsx: name, role, account settings, log out
 │   ├── CommandMenu/        index.tsx: Search button + shortcuts; Menu.tsx (lazy), match.ts, recent.ts, shortcuts.ts
-│   ├── DevTools/           index.tsx (server, admins only); Menu.tsx (client)
+│   ├── DevTools/           index.tsx (server, Developer tools capability); Menu.tsx (client)
 │   └── ThemeToggle/        index.tsx
 ├── elements/               Avatar, Badge, Button, Card, Checkbox, Dialog, DropdownMenu, Field, Input,
 │                           InputGroup, Label, OptionTiles, Popover, Progress, Select, Separator,

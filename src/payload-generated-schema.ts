@@ -44,6 +44,67 @@ export const enum_skills_color = pgEnum('enum_skills_color', [
   'danger',
 ])
 export const enum_users_roles = pgEnum('enum_users_roles', ['admin', 'editor'])
+export const enum_roles_levels_articles = pgEnum('enum_roles_levels_articles', [
+  'none',
+  'read',
+  'edit',
+  'full',
+])
+export const enum_roles_levels_projects = pgEnum('enum_roles_levels_projects', [
+  'none',
+  'read',
+  'edit',
+  'full',
+])
+export const enum_roles_levels_media = pgEnum('enum_roles_levels_media', [
+  'none',
+  'read',
+  'edit',
+  'full',
+])
+export const enum_roles_levels_about = pgEnum('enum_roles_levels_about', [
+  'none',
+  'read',
+  'edit',
+  'full',
+])
+export const enum_roles_levels_services = pgEnum('enum_roles_levels_services', [
+  'none',
+  'read',
+  'edit',
+  'full',
+])
+export const enum_roles_levels_skills = pgEnum('enum_roles_levels_skills', [
+  'none',
+  'read',
+  'edit',
+  'full',
+])
+export const enum_roles_levels_experiences = pgEnum('enum_roles_levels_experiences', [
+  'none',
+  'read',
+  'edit',
+  'full',
+])
+export const enum_roles_levels_educations = pgEnum('enum_roles_levels_educations', [
+  'none',
+  'read',
+  'edit',
+  'full',
+])
+export const enum_roles_levels_certificates = pgEnum('enum_roles_levels_certificates', [
+  'none',
+  'read',
+  'edit',
+  'full',
+])
+export const enum_roles_levels_header = pgEnum('enum_roles_levels_header', [
+  'none',
+  'read',
+  'edit',
+  'full',
+])
+export const enum_roles_levels_footer = pgEnum('enum_roles_levels_footer', ['none', 'read', 'edit'])
 export const enum_footer_social_links_platform = pgEnum('enum_footer_social_links_platform', [
   'facebook',
   'twitter',
@@ -586,6 +647,74 @@ export const users = pgTable(
   ],
 )
 
+export const users_rels = pgTable(
+  'users_rels',
+  {
+    id: serial('id').primaryKey(),
+    order: integer('order'),
+    parent: integer('parent_id').notNull(),
+    path: varchar('path').notNull(),
+    rolesID: integer('roles_id'),
+  },
+  (columns) => [
+    index('users_rels_order_idx').on(columns.order),
+    index('users_rels_parent_idx').on(columns.parent),
+    index('users_rels_path_idx').on(columns.path),
+    index('users_rels_roles_id_idx').on(columns.rolesID),
+    foreignKey({
+      columns: [columns['parent']],
+      foreignColumns: [users.id],
+      name: 'users_rels_parent_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [columns['rolesID']],
+      foreignColumns: [roles.id],
+      name: 'users_rels_roles_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
+export const roles = pgTable(
+  'roles',
+  {
+    id: serial('id').primaryKey(),
+    name: varchar('name').notNull(),
+    isDefault: boolean('is_default').default(false),
+    description: varchar('description'),
+    fullAccess: boolean('full_access').default(false),
+    system: boolean('system').default(false),
+    levels_articles: enum_roles_levels_articles('levels_articles').default('none'),
+    levels_projects: enum_roles_levels_projects('levels_projects').default('none'),
+    levels_media: enum_roles_levels_media('levels_media').default('none'),
+    levels_about: enum_roles_levels_about('levels_about').default('none'),
+    levels_services: enum_roles_levels_services('levels_services').default('none'),
+    levels_skills: enum_roles_levels_skills('levels_skills').default('none'),
+    levels_experiences: enum_roles_levels_experiences('levels_experiences').default('none'),
+    levels_educations: enum_roles_levels_educations('levels_educations').default('none'),
+    levels_certificates: enum_roles_levels_certificates('levels_certificates').default('none'),
+    levels_header: enum_roles_levels_header('levels_header').default('none'),
+    levels_footer: enum_roles_levels_footer('levels_footer').default('none'),
+    capabilities_viewAnalytics: boolean('capabilities_view_analytics').default(false),
+    capabilities_viewDeployments: boolean('capabilities_view_deployments').default(false),
+    capabilities_viewAuditLog: boolean('capabilities_view_audit_log').default(false),
+    capabilities_manageJobs: boolean('capabilities_manage_jobs').default(false),
+    capabilities_viewSystem: boolean('capabilities_view_system').default(false),
+    capabilities_useDeveloperTools: boolean('capabilities_use_developer_tools').default(false),
+    capabilities_useTerminal: boolean('capabilities_use_terminal').default(false),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    uniqueIndex('roles_name_idx').on(columns.name),
+    index('roles_updated_at_idx').on(columns.updatedAt),
+    index('roles_created_at_idx').on(columns.createdAt),
+  ],
+)
+
 export const payload_kv = pgTable(
   'payload_kv',
   {
@@ -633,6 +762,7 @@ export const payload_locked_documents_rels = pgTable(
     certificatesID: integer('certificates_id'),
     headerID: integer('header_id'),
     usersID: integer('users_id'),
+    rolesID: integer('roles_id'),
   },
   (columns) => [
     index('payload_locked_documents_rels_order_idx').on(columns.order),
@@ -649,6 +779,7 @@ export const payload_locked_documents_rels = pgTable(
     index('payload_locked_documents_rels_certificates_id_idx').on(columns.certificatesID),
     index('payload_locked_documents_rels_header_id_idx').on(columns.headerID),
     index('payload_locked_documents_rels_users_id_idx').on(columns.usersID),
+    index('payload_locked_documents_rels_roles_id_idx').on(columns.rolesID),
     foreignKey({
       columns: [columns['parent']],
       foreignColumns: [payload_locked_documents.id],
@@ -708,6 +839,11 @@ export const payload_locked_documents_rels = pgTable(
       columns: [columns['usersID']],
       foreignColumns: [users.id],
       name: 'payload_locked_documents_rels_users_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [columns['rolesID']],
+      foreignColumns: [roles.id],
+      name: 'payload_locked_documents_rels_roles_fk',
     }).onDelete('cascade'),
   ],
 )
@@ -980,7 +1116,7 @@ export const relations_users_roles = relations(users_roles, ({ one }) => ({
   parent: one(users, {
     fields: [users_roles.parent],
     references: [users.id],
-    relationName: 'roles',
+    relationName: 'legacyRoles',
   }),
 }))
 export const relations_users_sessions = relations(users_sessions, ({ one }) => ({
@@ -990,14 +1126,30 @@ export const relations_users_sessions = relations(users_sessions, ({ one }) => (
     relationName: 'sessions',
   }),
 }))
-export const relations_users = relations(users, ({ many }) => ({
-  roles: many(users_roles, {
+export const relations_users_rels = relations(users_rels, ({ one }) => ({
+  parent: one(users, {
+    fields: [users_rels.parent],
+    references: [users.id],
+    relationName: '_rels',
+  }),
+  rolesID: one(roles, {
+    fields: [users_rels.rolesID],
+    references: [roles.id],
     relationName: 'roles',
+  }),
+}))
+export const relations_users = relations(users, ({ many }) => ({
+  legacyRoles: many(users_roles, {
+    relationName: 'legacyRoles',
   }),
   sessions: many(users_sessions, {
     relationName: 'sessions',
   }),
+  _rels: many(users_rels, {
+    relationName: '_rels',
+  }),
 }))
+export const relations_roles = relations(roles, () => ({}))
 export const relations_payload_kv = relations(payload_kv, () => ({}))
 export const relations_payload_locked_documents_rels = relations(
   payload_locked_documents_rels,
@@ -1061,6 +1213,11 @@ export const relations_payload_locked_documents_rels = relations(
       fields: [payload_locked_documents_rels.usersID],
       references: [users.id],
       relationName: 'users',
+    }),
+    rolesID: one(roles, {
+      fields: [payload_locked_documents_rels.rolesID],
+      references: [roles.id],
+      relationName: 'roles',
     }),
   }),
 )
@@ -1143,6 +1300,17 @@ type DatabaseSchema = {
   enum_skills_group: typeof enum_skills_group
   enum_skills_color: typeof enum_skills_color
   enum_users_roles: typeof enum_users_roles
+  enum_roles_levels_articles: typeof enum_roles_levels_articles
+  enum_roles_levels_projects: typeof enum_roles_levels_projects
+  enum_roles_levels_media: typeof enum_roles_levels_media
+  enum_roles_levels_about: typeof enum_roles_levels_about
+  enum_roles_levels_services: typeof enum_roles_levels_services
+  enum_roles_levels_skills: typeof enum_roles_levels_skills
+  enum_roles_levels_experiences: typeof enum_roles_levels_experiences
+  enum_roles_levels_educations: typeof enum_roles_levels_educations
+  enum_roles_levels_certificates: typeof enum_roles_levels_certificates
+  enum_roles_levels_header: typeof enum_roles_levels_header
+  enum_roles_levels_footer: typeof enum_roles_levels_footer
   enum_footer_social_links_platform: typeof enum_footer_social_links_platform
   enum_footer_social_links_icon_name: typeof enum_footer_social_links_icon_name
   enum_footer_contact_info_type: typeof enum_footer_contact_info_type
@@ -1167,6 +1335,8 @@ type DatabaseSchema = {
   users_roles: typeof users_roles
   users_sessions: typeof users_sessions
   users: typeof users
+  users_rels: typeof users_rels
+  roles: typeof roles
   payload_kv: typeof payload_kv
   payload_locked_documents: typeof payload_locked_documents
   payload_locked_documents_rels: typeof payload_locked_documents_rels
@@ -1196,7 +1366,9 @@ type DatabaseSchema = {
   relations_header: typeof relations_header
   relations_users_roles: typeof relations_users_roles
   relations_users_sessions: typeof relations_users_sessions
+  relations_users_rels: typeof relations_users_rels
   relations_users: typeof relations_users
+  relations_roles: typeof relations_roles
   relations_payload_kv: typeof relations_payload_kv
   relations_payload_locked_documents_rels: typeof relations_payload_locked_documents_rels
   relations_payload_locked_documents: typeof relations_payload_locked_documents

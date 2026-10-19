@@ -8,6 +8,7 @@ import { ServiceIconField as ServiceIconField_07e5d314af106f2afc5cdc7849ba8bdd }
 import { ProgressCell as ProgressCell_937c0102c09968a42d1e38df73da1cb6 } from '../../../components/admin/fields/Progress/Cell'
 import { ContextColorCell as ContextColorCell_fd2a787f4acf1ad0a094b719a251472c } from '../../../components/admin/fields/ContextColor/Cell'
 import { ContextColorField as ContextColorField_2b4457f3fcd97f1118be72a8560c1f3a } from '../../../components/admin/fields/ContextColor/Field'
+import { AccessOverview as AccessOverview_0041e4cd9fa7615b3251865edafc9266 } from '../../../components/admin/views/Roles/AccessOverview'
 import { AccountAvatar as AccountAvatar_c3bba9300643314266b9f8dbd31e71aa } from '../../../components/admin/graphics/AccountAvatar'
 import { HiddenLogout as HiddenLogout_0b87bd55f4d244b27d7b4e405bf54f07 } from '../../../components/admin/nav/HiddenLogout'
 import { Icon as Icon_8c7579001d094aae258586b09a2f4a85 } from '../../../components/admin/graphics/Icon'
@@ -41,6 +42,7 @@ export const importMap = {
   "/components/admin/fields/Progress/Cell#ProgressCell": ProgressCell_937c0102c09968a42d1e38df73da1cb6,
   "/components/admin/fields/ContextColor/Cell#ContextColorCell": ContextColorCell_fd2a787f4acf1ad0a094b719a251472c,
   "/components/admin/fields/ContextColor/Field#ContextColorField": ContextColorField_2b4457f3fcd97f1118be72a8560c1f3a,
+  "/components/admin/views/Roles/AccessOverview#AccessOverview": AccessOverview_0041e4cd9fa7615b3251865edafc9266,
   "/components/admin/graphics/AccountAvatar#AccountAvatar": AccountAvatar_c3bba9300643314266b9f8dbd31e71aa,
   "/components/admin/nav/HiddenLogout#HiddenLogout": HiddenLogout_0b87bd55f4d244b27d7b4e405bf54f07,
   "/components/admin/graphics/Icon#Icon": Icon_8c7579001d094aae258586b09a2f4a85,
