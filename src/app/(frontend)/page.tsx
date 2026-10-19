@@ -8,15 +8,12 @@ import { ProjectsSection } from '@/app/(frontend)/components/sections/ProjectsSe
 import { ArticlesSection } from '@/app/(frontend)/components/sections/ArticlesSection'
 import { JsonLd } from '@/app/(frontend)/components/seo/JsonLd'
 import { getCachedPortfolioContent } from '@/app/(frontend)/lib/cache'
-import { ensurePayloadEnv } from '@/app/(frontend)/lib/payload-env'
 import { buildPersonJsonLd } from '@/app/(frontend)/lib/seo'
 
 // Composition only, in the order of vTarikhi/pages/index.js.
 // The page reads cached content and never calls headers(), cookies(), or payload.auth(), so Next can
 // prerender it as static (roadmap §3.3). Editors refresh it by saving in /admin (hooks.ts).
-// Without Payload's environment variables it renders on request instead (payload-env.ts).
 export default async function HomePage() {
-  await ensurePayloadEnv()
   const content = await getCachedPortfolioContent()
 
   return (

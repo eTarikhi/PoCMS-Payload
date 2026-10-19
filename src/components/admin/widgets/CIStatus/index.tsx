@@ -12,7 +12,7 @@ import { type CIReport, latestWorkflowRuns, type WorkflowRun } from '@/integrati
 const DOCS = 'https://docs.github.com/en/rest/actions/workflow-runs'
 
 export function runTone(run: Pick<WorkflowRun, 'conclusion' | 'status'>): [RunTone, string] {
-  if (run.status !== 'completed') return ['pending', run.status === 'queued' ? 'Queued' : 'Running']
+  if (run.status !== 'completed') return ['running', run.status === 'queued' ? 'Queued' : 'Running']
   switch (run.conclusion) {
     case 'success':
       return ['good', 'Passed']
@@ -103,7 +103,7 @@ export function CIStatusView({ language, report }: { language: string; report: C
                       href={run.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="acn:relative acn:truncate acn:text-sm acn:font-medium acn:text-foreground acn:underline-offset-4 acn:hover:underline"
+                      className="acn:truncate acn:text-sm acn:font-medium acn:text-foreground acn:underline-offset-4 acn:hover:underline"
                     >
                       {run.title}
                       <span className="acn:sr-only"> (opens in a new tab)</span>
