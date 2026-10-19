@@ -1,4 +1,6 @@
-import type { CollectionSlug, DashboardConfig, Field } from 'payload'
+import type { CollectionSlug, DashboardConfig, Field, WidgetInstance } from 'payload'
+
+import { hasCapability } from '@/access/permissions'
 
 /**
  * Dashboard widgets (roadmap P4). Payload's modular dashboard renders each widget as a server
@@ -28,6 +30,18 @@ const statFields: Field[] = [
     options: STAT_COLLECTIONS.map(({ label, value }) => ({ label, value })),
   },
 ]
+
+const periodField: Field = {
+  name: 'period',
+  type: 'select',
+  required: true,
+  defaultValue: '7',
+  options: [
+    { label: 'Last 7 days', value: '7' },
+    { label: 'Last 30 days', value: '30' },
+    { label: 'Last 90 days', value: '90' },
+  ],
+}
 
 export const dashboard: DashboardConfig = {
   widgets: [
@@ -62,17 +76,35 @@ export const dashboard: DashboardConfig = {
       Component: `${dir}/RecentChanges#RecentChangesWidget`,
       minWidth: 'small',
     },
+    // Integrations (docs/ui-modernization/dashboard-integrations.md). Each needs a capability
+    // (ADR 0011) and shows a setup hint until its environment variables are set.
+    {
+      slug: 'site-traffic',
+      label: 'Site traffic',
+      Component: `${dir}/SiteTraffic#SiteTrafficWidget`,
+      fields: [periodField],
+      minWidth: 'medium',
+    },
   ],
-  defaultLayout: [
-    { widgetSlug: 'welcome', width: 'full' },
-    { widgetSlug: 'content-count', width: 'x-small', data: { collection: 'articles' } },
-    { widgetSlug: 'content-count', width: 'x-small', data: { collection: 'projects' } },
-    { widgetSlug: 'content-count', width: 'x-small', data: { collection: 'media' } },
-    { widgetSlug: 'content-count', width: 'x-small', data: { collection: 'certificates' } },
-    { widgetSlug: 'publishing-activity', width: 'large' },
-    { widgetSlug: 'content-health', width: 'small' },
-    { widgetSlug: 'recent-changes', width: 'full' },
-    // Payload's built-in collection cards stay available below the widgets.
-    { widgetSlug: 'collections', width: 'full' },
-  ],
+  // New users start with this layout (Payload keeps each user's changes in their preferences);
+  // integration widgets only appear for roles with their capability.
+  defaultLayout: ({ req }) => {
+    const analytics = hasCapability(req.user, 'viewAnalytics')
+    const layout: WidgetInstance[] = [
+      { widgetSlug: 'welcome', width: 'full' },
+      { widgetSlug: 'content-count', width: 'x-small', data: { collection: 'articles' } },
+      { widgetSlug: 'content-count', width: 'x-small', data: { collection: 'projects' } },
+      { widgetSlug: 'content-count', width: 'x-small', data: { collection: 'media' } },
+      { widgetSlug: 'content-count', width: 'x-small', data: { collection: 'certificates' } },
+      ...(analytics
+        ? [{ widgetSlug: 'site-traffic', width: 'large', data: { period: '7' } } as WidgetInstance]
+        : []),
+      { widgetSlug: 'publishing-activity', width: 'large' },
+      { widgetSlug: 'content-health', width: 'small' },
+      { widgetSlug: 'recent-changes', width: 'full' },
+      // Payload's built-in collection cards stay available below the widgets.
+      { widgetSlug: 'collections', width: 'full' },
+    ]
+    return layout
+  },
 }

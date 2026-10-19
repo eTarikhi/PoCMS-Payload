@@ -124,6 +124,7 @@ export interface Config {
     'content-count': ContentCountWidget;
     'publishing-activity': PublishingActivityWidget;
     'recent-changes': RecentChangesWidget;
+    'site-traffic': SiteTrafficWidget;
     collections: CollectionsWidget;
   };
   user: User;
@@ -1210,6 +1211,16 @@ export interface RecentChangesWidget {
     [k: string]: unknown;
   };
   width: 'small' | 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-traffic_widget".
+ */
+export interface SiteTrafficWidget {
+  data?: {
+    period: '7' | '30' | '90';
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

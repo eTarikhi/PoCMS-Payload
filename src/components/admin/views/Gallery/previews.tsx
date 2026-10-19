@@ -38,8 +38,10 @@ import { ContentCountWidget } from '@/components/admin/widgets/ContentCount'
 import { ContentHealthWidget } from '@/components/admin/widgets/ContentHealth'
 import { PublishingActivityWidget } from '@/components/admin/widgets/PublishingActivity'
 import { RecentChangesWidget } from '@/components/admin/widgets/RecentChanges'
+import { SiteTrafficWidget, TrafficReportView } from '@/components/admin/widgets/SiteTraffic'
 import { WelcomeWidget } from '@/components/admin/widgets/Welcome'
 
+import { SAMPLE_TRAFFIC } from './samples'
 import type { RegistryEntry } from './registry'
 import { ComponentPath, Specimen } from './Section'
 
@@ -140,6 +142,21 @@ export function WidgetsPreview({
         meta={sizes('recent-changes')}
       >
         <RecentChangesWidget {...props('recent-changes')} />
+      </Specimen>
+      <Specimen
+        title="Site traffic"
+        path={find('SiteTrafficWidget')}
+        meta={`${sizes('site-traffic')} · widget data: { period } · capability: viewAnalytics · live, then sample data`}
+        className="acn:lg:col-span-3"
+      >
+        <div className="acn:grid acn:gap-3 acn:lg:grid-cols-2">
+          <SiteTrafficWidget {...props('site-traffic', { period: '7' })} />
+          <TrafficReportView
+            report={SAMPLE_TRAFFIC}
+            links={{ '/articles/sample-article': { href: '#', title: 'Sample article' } }}
+            siteURL=""
+          />
+        </div>
       </Specimen>
     </div>
   )

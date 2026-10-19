@@ -3,6 +3,7 @@ import { ArrowUpRightIcon } from 'lucide-react'
 import Link from 'next/link'
 import React from 'react'
 
+import { Sparkline } from '@/components/admin/elements/Sparkline'
 import { adminURL, collectionLabel } from '@/components/admin/utilities/collections'
 import { daysAgoISO } from '@/components/admin/utilities/dates'
 import { STAT_COLLECTIONS } from '@/components/admin/widgets/config'
@@ -84,37 +85,3 @@ export async function ContentCountWidget({ req, widgetData }: WidgetServerProps)
 export default ContentCountWidget
 
 const TREND_MONTHS = 12
-
-/**
- * Additions per month as a small server-rendered SVG line (no client JavaScript). Decorative: the
- * numbers next to it say the same, and the widget links to the full list.
- */
-function Sparkline({ values }: { values: number[] }) {
-  const max = Math.max(1, ...values)
-  const width = 96
-  const height = 28
-  const step = width / (values.length - 1)
-  const points = values.map((value, i) => [i * step, height - 2 - (value / max) * (height - 4)])
-  const line = points.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')
-  const area = `0,${height} ${line} ${width},${height}`
-  return (
-    <svg
-      aria-hidden
-      data-slot="sparkline"
-      viewBox={`0 0 ${width} ${height}`}
-      className="acn:h-7 acn:w-16 acn:shrink-0 acn:overflow-visible acn:sm:w-24"
-      preserveAspectRatio="none"
-    >
-      <polygon points={area} fill="var(--chart-1)" opacity={0.12} />
-      <polyline
-        points={line}
-        fill="none"
-        stroke="var(--chart-1)"
-        strokeWidth={1.5}
-        strokeLinejoin="round"
-        strokeLinecap="round"
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
-  )
-}
