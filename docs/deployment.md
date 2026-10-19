@@ -45,6 +45,24 @@ The docker environment is intended to provide:
    - `RESEND_API_KEY`
 4. Deploy the application.
 
+### Environment variables per environment (Production and Preview)
+
+Vercel builds each deployment with the variables of its environment: pushes to the production
+branch use **Production**, every other branch (and pull request) uses **Preview**. Variables set
+only for Production are missing from Preview builds.
+
+- Tick **Production** and **Preview** for `PAYLOAD_SECRET` and `POSTGRES_URL` (Project > Settings >
+  Environment Variables), or give Preview its own values (for example a separate database branch,
+  so preview deployments never write to production data). Redeploy after changing them.
+- `PAYLOAD_SECRET` signs the admin's login tokens: use a long random value
+  (`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`) and keep it the same
+  for all deployments that share a database, or existing sessions stop working.
+- The build no longer fails when they are missing (`src/app/(frontend)/lib/payload-env.ts`): the
+  home page and the article pages are then not prerendered, the build log says
+  `PAYLOAD_SECRET and POSTGRES_URL are not set`, and requests fail with an error that names the
+  missing variables until they are set. With the variables in place, the home page and the
+  article pages are prerendered as before.
+
 ## Production environment checklist
 
 Before deployment, verify the following:
