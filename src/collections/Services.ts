@@ -32,8 +32,8 @@ export const Services: CollectionConfig = {
       admin: {
         description: 'Icon shown next to the category. Only the icons the site has are listed.',
         components: {
-          Field: '/components/admin/fields/ServiceIconField#ServiceIconField',
-          Cell: '/components/admin/list/cells/IconCell#IconCell',
+          Field: '/components/admin/fields/ServiceIcon/Field#ServiceIconField',
+          Cell: '/components/admin/fields/ServiceIcon/Cell#IconCell',
         },
       },
     },

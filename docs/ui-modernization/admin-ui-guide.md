@@ -2,38 +2,59 @@
 
 How the customised Payload admin is put together and how to extend it. The decisions behind it are
 in [`adr/`](./adr/README.md); the original analysis and roadmap are in
-[`shadcn-payload-ui-analysis.md`](./shadcn-payload-ui-analysis.md).
+[`shadcn-payload-ui-analysis.md`](./shadcn-payload-ui-analysis.md) (a historical record: its file
+paths predate [ADR 0009](./adr/0009-payload-native-component-layout.md)).
 
 The admin is still Payload's admin (Payload 3.9x). Nothing replaces Payload's routing, forms, list
 state or access control. The work adds four layers on top:
 
 1. **Design tokens** that restyle Payload's own UI (colours, type, radius, dark theme).
-2. **An isolated Tailwind v4 build** (`acn:` prefix, no Preflight) for custom admin components.
-3. **Base UI primitives** in shadcn's `base-vega` style, used by custom components only.
-4. **Custom admin features** built on Payload's extension points: branding, navigation, dashboard
-   widgets, TanStack list tables, list cells, one-document collections and roles.
+2. **An isolated Tailwind v4 build** (`acn:` prefix, no Preflight) for the custom components.
+3. **Elements**: accessible building blocks on Base UI, in `src/components/admin/elements`.
+4. **Custom components in Payload's slots**: branding, header actions, navigation, dashboard
+   widgets, the TanStack list view, field components and cells, one-document collections and roles.
 
-## Where things live
+## Structure
 
-| Path                                                 | What it is                                                      |
-| ---------------------------------------------------- | --------------------------------------------------------------- |
-| `src/styles/admin/tokens.css`                        | Tier 0-2 design tokens and the mapping onto Payload's variables |
-| `src/styles/admin/payload-overrides.css`             | Small, documented overrides of Payload classes                  |
-| `src/styles/admin/admin-ui.css`                      | Tailwind v4 entry: `prefix(acn)`, theme bridge, scoped reset    |
-| `src/styles/admin/shadcn.css`                        | Ejected `tw-animate-css` variants used by the primitives        |
-| `src/components/admin/providers/AdminUIProvider.tsx` | Loads the admin styles and Inter                                |
-| `src/components/admin/ui/*`                          | Base UI primitives (button, select, dialog, table, chart, ...)  |
-| `src/components/admin/lib/utils.ts`                  | `cn()` with a prefix-aware `tailwind-merge`                     |
-| `src/components/admin/graphics/*`                    | Logo, Icon, initials avatar                                     |
-| `src/components/admin/nav/*`                         | Sidebar Create menu, View site and UI kit links                 |
-| `src/components/admin/dashboard/*`                   | Dashboard widgets and their config                              |
-| `src/components/admin/list/*`                        | TanStack list view, data table and list cells                   |
-| `src/components/admin/views/*`                       | UI kit page, singleton list redirect                            |
-| `src/plugins/adminUI.ts`                             | Applies the list view and boolean cells to every collection     |
-| `src/access/roles.ts`, `src/access/singleton.ts`     | Roles helpers, one-document create access                       |
+The custom components live in `src/components/admin`, in folders named after the places Payload's
+documentation defines for custom components
+([overview](https://payloadcms.com/docs/custom-components/overview)). Every component, file by
+file, is listed in [`src/components/admin/README.md`](../../src/components/admin/README.md).
 
-The living style guide is at **`/admin/ui-kit`** (admins only). It renders every token and
-primitive inside Payload's shell, in the current theme.
+| Folder (`src/components/admin/`) | Registered at | Payload docs |
+| --- | --- | --- |
+| `graphics/` | `admin.components.graphics.Logo`, `.Icon`; `admin.avatar` | [Root Components](https://payloadcms.com/docs/custom-components/root-components) |
+| `providers/` | `admin.components.providers` | [Custom Providers](https://payloadcms.com/docs/custom-components/custom-providers) |
+| `actions/` | `admin.components.actions` (header) | [Root Components: actions](https://payloadcms.com/docs/custom-components/root-components#actions) |
+| `nav/` | `beforeNavLinks`, `afterNavLinks`, `logout.Button` | [Root Components](https://payloadcms.com/docs/custom-components/root-components) |
+| `views/` | `admin.components.views.*`; a collection's `views.list.Component`, `beforeListTable` | [Custom Views](https://payloadcms.com/docs/custom-components/custom-views), [List View](https://payloadcms.com/docs/custom-components/list-view) |
+| `widgets/` | `admin.dashboard` (`widgets/config.ts`) | [Dashboard Widgets](https://payloadcms.com/docs/custom-components/dashboard) |
+| `fields/` | a field's `admin.components.Field`, `.Cell` | [Field components](https://payloadcms.com/docs/fields/overview#custom-components) |
+| `elements/`, `hooks/`, `utilities/` | not registered (the folder names Payload's own UI package uses) |  |
+
+Component Paths in the config are relative to `admin.importMap.baseDir` (`src`), for example
+`/components/admin/actions/ThemeToggle#ThemeToggle`; a folder resolves to its `index.tsx`. Each
+component has its own PascalCase folder with `index.tsx` as the entry and its parts beside it
+(`Menu.tsx`, `Chart.tsx`, `data.ts`); field folders hold `Field.tsx` and `Cell.tsx`.
+
+Outside that folder:
+
+| Path | What it is |
+| --- | --- |
+| `src/styles/admin/admin-ui.css` | Stylesheet entry: Tailwind v4 `prefix(acn)`, theme bridge, scoped reset |
+| `src/styles/admin/tokens.css` | Tier 0-2 design tokens, defined from Payload's variables |
+| `src/styles/admin/variants.css` | Custom variants the elements use (`data-open`, `data-closed`, …) |
+| `src/styles/admin/payload-overrides.css` | The few overrides of Payload classes |
+| `src/styles/admin/nav-icons.css` | Sidebar icons, generated by `pnpm generate:nav-icons` |
+| `src/styles/admin/nav-rail.css`, `responsive.css` | Icon rail and theme animation; responsive and touch fixes |
+| `src/plugins/adminUI.ts` | Gives every collection the list view, list summary and checkbox cell |
+| `src/endpoints/*` | Admin endpoints: site cache, migrations, developer tools |
+| `src/access/roles.ts`, `src/access/singleton.ts` | Role helpers, one-document create access |
+
+The **component gallery** at **`/admin/gallery`** (admins only) shows all of it inside Payload's
+shell: a registry of every registered component, read from the running config, then the graphics,
+the dashboard widgets with your data, the list summary, the field components inside a Payload form,
+every cell with sample values, and finally the elements and design tokens.
 
 ## Design tokens
 
@@ -44,15 +65,19 @@ primitive inside Payload's shell, in the current theme.
 - **Tier 1, Payload theme variables**: what Payload's own UI reads. We set `--font-body` (Inter),
   `--style-radius-s/m/l` (6/8/12 px), the focus outline and, in dark mode, a navy-tinted
   `--theme-elevation-*` scale.
-- **Tier 2, semantic tokens** (shadcn names: `--background`, `--foreground`, `--card`,
+- **Tier 2, semantic tokens** (`--background`, `--foreground`, `--card`,
   `--popover`, `--primary`, `--secondary`, `--muted`, `--accent`, `--destructive`, `--success`,
   `--warning`, `--border`, `--input`, `--ring`, `--chart-1..5`). They are defined _from_ Payload's
-  variables, so the primitives follow Payload's theme switch automatically.
+  variables, so the elements follow Payload's theme switch automatically.
 - **Tier 3, Tailwind utilities**: the `@theme inline` block in `admin-ui.css` maps Tier 2 onto
   `acn:*` classes (`acn:bg-card`, `acn:text-muted-foreground`...).
 
-Light and dark values live side by side (`[data-theme='dark']`). Payload's theme switch (account
-page or the UI kit) toggles both Payload and the custom components.
+Light and dark values live side by side (`[data-theme='dark']`). The theme switch (header button
+or account page) toggles both Payload and the custom components.
+
+`payload-overrides.css` holds the few rules that target Payload's own classes: brand-coloured
+primary buttons, field descriptions in `--muted-foreground` (Payload's grey is under 3:1 on white,
+found by the gallery's axe test) and tabular figures in lists.
 
 Change the brand colour by editing the Tier 0 amber values, then run `pnpm check:contrast`: it
 checks 34 foreground/background pairs against WCAG AA in both themes and fails CI if one drops
@@ -95,7 +120,7 @@ the new defaults (`overrideAccess: false` in the Local API, which our widgets al
   collide with Payload's class names (`.table`, `.container`, `.btn`...). Tailwind v4 only accepts
   a letters-only prefix used as a variant, hence `acn:` rather than `acn-`.
 - There is **no Preflight**. A small reset applies only to elements with a `data-slot` attribute
-  (the primitives); Payload's markup is untouched.
+  (the elements); Payload's markup is untouched.
 - Tailwind scans only `src/components/admin` (`@source` in `admin-ui.css`). Classes written
   elsewhere are not generated.
 - `pnpm check:tw-prefix` parses every admin file (TypeScript AST: `className`, `cn()`, `cva()`
@@ -105,19 +130,32 @@ the new defaults (`overrideAccess: false` in the Local API, which our widgets al
 - The dev server caches class candidates. After fixing an invalid class (for example an unquoted
   attribute selector), restart `pnpm dev` if the old CSS error persists.
 
-## Adding a primitive
+## Adding a component
 
-`components.json` is set up for shadcn's `base-vega` style with the `acn` prefix and the admin
-aliases, plus the shadcnstudio registries.
+1. **Pick the slot** in Payload's docs and create the file in the matching folder:
+   `src/components/admin/<folder>/<Name>/index.tsx`, or `fields/<Name>/Field.tsx` / `Cell.tsx` for
+   a field. Write a Server Component unless it needs state or browser APIs; then add
+   `'use client'` and keep its props serializable.
+2. **Register it** with its Component Path: for example
+   `actions: ['/components/admin/actions/MyAction#MyAction']` in `payload.config.ts`, a field's
+   `admin.components.Cell`, or an entry in `widgets/config.ts`.
+3. **Regenerate the import map** with `pnpm generate:importmap` (`pnpm generate:all` after field
+   or widget changes, since widget slugs are typed). CI fails on a stale import map.
+4. **Keep it light.** Payload's admin is one route, so every client component reachable from the
+   import map ships to every admin page: register a small wrapper and load the heavy part from a
+   sibling file with `next/dynamic` or `React.lazy` (see [Bundle size](#bundle-size)).
+5. **Check it in the gallery.** It appears in the registry by itself; add a live preview to
+   `views/Gallery/previews.tsx`, so the gallery's axe test covers it in both themes.
+6. Run `pnpm typecheck && pnpm lint && pnpm check:tw-prefix` and add an e2e test for what it does.
 
-```bash
-pnpm dlx shadcn@latest add @shadcn/<component>
-pnpm check:tw-prefix && pnpm typecheck
-```
+### Adding an element
 
-The CLI applies the prefix to new files. Check by hand what it is known to miss: quoted attribute
-selectors (`[stroke='#ccc']`), class names used as object keys inside `cn()`, and `compoundVariants`.
-Add the component to the UI kit and run the e2e axe tests (`tests/e2e/ui-kit.e2e.spec.ts`).
+Elements are plain components in `src/components/admin/elements/<Name>/index.tsx`, built on
+`@base-ui/react` where behaviour is involved (popups, focus, form controls). There is no generator:
+write the element, or adapt upstream code by hand, give its parts a `data-slot` (the scoped reset
+applies to those), prefix every class with `acn:` and run `pnpm check:tw-prefix`. Prefixing by hand
+tends to miss quoted attribute selectors (`[stroke='#ccc']`), class names used as object keys
+inside `cn()`, and `compoundVariants`. Add a demo to `views/Gallery/Elements.tsx`.
 
 Base UI notes: a `Button` rendered as a link needs `render={<a />}` and `nativeButton={false}`;
 `Select` needs `items` to show labels in the trigger; `ToggleGroup` values are arrays; a Base UI
@@ -132,17 +170,18 @@ checkbox is a `span[role=checkbox]`, so name it with `aria-labelledby` or `aria-
   `payload.config.ts` sets the group order.
 - `beforeNavLinks`: the **Create** control lists only collections the user may create. It is a
   native disclosure (`details`/`summary`) holding links, closed by Escape or an outside click.
-- `afterNavLinks`: **View site** (`NEXT_PUBLIC_SITE_URL`, or the same origin), the **UI kit** for
-  admins and **Collapse sidebar**.
+- `afterNavLinks` (`nav/NavExtraLinks`): **View site** (`NEXT_PUBLIC_SITE_URL`, or the same
+  origin) and, for admins, the **Component gallery**.
 - No `settingsMenu` (gear) and no sidebar log out (`logout.Button` is `nav/HiddenLogout`): the
   site cache refresh is in the developer tools menu and log out in the account menu, both in the
   header. `POST /api/revalidate-site` (`src/endpoints/revalidateSite.ts`) expires the `portfolio`
   cache tag at once (`expire: 0`); saves only mark it stale.
 - `actions` (header, rendered right to left): the command menu button, **developer tools** for
-  admins, the light/dark switch (`header/ThemeToggle.tsx`, Payload's `useTheme`) and the **account
-  menu** (`header/AccountMenu.tsx`: name, email, role, Account settings, Log out), which replaces
+  admins, the light/dark switch (`actions/ThemeToggle`, Payload's `useTheme`) and the **account
+  menu** (`actions/AccountMenu`: name, email, role, Account settings, Log out), which replaces
   Payload's avatar link (hidden in `nav-rail.css`).
-- Developer tools (`header/DevTools.tsx`, server; `DevToolsMenu.tsx`, client), admins only. A
+- Developer tools (`actions/DevTools`: `index.tsx` on the server, `Menu.tsx` on the client),
+  admins only. A
   **GraphQL Playground** button (where Payload serves it; production blocks introspection, so its
   schema docs only load in development) and a bug-icon menu whose items depend on the environment.
   A badge shows it: Development, Production build, or Vercel's environment and commit.
@@ -168,7 +207,7 @@ checkbox is a `span[role=checkbox]`, so name it with `aria-labelledby` or `aria-
   targets, one run at a time, output tail in the response and the run's result in the menu. Use it
   after changing collections or admin components instead of a terminal; the dev server picks up the
   regenerated files.
-- One sidebar control (`nav/SidebarToggle` → `SidebarToggleButton`, `beforeNavLinks`): on
+- One sidebar control (`nav/SidebarToggle`: `index.tsx` → `Button.tsx`, `beforeNavLinks`): on
   desktop it sits at the top of the sidebar (top-right corner, or centred above the icons in the
   rail) and collapses the sidebar to the icon rail and back; Payload's own toggler, which only hid
   the whole sidebar, is hidden there, and a sidebar closed by an older preference is reopened. Below
@@ -178,24 +217,24 @@ checkbox is a `span[role=checkbox]`, so name it with `aria-labelledby` or `aria-
 ### Command menu
 
 - **Ctrl+K / Cmd+K** anywhere in the admin, or the **Search…** button in the header
-  (`command/CommandMenuTrigger.tsx`, the only part on every page). The menu itself
-  (`command/CommandMenu.tsx`) is a separate chunk, fetched when the pointer reaches the button or on
+  (`actions/CommandMenu/index.tsx`, the only part on every page). The menu itself
+  (`actions/CommandMenu/Menu.tsx`) is a separate chunk, fetched when the pointer reaches the button or on
   the first shortcut.
 - Groups: **Recent** (documents and globals you opened, kept in localStorage, named from the edit
-  view heading), **Go to** (dashboard, every collection and global you can see, account, UI kit
-  for admins), **Create** (collections you may create in), **Documents** (title search) and
+  view heading), **Go to** (dashboard, every collection and global you can see, account, component
+  gallery for admins), **Create** (collections you may create in), **Documents** (title search) and
   **Actions** (theme, sidebar, refresh site cache, view site, log out).
 - Document search: two or more letters search each readable collection's `useAsTitle` field over
   REST with the user's own access (`like`, four hits per collection, debounced, stale requests
   aborted). Collections titled by `id` are skipped.
-- Ranking (`command/match.ts`): prefix beats word start beats substring, every query word must
+- Ranking (`actions/CommandMenu/match.ts`): prefix beats word start beats substring, every query word must
   match the label or a keyword, accents and case are ignored. With a query, the group holding the
   best match comes first, so Enter runs the most likely command.
 - Accessibility: Base UI dialog; the input is an ARIA combobox controlling a grouped listbox
   (`aria-activedescendant`); arrow keys move, Enter runs, Escape closes. Covered by axe in
   `tests/e2e/command-menu.e2e.spec.ts`.
-- To add a command, add an item to the list in `CommandMenu.tsx` (group, label, keywords, icon,
-  `run`).
+- To add a command, add an item to the list in `actions/CommandMenu/Menu.tsx` (group, label,
+  keywords, icon, `run`).
 
 ### Keyboard shortcuts
 
@@ -206,13 +245,13 @@ checkbox is a `span[role=checkbox]`, so name it with `aria-labelledby` or `aria-
 - Single-key shortcuts never fire while typing (inputs, editors, comboboxes) or while a dialog is
   open, and the help dialog has a switch to turn them off, stored in localStorage (WCAG 2.1.4,
   Character Key Shortcuts).
-- Defined in `command/shortcuts.ts`; the listener lives in `CommandMenuTrigger`, the help dialog
-  (`ShortcutsDialog`) in the lazily loaded menu chunk.
+- Defined in `actions/CommandMenu/shortcuts.ts`; the listener lives in the trigger (`index.tsx`),
+  the help dialog (`ShortcutsDialog`) in the lazily loaded menu chunk.
 
 ### Theme switch animation
 
 Switching the theme (header button or command menu) spreads the new theme as a circle from the
-button, with the View Transitions API (`header/themeTransition.ts`, styles at the end of
+button, with the View Transitions API (`utilities/themeTransition.ts`, styles at the end of
 `nav-rail.css`). Browsers without the API, and users who prefer reduced motion, get an instant
 switch.
 
@@ -250,36 +289,38 @@ switch.
 
 ## Dashboard widgets
 
-Widgets are server components registered in `src/components/admin/dashboard/config.ts`
-(`admin.dashboard`). Users can rearrange, resize, remove and re-add them; layouts are saved in
+Widgets are server components in `src/components/admin/widgets/<Name>/`, registered in
+`widgets/config.ts` (`admin.dashboard`). Users can rearrange, resize, remove and re-add them; layouts are saved in
 their preferences, and `defaultLayout` applies until they change it.
 
 To add a widget:
 
-1. Write a server component that receives `WidgetServerProps` (`req`, `user`, `permissions`,
-   `widgetData`). Query through `req.payload` with `req` and `overrideAccess: false`.
-2. Wrap the content in `WidgetCard` (or give the root `data-dashboard-widget` for the axe test).
+1. Write a server component in `widgets/<Name>/index.tsx` that receives `WidgetServerProps`
+   (`req`, `user`, `permissions`, `widgetData`). Query through `req.payload` with `req` and `overrideAccess: false`.
+2. Wrap the content in `WidgetCard` (`elements/WidgetCard`), or give the root
+   `data-dashboard-widget` for the axe test.
 3. Add it to `widgets` (and to `defaultLayout` if everyone should see it). Use `fields` for
    per-instance settings, as the **Content count** widget does for its collection.
-4. Run `pnpm generate:types` (widget slugs are typed) and `pnpm generate:importmap`.
+4. Run `pnpm generate:types` (widget slugs are typed) and `pnpm generate:importmap`, and add a
+   preview to the gallery (`views/Gallery/previews.tsx`).
 
 ### Count cards
 
-Each count card (`StatWidget`) shows the total, the additions in the last 30 days and a sparkline
+Each count card (`widgets/ContentCount`) shows the total, the additions in the last 30 days and a sparkline
 of additions per month over the last year: a server-rendered SVG (no client JavaScript), drawn
 with `--chart-1`, decorative because the numbers beside it say the same.
 
 ### Publishing chart
 
-`PublishingWidget` (server) counts articles by `publishedAt` and projects by `createdAt` over the
-last 24 months and hands the months to `PublishingChartLazy`, which loads `PublishingChart` with
-`React.lazy` only when the widget renders. Until then, and on the server, the same numbers show as
+`widgets/PublishingActivity/index.tsx` (server) counts articles by `publishedAt` and projects by
+`createdAt` over the last 24 months and hands the months to `ChartLazy.tsx`, which loads
+`Chart.tsx` with `React.lazy` only when the widget renders. Until then, and on the server, the same numbers show as
 plain HTML bars, so there is no empty frame. The chart is plain React and CSS: a Recharts version
 cost about 118 kB (gzip) on the dashboard, this one is a few kB.
 
 - **Range:** 6, 12 or 24 months, remembered in localStorage (`pocms-publishing-range`).
 - **Series:** Articles and Projects toggle buttons with totals for the range; at least one stays
-  on. Series, colours and date fields live in `dashboard/publishing.ts`.
+  on. Series, colours and date fields live in `widgets/PublishingActivity/data.ts`.
 - **Tooltip** on hover and on keyboard focus, with the month and both counts.
 - **Selected month:** the latest month with activity, or the bar you click, or the one you reach
   with the arrow keys or the Previous/Next buttons. Its axis label turns into a pill, and the
@@ -296,8 +337,9 @@ cost about 118 kB (gzip) on the dashboard, this one is a few kB.
 
 Payload's admin is one Next.js route, so every client component reachable from the import map is
 shipped to every admin page. Keep heavy parts behind a small `'use client'` wrapper that calls
-`next/dynamic`, and reference the wrapper from the config: see `UIKitLazy`, `LazyDataTable`,
-`ServiceIconField` and `IconCell`, or load on first use with `import()` like the command menu.
+`next/dynamic`, and reference the wrapper from the config: see `views/List/DataTableLazy.tsx`,
+`views/Gallery/ElementsLazy.tsx`, `fields/ServiceIcon/Field.tsx` and `Cell.tsx`, or load on first
+use with `import()` like the command menu.
 Prefer server components and native elements for things that render everywhere (nav, avatar).
 Budget (raised to +150 kB JS / +40 kB CSS over the P0 baseline) and current numbers:
 [`perf-budget.md`](./perf-budget.md).
@@ -312,8 +354,9 @@ so sorting, selection, links, drawers and custom cells behave as before. Grouped
 Payload's table.
 
 Custom cells are ordinary Payload `admin.components.Cell` components (client components receiving
-`DefaultCellComponentProps`): see `list/cells/` for the boolean, progress and colour cells. The
-plugin adds the boolean cell to every checkbox field that has no cell of its own.
+`DefaultCellComponentProps`): see `fields/<Name>/Cell.tsx` for the checkbox, colour, file size,
+progress and service icon cells. The plugin adds the checkbox cell to every checkbox field that has
+no cell of its own.
 
 **One-document collections** (Header, About): `access.create` is `createWhileEmpty(slug)`, and the
 list view (`SingletonListView`) redirects to the document, or to the create form when there is none.
@@ -321,7 +364,7 @@ list view (`SingletonListView`) redirects to the document, or to the create form
 ### List summary
 
 `adminUIPlugin` adds `ListSummary` (`beforeListTable`) to every collection: total, edited in the
-last 30 days, last edit and collection-specific counts from `list/summaryFacts.ts` (articles with
+last 30 days, last edit and collection-specific counts from `views/List/summaryFacts.ts` (articles with
 a page, featured and without an image; projects without an image; admins and editors). Counts use
 the signed-in user's access and ignore the current search and filters; a failing count is logged
 and left out. It is a server component, so it adds no client JavaScript. Opt out with
@@ -438,7 +481,7 @@ migration (`npx payload migrate:create`, then `npx payload migrate`).
 
 Users have `roles` (`admin`, `editor`; new users are editors, the first user is an admin).
 
-- Admins manage users and roles and see admin-only tools (Users, UI kit).
+- Admins manage users and roles and see admin-only tools (Users, component gallery).
 - Editors manage content and their own account; they can't change roles.
 - The last admin can't be demoted or deleted (`ensureAdminExists`).
 
@@ -465,10 +508,11 @@ pnpm lint               # ESLint
 pnpm check:tw-prefix    # admin classes carry the acn: prefix
 pnpm check:contrast     # token pairs meet WCAG AA in both themes
 pnpm test:int           # Vitest + Local API (roles, singletons, API)
-pnpm test:e2e           # Playwright: admin, navigation, dashboard, lists, UI kit (axe)
+pnpm test:e2e           # Playwright: admin, navigation, dashboard, lists, component gallery (axe)
 pnpm test:visual        # screenshot comparisons
 ```
 
-The e2e axe tests check WCAG 2.2 AA (serious and critical findings) for the UI kit and dashboard
-widgets in both themes. Performance budgets and how to measure them are in
+The e2e axe tests check WCAG 2.2 AA (serious and critical findings) in both themes for the
+component gallery, which renders every custom component, and for the dashboard, the command menu
+and the tile picker fields. Performance budgets and how to measure them are in
 [`perf-budget.md`](./perf-budget.md).

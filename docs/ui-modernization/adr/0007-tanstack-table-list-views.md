@@ -6,9 +6,10 @@
   preferences, query presets, pagination, bulk edit/delete/publish, trash, and the relationship
   picker drawers that reuse the list view.
 - **Decision:** Keep Payload's list view and replace only its table.
-  - A server component (`src/components/admin/list/TanStackListView.tsx`) is registered as
-    `admin.components.views.list.Component` for every collection by the `adminUI` config plugin. It
-    renders Payload's `DefaultListView` and passes a custom `Table`.
+  - A server component, `TanStackListView` in `src/components/admin/views/List/index.tsx` (moved
+    from `list/` by ADR 0009), is registered as `admin.components.views.list.Component` for every
+    collection by the `adminUI` config plugin. It renders Payload's `DefaultListView` and passes a
+    custom `Table`.
   - The table (`DataTable.tsx`, client) is a headless TanStack Table v9 instance (`useTable` with
     `tableFeatures`, the current stable major and the pattern used in shadcnstudio's table
     masterclass) over the documents Payload already fetched. Cells are the

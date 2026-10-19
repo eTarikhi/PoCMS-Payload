@@ -34,7 +34,7 @@ import { Projects } from './collections/Projects'
 import { Services } from './collections/Services'
 import { Skills } from './collections/Skills'
 import { Media } from './collections/Media'
-import { dashboard } from './components/admin/dashboard/config'
+import { dashboard } from './components/admin/widgets/config'
 import { adminUIPlugin } from './plugins/adminUI'
 
 // import { MediaWithPrefix } from './collections/MediaWithPrefix'
@@ -70,7 +70,7 @@ export default buildConfig({
         Logo: '/components/admin/graphics/Logo#Logo',
         Icon: '/components/admin/graphics/Icon#Icon',
       },
-      // Sidebar: a permission-aware "Create" menu on top; "View site" (and the UI kit for admins) below.
+      // Sidebar: a permission-aware "Create" menu on top; "View site" (and the gallery for admins) below.
       beforeNavLinks: [
         // Desktop sidebar collapse control (icon rail), at the top of the sidebar.
         '/components/admin/nav/SidebarToggle#SidebarToggle',
@@ -83,18 +83,18 @@ export default buildConfig({
       // (Payload renders the actions right to left, so the search button lands first.)
       actions: [
         // Account menu (replaces Payload's avatar link): account settings and log out.
-        '/components/admin/header/AccountMenu#AccountMenu',
-        '/components/admin/header/ThemeToggle#ThemeToggle',
+        '/components/admin/actions/AccountMenu#AccountMenu',
+        '/components/admin/actions/ThemeToggle#ThemeToggle',
         // Admins: GraphQL Playground and debugging links.
-        '/components/admin/header/DevTools#DevTools',
-        '/components/admin/command/CommandMenuTrigger#CommandMenuTrigger',
+        '/components/admin/actions/DevTools#DevTools',
+        '/components/admin/actions/CommandMenu#CommandMenuTrigger',
       ],
       views: {
-        // Living style guide (admins only): tokens and primitives inside Payload's shell.
-        uiKit: {
-          Component: '/components/admin/views/UIKit#UIKitView',
-          path: '/ui-kit',
-          meta: { title: 'UI kit' },
+        // Component gallery (admins only): every custom component above, live in Payload's shell.
+        gallery: {
+          Component: '/components/admin/views/Gallery#GalleryView',
+          path: '/gallery',
+          meta: { title: 'Component gallery' },
         },
       },
     },

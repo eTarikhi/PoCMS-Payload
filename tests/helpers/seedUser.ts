@@ -6,7 +6,7 @@ export const testUser = {
   password: 'test',
 }
 
-/** The e2e suites exercise admin-only screens (Users, UI kit), so the test user is an admin. */
+/** The e2e suites exercise admin-only screens (Users, component gallery), so the test user is an admin. */
 const testUserRoles: ('admin' | 'editor')[] = ['admin']
 
 /**

@@ -31,3 +31,5 @@
 - **Alternatives considered:** scoped scanning plus `@source not inline('table')` (no prefix);
   wrapper scoping with `important: '#acn'`; Tailwind v3 (which allows `acn-` literally but is not
   supported by the current shadcn registry).
+- **Update (2026-10-19, ADR 0009):** `components.json` was removed with the shadcn CLI workflow;
+  the prefix is enforced by `pnpm check:tw-prefix` alone.

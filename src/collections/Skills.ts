@@ -45,7 +45,7 @@ export const Skills: CollectionConfig = {
       max: 100,
       admin: {
         description: 'Proficiency, 0-100.',
-        components: { Cell: '/components/admin/list/cells/ProgressCell#ProgressCell' },
+        components: { Cell: '/components/admin/fields/Progress/Cell#ProgressCell' },
       },
     },
     {
@@ -57,8 +57,8 @@ export const Skills: CollectionConfig = {
       admin: {
         description: 'Bootstrap contextual color of the progress bar.',
         components: {
-          Field: '/components/admin/fields/ContextColorField#ContextColorField',
-          Cell: '/components/admin/list/cells/ContextColorCell#ContextColorCell',
+          Field: '/components/admin/fields/ContextColor/Field#ContextColorField',
+          Cell: '/components/admin/fields/ContextColor/Cell#ContextColorCell',
         },
       },
     },

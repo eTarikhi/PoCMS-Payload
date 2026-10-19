@@ -1,6 +1,8 @@
 # ADR 0001 — Base UI (shadcn `base-vega`) as the primitive library
 
-- **Status:** Accepted (2026-10-16, decision D1)
+- **Status:** Accepted (2026-10-16, decision D1). Amended by [ADR 0009](0009-payload-native-component-layout.md):
+  the primitives are now elements in `src/components/admin/elements/<Name>/index.tsx`, maintained
+  in the repository; `components.json` and the shadcn CLI are gone.
 - **Context:** New admin surfaces (dashboard widgets, list tables, cells, custom fields, the UI kit)
   need accessible primitives. shadcnstudio's current repositories, including the AdminCN template
   the design is based on, use the shadcn `base-vega` style, which is built on `@base-ui/react`.

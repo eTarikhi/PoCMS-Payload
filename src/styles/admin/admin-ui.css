@@ -2,10 +2,14 @@
  * Admin UI stylesheet entry — Tailwind CSS v4, isolated inside Payload 3 (ADR 0002).
  *
  * - Imported only by AdminUIProvider (admin.components.providers); the (frontend) app never loads it.
+ *   Payload's own CSS sits in `@layer payload-default`; overrides here use `@layer payload` (Payload
+ *   docs, "Customizing CSS & SCSS").
+ * - Files: tokens.css (design tokens on Payload variables), variants.css (custom variants for the
+ *   elements), payload-overrides.css, nav-icons.css (generated), nav-rail.css, responsive.css.
  * - Prefix `acn`: utilities are written `acn:flex`, `acn:hover:bg-muted`. Unprefixed class names
  *   (Payload's `.table`, `.btn`, …) can never produce Tailwind CSS.
- * - No Preflight: it would reset Payload's own styles. A minimal reset scoped to shadcn parts
- *   (elements with `data-slot`) replaces it below.
+ * - No Preflight: it would reset Payload's own styles. A minimal reset scoped to the admin's own
+ *   elements (anything with `data-slot`) replaces it below.
  * - Only src/components/admin is scanned for class names.
  * - Dark mode follows Payload's theme switch: html[data-theme='dark'].
  */
@@ -19,7 +23,7 @@
 
 @source '../../components/admin';
 
-@import './shadcn.css';
+@import './variants.css';
 @import './tokens.css';
 @import './payload-overrides.css';
 @import './nav-icons.css';
@@ -29,7 +33,7 @@
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 @theme inline {
-  /* Tier 2 → Tier 3: shadcn colour tokens as acn:* utilities */
+  /* Tier 2 → Tier 3: semantic colour tokens as acn:* utilities */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -84,7 +88,7 @@
   /* Payload's spacing scale (ADR 0004): --base is 20px, so 1 step = 4px */
   --spacing: calc(var(--base) / 5);
 
-  /* Radius scale from --radius (AdminCN's multipliers) */
+  /* Radius scale from --radius */
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -115,7 +119,7 @@
 }
 
 /*
- * Scoped reset (instead of Preflight). Every shadcn part carries a `data-slot` attribute and Payload
+ * Scoped reset (instead of Preflight). Every admin element carries a `data-slot` attribute and Payload
  * never does, so these rules can only reach admin design-system elements. `:where()` keeps their
  * specificity at zero, so any utility wins.
  */

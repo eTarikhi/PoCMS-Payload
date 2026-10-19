@@ -47,7 +47,7 @@ test.describe('Admin shell', () => {
     await expect(html).toHaveAttribute('data-theme', before ?? 'light')
 
     // Custom views forward the header actions too.
-    await page.goto(`${base}/admin/ui-kit`)
+    await page.goto(`${base}/admin/gallery`)
     await expect(page.getByTestId('theme-toggle')).toBeVisible()
   })
 

@@ -31,7 +31,7 @@ export const Media: CollectionConfig = {
       type: 'number',
       // Without a label here, the merged field would get the generated label "Filesize".
       label: ({ t }) => t('upload:fileSize'),
-      admin: { components: { Cell: '/components/admin/list/cells/FileSizeCell#FileSizeCell' } },
+      admin: { components: { Cell: '/components/admin/fields/FileSize/Cell#FileSizeCell' } },
     },
   ],
   upload: {

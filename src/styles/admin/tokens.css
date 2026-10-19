@@ -3,7 +3,7 @@
  *
  *   Tier 0  brand primitives, from src/app/(frontend)/styles/main.css
  *   Tier 1  Payload theme variables: font, radius, focus outline, navy-tinted dark neutrals
- *   Tier 2  shadcn semantic tokens, expressed through Payload variables so light/dark follow
+ *   Tier 2  semantic tokens (background, primary, muted, …), expressed through Payload variables so light/dark follow
  *           Payload's theme switch (html[data-theme]) automatically
  *   Tier 3  Tailwind utilities: the `@theme inline` block in admin-ui.css maps Tier 2 to acn:* classes
  *
@@ -33,7 +33,7 @@
     --style-radius-l: 12px;
     --accessibility-outline: 2px solid var(--ring);
 
-    /* Tier 2 — shadcn semantic tokens */
+    /* Tier 2 — semantic tokens */
     --background: var(--theme-bg);
     --foreground: var(--theme-text);
     --card: var(--theme-elevation-0);
@@ -60,14 +60,14 @@
     --border: var(--theme-elevation-150);
     --input: var(--theme-elevation-150);
     --ring: var(--primary);
-    /* Single-hue chart palette (AdminCN). Charts always ship a text summary too. */
+    /* Single-hue chart palette. Charts always ship a text summary too. */
     --chart-1: var(--primary);
     --chart-2: color-mix(in oklab, var(--primary) 75%, var(--background));
     --chart-3: color-mix(in oklab, var(--primary) 55%, var(--background));
     --chart-4: color-mix(in oklab, var(--primary) 35%, var(--background));
     --chart-5: color-mix(in oklab, var(--primary) 20%, var(--background));
     --radius: 10px;
-    /* Plain custom properties as well as Tailwind theme keys: shadcn components reference them in
+    /* Plain custom properties as well as Tailwind theme keys: the elements reference them in
        arbitrary values (rounded-[min(var(--radius-md),8px)]), and the acn prefix renames the theme's
        own variables to --acn-*. */
     --radius-sm: calc(var(--radius) * 0.6);

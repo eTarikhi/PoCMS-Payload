@@ -279,7 +279,7 @@
   }
 }
 
-/* Theme switch: the new theme spreads as a circle from the button (see header/themeTransition.ts). */
+/* Theme switch: the new theme spreads as a circle from the button (see components/admin/utilities/themeTransition.ts). */
 @layer payload {
   html[data-theme-transition]::view-transition-old(root),
   html[data-theme-transition]::view-transition-new(root) {

@@ -51,6 +51,7 @@ test.describe('Responsive admin on a phone', () => {
       '/admin/collections/articles',
       '/admin/collections/skills',
       '/admin/account',
+      '/admin/gallery',
     ]) {
       await open(page, path)
       await noSidewaysScroll(page)

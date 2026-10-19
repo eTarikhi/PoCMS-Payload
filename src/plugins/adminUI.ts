@@ -1,8 +1,8 @@
 import type { CollectionConfig, Field, Plugin } from 'payload'
 
-const LIST_VIEW = '/components/admin/list/TanStackListView#TanStackListView'
-const BOOLEAN_CELL = '/components/admin/list/cells/BooleanCell#BooleanCell'
-const LIST_SUMMARY = '/components/admin/list/ListSummary#ListSummary'
+const LIST_VIEW = '/components/admin/views/List#TanStackListView'
+const BOOLEAN_CELL = '/components/admin/fields/Checkbox/Cell#BooleanCell'
+const LIST_SUMMARY = '/components/admin/views/List/ListSummary#ListSummary'
 
 /** Adds the boolean list cell to checkbox fields that have no Cell of their own (any nesting). */
 function withBooleanCells(fields: Field[]): Field[] {

@@ -2,7 +2,7 @@ import type { Access, FieldAccess, Payload } from 'payload'
 
 /**
  * User roles (ADR 0008).
- * - admin: manages users and admin-only screens (UI kit), plus everything an editor can do.
+ * - admin: manages users and admin-only screens (component gallery), plus everything an editor can do.
  * - editor: manages content. Users without any role are treated as editors.
  */
 export const ROLES = ['admin', 'editor'] as const

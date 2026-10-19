@@ -24,7 +24,8 @@ command menu, motion and richer interactive views.
   generated only for the scanned admin components, and Preflight is not included.
 - The rule stays: a feature that isn't needed on every page loads on demand (`next/dynamic`, a
   dynamic `import()` on first use, or a server component). The command menu, the TanStack table,
-  the UI kit and Recharts all follow it. The budget is for what every admin page loads.
+  the publishing chart and the component gallery's element demos all follow it. The budget is for
+  what every admin page loads.
 
 ## After P5 (2026-10-16, same setup)
 
@@ -105,5 +106,6 @@ references.
   chart chunk itself is 3.0 kB gzip). Every other page is unchanged (+0.5 kB).
 - The first version used Recharts: `/admin` measured **787.2 kB (+142.0 of the +150 budget)**,
   with 113 kB (gzip) of Recharts. The same features in plain React and CSS cost about 11 kB, so the
-  chart was rebuilt without it. Recharts is only in the UI kit again.
+  chart was rebuilt without it. Recharts stayed in the UI kit until the component gallery replaced
+  it (ADR 0009); the package is no longer installed.
 

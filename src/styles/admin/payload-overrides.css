@@ -12,6 +12,11 @@
     --hover-color: var(--primary-foreground);
   }
 
+  /* Field descriptions: Payload's elevation-400 is under 3:1 on white; the muted token passes AA. */
+  .field-description {
+    color: var(--muted-foreground);
+  }
+
   /* Tabular figures keep numbers aligned in list tables and counters. */
   .table td,
   .page-controls,

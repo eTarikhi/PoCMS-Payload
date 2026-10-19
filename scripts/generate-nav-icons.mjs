@@ -32,7 +32,7 @@ const NAV_ICONS = {
   'nav-global-footer': ['PanelBottom', 'slate'],
   'nav-users': ['Users', 'teal'],
   'nav-view-site': ['ExternalLink', 'slate'],
-  'nav-ui-kit': ['Palette', 'rose'],
+  'nav-gallery': ['Component', 'rose'],
 }
 /** Sidebar group (admin.group label) -> [Lucide component name, tone]; matched by Payload's group id. */
 const NAV_GROUP_ICONS = {

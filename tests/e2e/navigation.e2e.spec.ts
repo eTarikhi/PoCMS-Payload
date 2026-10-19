@@ -39,7 +39,7 @@ test.describe('Admin navigation and branding', () => {
       await expect(nav.getByText(group, { exact: true }).first()).toBeVisible()
     }
     await expect(page.locator('#nav-view-site')).toHaveAttribute('target', '_blank')
-    await expect(page.locator('#nav-ui-kit')).toBeVisible()
+    await expect(page.locator('#nav-gallery')).toBeVisible()
   })
 
   test('Create menu opens the create form', async () => {
