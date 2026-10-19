@@ -23,9 +23,9 @@ const RATING_LABEL: Record<Rating, string> = {
   poor: 'Poor',
 }
 const RATING_STYLE: Record<Rating, string> = {
-  good: 'acn:bg-rating-good/10 acn:text-rating-good',
-  average: 'acn:bg-rating-average/10 acn:text-rating-average',
-  poor: 'acn:bg-rating-poor/10 acn:text-rating-poor',
+  good: 'acn:bg-rating-good/6 acn:text-rating-good',
+  average: 'acn:bg-rating-average/6 acn:text-rating-average',
+  poor: 'acn:bg-rating-poor/6 acn:text-rating-poor',
 }
 
 export const formatMetric = (value: number | null, unit: string) => {

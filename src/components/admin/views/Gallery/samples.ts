@@ -1,5 +1,6 @@
+import type { CIReport } from '@/integrations/github'
 import type { FieldReport } from '@/integrations/google'
-import type { TrafficReport } from '@/integrations/vercel'
+import type { Deployment, TrafficReport } from '@/integrations/vercel'
 
 /**
  * Sample data for the integration widgets in the gallery, so their filled-in layout can be
@@ -86,6 +87,98 @@ export const SAMPLE_FIELD: FieldReport = {
       rating: 'poor',
       distribution: [0.41, 0.33, 0.26],
       trend: trend(1800, 200),
+    },
+  ],
+}
+
+const ago = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString()
+
+export const SAMPLE_DEPLOYMENTS: Deployment[] = [
+  {
+    id: 'dpl_1',
+    url: 'https://example.vercel.app',
+    state: 'BUILDING',
+    target: 'preview',
+    createdAt: ago(2),
+    buildSeconds: null,
+    inspectorUrl: '#',
+    branch: 'feature/roles',
+    commitMessage: 'feat: roles and permissions',
+    commitSha: 'a1b2c3d4',
+    author: 'etarikhi',
+  },
+  {
+    id: 'dpl_2',
+    url: 'https://example.com',
+    state: 'READY',
+    target: 'production',
+    createdAt: ago(90),
+    buildSeconds: 94,
+    inspectorUrl: '#',
+    branch: 'main',
+    commitMessage: 'fix: footer links',
+    commitSha: 'e5f6a7b8',
+    author: 'etarikhi',
+  },
+  {
+    id: 'dpl_3',
+    url: 'https://example-git-x.vercel.app',
+    state: 'ERROR',
+    target: 'preview',
+    createdAt: ago(300),
+    buildSeconds: 41,
+    inspectorUrl: '#',
+    branch: 'experiment',
+    commitMessage: 'chore: try a new build step',
+    commitSha: 'c9d0e1f2',
+    author: 'etarikhi',
+  },
+]
+
+export const SAMPLE_CI: CIReport = {
+  repository: 'owner/repository',
+  runs: [
+    {
+      id: 1,
+      workflow: 'CI',
+      title: 'feat: roles and permissions',
+      branch: 'feature/roles',
+      commitSha: 'a1b2c3d4',
+      status: 'in_progress',
+      conclusion: null,
+      url: '#',
+      event: 'push',
+      actor: 'etarikhi',
+      createdAt: ago(3),
+      durationSeconds: null,
+    },
+    {
+      id: 2,
+      workflow: 'CI',
+      title: 'fix: footer links',
+      branch: 'main',
+      commitSha: 'e5f6a7b8',
+      status: 'completed',
+      conclusion: 'success',
+      url: '#',
+      event: 'push',
+      actor: 'etarikhi',
+      createdAt: ago(95),
+      durationSeconds: 312,
+    },
+    {
+      id: 3,
+      workflow: 'CI',
+      title: 'chore: try a new build step',
+      branch: 'experiment',
+      commitSha: 'c9d0e1f2',
+      status: 'completed',
+      conclusion: 'failure',
+      url: '#',
+      event: 'push',
+      actor: 'etarikhi',
+      createdAt: ago(305),
+      durationSeconds: 188,
     },
   ],
 }

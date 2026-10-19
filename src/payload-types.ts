@@ -126,6 +126,8 @@ export interface Config {
     'recent-changes': RecentChangesWidget;
     'site-traffic': SiteTrafficWidget;
     'page-speed': PageSpeedWidget;
+    deployments: DeploymentsWidget;
+    'ci-status': CiStatusWidget;
     collections: CollectionsWidget;
   };
   user: User;
@@ -1230,6 +1232,26 @@ export interface SiteTrafficWidget {
 export interface PageSpeedWidget {
   data?: {
     formFactor: 'PHONE' | 'DESKTOP' | 'ALL';
+  };
+  width: 'small' | 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "deployments_widget".
+ */
+export interface DeploymentsWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'small' | 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ci-status_widget".
+ */
+export interface CiStatusWidget {
+  data?: {
+    [k: string]: unknown;
   };
   width: 'small' | 'medium' | 'large' | 'x-large' | 'full';
 }

@@ -55,7 +55,8 @@ test.describe('Component gallery', () => {
       '/components/admin/actions/ThemeToggle#ThemeToggle',
     )
     await expect(registry('root')).toContainText('/components/admin/graphics/Logo#Logo')
-    await expect(registry('widgets').locator('tbody tr')).toHaveCount(5)
+    // One row per dashboard widget in src/components/admin/widgets/config.ts.
+    await expect(registry('widgets').locator('tbody tr')).toHaveCount(9)
     await expect(registry('collections')).toContainText(
       '/components/admin/views/List#TanStackListView',
     )

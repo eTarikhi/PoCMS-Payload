@@ -104,11 +104,24 @@ export const dashboard: DashboardConfig = {
       ],
       minWidth: 'small',
     },
+    {
+      slug: 'deployments',
+      label: 'Deployments',
+      Component: `${dir}/Deployments#DeploymentsWidget`,
+      minWidth: 'small',
+    },
+    {
+      slug: 'ci-status',
+      label: 'CI status',
+      Component: `${dir}/CIStatus#CIStatusWidget`,
+      minWidth: 'small',
+    },
   ],
   // New users start with this layout (Payload keeps each user's changes in their preferences);
   // integration widgets only appear for roles with their capability.
   defaultLayout: ({ req }) => {
     const analytics = hasCapability(req.user, 'viewAnalytics')
+    const deployments = hasCapability(req.user, 'viewDeployments')
     const layout: WidgetInstance[] = [
       { widgetSlug: 'welcome', width: 'full' },
       { widgetSlug: 'content-count', width: 'x-small', data: { collection: 'articles' } },
@@ -123,6 +136,12 @@ export const dashboard: DashboardConfig = {
         : []),
       { widgetSlug: 'publishing-activity', width: 'large' },
       { widgetSlug: 'content-health', width: 'small' },
+      ...(deployments
+        ? ([
+            { widgetSlug: 'deployments', width: 'medium' },
+            { widgetSlug: 'ci-status', width: 'medium' },
+          ] as WidgetInstance[])
+        : []),
       { widgetSlug: 'recent-changes', width: 'full' },
       // Payload's built-in collection cards stay available below the widgets.
       { widgetSlug: 'collections', width: 'full' },

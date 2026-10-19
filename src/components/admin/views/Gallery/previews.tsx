@@ -34,15 +34,17 @@ import { AccountAvatar } from '@/components/admin/graphics/AccountAvatar'
 import { Icon } from '@/components/admin/graphics/Icon'
 import { Logo } from '@/components/admin/graphics/Logo'
 import { ListSummary } from '@/components/admin/views/List/ListSummary'
+import { CIStatusView, CIStatusWidget } from '@/components/admin/widgets/CIStatus'
 import { ContentCountWidget } from '@/components/admin/widgets/ContentCount'
 import { ContentHealthWidget } from '@/components/admin/widgets/ContentHealth'
 import { PublishingActivityWidget } from '@/components/admin/widgets/PublishingActivity'
 import { RecentChangesWidget } from '@/components/admin/widgets/RecentChanges'
+import { DeploymentsView, DeploymentsWidget } from '@/components/admin/widgets/Deployments'
 import { FieldReportView, PageSpeedWidget } from '@/components/admin/widgets/PageSpeed'
 import { SiteTrafficWidget, TrafficReportView } from '@/components/admin/widgets/SiteTraffic'
 import { WelcomeWidget } from '@/components/admin/widgets/Welcome'
 
-import { SAMPLE_FIELD, SAMPLE_TRAFFIC } from './samples'
+import { SAMPLE_CI, SAMPLE_DEPLOYMENTS, SAMPLE_FIELD, SAMPLE_TRAFFIC } from './samples'
 import type { RegistryEntry } from './registry'
 import { ComponentPath, Specimen } from './Section'
 
@@ -168,6 +170,28 @@ export function WidgetsPreview({
         <div className="acn:grid acn:gap-3 acn:lg:grid-cols-2">
           <PageSpeedWidget {...props('page-speed', { formFactor: 'PHONE' })} />
           <FieldReportView report={SAMPLE_FIELD} origin="https://example.com" formFactor="PHONE" />
+        </div>
+      </Specimen>
+      <Specimen
+        title="Deployments"
+        path={find('DeploymentsWidget')}
+        meta={`${sizes('deployments')} · capability: viewDeployments · live, then sample data`}
+        className="acn:lg:col-span-3"
+      >
+        <div className="acn:grid acn:gap-3 acn:lg:grid-cols-2">
+          <DeploymentsWidget {...props('deployments')} />
+          <DeploymentsView deployments={SAMPLE_DEPLOYMENTS} language={req.i18n.language} />
+        </div>
+      </Specimen>
+      <Specimen
+        title="CI status"
+        path={find('CIStatusWidget')}
+        meta={`${sizes('ci-status')} · capability: viewDeployments · live, then sample data`}
+        className="acn:lg:col-span-3"
+      >
+        <div className="acn:grid acn:gap-3 acn:lg:grid-cols-2">
+          <CIStatusWidget {...props('ci-status')} />
+          <CIStatusView report={SAMPLE_CI} language={req.i18n.language} />
         </div>
       </Specimen>
     </div>

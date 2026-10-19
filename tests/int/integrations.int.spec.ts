@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { latestWorkflowRuns } from '@/integrations/github'
 import { fieldData, rate, WEB_VITALS } from '@/integrations/google'
-import { siteTraffic } from '@/integrations/vercel'
+import { latestDeployments, siteTraffic } from '@/integrations/vercel'
 
 /**
  * External services are mocked: the sandbox and CI can't reach them, and tests must not need
@@ -170,5 +171,104 @@ describe('Chrome UX Report', () => {
       body: { error: { message: 'chrome ux report data not found' } },
     }))
     expect(await fieldData('https://example.com')).toEqual({ status: 'ok', data: null })
+  })
+})
+
+describe('Vercel deployments', () => {
+  it('maps state, target, git metadata and build time', async () => {
+    process.env.VERCEL_TOKEN = 'token-1'
+    process.env.VERCEL_PROJECT_ID = 'prj_1'
+    const calls = mockFetch(() => ({
+      body: {
+        deployments: [
+          {
+            uid: 'dpl_1',
+            url: 'site-abc.vercel.app',
+            readyState: 'READY',
+            target: 'production',
+            createdAt: 1_760_000_000_000,
+            ready: 1_760_000_094_000,
+            inspectorUrl: 'https://vercel.com/x/y/dpl_1',
+            meta: {
+              githubCommitRef: 'main',
+              githubCommitMessage: 'fix: links',
+              githubCommitSha: 'abcdef1234',
+              githubCommitAuthorLogin: 'me',
+            },
+          },
+          { uid: 'dpl_2', state: 'BUILDING', target: null, created: 1_760_000_100_000 },
+        ],
+      },
+    }))
+    const result = await latestDeployments(2)
+    expect(result.status).toBe('ok')
+    if (result.status !== 'ok') return
+    expect(result.data[0]).toMatchObject({
+      id: 'dpl_1',
+      url: 'https://site-abc.vercel.app',
+      state: 'READY',
+      target: 'production',
+      buildSeconds: 94,
+      branch: 'main',
+      commitMessage: 'fix: links',
+      author: 'me',
+    })
+    expect(result.data[1]).toMatchObject({
+      state: 'BUILDING',
+      target: 'preview',
+      buildSeconds: null,
+    })
+    expect(calls[0].url.pathname).toBe('/v6/deployments')
+    expect(calls[0].url.searchParams.get('limit')).toBe('2')
+  })
+})
+
+describe('GitHub Actions', () => {
+  it('needs a repository', async () => {
+    delete process.env.GITHUB_REPOSITORY
+    delete process.env.VERCEL_GIT_REPO_OWNER
+    delete process.env.VERCEL_GIT_REPO_SLUG
+    expect(await latestWorkflowRuns()).toEqual({
+      status: 'not-configured',
+      missing: ['GITHUB_REPOSITORY'],
+    })
+  })
+
+  it('reads the repository from Vercel git variables and maps runs', async () => {
+    delete process.env.GITHUB_REPOSITORY
+    process.env.VERCEL_GIT_REPO_OWNER = 'owner'
+    process.env.VERCEL_GIT_REPO_SLUG = 'repo'
+    process.env.GITHUB_TOKEN = 'gh-token'
+    const calls = mockFetch(() => ({
+      body: {
+        workflow_runs: [
+          {
+            id: 7,
+            name: 'CI',
+            display_title: 'feat: x',
+            head_branch: 'main',
+            head_sha: '1234567890',
+            status: 'completed',
+            conclusion: 'success',
+            html_url: 'https://github.com/owner/repo/actions/runs/7',
+            event: 'push',
+            created_at: '2026-10-19T00:00:00Z',
+            run_started_at: '2026-10-19T00:00:00Z',
+            updated_at: '2026-10-19T00:05:12Z',
+            actor: { login: 'me' },
+          },
+        ],
+      },
+    }))
+    const result = await latestWorkflowRuns(1)
+    expect(result).toMatchObject({
+      status: 'ok',
+      data: {
+        repository: 'owner/repo',
+        runs: [{ id: 7, conclusion: 'success', durationSeconds: 312, actor: 'me' }],
+      },
+    })
+    expect(calls[0].url.pathname).toBe('/repos/owner/repo/actions/runs')
+    expect((calls[0].init.headers as Record<string, string>).Authorization).toBe('Bearer gh-token')
   })
 })
