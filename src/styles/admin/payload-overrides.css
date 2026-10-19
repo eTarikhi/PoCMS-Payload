@@ -17,6 +17,25 @@
     color: var(--muted-foreground);
   }
 
+  /* Sidebar group headings: Payload's elevation-400 is 2.6:1 on the canvas; the muted token is 5.4:1. */
+  .nav-group__toggle {
+    color: var(--muted-foreground);
+  }
+
+  /* Sign-in screens (no sticky bars there, so a gradient cannot show seams): a faint amber glow
+     from the top over the light canvas. */
+  html:not([data-theme='dark']) .template-minimal {
+    background:
+      radial-gradient(
+        80rem 36rem at 50% -10rem,
+        color-mix(in oklab, var(--brand-gold-400) 20%, transparent),
+        color-mix(in oklab, var(--brand-gold-400) 9%, transparent) 35%,
+        color-mix(in oklab, var(--brand-gold-400) 3%, transparent) 60%,
+        transparent 80%
+      ),
+      var(--theme-bg);
+  }
+
   /* Tabular figures keep numbers aligned in list tables and counters. */
   .table td,
   .page-controls,

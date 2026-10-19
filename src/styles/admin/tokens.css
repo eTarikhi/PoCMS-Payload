@@ -33,6 +33,20 @@
     --style-radius-l: 12px;
     --accessibility-outline: 2px solid var(--ring);
 
+    /* Tier 1 — light canvas (ADR 0010). The page is a warm off-white "paper" (L 97.3%, 8% less
+       luminance than white, a hint of the brand's amber hue); surfaces that hold content stay white
+       (inputs, cards, popups, tables: elevation-0 and --theme-input-bg), so fields and cards read as
+       raised sheets. Steps 50–300 get the same faint tint and sit a little darker than Payload's
+       greys, so hovers, stripes and borders still separate from the canvas. Text steps (400+) keep
+       Payload's neutral greys, so text contrast is unchanged. */
+    --theme-bg: #f7f6f3;
+    --theme-elevation-50: #f2f1ee;
+    --theme-elevation-100: #ebe9e6;
+    --theme-elevation-150: #dcdad7;
+    --theme-elevation-200: #d0ceca;
+    --theme-elevation-250: #c3c1bd;
+    --theme-elevation-300: #b5b3af;
+
     /* Tier 2 — semantic tokens */
     --background: var(--theme-bg);
     --foreground: var(--theme-text);
@@ -77,7 +91,9 @@
   }
 
   html[data-theme='dark'] {
-    /* Tier 1 — navy-tinted dark neutrals: Payload's lightness steps, hue 275 (the site's navy). */
+    /* Tier 1 — navy-tinted dark neutrals: Payload's lightness steps, hue 275 (the site's navy).
+       The page and the surfaces share elevation-0 again (the light canvas is light-only). */
+    --theme-bg: var(--theme-elevation-0);
     --theme-elevation-0: #12141d;
     --theme-elevation-50: #1f212c;
     --theme-elevation-100: #2c2e39;

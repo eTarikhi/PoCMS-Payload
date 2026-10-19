@@ -63,7 +63,9 @@ every cell with sample values, and finally the elements and design tokens.
 
 - **Tier 0, brand primitives**: the site's amber and navy, in hex (the contrast script parses them).
 - **Tier 1, Payload theme variables**: what Payload's own UI reads. We set `--font-body` (Inter),
-  `--style-radius-s/m/l` (6/8/12 px), the focus outline and, in dark mode, a navy-tinted
+  `--style-radius-s/m/l` (6/8/12 px), the focus outline, in light mode a warm off-white page
+  (`--theme-bg: #f7f6f3`) with faintly tinted elevation steps 50–300 (ADR 0010: surfaces such as
+  inputs, cards, popups and tables stay white), and in dark mode a navy-tinted
   `--theme-elevation-*` scale.
 - **Tier 2, semantic tokens** (`--background`, `--foreground`, `--card`,
   `--popover`, `--primary`, `--secondary`, `--muted`, `--accent`, `--destructive`, `--success`,
@@ -76,8 +78,9 @@ Light and dark values live side by side (`[data-theme='dark']`). The theme switc
 or account page) toggles both Payload and the custom components.
 
 `payload-overrides.css` holds the few rules that target Payload's own classes: brand-coloured
-primary buttons, field descriptions in `--muted-foreground` (Payload's grey is under 3:1 on white,
-found by the gallery's axe test) and tabular figures in lists.
+primary buttons, field descriptions and sidebar group headings in `--muted-foreground` (Payload's
+grey is under 3:1, found by the gallery's axe test), the sign-in screens' faint amber glow and
+tabular figures in lists.
 
 Change the brand colour by editing the Tier 0 amber values, then run `pnpm check:contrast`: it
 checks 34 foreground/background pairs against WCAG AA in both themes and fails CI if one drops

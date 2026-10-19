@@ -102,7 +102,7 @@ export function DataTable({
     <div
       data-slot="data-table"
       data-collection={collectionSlug}
-      className="acn:overflow-hidden acn:rounded-lg acn:border acn:border-border"
+      className="acn:overflow-hidden acn:rounded-lg acn:border acn:border-border acn:bg-card"
     >
       {/* Explicit roles: the phone card layout (responsive.css) changes the table's display, which
           can drop native table semantics in some browsers. */}

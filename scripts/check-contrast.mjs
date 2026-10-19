@@ -3,8 +3,9 @@
  * WCAG 2.2 contrast check for the admin design tokens (src/styles/admin/tokens.css).
  *
  * Tier 2 tokens point at Payload variables, so this script resolves them with the Payload 3.90
- * palette below plus the hex values parsed from tokens.css (brand primitives and the navy-tinted
- * dark neutrals). It fails (exit 1) when a pair is below its threshold:
+ * palette below plus the hex values parsed from tokens.css (brand primitives, the light canvas
+ * with its tinted steps, and the navy-tinted dark neutrals). It fails (exit 1) when a pair is
+ * below its threshold:
  *   text  4.5:1  (WCAG 1.4.3, normal text)
  *   ui    3.0:1  (WCAG 1.4.11, focus rings, icons, chart strokes)
  *
@@ -23,7 +24,8 @@ function hexVars(scope) {
   if (start === -1) throw new Error(`Block ${scope} not found in tokens.css`)
   const block = css.slice(start, css.indexOf('}', start))
   const out = {}
-  for (const m of block.matchAll(/--([a-z0-9-]+):\s*(#[0-9a-f]{6})\b/gi)) out[m[1]] = m[2].toLowerCase()
+  for (const m of block.matchAll(/--([a-z0-9-]+):\s*(#[0-9a-f]{6})\b/gi))
+    out[m[1]] = m[2].toLowerCase()
   return out
 }
 
@@ -34,8 +36,6 @@ const darkHex = hexVars("html[data-theme='dark']")
 const payload = {
   light: {
     'elevation-0': '#ffffff',
-    'elevation-50': '#f5f5f5',
-    'elevation-100': '#ebebeb',
     'elevation-600': '#656565',
     'elevation-800': '#2f2f2f',
     'error-600': '#b63636',
@@ -62,10 +62,11 @@ const payload = {
 
 const themes = {
   light: {
-    background: payload.light['elevation-0'],
+    // The light canvas and the tinted steps come from tokens.css; surfaces stay white.
+    background: rootHex['theme-bg'],
     foreground: payload.light['elevation-800'],
     card: payload.light['elevation-0'],
-    muted: payload.light['elevation-50'],
+    muted: rootHex['theme-elevation-50'],
     'muted-foreground': payload.light['elevation-600'],
     primary: rootHex['brand-amber-700'],
     'primary-foreground': rootHex['brand-on-light'],
