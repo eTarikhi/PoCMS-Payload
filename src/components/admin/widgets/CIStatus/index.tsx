@@ -103,7 +103,7 @@ export function CIStatusView({ language, report }: { language: string; report: C
                       href={run.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="acn:truncate acn:text-sm acn:font-medium acn:text-foreground acn:underline-offset-4 acn:hover:underline"
+                      className="acn:relative acn:truncate acn:text-sm acn:font-medium acn:text-foreground acn:underline-offset-4 acn:hover:underline"
                     >
                       {run.title}
                       <span className="acn:sr-only"> (opens in a new tab)</span>

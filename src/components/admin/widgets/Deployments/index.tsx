@@ -92,7 +92,7 @@ export function DeploymentsView({
                         href={deployment.inspectorUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="acn:truncate acn:text-sm acn:font-medium acn:text-foreground acn:underline-offset-4 acn:hover:underline"
+                        className="acn:relative acn:truncate acn:text-sm acn:font-medium acn:text-foreground acn:underline-offset-4 acn:hover:underline"
                       >
                         {deployment.commitMessage ?? deployment.url ?? deployment.id}
                         <span className="acn:sr-only"> (build logs, opens in a new tab)</span>
@@ -109,7 +109,7 @@ export function DeploymentsView({
                       {relativeTime(deployment.createdAt, language)}
                     </time>
                   </div>
-                  <p className="acn:m-0 acn:truncate acn:text-xs acn:text-muted-foreground">
+                  <p className="acn:relative acn:m-0 acn:truncate acn:text-xs acn:text-muted-foreground">
                     {details.join(' · ')}
                     {deployment.url && deployment.state === 'READY' ? (
                       <>
