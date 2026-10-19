@@ -31,10 +31,7 @@ test.describe('Component gallery', () => {
       await expect(page.getByRole('heading', { level: 1, name: 'Component gallery' })).toBeVisible()
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
       // The element demos are a lazily loaded chunk (ElementsLazy); wait for them before scanning.
-      // `:visible`: during a refresh Next can keep the previous tree hidden next to the new one.
-      await expect(page.locator('[data-testid="gallery-elements"]:visible')).toBeVisible({
-        timeout: 30_000,
-      })
+      await expect(page.getByTestId('gallery-elements')).toBeVisible({ timeout: 30_000 })
 
       const results = await new AxeBuilder({ page })
         .include('[data-testid="gallery"]')
