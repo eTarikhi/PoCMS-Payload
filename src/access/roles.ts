@@ -249,6 +249,12 @@ async function countUsersWithRoles(
 const LAST_ADMIN =
   'This would leave the admin without an administrator. Give another user a full-access role first.'
 
+/*
+ * The last-administrator guards protect people from locking everybody out through the admin or the
+ * API. Operations without a signed-in user (scripts, seeding, tests through the Local API) are
+ * trusted: if they leave no administrator, `ensureRoles` promotes the oldest user on the next start.
+ */
+
 /**
  * Users `beforeChange`: the first account (from /admin/create-first-user) becomes an
  * Administrator; other new users without roles get the roles marked "Give to new users".
@@ -280,7 +286,7 @@ export const keepAnAdministrator: CollectionBeforeChangeHook = async ({
   originalDoc,
   req,
 }) => {
-  if (operation !== 'update' || !originalDoc || !('roles' in data)) return data
+  if (operation !== 'update' || !originalDoc || !('roles' in data) || !req.user) return data
   const adminRoles = await fullAccessRoleIds(req)
   const wasAdmin = holdsAnyOf(originalDoc.roles, adminRoles)
   const staysAdmin = holdsAnyOf(data.roles, adminRoles)
@@ -296,6 +302,7 @@ export const keepAnAdministrator: CollectionBeforeChangeHook = async ({
 
 /** Users `beforeDelete`: the last administrator can't be deleted. */
 export const keepAnAdministratorOnDelete: CollectionBeforeDeleteHook = async ({ id, req }) => {
+  if (!req.user) return
   const adminRoles = await fullAccessRoleIds(req)
   const user = await req.payload.findByID({
     collection: 'users',
@@ -323,7 +330,7 @@ export const protectRoles: CollectionBeforeChangeHook = async ({
   if (operation === 'update' && originalDoc?.system) {
     return { ...data, fullAccess: true, system: true }
   }
-  if (operation === 'update' && originalDoc?.fullAccess && data.fullAccess === false) {
+  if (operation === 'update' && originalDoc?.fullAccess && data.fullAccess === false && req.user) {
     const remaining = await fullAccessRoleIds(req, originalDoc.id)
     if ((await countUsersWithRoles(req, remaining)) === 0) {
       throw new APIError(LAST_ADMIN, 400, undefined, true)
@@ -343,7 +350,7 @@ export const protectRolesOnDelete: CollectionBeforeDeleteHook = async ({ id, req
     req,
   })) as RoleDoc | null
   if (role?.system) throw new APIError('The built-in Administrator role cannot be deleted.', 400)
-  if (!role?.fullAccess) return
+  if (!role?.fullAccess || !req.user) return
   const remaining = await fullAccessRoleIds(req, id)
   if ((await countUsersWithRoles(req, remaining)) === 0) {
     throw new APIError(LAST_ADMIN, 400, undefined, true)

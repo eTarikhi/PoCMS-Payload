@@ -25,22 +25,25 @@ async function administratorRoleIds(payload: Awaited<ReturnType<typeof getPayloa
  */
 export async function seedTestUser(): Promise<void> {
   const payload = await getPayload({ config })
+  const roles = await administratorRoleIds(payload)
 
-  // Delete existing test user if any
-  await payload.delete({
+  // Update in place when the user exists: deleting it first could hit the last-administrator
+  // guard on a fresh database, where the test user is the only administrator.
+  const { docs } = await payload.find({
     collection: 'users',
-    where: {
-      email: {
-        equals: testUser.email,
-      },
-    },
+    where: { email: { equals: testUser.email } },
+    depth: 0,
+    limit: 1,
   })
-
-  // Create fresh test user
-  await payload.create({
-    collection: 'users',
-    data: { ...testUser, roles: await administratorRoleIds(payload) },
-  })
+  if (docs[0]) {
+    await payload.update({
+      collection: 'users',
+      id: docs[0].id,
+      data: { password: testUser.password, roles },
+    })
+    return
+  }
+  await payload.create({ collection: 'users', data: { ...testUser, roles } })
 }
 
 /**
