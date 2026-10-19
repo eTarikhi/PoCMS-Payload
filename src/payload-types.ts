@@ -69,14 +69,14 @@ export interface Config {
   collections: {
     articles: Article;
     projects: Project;
-    services: Service;
     media: Media;
-    header: Header;
     about: About;
+    services: Service;
+    skills: Skill;
     experiences: Experience;
     educations: Education;
-    skills: Skill;
     certificates: Certificate;
+    header: Header;
     users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -87,14 +87,14 @@ export interface Config {
   collectionsSelect: {
     articles: ArticlesSelect<false> | ArticlesSelect<true>;
     projects: ProjectsSelect<false> | ProjectsSelect<true>;
-    services: ServicesSelect<false> | ServicesSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
-    header: HeaderSelect<false> | HeaderSelect<true>;
     about: AboutSelect<false> | AboutSelect<true>;
+    services: ServicesSelect<false> | ServicesSelect<true>;
+    skills: SkillsSelect<false> | SkillsSelect<true>;
     experiences: ExperiencesSelect<false> | ExperiencesSelect<true>;
     educations: EducationsSelect<false> | EducationsSelect<true>;
-    skills: SkillsSelect<false> | SkillsSelect<true>;
     certificates: CertificatesSelect<false> | CertificatesSelect<true>;
+    header: HeaderSelect<false> | HeaderSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -252,53 +252,6 @@ export interface Project {
   deletedAt?: string | null;
 }
 /**
- * Service categories shown on the home page.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "services".
- */
-export interface Service {
-  id: number;
-  /**
-   * Lower numbers appear first.
-   */
-  order?: number | null;
-  category: string;
-  /**
-   * Icon shown next to the category. Only the icons the site has are listed.
-   */
-  iconFont?: ('faCode' | 'faCropAlt' | 'faLaptopCode' | 'faCodeBranch') | null;
-  /**
-   * One entry per bullet point.
-   */
-  descriptions: string[];
-  updatedAt: string;
-  createdAt: string;
-  deletedAt?: string | null;
-}
-/**
- * The hero section: name, job titles and CV link. One document: the site shows the first one.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "header".
- */
-export interface Header {
-  id: number;
-  sureName: string;
-  profileImage?: (number | null) | Media;
-  imageUrl?: string | null;
-  /**
-   * Link behind the "Request CV" button.
-   */
-  requestCV?: string | null;
-  /**
-   * Job titles shown in the hero section.
-   */
-  professionTexts: string[];
-  updatedAt: string;
-  createdAt: string;
-}
-/**
  * The About section. One document: the site shows the first one.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -330,6 +283,57 @@ export interface About {
   };
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * Service categories shown on the home page.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "services".
+ */
+export interface Service {
+  id: number;
+  /**
+   * Lower numbers appear first.
+   */
+  order?: number | null;
+  category: string;
+  /**
+   * Icon shown next to the category. Only the icons the site has are listed.
+   */
+  iconFont?: ('faCode' | 'faCropAlt' | 'faLaptopCode' | 'faCodeBranch') | null;
+  /**
+   * One entry per bullet point.
+   */
+  descriptions: string[];
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+}
+/**
+ * Skill bars in the résumé section, grouped by category.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "skills".
+ */
+export interface Skill {
+  id: number;
+  /**
+   * Lower numbers appear first.
+   */
+  order?: number | null;
+  label: string;
+  group: 'frontend' | 'backend';
+  /**
+   * Proficiency, 0-100.
+   */
+  value: number;
+  /**
+   * Bootstrap contextual color of the progress bar.
+   */
+  color: 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'danger';
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
 }
 /**
  * Work history in the résumé section. Lower order shows first.
@@ -377,32 +381,6 @@ export interface Education {
   deletedAt?: string | null;
 }
 /**
- * Skill bars in the résumé section, grouped by category.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "skills".
- */
-export interface Skill {
-  id: number;
-  /**
-   * Lower numbers appear first.
-   */
-  order?: number | null;
-  label: string;
-  group: 'frontend' | 'backend';
-  /**
-   * Proficiency, 0-100.
-   */
-  value: number;
-  /**
-   * Bootstrap contextual color of the progress bar.
-   */
-  color: 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'danger';
-  updatedAt: string;
-  createdAt: string;
-  deletedAt?: string | null;
-}
-/**
  * Certificates and credentials.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -422,6 +400,28 @@ export interface Certificate {
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
+}
+/**
+ * The hero section: name, job titles and CV link. One document: the site shows the first one.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "header".
+ */
+export interface Header {
+  id: number;
+  sureName: string;
+  profileImage?: (number | null) | Media;
+  imageUrl?: string | null;
+  /**
+   * Link behind the "Request CV" button.
+   */
+  requestCV?: string | null;
+  /**
+   * Job titles shown in the hero section.
+   */
+  professionTexts: string[];
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * People who can sign in to this admin. Only admins can manage users and roles.
@@ -492,20 +492,20 @@ export interface PayloadLockedDocument {
         value: number | Project;
       } | null)
     | ({
-        relationTo: 'services';
-        value: number | Service;
-      } | null)
-    | ({
         relationTo: 'media';
         value: number | Media;
       } | null)
     | ({
-        relationTo: 'header';
-        value: number | Header;
-      } | null)
-    | ({
         relationTo: 'about';
         value: number | About;
+      } | null)
+    | ({
+        relationTo: 'services';
+        value: number | Service;
+      } | null)
+    | ({
+        relationTo: 'skills';
+        value: number | Skill;
       } | null)
     | ({
         relationTo: 'experiences';
@@ -516,12 +516,12 @@ export interface PayloadLockedDocument {
         value: number | Education;
       } | null)
     | ({
-        relationTo: 'skills';
-        value: number | Skill;
-      } | null)
-    | ({
         relationTo: 'certificates';
         value: number | Certificate;
+      } | null)
+    | ({
+        relationTo: 'header';
+        value: number | Header;
       } | null)
     | ({
         relationTo: 'users';
@@ -609,19 +609,6 @@ export interface ProjectsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "services_select".
- */
-export interface ServicesSelect<T extends boolean = true> {
-  order?: T;
-  category?: T;
-  iconFont?: T;
-  descriptions?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  deletedAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media_select".
  */
 export interface MediaSelect<T extends boolean = true> {
@@ -653,19 +640,6 @@ export interface MediaSelect<T extends boolean = true> {
               filename?: T;
             };
       };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "header_select".
- */
-export interface HeaderSelect<T extends boolean = true> {
-  sureName?: T;
-  profileImage?: T;
-  imageUrl?: T;
-  requestCV?: T;
-  professionTexts?: T;
-  updatedAt?: T;
-  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -705,6 +679,33 @@ export interface AboutSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "services_select".
+ */
+export interface ServicesSelect<T extends boolean = true> {
+  order?: T;
+  category?: T;
+  iconFont?: T;
+  descriptions?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "skills_select".
+ */
+export interface SkillsSelect<T extends boolean = true> {
+  order?: T;
+  label?: T;
+  group?: T;
+  value?: T;
+  color?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "experiences_select".
  */
 export interface ExperiencesSelect<T extends boolean = true> {
@@ -732,20 +733,6 @@ export interface EducationsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "skills_select".
- */
-export interface SkillsSelect<T extends boolean = true> {
-  order?: T;
-  label?: T;
-  group?: T;
-  value?: T;
-  color?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  deletedAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "certificates_select".
  */
 export interface CertificatesSelect<T extends boolean = true> {
@@ -758,6 +745,19 @@ export interface CertificatesSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "header_select".
+ */
+export interface HeaderSelect<T extends boolean = true> {
+  sureName?: T;
+  profileImage?: T;
+  imageUrl?: T;
+  requestCV?: T;
+  professionTexts?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

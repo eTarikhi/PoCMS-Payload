@@ -35,7 +35,7 @@ test.describe('Admin navigation and branding', () => {
     await page.goto(`${base}/admin`)
     await openNav()
     const nav = page.locator('nav.nav__wrap')
-    for (const group of ['Content', 'Profile', 'Admin']) {
+    for (const group of ['Content', 'Profile', 'Site settings', 'Admin']) {
       await expect(nav.getByText(group, { exact: true }).first()).toBeVisible()
     }
     await expect(page.locator('#nav-view-site')).toHaveAttribute('target', '_blank')

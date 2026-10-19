@@ -165,9 +165,10 @@ checkbox is a `span[role=checkbox]`, so name it with `aria-labelledby` or `aria-
 
 - `graphics.Logo` (login) and `graphics.Icon` (breadcrumb) use the site's favicon set.
 - `admin.meta` sets the `· PoCMS` title suffix and the icons.
-- Sidebar groups come from `admin.group`: **Content**, **Profile**, **Admin**. Payload orders
-  groups by first appearance, collections before globals, so the collection order in
-  `payload.config.ts` sets the group order.
+- Sidebar groups come from `admin.group`: **Content** (Articles, Projects, Media), **Profile**
+  (the résumé sections in home-page order, Services included), **Site settings** (the Header
+  collection and the Footer global) and **Admin**. Payload orders groups by first appearance,
+  collections before globals, so the collection order in `payload.config.ts` sets the group order.
 - `beforeNavLinks`: the **Create** control lists only collections the user may create. It is a
   native disclosure (`details`/`summary`) holding links, closed by Escape or an outside click.
 - `afterNavLinks` (`nav/NavExtraLinks`): **View site** (`NEXT_PUBLIC_SITE_URL`, or the same
@@ -262,7 +263,7 @@ switch.
   add the collection or global to `NAV_ICONS` in `scripts/generate-nav-icons.mjs` and run
   `pnpm generate:nav-icons` (part of `generate:all`, so CI catches a stale
   `src/styles/admin/nav-icons.css`). Links without an entry get a generic file icon.
-- Group headings (Content, Profile, Admin) have icons too (`NAV_GROUP_ICONS`, matched by
+- Group headings (Content, Profile, Site settings, Admin) have icons too (`NAV_GROUP_ICONS`, matched by
   Payload's `#nav-group-<label>`). In the rail they stay as icon buttons that still collapse and
   expand their group, with the group name as a tooltip and a dimmed icon while collapsed.
 - Each entry also names a tone (amber, orange, rose, violet, blue, teal, green, slate): theme

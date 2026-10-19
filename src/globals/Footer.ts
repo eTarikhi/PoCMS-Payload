@@ -8,7 +8,7 @@ export const Footer: GlobalConfig = {
   },
   label: 'Footer',
   admin: {
-    group: 'Profile',
+    group: 'Site settings',
     description: 'Social links, roles and marketplace profiles shown in the site footer.',
   },
   access: {

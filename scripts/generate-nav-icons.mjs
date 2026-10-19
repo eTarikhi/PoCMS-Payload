@@ -38,6 +38,7 @@ const NAV_ICONS = {
 const NAV_GROUP_ICONS = {
   Content: ['LayoutGrid', 'amber'],
   Profile: ['IdCard', 'blue'],
+  'Site settings': ['Settings2', 'violet'],
   Admin: ['ShieldCheck', 'teal'],
 }
 

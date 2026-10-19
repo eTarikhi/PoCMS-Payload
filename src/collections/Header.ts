@@ -13,7 +13,7 @@ export const Header: CollectionConfig = {
     plural: 'Header',
   },
   admin: {
-    group: 'Profile',
+    group: 'Site settings',
     description:
       'The hero section: name, job titles and CV link. One document: the site shows the first one.',
     useAsTitle: 'sureName',

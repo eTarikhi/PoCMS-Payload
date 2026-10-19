@@ -126,19 +126,20 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  // Order sets the sidebar order of the admin.group sections: Content, Profile, Admin.
-  // (Payload lists collections before globals, so the Footer global sits at the end of Profile.)
+  // Order sets the sidebar order of the admin.group sections: Content, Profile, Site settings,
+  // Admin. Profile follows the section order of the public home page. Payload lists collections
+  // before globals, so the Footer global joins Site settings after the Header collection.
   collections: [
     Articles,
     Projects,
-    Services,
     Media,
-    Header,
     About,
+    Services,
+    Skills,
     Experiences,
     Educations,
-    Skills,
     Certificates,
+    Header,
     Users,
   ],
   globals: [Footer],
