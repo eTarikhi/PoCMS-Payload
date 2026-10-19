@@ -109,3 +109,24 @@ references.
   chart was rebuilt without it. Recharts stayed in the UI kit until the component gallery replaced
   it (ADR 0009); the package is no longer installed.
 
+## After the Payload-native layout and the component gallery (2026-10-19, `d9ba8a3`, same setup)
+
+Measured on a production build (`next build`, `next start`), logged in as an admin. Since `d60615b`
+this includes everything shipped in between: trash, sparklines, the developer tools menu, the
+responsive pass, the phone list cards and the component gallery.
+
+| Route | JS files | JS kB (compressed) | JS kB (decoded) | CSS files | CSS kB (compressed) | CSS kB (decoded) |
+|---|---|---|---|---|---|---|
+| `/admin/login` | 14 | 674.4 | 2275.0 | 7 | 63.4 | 432.0 |
+| `/admin` | 16 | 684.9 | 2304.5 | 7 | 63.4 | 432.0 |
+| `/admin/collections/articles` | 16 | 684.5 | 2306.9 | 7 | 63.4 | 432.0 |
+| `/admin/collections/articles/create` | 15 | 674.7 | 2275.3 | 7 | 63.4 | 432.0 |
+| `/admin/gallery` (admins only) | 22 | 798.3 | 2671.7 | 7 | 63.4 | 432.0 |
+
+- Every page: **684.9 kB JS (+39.7 of the +150 budget)** and **63.4 kB CSS (+18.2 of +40)**.
+- The move itself was not measured separately; it shouldn't matter, since the import map references
+  the same modules. Removing the Recharts-based chart primitive and `recharts` affected only the
+  old UI kit chunk.
+- `/admin/gallery` loads the element demos, the Font Awesome icon picker and the chart chunk on
+  that page only (`ROUTES=/admin/gallery node scripts/measure-admin-bundle.mjs …`); other pages
+  don't pay for it.

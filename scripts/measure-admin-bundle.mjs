@@ -5,6 +5,7 @@
  * start`), never against `next dev`.
  *
  *   ADMIN_EMAIL=… ADMIN_PASSWORD=… node scripts/measure-admin-bundle.mjs [baseURL]
+ *   ROUTES=/admin,/admin/gallery …   (optional: measure other routes instead of the default four)
  *
  * Output: a Markdown table on stdout. Used for the P0 baseline and the budget checks in later phases
  * (docs/ui-modernization/perf-budget.md).
@@ -19,7 +20,9 @@ if (!email || !password) {
   process.exit(1)
 }
 
-const routes = ['/admin/login', '/admin', '/admin/collections/articles', '/admin/collections/articles/create']
+const routes = process.env.ROUTES
+  ? process.env.ROUTES.split(',').map((route) => route.trim())
+  : ['/admin/login', '/admin', '/admin/collections/articles', '/admin/collections/articles/create']
 
 const browser = await chromium.launch({
   executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined,

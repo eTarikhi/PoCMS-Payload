@@ -129,7 +129,8 @@ export function GalleryView({
               label: 'Root components: graphics',
             }}
           >
-            <GraphicsPreview entries={entries} user={req.user} />
+            {/* `user` is the read-filtered user (Payload docs: render that, keep req.user for access checks). */}
+            <GraphicsPreview entries={entries} user={user} />
           </GallerySection>
 
           <GallerySection

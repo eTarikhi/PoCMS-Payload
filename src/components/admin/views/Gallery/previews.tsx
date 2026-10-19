@@ -1,4 +1,5 @@
 import type {
+  AdminViewServerProps,
   BeforeListTableServerProps,
   CollectionSlug,
   DefaultCellComponentProps,
@@ -51,7 +52,7 @@ export function GraphicsPreview({
   user,
 }: {
   entries: RegistryEntry[]
-  user: InitPageResult['req']['user']
+  user: AdminViewServerProps['user']
 }) {
   const find = pathFinder(entries)
   // The avatar is typed with all server props; it reads only `user`.

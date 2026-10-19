@@ -17,8 +17,10 @@ This repository is organized into a small set of topic-based guides. Use the pag
 
 ## Admin UI
 
-- [Admin UI guide](ui-modernization/admin-ui-guide.md) — tokens, Tailwind `acn:` prefix, Base UI primitives, dashboard widgets, list views, roles
-- [Decision records](ui-modernization/adr/README.md) — why Base UI, the prefix, Inter, Payload 3.9x, TanStack Table, roles
+- [Admin UI guide](ui-modernization/admin-ui-guide.md) — structure by Payload slot, adding components, tokens, Tailwind `acn:` prefix, dashboard widgets, list views, roles
+- [Admin components](../src/components/admin/README.md) — every custom component, the folder layout and its conventions; live at `/admin/gallery`
+- [Decision records](ui-modernization/adr/README.md) — why Base UI, the prefix, Inter, Payload 3.9x, TanStack Table, roles, the component layout
+- [Dashboard integrations](ui-modernization/dashboard-integrations.md) — research: Vercel Analytics, page speed and search reports on the dashboard; proposed admin tools
 - [Performance budget](ui-modernization/perf-budget.md) — admin bundle baseline, budget and current numbers
 - [Analysis and roadmap](ui-modernization/shadcn-payload-ui-analysis.md) — the original review and phased plan
 - Screenshots: [before](ui-modernization/screenshots/p0-baseline/) and [after](ui-modernization/screenshots/p6-after/) (same pages, themes and widths)
