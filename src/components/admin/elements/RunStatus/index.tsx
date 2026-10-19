@@ -3,17 +3,17 @@ import React from 'react'
 
 import { cn } from '@/components/admin/utilities/cn'
 
-export type RunTone = 'good' | 'running' | 'poor' | 'muted'
+export type RunTone = 'good' | 'pending' | 'poor' | 'muted'
 
 const STYLE: Record<RunTone, string> = {
   good: 'acn:bg-rating-good/6 acn:text-rating-good',
-  running: 'acn:bg-rating-average/6 acn:text-rating-average',
+  pending: 'acn:bg-rating-average/6 acn:text-rating-average',
   poor: 'acn:bg-rating-poor/6 acn:text-rating-poor',
   muted: 'acn:bg-muted acn:text-muted-foreground',
 }
 const ICON = {
   good: CircleCheckIcon,
-  running: LoaderCircleIcon,
+  pending: LoaderCircleIcon,
   poor: CircleXIcon,
   muted: CircleSlashIcon,
 } satisfies Record<RunTone, unknown>
@@ -39,7 +39,7 @@ export function RunStatus({
     >
       <Icon
         aria-hidden
-        className={cn('acn:size-3.5', tone === 'running' && 'acn:motion-safe:animate-spin')}
+        className={cn('acn:size-3.5', tone === 'pending' && 'acn:motion-safe:animate-spin')}
       />
       {label}
     </span>

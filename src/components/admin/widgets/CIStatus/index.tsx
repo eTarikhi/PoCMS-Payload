@@ -12,7 +12,7 @@ import { type CIReport, latestWorkflowRuns, type WorkflowRun } from '@/integrati
 const DOCS = 'https://docs.github.com/en/rest/actions/workflow-runs'
 
 export function runTone(run: Pick<WorkflowRun, 'conclusion' | 'status'>): [RunTone, string] {
-  if (run.status !== 'completed') return ['running', run.status === 'queued' ? 'Queued' : 'Running']
+  if (run.status !== 'completed') return ['pending', run.status === 'queued' ? 'Queued' : 'Running']
   switch (run.conclusion) {
     case 'success':
       return ['good', 'Passed']

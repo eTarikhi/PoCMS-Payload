@@ -13,9 +13,9 @@ const DOCS = 'https://vercel.com/docs/rest-api/deployments/list-deployments'
 const STATE: Record<string, [RunTone, string]> = {
   READY: ['good', 'Ready'],
   ERROR: ['poor', 'Failed'],
-  BUILDING: ['running', 'Building'],
-  INITIALIZING: ['running', 'Starting'],
-  QUEUED: ['running', 'Queued'],
+  BUILDING: ['pending', 'Building'],
+  INITIALIZING: ['pending', 'Starting'],
+  QUEUED: ['pending', 'Queued'],
   CANCELED: ['muted', 'Canceled'],
   DELETED: ['muted', 'Deleted'],
 }
