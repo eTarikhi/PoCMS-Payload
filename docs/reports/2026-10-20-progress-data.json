@@ -1,0 +1,2777 @@
+{
+ "generatedFrom": {
+  "repo": "eTarikhi/PoCMS-Payload",
+  "branch": "arena/1e75852c-pocms-payload",
+  "head": "adff4e0",
+  "reportDate": "2026-10-20",
+  "timeZone": "Asia/Tehran",
+  "measuredAt": "2026-10-20T02:50:00+03:30"
+ },
+ "commits": {
+  "total": 80,
+  "programme": 62,
+  "agent": 57,
+  "foundation": 18,
+  "authoredAdded": 23273,
+  "authoredDeleted": 3975,
+  "byType": {
+   "docs": 8,
+   "chore": 5,
+   "ci": 1,
+   "feat": 28,
+   "test": 2,
+   "other": 2,
+   "fix": 10,
+   "perf": 2,
+   "style": 1,
+   "refactor": 1,
+   "revert": 1,
+   "merge": 1
+  }
+ },
+ "areas": {
+  "programme": {
+   "docs": {
+    "added": 2695,
+    "deleted": 334
+   },
+   "tooling": {
+    "added": 929,
+    "deleted": 247
+   },
+   "seed": {
+    "added": 60,
+    "deleted": 21
+   },
+   "tests": {
+    "added": 2615,
+    "deleted": 241
+   },
+   "generated": {
+    "added": 20883,
+    "deleted": 17838
+   },
+   "admin": {
+    "added": 13833,
+    "deleted": 2635
+   },
+   "backend": {
+    "added": 2999,
+    "deleted": 417
+   },
+   "frontend": {
+    "added": 142,
+    "deleted": 80
+   }
+  },
+  "sizeBaseline": {
+   "tooling": {
+    "lines": 527,
+    "files": 12
+   },
+   "docs": {
+    "lines": 642,
+    "files": 11
+   },
+   "tests": {
+    "lines": 215,
+    "files": 8
+   },
+   "generated": {
+    "lines": 24168,
+    "files": 5
+   },
+   "frontend": {
+    "lines": 14217,
+    "files": 51
+   },
+   "admin": {
+    "lines": 113,
+    "files": 6
+   },
+   "backend": {
+    "lines": 758,
+    "files": 15
+   },
+   "seed": {
+    "lines": 992,
+    "files": 12
+   }
+  },
+  "sizeHead": {
+   "tooling": {
+    "lines": 1209,
+    "files": 22
+   },
+   "docs": {
+    "lines": 3003,
+    "files": 29
+   },
+   "tests": {
+    "lines": 2589,
+    "files": 26
+   },
+   "generated": {
+    "lines": 27213,
+    "files": 6
+   },
+   "frontend": {
+    "lines": 14279,
+    "files": 53
+   },
+   "backend": {
+    "lines": 3340,
+    "files": 31
+   },
+   "admin": {
+    "lines": 11311,
+    "files": 109
+   },
+   "seed": {
+    "lines": 1031,
+    "files": 12
+   }
+  }
+ },
+ "roadmap": {
+  "plannedMidpoint": 43.5,
+  "earned": 35.61666666666667,
+  "remaining": 7.883333333333333,
+  "counts": {
+   "done": 27,
+   "changed": 2,
+   "partial": 9,
+   "open": 2,
+   "deferred": 1
+  },
+  "phases": [
+   {
+    "id": "P0",
+    "name": "Foundations & spike",
+    "min": 4,
+    "max": 6,
+    "mid": 5,
+    "completion": 1,
+    "ev": 5,
+    "items": [
+     {
+      "title": "Postgres dev environment, committed .env.example, seed",
+      "status": "done",
+      "evidence": "c65bc55",
+      "optional": false
+     },
+     {
+      "title": "Quality baseline: ESLint, typecheck, int/e2e green, CI workflow",
+      "status": "done",
+      "evidence": "daf243e, d430e6e",
+      "optional": false
+     },
+     {
+      "title": "Visual baseline: 48 screenshots, light/dark, 1440/768/375 px",
+      "status": "done",
+      "evidence": "daf243e",
+      "optional": false
+     },
+     {
+      "title": "Bundle and CSS baseline (Playwright transfer sizes, not bundle-analyzer)",
+      "status": "done",
+      "evidence": "2f87cb0",
+      "optional": false
+     },
+     {
+      "title": "Dependency audit: unused packages removed",
+      "status": "done",
+      "evidence": "cccdf04",
+      "optional": false
+     },
+     {
+      "title": "Tailwind isolation spike (layers, scanning, .table, rem, portals, dark variant)",
+      "status": "done",
+      "evidence": "7414431, ADR 0002",
+      "optional": false
+     },
+     {
+      "title": "Bump to Payload 3.91 and a v4 beta smoke test",
+      "status": "deferred",
+      "evidence": "optional; still 3.90.2",
+      "optional": true
+     },
+     {
+      "title": "ADRs for decisions D1–D8",
+      "status": "done",
+      "evidence": "2f87cb0",
+      "optional": false
+     }
+    ]
+   },
+   {
+    "id": "P1",
+    "name": "Tokens & theming",
+    "min": 4,
+    "max": 6,
+    "mid": 5,
+    "completion": 1,
+    "ev": 5,
+    "items": [
+     {
+      "title": "tokens.css: three tiers, light/dark, status tokens",
+      "status": "done",
+      "evidence": "b3f6f63",
+      "optional": false
+     },
+     {
+      "title": "Payload-native overrides: radius, Inter, navy dark theme, primary button",
+      "status": "done",
+      "evidence": "b3f6f63",
+      "optional": false
+     },
+     {
+      "title": "Automated contrast check of every token pair, in CI",
+      "status": "done",
+      "evidence": "check:contrast",
+      "optional": false
+     },
+     {
+      "title": "Visual review of core surfaces in both themes",
+      "status": "done",
+      "evidence": "screenshots/p6-after",
+      "optional": false
+     },
+     {
+      "title": "v3 to v4 token map documented",
+      "status": "done",
+      "evidence": "admin-ui-guide § Payload 4 readiness",
+      "optional": false
+     }
+    ]
+   },
+   {
+    "id": "P2",
+    "name": "Component foundation",
+    "min": 5,
+    "max": 7,
+    "mid": 6,
+    "completion": 0.9166666666666666,
+    "ev": 5.5,
+    "items": [
+     {
+      "title": "Tailwind v4, Base UI, cva, tw-animate-css installed; PostCSS config",
+      "status": "done",
+      "evidence": "7414431",
+      "optional": false
+     },
+     {
+      "title": "components.json and shadcn registries",
+      "status": "changed",
+      "evidence": "added in 7414431, retired by ADR 0009",
+      "optional": false
+     },
+     {
+      "title": "Primitive set reconciled with the tokens",
+      "status": "done",
+      "evidence": "25 primitives",
+      "optional": false
+     },
+     {
+      "title": "AdminUIProvider registered as an admin provider",
+      "status": "done",
+      "evidence": "b3f6f63",
+      "optional": false
+     },
+     {
+      "title": "Living style guide (/admin/ui-kit, now /admin/gallery)",
+      "status": "done",
+      "evidence": "1eb40e7, d9ba8a3",
+      "optional": false
+     },
+     {
+      "title": "Component tests (Testing Library) and axe checks",
+      "status": "partial",
+      "evidence": "axe in e2e; no component tests",
+      "optional": false
+     }
+    ]
+   },
+   {
+    "id": "P3",
+    "name": "Branding & IA",
+    "min": 3,
+    "max": 5,
+    "mid": 4,
+    "completion": 0.8,
+    "ev": 3.2,
+    "items": [
+     {
+      "title": "Logo, icon and admin.meta",
+      "status": "done",
+      "evidence": "364f38c",
+      "optional": false
+     },
+     {
+      "title": "admin.group mapping, descriptions, useAsTitle/defaultColumns audit",
+      "status": "done",
+      "evidence": "364f38c",
+      "optional": false
+     },
+     {
+      "title": "Nav slots: Create menu, View site, style-guide link",
+      "status": "done",
+      "evidence": "364f38c",
+      "optional": false
+     },
+     {
+      "title": "Resolve orphan SiteSettings / Navigation files",
+      "status": "open",
+      "evidence": "both files are still empty",
+      "optional": false
+     },
+     {
+      "title": "About / Header as globals",
+      "status": "partial",
+      "evidence": "optional; Footer is a global, the others are one-document collections",
+      "optional": true
+     },
+     {
+      "title": "e2e tests for groups and branding",
+      "status": "done",
+      "evidence": "navigation.e2e",
+      "optional": false
+     }
+    ]
+   },
+   {
+    "id": "P4",
+    "name": "Dashboard",
+    "min": 7,
+    "max": 10,
+    "mid": 8.5,
+    "completion": 0.9166666666666666,
+    "ev": 7.791666666666666,
+    "items": [
+     {
+      "title": "Query layer through the Local API with req and overrideAccess: false",
+      "status": "done",
+      "evidence": "51945f8",
+      "optional": false
+     },
+     {
+      "title": "Six widgets (KPIs, health, activity, recent changes, quick actions)",
+      "status": "done",
+      "evidence": "51945f8",
+      "optional": false
+     },
+     {
+      "title": "Chart island (planned with Recharts)",
+      "status": "changed",
+      "evidence": "own accessible chart, about 107 kB less",
+      "optional": false
+     },
+     {
+      "title": "Empty, loading and error states",
+      "status": "done",
+      "evidence": "all widgets",
+      "optional": false
+     },
+     {
+      "title": "Role-aware defaultLayout, widget fields, i18n labels",
+      "status": "partial",
+      "evidence": "no i18n labels",
+      "optional": false
+     },
+     {
+      "title": "e2e (widgets, edit mode) and axe",
+      "status": "done",
+      "evidence": "dashboard.e2e",
+      "optional": false
+     }
+    ]
+   },
+   {
+    "id": "P5",
+    "name": "List & edit UX",
+    "min": 8,
+    "max": 12,
+    "mid": 10,
+    "completion": 0.6,
+    "ev": 6,
+    "items": [
+     {
+      "title": "Cells: thumbnail, status, colour, icon, proficiency, relative date",
+      "status": "done",
+      "evidence": "961da3a, 3b950c2",
+      "optional": false
+     },
+     {
+      "title": "Fields: colour picker, icon picker, image source",
+      "status": "partial",
+      "evidence": "no ImageSourceField",
+      "optional": false
+     },
+     {
+      "title": "Edit layouts: tabs, rows, sidebar, descriptions, conditions",
+      "status": "done",
+      "evidence": "3b950c2",
+      "optional": false
+     },
+     {
+      "title": "Media sizes, focal point, MIME types, thumbnails, regeneration script",
+      "status": "partial",
+      "evidence": "thumbnail size and admin thumbnail only",
+      "optional": false
+     },
+     {
+      "title": "Drafts, live preview, orderable, command palette, SEO plugin",
+      "status": "partial",
+      "evidence": "optional; live preview and command menu delivered",
+      "optional": true
+     },
+     {
+      "title": "Task-based acceptance tests against the baseline",
+      "status": "open",
+      "evidence": "feature e2e only",
+      "optional": false
+     }
+    ]
+   },
+   {
+    "id": "P6",
+    "name": "QA & handover",
+    "min": 4,
+    "max": 6,
+    "mid": 5,
+    "completion": 0.625,
+    "ev": 3.125,
+    "items": [
+     {
+      "title": "Visual-regression suite in CI",
+      "status": "partial",
+      "evidence": "suite exists (pnpm test:visual), not in CI",
+      "optional": false
+     },
+     {
+      "title": "axe suite, manual screen-reader pass, enforced budgets",
+      "status": "partial",
+      "evidence": "axe in e2e; no SR pass; budget measured by hand",
+      "optional": false
+     },
+     {
+      "title": "Docs: guide, ADRs, AGENTS.md, README, changelog",
+      "status": "partial",
+      "evidence": "no changelog",
+      "optional": false
+     },
+     {
+      "title": "Payload 4 readiness checklist",
+      "status": "done",
+      "evidence": "ADR 0006, admin-ui-guide",
+      "optional": false
+     }
+    ]
+   }
+  ]
+ },
+ "deliverables": [
+  {
+   "id": "PLN",
+   "title": "Admin UI analysis and phased roadmap",
+   "source": "plan",
+   "start": "2026-10-15T23:44:02.000Z",
+   "end": "2026-10-15T23:44:02.000Z",
+   "commits": [
+    "19e6c2c"
+   ],
+   "estimate": 4,
+   "earned": 4,
+   "added": 1014,
+   "deleted": 0,
+   "reverted": false
+  },
+  {
+   "id": "P0",
+   "title": "P0 Foundations",
+   "source": "roadmap",
+   "start": "2026-10-16T00:12:56.000Z",
+   "end": "2026-10-16T17:03:51.000Z",
+   "commits": [
+    "c65bc55",
+    "daf243e",
+    "2f87cb0",
+    "4b0e761",
+    "5a2935f",
+    "d430e6e",
+    "d94daf8"
+   ],
+   "estimate": 5,
+   "earned": 5,
+   "added": 745,
+   "deleted": 153,
+   "reverted": false
+  },
+  {
+   "id": "P1",
+   "title": "P1 Tokens and theming",
+   "source": "roadmap",
+   "start": "2026-10-16T00:33:01.000Z",
+   "end": "2026-10-16T00:33:01.000Z",
+   "commits": [
+    "b3f6f63"
+   ],
+   "estimate": 5,
+   "earned": 5,
+   "added": 315,
+   "deleted": 19,
+   "reverted": false
+  },
+  {
+   "id": "P2",
+   "title": "P2 Component foundation",
+   "source": "roadmap",
+   "start": "2026-10-16T00:41:23.000Z",
+   "end": "2026-10-16T16:48:25.000Z",
+   "commits": [
+    "7414431",
+    "1eb40e7"
+   ],
+   "estimate": 6,
+   "earned": 5.5,
+   "added": 4042,
+   "deleted": 50,
+   "reverted": false
+  },
+  {
+   "id": "D8",
+   "title": "D8 Roles on Users",
+   "source": "roadmap",
+   "start": "2026-10-16T00:44:28.000Z",
+   "end": "2026-10-16T00:44:28.000Z",
+   "commits": [
+    "72f69d0"
+   ],
+   "estimate": 1.5,
+   "earned": 1.5,
+   "added": 205,
+   "deleted": 4,
+   "reverted": false
+  },
+  {
+   "id": "P3",
+   "title": "P3 Branding and IA",
+   "source": "roadmap",
+   "start": "2026-10-16T17:02:51.000Z",
+   "end": "2026-10-16T17:02:51.000Z",
+   "commits": [
+    "364f38c"
+   ],
+   "estimate": 4,
+   "earned": 3.2,
+   "added": 554,
+   "deleted": 79,
+   "reverted": false
+  },
+  {
+   "id": "P4",
+   "title": "P4 Dashboard",
+   "source": "roadmap",
+   "start": "2026-10-16T17:17:35.000Z",
+   "end": "2026-10-16T17:17:35.000Z",
+   "commits": [
+    "51945f8"
+   ],
+   "estimate": 8.5,
+   "earned": 7.791666666666666,
+   "added": 658,
+   "deleted": 0,
+   "reverted": false
+  },
+  {
+   "id": "P5",
+   "title": "P5 List and edit UX",
+   "source": "roadmap",
+   "start": "2026-10-16T17:25:09.000Z",
+   "end": "2026-10-16T18:12:24.000Z",
+   "commits": [
+    "961da3a",
+    "3b950c2",
+    "2d0d1db"
+   ],
+   "estimate": 10,
+   "earned": 6,
+   "added": 1593,
+   "deleted": 679,
+   "reverted": false
+  },
+  {
+   "id": "P6",
+   "title": "P6 QA and handover",
+   "source": "roadmap",
+   "start": "2026-10-16T17:30:32.000Z",
+   "end": "2026-10-16T18:18:50.000Z",
+   "commits": [
+    "c48232a",
+    "cccdf04",
+    "f1caab0",
+    "ec54913",
+    "e73fe4d"
+   ],
+   "estimate": 5,
+   "earned": 3.125,
+   "added": 300,
+   "deleted": 44,
+   "reverted": false
+  },
+  {
+   "id": "UI",
+   "title": "Frontier UI port",
+   "source": "request",
+   "start": "2026-10-16T20:38:05.000Z",
+   "end": "2026-10-16T21:03:07.000Z",
+   "commits": [
+    "2d8383c",
+    "76c2e02",
+    "df5ad98"
+   ],
+   "estimate": 4,
+   "earned": 4,
+   "added": 932,
+   "deleted": 72,
+   "reverted": false
+  },
+  {
+   "id": "CR-01",
+   "title": "Command menu and shortcuts",
+   "source": "request",
+   "start": "2026-10-16T22:20:21.000Z",
+   "end": "2026-10-16T22:28:02.000Z",
+   "commits": [
+    "9609da6",
+    "df2ce9b",
+    "1010b73"
+   ],
+   "estimate": 3,
+   "earned": 3,
+   "added": 1181,
+   "deleted": 23,
+   "reverted": false
+  },
+  {
+   "id": "CR-02",
+   "title": "Interactive publishing chart",
+   "source": "request",
+   "start": "2026-10-16T23:01:35.000Z",
+   "end": "2026-10-16T23:10:16.000Z",
+   "commits": [
+    "2f2dd53",
+    "d60615b",
+    "5fae69a"
+   ],
+   "estimate": 2,
+   "earned": 2,
+   "added": 725,
+   "deleted": 144,
+   "reverted": false
+  },
+  {
+   "id": "CR-03",
+   "title": "Trash and sparklines",
+   "source": "request",
+   "start": "2026-10-17T19:58:47.000Z",
+   "end": "2026-10-17T20:01:32.000Z",
+   "commits": [
+    "463a21c",
+    "7ffebf7"
+   ],
+   "estimate": 2.5,
+   "earned": 2.5,
+   "added": 433,
+   "deleted": 7,
+   "reverted": false
+  },
+  {
+   "id": "CR-04",
+   "title": "Header developer tools",
+   "source": "request",
+   "start": "2026-10-17T20:44:09.000Z",
+   "end": "2026-10-17T20:44:09.000Z",
+   "commits": [
+    "786f5e2"
+   ],
+   "estimate": 1.5,
+   "earned": 1.5,
+   "added": 303,
+   "deleted": 11,
+   "reverted": false
+  },
+  {
+   "id": "CR-05",
+   "title": "Header account and cache actions",
+   "source": "request",
+   "start": "2026-10-17T22:23:35.000Z",
+   "end": "2026-10-17T22:23:35.000Z",
+   "commits": [
+    "f6d9deb"
+   ],
+   "estimate": 1.5,
+   "earned": 1.5,
+   "added": 529,
+   "deleted": 261,
+   "reverted": false
+  },
+  {
+   "id": "CR-06",
+   "title": "Code generators in the dev menu",
+   "source": "request",
+   "start": "2026-10-17T22:52:06.000Z",
+   "end": "2026-10-17T22:52:06.000Z",
+   "commits": [
+    "7787e5d"
+   ],
+   "estimate": 1,
+   "earned": 1,
+   "added": 238,
+   "deleted": 5,
+   "reverted": false
+  },
+  {
+   "id": "CR-07",
+   "title": "Restart and migrations",
+   "source": "request",
+   "start": "2026-10-17T23:14:44.000Z",
+   "end": "2026-10-17T23:14:44.000Z",
+   "commits": [
+    "6daf209"
+   ],
+   "estimate": 1.5,
+   "earned": 1.5,
+   "added": 538,
+   "deleted": 159,
+   "reverted": false
+  },
+  {
+   "id": "CR-08",
+   "title": "Rail group icons, responsive layout",
+   "source": "request",
+   "start": "2026-10-17T23:52:35.000Z",
+   "end": "2026-10-18T00:13:17.000Z",
+   "commits": [
+    "dab277f",
+    "9f295c8"
+   ],
+   "estimate": 2,
+   "earned": 2,
+   "added": 357,
+   "deleted": 77,
+   "reverted": false
+  },
+  {
+   "id": "CR-09",
+   "title": "Phone card lists",
+   "source": "request",
+   "start": "2026-10-18T03:24:55.000Z",
+   "end": "2026-10-18T03:29:59.000Z",
+   "commits": [
+    "ff0dd65",
+    "125225f"
+   ],
+   "estimate": 1.5,
+   "earned": 1.5,
+   "added": 233,
+   "deleted": 8,
+   "reverted": false
+  },
+  {
+   "id": "CR-10",
+   "title": "Responsive pass",
+   "source": "request",
+   "start": "2026-10-18T21:11:02.000Z",
+   "end": "2026-10-18T21:11:02.000Z",
+   "commits": [
+    "3d2f844"
+   ],
+   "estimate": 1.5,
+   "earned": 1.5,
+   "added": 452,
+   "deleted": 110,
+   "reverted": false
+  },
+  {
+   "id": "CR-11",
+   "title": "Payload-native restructure",
+   "source": "request",
+   "start": "2026-10-19T00:37:37.000Z",
+   "end": "2026-10-19T00:44:43.000Z",
+   "commits": [
+    "d9ba8a3",
+    "3aeb9dd"
+   ],
+   "estimate": 4,
+   "earned": 4,
+   "added": 1806,
+   "deleted": 1357,
+   "reverted": false
+  },
+  {
+   "id": "CR-12",
+   "title": "Settings, access and admin tools",
+   "source": "request",
+   "start": "2026-10-19T01:16:39.000Z",
+   "end": "2026-10-19T02:43:44.000Z",
+   "commits": [
+    "712a17c",
+    "35bea29",
+    "90807ad",
+    "1ebcdf5",
+    "c1ec5a8",
+    "419dec3",
+    "7dcf315",
+    "a1fe7c8"
+   ],
+   "estimate": 26,
+   "earned": 12,
+   "added": 4651,
+   "deleted": 314,
+   "reverted": false
+  },
+  {
+   "id": "CR-13",
+   "title": "Vercel build fix (reverted)",
+   "source": "unplanned",
+   "start": "2026-10-19T04:15:33.000Z",
+   "end": "2026-10-19T04:30:48.000Z",
+   "commits": [
+    "b2a3425",
+    "2b7cde3",
+    "1238587"
+   ],
+   "estimate": 0.5,
+   "earned": 0,
+   "added": 102,
+   "deleted": 13,
+   "reverted": true
+  },
+  {
+   "id": "CR-14",
+   "title": "Undo at the owner’s request",
+   "source": "unplanned",
+   "start": "2026-10-19T18:01:45.000Z",
+   "end": "2026-10-19T18:01:45.000Z",
+   "commits": [
+    "4dd83a0"
+   ],
+   "estimate": 0,
+   "earned": 0,
+   "added": 13,
+   "deleted": 102,
+   "reverted": false
+  },
+  {
+   "id": "CR-15",
+   "title": "Page speed widget fix",
+   "source": "unplanned",
+   "start": "2026-10-19T20:17:16.000Z",
+   "end": "2026-10-19T20:17:16.000Z",
+   "commits": [
+    "adff4e0"
+   ],
+   "estimate": 2,
+   "earned": 2,
+   "added": 1346,
+   "deleted": 277,
+   "reverted": false
+  }
+ ],
+ "velocity": [
+  {
+   "day": "2026-10-16",
+   "plan": 4,
+   "roadmap": 37.11666666666667,
+   "request": 0,
+   "unplanned": 0,
+   "reverted": 0,
+   "commits": 24,
+   "deliverables": 9,
+   "total": 41.1
+  },
+  {
+   "day": "2026-10-17",
+   "plan": 0,
+   "roadmap": 0,
+   "request": 11.5,
+   "unplanned": 0,
+   "reverted": 0,
+   "commits": 11,
+   "deliverables": 4,
+   "total": 11.5
+  },
+  {
+   "day": "2026-10-18",
+   "plan": 0,
+   "roadmap": 0,
+   "request": 9,
+   "unplanned": 0,
+   "reverted": 0,
+   "commits": 9,
+   "deliverables": 6,
+   "total": 9
+  },
+  {
+   "day": "2026-10-19",
+   "plan": 0,
+   "roadmap": 0,
+   "request": 17.5,
+   "unplanned": 2,
+   "reverted": 0.5,
+   "commits": 18,
+   "deliverables": 6,
+   "total": 19.5
+  },
+  {
+   "day": "2026-10-20",
+   "plan": 0,
+   "roadmap": 0,
+   "request": 0,
+   "unplanned": 0,
+   "reverted": 0,
+   "commits": 0,
+   "deliverables": 0,
+   "total": 0
+  }
+ ],
+ "rates": {
+  "low": 9,
+  "mid": 11.5,
+  "high": 19.5
+ },
+ "sessions": [
+  {
+   "start": "2026-10-15T23:44:02.000Z",
+   "end": "2026-10-16T00:44:28.000Z",
+   "commits": 9,
+   "delivered": [
+    "PLN",
+    "P1",
+    "D8"
+   ]
+  },
+  {
+   "start": "2026-10-16T16:48:25.000Z",
+   "end": "2026-10-16T18:18:50.000Z",
+   "commits": 13,
+   "delivered": [
+    "P0",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6"
+   ]
+  },
+  {
+   "start": "2026-10-16T20:38:05.000Z",
+   "end": "2026-10-16T23:10:16.000Z",
+   "commits": 9,
+   "delivered": [
+    "UI",
+    "CR-01",
+    "CR-02"
+   ]
+  },
+  {
+   "start": "2026-10-17T19:58:47.000Z",
+   "end": "2026-10-17T20:44:09.000Z",
+   "commits": 3,
+   "delivered": [
+    "CR-03",
+    "CR-04"
+   ]
+  },
+  {
+   "start": "2026-10-17T22:23:35.000Z",
+   "end": "2026-10-18T00:13:17.000Z",
+   "commits": 5,
+   "delivered": [
+    "CR-05",
+    "CR-06",
+    "CR-07",
+    "CR-08"
+   ]
+  },
+  {
+   "start": "2026-10-18T03:24:55.000Z",
+   "end": "2026-10-18T03:29:59.000Z",
+   "commits": 2,
+   "delivered": [
+    "CR-09"
+   ]
+  },
+  {
+   "start": "2026-10-18T21:11:02.000Z",
+   "end": "2026-10-18T21:11:02.000Z",
+   "commits": 1,
+   "delivered": [
+    "CR-10"
+   ]
+  },
+  {
+   "start": "2026-10-19T00:37:37.000Z",
+   "end": "2026-10-19T02:43:44.000Z",
+   "commits": 10,
+   "delivered": [
+    "CR-11",
+    "CR-12"
+   ]
+  },
+  {
+   "start": "2026-10-19T04:15:33.000Z",
+   "end": "2026-10-19T04:30:48.000Z",
+   "commits": 3,
+   "delivered": [
+    "CR-13"
+   ]
+  },
+  {
+   "start": "2026-10-19T18:01:45.000Z",
+   "end": "2026-10-19T18:01:45.000Z",
+   "commits": 1,
+   "delivered": [
+    "CR-14"
+   ]
+  },
+  {
+   "start": "2026-10-19T20:17:16.000Z",
+   "end": "2026-10-19T20:17:16.000Z",
+   "commits": 1,
+   "delivered": [
+    "CR-15"
+   ]
+  }
+ ],
+ "burnUp": {
+  "scope": [
+   [
+    "2026-10-15T23:44:02.000Z",
+    49
+   ],
+   [
+    "2026-10-16T20:38:05.000Z",
+    53
+   ],
+   [
+    "2026-10-16T22:20:21.000Z",
+    56
+   ],
+   [
+    "2026-10-16T23:01:35.000Z",
+    58
+   ],
+   [
+    "2026-10-17T19:58:47.000Z",
+    60.5
+   ],
+   [
+    "2026-10-17T20:44:09.000Z",
+    62
+   ],
+   [
+    "2026-10-17T22:23:35.000Z",
+    63.5
+   ],
+   [
+    "2026-10-17T22:52:06.000Z",
+    64.5
+   ],
+   [
+    "2026-10-17T23:14:44.000Z",
+    66
+   ],
+   [
+    "2026-10-17T23:52:35.000Z",
+    68
+   ],
+   [
+    "2026-10-18T03:24:55.000Z",
+    69.5
+   ],
+   [
+    "2026-10-18T21:11:02.000Z",
+    71
+   ],
+   [
+    "2026-10-19T00:37:37.000Z",
+    75
+   ],
+   [
+    "2026-10-19T00:44:43.000Z",
+    101
+   ],
+   [
+    "2026-10-19T04:15:33.000Z",
+    101.5
+   ],
+   [
+    "2026-10-19T18:01:45.000Z",
+    101.5
+   ],
+   [
+    "2026-10-19T18:01:45.000Z",
+    101
+   ],
+   [
+    "2026-10-19T20:17:16.000Z",
+    103
+   ]
+  ],
+  "delivered": [
+   [
+    "2026-10-15T23:44:02.000Z",
+    4
+   ],
+   [
+    "2026-10-16T00:33:01.000Z",
+    9
+   ],
+   [
+    "2026-10-16T00:44:28.000Z",
+    10.5
+   ],
+   [
+    "2026-10-16T16:48:25.000Z",
+    16
+   ],
+   [
+    "2026-10-16T17:02:51.000Z",
+    19.2
+   ],
+   [
+    "2026-10-16T17:03:51.000Z",
+    24.2
+   ],
+   [
+    "2026-10-16T17:17:35.000Z",
+    31.991666666666667
+   ],
+   [
+    "2026-10-16T18:12:24.000Z",
+    37.99166666666667
+   ],
+   [
+    "2026-10-16T18:18:50.000Z",
+    41.11666666666667
+   ],
+   [
+    "2026-10-16T21:03:07.000Z",
+    45.11666666666667
+   ],
+   [
+    "2026-10-16T22:28:02.000Z",
+    48.11666666666667
+   ],
+   [
+    "2026-10-16T23:10:16.000Z",
+    50.11666666666667
+   ],
+   [
+    "2026-10-17T20:01:32.000Z",
+    52.61666666666667
+   ],
+   [
+    "2026-10-17T20:44:09.000Z",
+    54.11666666666667
+   ],
+   [
+    "2026-10-17T22:23:35.000Z",
+    55.61666666666667
+   ],
+   [
+    "2026-10-17T22:52:06.000Z",
+    56.61666666666667
+   ],
+   [
+    "2026-10-17T23:14:44.000Z",
+    58.11666666666667
+   ],
+   [
+    "2026-10-18T00:13:17.000Z",
+    60.11666666666667
+   ],
+   [
+    "2026-10-18T03:29:59.000Z",
+    61.61666666666667
+   ],
+   [
+    "2026-10-18T21:11:02.000Z",
+    63.11666666666667
+   ],
+   [
+    "2026-10-19T00:44:43.000Z",
+    67.11666666666667
+   ],
+   [
+    "2026-10-19T01:16:39.000Z",
+    67.61666666666667
+   ],
+   [
+    "2026-10-19T01:26:00.000Z",
+    68.11666666666667
+   ],
+   [
+    "2026-10-19T02:17:21.000Z",
+    69.61666666666667
+   ],
+   [
+    "2026-10-19T02:20:13.000Z",
+    73.61666666666667
+   ],
+   [
+    "2026-10-19T02:27:22.000Z",
+    75.61666666666667
+   ],
+   [
+    "2026-10-19T02:31:18.000Z",
+    77.11666666666667
+   ],
+   [
+    "2026-10-19T02:43:44.000Z",
+    79.11666666666667
+   ],
+   [
+    "2026-10-19T20:17:16.000Z",
+    81.11666666666667
+   ]
+  ]
+ },
+ "cr12": {
+  "total": 26,
+  "earned": 12,
+  "remaining": 14,
+  "items": [
+   {
+    "id": "A",
+    "title": "Site settings group; Services under Profile",
+    "estimate": 0.5,
+    "commit": "712a17c",
+    "at": "2026-10-19T01:16:39.000Z"
+   },
+   {
+    "id": "B",
+    "title": "Low-glare light canvas (ADR 0010)",
+    "estimate": 0.5,
+    "commit": "35bea29",
+    "at": "2026-10-19T01:26:00.000Z"
+   },
+   {
+    "id": "C",
+    "title": "Roles, access levels, capabilities (ADR 0011)",
+    "estimate": 4,
+    "commit": "c1ec5a8",
+    "also": "90807ad",
+    "at": "2026-10-19T02:20:13.000Z"
+   },
+   {
+    "id": "D",
+    "title": "GraphQL tab wherever the API tab exists",
+    "estimate": 1.5,
+    "commit": "1ebcdf5",
+    "at": "2026-10-19T02:17:21.000Z"
+   },
+   {
+    "id": "E1",
+    "title": "Site traffic widget",
+    "estimate": 2,
+    "commit": "419dec3",
+    "at": "2026-10-19T02:27:22.000Z"
+   },
+   {
+    "id": "E2",
+    "title": "Page speed widget",
+    "estimate": 1.5,
+    "commit": "7dcf315",
+    "at": "2026-10-19T02:31:18.000Z"
+   },
+   {
+    "id": "E3",
+    "title": "Deployments and CI status widgets",
+    "estimate": 2,
+    "commit": "a1fe7c8",
+    "at": "2026-10-19T02:43:44.000Z"
+   },
+   {
+    "id": "E4",
+    "title": "Jobs panel, scheduled tasks, Page speed history",
+    "estimate": 5,
+    "at": null
+   },
+   {
+    "id": "E5",
+    "title": "Audit log",
+    "estimate": 3,
+    "at": null
+   },
+   {
+    "id": "E6",
+    "title": "System page",
+    "estimate": 2,
+    "at": null
+   },
+   {
+    "id": "E7",
+    "title": "Terminal page (development only)",
+    "estimate": 3,
+    "at": null
+   },
+   {
+    "id": "E8",
+    "title": "Close-out: docs and bundle measurement",
+    "estimate": 1,
+    "at": null
+   }
+  ]
+ },
+ "forecast": {
+  "nextSession": "2026-10-21",
+  "plans": {
+   "optimistic": {
+    "DEC": {
+     "start": "2026-10-20T20:30:00.000Z",
+     "end": "2026-10-20T20:30:00.000Z"
+    },
+    "ENV": {
+     "start": "2026-10-20T20:30:00.000Z",
+     "end": "2026-10-21T08:30:00.000Z"
+    },
+    "MIG": {
+     "start": "2026-10-20T20:30:00.000Z",
+     "end": "2026-10-20T21:43:50.769Z"
+    },
+    "E5": {
+     "start": "2026-10-20T21:43:50.769Z",
+     "end": "2026-10-21T01:25:23.076Z"
+    },
+    "E6": {
+     "start": "2026-10-21T01:25:23.076Z",
+     "end": "2026-10-21T03:53:04.615Z"
+    },
+    "E4": {
+     "start": "2026-10-21T08:30:00.000Z",
+     "end": "2026-10-21T13:25:23.076Z"
+    },
+    "E4b": {
+     "start": "2026-10-21T13:25:23.076Z",
+     "end": "2026-10-21T14:39:13.846Z"
+    },
+    "E7": {
+     "start": "2026-10-21T14:39:13.846Z",
+     "end": "2026-10-21T18:20:46.153Z"
+    },
+    "E8": {
+     "start": "2026-10-21T18:20:46.153Z",
+     "end": "2026-10-21T19:34:36.923Z"
+    },
+    "QA": {
+     "start": "2026-10-21T19:34:36.923Z",
+     "end": "2026-10-22T02:57:41.538Z"
+    },
+    "CNT": {
+     "start": "2026-10-22T02:57:41.538Z",
+     "end": "2026-10-22T15:16:09.230Z"
+    }
+   },
+   "likely": {
+    "DEC": {
+     "start": "2026-10-20T20:30:00.000Z",
+     "end": "2026-10-20T20:30:00.000Z"
+    },
+    "ENV": {
+     "start": "2026-10-20T20:30:00.000Z",
+     "end": "2026-10-21T08:30:00.000Z"
+    },
+    "MIG": {
+     "start": "2026-10-20T20:30:00.000Z",
+     "end": "2026-10-20T22:35:13.043Z"
+    },
+    "E5": {
+     "start": "2026-10-20T22:35:13.043Z",
+     "end": "2026-10-21T04:50:52.173Z"
+    },
+    "E6": {
+     "start": "2026-10-21T04:50:52.173Z",
+     "end": "2026-10-21T09:01:18.260Z"
+    },
+    "E4": {
+     "start": "2026-10-21T09:01:18.260Z",
+     "end": "2026-10-21T17:22:10.434Z"
+    },
+    "E4b": {
+     "start": "2026-10-21T17:22:10.434Z",
+     "end": "2026-10-21T19:27:23.478Z"
+    },
+    "E7": {
+     "start": "2026-10-21T19:27:23.478Z",
+     "end": "2026-10-22T01:43:02.608Z"
+    },
+    "E8": {
+     "start": "2026-10-22T01:43:02.608Z",
+     "end": "2026-10-22T03:48:15.652Z"
+    },
+    "QA": {
+     "start": "2026-10-22T03:48:15.652Z",
+     "end": "2026-10-22T16:19:33.913Z"
+    },
+    "CNT": {
+     "start": "2026-10-22T16:19:33.913Z",
+     "end": "2026-10-23T13:11:44.347Z"
+    }
+   },
+   "pessimistic": {
+    "DEC": {
+     "start": "2026-10-21T20:30:00.000Z",
+     "end": "2026-10-21T20:30:00.000Z"
+    },
+    "ENV": {
+     "start": "2026-10-21T20:30:00.000Z",
+     "end": "2026-10-22T08:30:00.000Z"
+    },
+    "MIG": {
+     "start": "2026-10-21T20:30:00.000Z",
+     "end": "2026-10-21T23:10:00.000Z"
+    },
+    "E5": {
+     "start": "2026-10-21T23:10:00.000Z",
+     "end": "2026-10-22T07:10:00.000Z"
+    },
+    "E6": {
+     "start": "2026-10-22T07:10:00.000Z",
+     "end": "2026-10-22T12:30:00.000Z"
+    },
+    "E4": {
+     "start": "2026-10-22T12:30:00.000Z",
+     "end": "2026-10-22T23:10:00.000Z"
+    },
+    "E4b": {
+     "start": "2026-10-22T23:10:00.000Z",
+     "end": "2026-10-23T01:50:00.000Z"
+    },
+    "E7": {
+     "start": "2026-10-23T01:50:00.000Z",
+     "end": "2026-10-23T09:50:00.000Z"
+    },
+    "E8": {
+     "start": "2026-10-23T09:50:00.000Z",
+     "end": "2026-10-23T12:30:00.000Z"
+    },
+    "QA": {
+     "start": "2026-10-23T12:30:00.000Z",
+     "end": "2026-10-24T04:30:00.000Z"
+    },
+    "CNT": {
+     "start": "2026-10-24T04:30:00.000Z",
+     "end": "2026-10-25T07:10:00.000Z"
+    }
+   }
+  },
+  "milestones": [
+   {
+    "id": "M1",
+    "title": "CI green again",
+    "likely": "2026-10-20T21:42:00.000Z",
+    "optimistic": "2026-10-20T21:42:00.000Z",
+    "pessimistic": "2026-10-21T21:42:00.000Z"
+   },
+   {
+    "id": "M2",
+    "title": "CR-12 complete (E4–E8)",
+    "likely": "2026-10-22T03:48:15.652Z",
+    "optimistic": "2026-10-21T19:34:36.923Z",
+    "pessimistic": "2026-10-23T12:30:00.000Z"
+   },
+   {
+    "id": "M3",
+    "title": "Roadmap gaps closed, quality gates in CI",
+    "likely": "2026-10-22T16:19:33.913Z",
+    "optimistic": "2026-10-22T02:57:41.538Z",
+    "pessimistic": "2026-10-24T04:30:00.000Z"
+   },
+   {
+    "id": "M4",
+    "title": "Content and publishing release",
+    "likely": "2026-10-23T13:11:44.347Z",
+    "optimistic": "2026-10-22T15:16:09.230Z",
+    "pessimistic": "2026-10-25T07:10:00.000Z"
+   }
+  ]
+ },
+ "tests": {
+  "series": [
+   {
+    "sha": "0d7dde1",
+    "at": "2026-10-12T12:51:19+03:30",
+    "int": 1,
+    "e2e": 4,
+    "visual": 0
+   },
+   {
+    "sha": "19e6c2c",
+    "at": "2026-10-15T23:44:02+00:00",
+    "int": 1,
+    "e2e": 4,
+    "visual": 0
+   },
+   {
+    "sha": "c65bc55",
+    "at": "2026-10-16T00:12:56+00:00",
+    "int": 1,
+    "e2e": 4,
+    "visual": 0
+   },
+   {
+    "sha": "daf243e",
+    "at": "2026-10-16T00:19:44+00:00",
+    "int": 1,
+    "e2e": 4,
+    "visual": 1
+   },
+   {
+    "sha": "2f87cb0",
+    "at": "2026-10-16T00:25:42+00:00",
+    "int": 1,
+    "e2e": 4,
+    "visual": 1
+   },
+   {
+    "sha": "4b0e761",
+    "at": "2026-10-16T00:26:09+00:00",
+    "int": 1,
+    "e2e": 4,
+    "visual": 1
+   },
+   {
+    "sha": "b3f6f63",
+    "at": "2026-10-16T00:33:01+00:00",
+    "int": 1,
+    "e2e": 4,
+    "visual": 1
+   },
+   {
+    "sha": "5a2935f",
+    "at": "2026-10-16T00:33:47+00:00",
+    "int": 1,
+    "e2e": 4,
+    "visual": 1
+   },
+   {
+    "sha": "7414431",
+    "at": "2026-10-16T00:41:23+00:00",
+    "int": 1,
+    "e2e": 4,
+    "visual": 1
+   },
+   {
+    "sha": "72f69d0",
+    "at": "2026-10-16T00:44:28+00:00",
+    "int": 6,
+    "e2e": 4,
+    "visual": 1
+   },
+   {
+    "sha": "3ad199d",
+    "at": "2026-10-16T20:05:29+03:30",
+    "int": 6,
+    "e2e": 4,
+    "visual": 1
+   },
+   {
+    "sha": "d430e6e",
+    "at": "2026-10-16T16:48:25+00:00",
+    "int": 6,
+    "e2e": 4,
+    "visual": 1
+   },
+   {
+    "sha": "1eb40e7",
+    "at": "2026-10-16T16:48:25+00:00",
+    "int": 6,
+    "e2e": 6,
+    "visual": 1
+   },
+   {
+    "sha": "364f38c",
+    "at": "2026-10-16T17:02:51+00:00",
+    "int": 8,
+    "e2e": 10,
+    "visual": 1
+   },
+   {
+    "sha": "d94daf8",
+    "at": "2026-10-16T17:03:51+00:00",
+    "int": 8,
+    "e2e": 10,
+    "visual": 1
+   },
+   {
+    "sha": "51945f8",
+    "at": "2026-10-16T17:17:35+00:00",
+    "int": 8,
+    "e2e": 11,
+    "visual": 1
+   },
+   {
+    "sha": "961da3a",
+    "at": "2026-10-16T17:25:09+00:00",
+    "int": 8,
+    "e2e": 12,
+    "visual": 1
+   },
+   {
+    "sha": "c48232a",
+    "at": "2026-10-16T17:30:32+00:00",
+    "int": 8,
+    "e2e": 12,
+    "visual": 1
+   },
+   {
+    "sha": "cccdf04",
+    "at": "2026-10-16T17:30:32+00:00",
+    "int": 8,
+    "e2e": 12,
+    "visual": 1
+   },
+   {
+    "sha": "9e84aec",
+    "at": "2026-10-16T21:11:44+03:30",
+    "int": 8,
+    "e2e": 12,
+    "visual": 1
+   },
+   {
+    "sha": "3b950c2",
+    "at": "2026-10-16T17:52:01+00:00",
+    "int": 8,
+    "e2e": 14,
+    "visual": 1
+   },
+   {
+    "sha": "2d0d1db",
+    "at": "2026-10-16T18:12:24+00:00",
+    "int": 8,
+    "e2e": 14,
+    "visual": 1
+   },
+   {
+    "sha": "f1caab0",
+    "at": "2026-10-16T18:16:08+00:00",
+    "int": 8,
+    "e2e": 14,
+    "visual": 1
+   },
+   {
+    "sha": "ec54913",
+    "at": "2026-10-16T18:18:50+00:00",
+    "int": 10,
+    "e2e": 14,
+    "visual": 1
+   },
+   {
+    "sha": "e73fe4d",
+    "at": "2026-10-16T18:18:50+00:00",
+    "int": 10,
+    "e2e": 14,
+    "visual": 1
+   },
+   {
+    "sha": "2d8383c",
+    "at": "2026-10-16T20:38:05+00:00",
+    "int": 10,
+    "e2e": 18,
+    "visual": 1
+   },
+   {
+    "sha": "76c2e02",
+    "at": "2026-10-16T21:00:50+00:00",
+    "int": 10,
+    "e2e": 19,
+    "visual": 1
+   },
+   {
+    "sha": "df5ad98",
+    "at": "2026-10-16T21:03:07+00:00",
+    "int": 10,
+    "e2e": 19,
+    "visual": 1
+   },
+   {
+    "sha": "9609da6",
+    "at": "2026-10-16T22:20:21+00:00",
+    "int": 10,
+    "e2e": 23,
+    "visual": 1
+   },
+   {
+    "sha": "df2ce9b",
+    "at": "2026-10-16T22:26:25+00:00",
+    "int": 10,
+    "e2e": 24,
+    "visual": 1
+   },
+   {
+    "sha": "1010b73",
+    "at": "2026-10-16T22:28:02+00:00",
+    "int": 10,
+    "e2e": 24,
+    "visual": 1
+   },
+   {
+    "sha": "2f2dd53",
+    "at": "2026-10-16T23:01:35+00:00",
+    "int": 10,
+    "e2e": 26,
+    "visual": 1
+   },
+   {
+    "sha": "d60615b",
+    "at": "2026-10-16T23:08:25+00:00",
+    "int": 10,
+    "e2e": 26,
+    "visual": 1
+   },
+   {
+    "sha": "5fae69a",
+    "at": "2026-10-16T23:10:16+00:00",
+    "int": 10,
+    "e2e": 26,
+    "visual": 1
+   },
+   {
+    "sha": "463a21c",
+    "at": "2026-10-17T19:58:47+00:00",
+    "int": 14,
+    "e2e": 28,
+    "visual": 1
+   },
+   {
+    "sha": "7ffebf7",
+    "at": "2026-10-17T20:01:32+00:00",
+    "int": 14,
+    "e2e": 28,
+    "visual": 1
+   },
+   {
+    "sha": "786f5e2",
+    "at": "2026-10-17T20:44:09+00:00",
+    "int": 14,
+    "e2e": 30,
+    "visual": 1
+   },
+   {
+    "sha": "b4dd2f0",
+    "at": "2026-10-18T01:19:59+03:30",
+    "int": 14,
+    "e2e": 30,
+    "visual": 1
+   },
+   {
+    "sha": "f6d9deb",
+    "at": "2026-10-17T22:23:35+00:00",
+    "int": 14,
+    "e2e": 30,
+    "visual": 1
+   },
+   {
+    "sha": "7787e5d",
+    "at": "2026-10-17T22:52:06+00:00",
+    "int": 14,
+    "e2e": 31,
+    "visual": 1
+   },
+   {
+    "sha": "6daf209",
+    "at": "2026-10-17T23:14:44+00:00",
+    "int": 14,
+    "e2e": 32,
+    "visual": 1
+   },
+   {
+    "sha": "dab277f",
+    "at": "2026-10-17T23:52:35+00:00",
+    "int": 14,
+    "e2e": 31,
+    "visual": 1
+   },
+   {
+    "sha": "9f295c8",
+    "at": "2026-10-18T00:13:17+00:00",
+    "int": 14,
+    "e2e": 34,
+    "visual": 1
+   },
+   {
+    "sha": "ff0dd65",
+    "at": "2026-10-18T03:24:55+00:00",
+    "int": 14,
+    "e2e": 35,
+    "visual": 1
+   },
+   {
+    "sha": "125225f",
+    "at": "2026-10-18T03:29:59+00:00",
+    "int": 14,
+    "e2e": 35,
+    "visual": 1
+   },
+   {
+    "sha": "3d2f844",
+    "at": "2026-10-18T21:11:02+00:00",
+    "int": 14,
+    "e2e": 38,
+    "visual": 1
+   },
+   {
+    "sha": "d9ba8a3",
+    "at": "2026-10-19T00:37:37+00:00",
+    "int": 14,
+    "e2e": 40,
+    "visual": 1
+   },
+   {
+    "sha": "3aeb9dd",
+    "at": "2026-10-19T00:44:43+00:00",
+    "int": 14,
+    "e2e": 40,
+    "visual": 1
+   },
+   {
+    "sha": "712a17c",
+    "at": "2026-10-19T01:16:39+00:00",
+    "int": 14,
+    "e2e": 40,
+    "visual": 1
+   },
+   {
+    "sha": "35bea29",
+    "at": "2026-10-19T01:26:00+00:00",
+    "int": 14,
+    "e2e": 40,
+    "visual": 1
+   },
+   {
+    "sha": "90807ad",
+    "at": "2026-10-19T01:57:09+00:00",
+    "int": 21,
+    "e2e": 44,
+    "visual": 1
+   },
+   {
+    "sha": "1ebcdf5",
+    "at": "2026-10-19T02:17:21+00:00",
+    "int": 23,
+    "e2e": 46,
+    "visual": 1
+   },
+   {
+    "sha": "c1ec5a8",
+    "at": "2026-10-19T02:20:13+00:00",
+    "int": 23,
+    "e2e": 46,
+    "visual": 1
+   },
+   {
+    "sha": "419dec3",
+    "at": "2026-10-19T02:27:22+00:00",
+    "int": 26,
+    "e2e": 46,
+    "visual": 1
+   },
+   {
+    "sha": "7dcf315",
+    "at": "2026-10-19T02:31:18+00:00",
+    "int": 29,
+    "e2e": 46,
+    "visual": 1
+   },
+   {
+    "sha": "a1fe7c8",
+    "at": "2026-10-19T02:43:44+00:00",
+    "int": 32,
+    "e2e": 46,
+    "visual": 1
+   },
+   {
+    "sha": "b2a3425",
+    "at": "2026-10-19T04:15:33+00:00",
+    "int": 32,
+    "e2e": 46,
+    "visual": 1
+   },
+   {
+    "sha": "2b7cde3",
+    "at": "2026-10-19T04:17:46+00:00",
+    "int": 32,
+    "e2e": 46,
+    "visual": 1
+   },
+   {
+    "sha": "1238587",
+    "at": "2026-10-19T04:30:48+00:00",
+    "int": 32,
+    "e2e": 46,
+    "visual": 1
+   },
+   {
+    "sha": "4dd83a0",
+    "at": "2026-10-19T18:01:45+00:00",
+    "int": 32,
+    "e2e": 46,
+    "visual": 1
+   },
+   {
+    "sha": "f195abc",
+    "at": "2026-10-19T21:35:08+03:30",
+    "int": 32,
+    "e2e": 46,
+    "visual": 1
+   },
+   {
+    "sha": "ad48283",
+    "at": "2026-10-19T21:35:13+03:30",
+    "int": 32,
+    "e2e": 46,
+    "visual": 1
+   },
+   {
+    "sha": "adff4e0",
+    "at": "2026-10-19T20:17:16+00:00",
+    "int": 47,
+    "e2e": 46,
+    "visual": 1
+   }
+  ],
+  "runtime": {
+   "int": 51,
+   "intFiles": 7,
+   "e2e": 48,
+   "e2eFiles": 13,
+   "visual": 6
+  }
+ },
+ "ci": {
+  "retained": 26,
+  "maxRunNumber": 53,
+  "runs": [
+   {
+    "id": 38830183536,
+    "number": 5,
+    "sha": "5a2935f",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-16T00:33:51Z",
+    "updated": "2026-10-16T00:37:05Z",
+    "minutes": 3.2,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 2.1
+     }
+    ]
+   },
+   {
+    "id": 38938570052,
+    "number": 12,
+    "sha": "51945f8",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-16T17:17:40Z",
+    "updated": "2026-10-16T17:21:05Z",
+    "minutes": 3.4,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.4
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 1.9
+     }
+    ]
+   },
+   {
+    "id": 38939544624,
+    "number": 13,
+    "sha": "961da3a",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-16T17:25:13Z",
+    "updated": "2026-10-16T17:29:28Z",
+    "minutes": 4.3,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.5
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 2.6
+     }
+    ]
+   },
+   {
+    "id": 38942964631,
+    "number": 16,
+    "sha": "3b950c2",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-16T17:52:05Z",
+    "updated": "2026-10-16T17:56:08Z",
+    "minutes": 4.1,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.4
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 2.5
+     }
+    ]
+   },
+   {
+    "id": 38945549985,
+    "number": 17,
+    "sha": "2d0d1db",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-16T18:12:29Z",
+    "updated": "2026-10-16T18:16:04Z",
+    "minutes": 3.6,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.1
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 2.4
+     }
+    ]
+   },
+   {
+    "id": 38946375837,
+    "number": 19,
+    "sha": "e73fe4d",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-16T18:18:54Z",
+    "updated": "2026-10-16T18:23:21Z",
+    "minutes": 4.5,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.5
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 2
+     }
+    ]
+   },
+   {
+    "id": 38963653343,
+    "number": 20,
+    "sha": "2d8383c",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-16T20:38:08Z",
+    "updated": "2026-10-16T20:41:42Z",
+    "minutes": 3.6,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.5
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 2
+     }
+    ]
+   },
+   {
+    "id": 38966637919,
+    "number": 22,
+    "sha": "df5ad98",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-16T21:03:10Z",
+    "updated": "2026-10-16T21:08:23Z",
+    "minutes": 5.2,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.4
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 2.9
+     }
+    ]
+   },
+   {
+    "id": 38975146716,
+    "number": 23,
+    "sha": "9609da6",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-16T22:20:25Z",
+    "updated": "2026-10-16T22:24:43Z",
+    "minutes": 4.3,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.3
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 2.9
+     }
+    ]
+   },
+   {
+    "id": 38975916301,
+    "number": 25,
+    "sha": "1010b73",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-16T22:28:05Z",
+    "updated": "2026-10-16T22:32:39Z",
+    "minutes": 4.6,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.6
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 2.9
+     }
+    ]
+   },
+   {
+    "id": 38979150298,
+    "number": 26,
+    "sha": "2f2dd53",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-16T23:01:38Z",
+    "updated": "2026-10-16T23:06:06Z",
+    "minutes": 4.5,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.2
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 3.2
+     }
+    ]
+   },
+   {
+    "id": 38979964508,
+    "number": 28,
+    "sha": "5fae69a",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-16T23:10:19Z",
+    "updated": "2026-10-16T23:14:33Z",
+    "minutes": 4.2,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.4
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 2.7
+     }
+    ]
+   },
+   {
+    "id": 39064959106,
+    "number": 30,
+    "sha": "7ffebf7",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-17T20:01:34Z",
+    "updated": "2026-10-17T20:05:48Z",
+    "minutes": 4.2,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.6
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 2.4
+     }
+    ]
+   },
+   {
+    "id": 39067973084,
+    "number": 31,
+    "sha": "786f5e2",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-17T20:44:11Z",
+    "updated": "2026-10-17T20:48:42Z",
+    "minutes": 4.5,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.4
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 3
+     }
+    ]
+   },
+   {
+    "id": 39074885408,
+    "number": 33,
+    "sha": "f6d9deb",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-17T22:23:38Z",
+    "updated": "2026-10-17T22:28:08Z",
+    "minutes": 4.5,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.6
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 2.9
+     }
+    ]
+   },
+   {
+    "id": 39076789226,
+    "number": 34,
+    "sha": "7787e5d",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-17T22:52:09Z",
+    "updated": "2026-10-17T22:55:54Z",
+    "minutes": 3.8,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.1
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 2.6
+     }
+    ]
+   },
+   {
+    "id": 39078264204,
+    "number": 35,
+    "sha": "6daf209",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-17T23:14:46Z",
+    "updated": "2026-10-17T23:19:17Z",
+    "minutes": 4.5,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.5
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 2.9
+     }
+    ]
+   },
+   {
+    "id": 39080678884,
+    "number": 36,
+    "sha": "dab277f",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-17T23:52:38Z",
+    "updated": "2026-10-17T23:57:09Z",
+    "minutes": 4.5,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.5
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 3
+     }
+    ]
+   },
+   {
+    "id": 39081960283,
+    "number": 37,
+    "sha": "9f295c8",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-18T00:13:20Z",
+    "updated": "2026-10-18T00:18:02Z",
+    "minutes": 4.7,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.6
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 3.1
+     }
+    ]
+   },
+   {
+    "id": 39093537714,
+    "number": 38,
+    "sha": "ff0dd65",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-18T03:24:58Z",
+    "updated": "2026-10-18T03:29:50Z",
+    "minutes": 4.9,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.6
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 3.1
+     }
+    ]
+   },
+   {
+    "id": 39093830860,
+    "number": 39,
+    "sha": "125225f",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-18T03:30:02Z",
+    "updated": "2026-10-18T03:34:46Z",
+    "minutes": 4.7,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.6
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 3.1
+     }
+    ]
+   },
+   {
+    "id": 39166692044,
+    "number": 40,
+    "sha": "3d2f844",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-18T21:11:05Z",
+    "updated": "2026-10-18T21:15:31Z",
+    "minutes": 4.4,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.3
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 3.1
+     }
+    ]
+   },
+   {
+    "id": 39181626981,
+    "number": 41,
+    "sha": "d9ba8a3",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-19T00:37:40Z",
+    "updated": "2026-10-19T00:42:49Z",
+    "minutes": 5.2,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.7
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 3.3
+     }
+    ]
+   },
+   {
+    "id": 39182151581,
+    "number": 42,
+    "sha": "3aeb9dd",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-19T00:44:46Z",
+    "updated": "2026-10-19T00:49:39Z",
+    "minutes": 4.9,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.2
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 3.6
+     }
+    ]
+   },
+   {
+    "id": 39189487676,
+    "number": 47,
+    "sha": "c1ec5a8",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-19T02:20:18Z",
+    "updated": "2026-10-19T02:25:44Z",
+    "minutes": 5.4,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.6
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 3.5
+     }
+    ]
+   },
+   {
+    "id": 39199852223,
+    "number": 53,
+    "sha": "1238587",
+    "branch": "arena/1e75852c-pocms-payload",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "started": "2026-10-19T04:30:52Z",
+    "updated": "2026-10-19T04:34:57Z",
+    "minutes": 4.1,
+    "jobs": [
+     {
+      "name": "Lint, types, generated files, integration tests",
+      "conclusion": "success",
+      "minutes": 1.4
+     },
+     {
+      "name": "Build and end-to-end tests",
+      "conclusion": "success",
+      "minutes": 2.6
+     }
+    ]
+   }
+  ],
+  "lastObserved": {
+   "sha": "adff4e0",
+   "run": 39318049334,
+   "result": "failure",
+   "detail": "Failed at “Admin Tailwind classes carry the acn prefix” (RunStatus tone 'running', restored by the revert); integration and e2e tests were skipped. The run has since been deleted."
+  }
+ },
+ "bundle": {
+  "baseline": {
+   "js": 645.2,
+   "css": 45.2
+  },
+  "budgets": [
+   {
+    "from": "2026-10-16T00:00:00+03:30",
+    "js": 60,
+    "css": 25
+   },
+   {
+    "from": "2026-10-17T01:50:21+03:30",
+    "js": 150,
+    "css": 40
+   }
+  ],
+  "points": [
+   {
+    "sha": "2f87cb0",
+    "label": "P0 baseline",
+    "js": 645.2,
+    "css": 45.2
+   },
+   {
+    "sha": "2d0d1db",
+    "at": "2026-10-16T21:30:00+03:30",
+    "label": "First P5 build (not shipped)",
+    "js": 899.5,
+    "interim": true
+   },
+   {
+    "sha": "2d0d1db",
+    "label": "After P5",
+    "js": 666.2,
+    "css": 58.6
+   },
+   {
+    "sha": "76c2e02",
+    "label": "Admin shell",
+    "js": 666.4,
+    "css": 61.2
+   },
+   {
+    "sha": "df2ce9b",
+    "label": "Command menu",
+    "js": 669.1,
+    "css": 61.6
+   },
+   {
+    "sha": "2f2dd53",
+    "label": "Chart with Recharts",
+    "js": 787.2,
+    "interim": true
+   },
+   {
+    "sha": "d60615b",
+    "label": "Chart without Recharts",
+    "js": 680.1,
+    "css": 61.9
+   },
+   {
+    "sha": "d9ba8a3",
+    "label": "Restructure",
+    "js": 684.9,
+    "css": 63.4
+   },
+   {
+    "sha": "adff4e0",
+    "label": "Today",
+    "js": 685.1,
+    "css": 64.4
+   }
+  ],
+  "latest": [
+   [
+    "/admin/login",
+    14,
+    674.6,
+    2275.7,
+    7,
+    64.4,
+    438.6
+   ],
+   [
+    "/admin",
+    16,
+    685.1,
+    2305.2,
+    7,
+    64.4,
+    438.6
+   ],
+   [
+    "/admin/collections/articles",
+    16,
+    684.7,
+    2307.6,
+    7,
+    64.4,
+    438.6
+   ],
+   [
+    "/admin/collections/articles/create",
+    15,
+    674.9,
+    2275.9,
+    7,
+    64.4,
+    438.6
+   ],
+   [
+    "/admin/gallery (admins only)",
+    22,
+    798.5,
+    2672.3,
+    7,
+    64.4,
+    438.6
+   ]
+  ]
+ },
+ "risks": [
+  {
+   "id": "R1",
+   "title": "CI stays red after the revert",
+   "likelihood": 5,
+   "impact": 4,
+   "mitigation": "Owner decision DEC; until then, run the suites locally before each push."
+  },
+  {
+   "id": "R2",
+   "title": "Production schema drift (no migrations)",
+   "likelihood": 4,
+   "impact": 5,
+   "mitigation": "MIG before E4/E5: baseline migration, payload migrate in the deploy step."
+  },
+  {
+   "id": "R3",
+   "title": "Preview builds fail without PAYLOAD_SECRET",
+   "likelihood": 4,
+   "impact": 3,
+   "mitigation": "Set the variables for Preview (ENV); the code guard stays reverted."
+  },
+  {
+   "id": "R4",
+   "title": "Terminal page widens the attack surface",
+   "likelihood": 2,
+   "impact": 5,
+   "mitigation": "Development only, allow-list, capability check, security review before merge."
+  },
+  {
+   "id": "R5",
+   "title": "Integration widgets misconfigured",
+   "likelihood": 3,
+   "impact": 2,
+   "mitigation": "Widgets explain missing keys and Google errors with fix links (adff4e0)."
+  },
+  {
+   "id": "R6",
+   "title": "Bundle creep from new admin views",
+   "likelihood": 2,
+   "impact": 3,
+   "mitigation": "Server components and next/dynamic; 110 kB JS headroom; add a CI bundle check (QA)."
+  },
+  {
+   "id": "R7",
+   "title": "Payload 4 timing and rework",
+   "likelihood": 3,
+   "impact": 3,
+   "mitigation": "Readiness checklist; visual suite in CI before P7; stay on 3.9x until v4 is stable."
+  },
+  {
+   "id": "R8",
+   "title": "Upstream bug: media folders with trash",
+   "likelihood": 3,
+   "impact": 2,
+   "mitigation": "Folders not enabled; tracked in payloadcms/payload#16327."
+  },
+  {
+   "id": "R9",
+   "title": "Lost CI history weakens traceability",
+   "likelihood": 4,
+   "impact": 2,
+   "mitigation": "Keep failed and cancelled runs (or export results) so pass rates can be measured."
+  }
+ ]
+}

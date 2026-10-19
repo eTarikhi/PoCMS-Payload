@@ -25,6 +25,10 @@ This repository is organized into a small set of topic-based guides. Use the pag
 - [Analysis and roadmap](ui-modernization/shadcn-payload-ui-analysis.md) — the original review and phased plan
 - Screenshots: [before](ui-modernization/screenshots/p0-baseline/) and [after](ui-modernization/screenshots/p6-after/) (same pages, themes and widths)
 
+## Progress reports
+
+- [Progress reports](reports/README.md) — dated development reports with charts (timeline, velocity, burn-down, forecast, roadmap alignment) and the data behind them
+
 ## Root project files
 
 - [README](../README.md)

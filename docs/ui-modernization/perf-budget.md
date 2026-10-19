@@ -130,3 +130,24 @@ responsive pass, the phone list cards and the component gallery.
 - `/admin/gallery` loads the element demos, the Font Awesome icon picker and the chart chunk on
   that page only (`ROUTES=/admin/gallery node scripts/measure-admin-bundle.mjs …`); other pages
   don't pay for it.
+
+## After the settings, roles and integration widgets (2026-10-20, `adff4e0`, same setup)
+
+Measured for the [progress report](../reports/README.md) on a production build (`next build`,
+`next start`), logged in as an admin. Since `d9ba8a3`: the Site settings group, the warm light
+canvas, the Roles collection, the GraphQL document tab, the Site traffic, Page speed, Deployments
+and CI status widgets, and the Page speed fix.
+
+| Route | JS files | JS kB (compressed) | JS kB (decoded) | CSS files | CSS kB (compressed) | CSS kB (decoded) |
+|---|---|---|---|---|---|---|
+| `/admin/login` | 14 | 674.6 | 2275.7 | 7 | 64.4 | 438.6 |
+| `/admin` | 16 | 685.1 | 2305.2 | 7 | 64.4 | 438.6 |
+| `/admin/collections/articles` | 16 | 684.7 | 2307.6 | 7 | 64.4 | 438.6 |
+| `/admin/collections/articles/create` | 15 | 674.9 | 2275.9 | 7 | 64.4 | 438.6 |
+| `/admin/gallery` (admins only) | 22 | 798.5 | 2672.3 | 7 | 64.4 | 438.6 |
+
+- Every page: **685.1 kB JS (+39.9 of the +150 budget)** and **64.4 kB CSS (+19.2 of +40)**. Since
+  `d9ba8a3` that is +0.2 kB JS and +1.0 kB CSS: the widgets and the integrations layer are server
+  components, and the GraphQL tab's client is a lazy chunk loaded only on that tab.
+- 110.1 kB of the JS budget and 20.8 kB of the CSS budget are left for the remaining admin tools
+  (jobs, audit log, system page, terminal).
