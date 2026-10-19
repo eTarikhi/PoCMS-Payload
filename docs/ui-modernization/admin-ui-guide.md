@@ -481,6 +481,25 @@ presets, were tried and removed; their `payload_query_presets` tables are droppe
 Development pushes the schema automatically; for a database without push, create and run a
 migration (`npx payload migrate:create`, then `npx payload migrate`).
 
+## GraphQL document tab
+
+Every collection and global has a **GraphQL** tab next to Payload's **API** tab
+(`views/GraphQL`, a custom document view added by `adminUIPlugin` as `views.edit.graphql`, tab
+order 450; opt out with `custom: { graphqlTab: false }`). It works like the API tab:
+
+- The same options: **Draft** (when drafts are on), **Authenticated** (sends the session cookie or
+  not), **Locale** (when localization is on) and **Depth**.
+- The server builds the query from Payload's own GraphQL schema (`configToSchema`, the schema
+  `/api/graphql` serves, cached per config): every field of the document, groups, arrays and blocks
+  expanded, relationships expanded to the chosen depth (at 0 they select only `id`, the GraphQL
+  equivalent of REST's `depth`). Depth goes up to 5.
+- The client (a lazy chunk) runs it with `POST /api/graphql` and shows the query, the variables
+  (`id`, and `draft`, `locale` or `trash` when they apply), the response with its status and time,
+  copy buttons for the URL, the query and a cURL command, and a link to the GraphQL Playground
+  where Payload serves it.
+- Hidden where the API tab is hidden (`admin.hideAPIURL`) and when GraphQL is off
+  (`graphQL.disable`, or `graphQL: false` on the collection or global).
+
 ## Roles and permissions
 
 Admin › **Roles** (`src/collections/Roles.ts`, ADR 0011) is where access is managed:

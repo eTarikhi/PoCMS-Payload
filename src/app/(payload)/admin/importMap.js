@@ -1,5 +1,6 @@
 import { BooleanCell as BooleanCell_c678ed40df2ca062937c6141559e58dc } from '../../../components/admin/fields/Checkbox/Cell'
 import { ListSummary as ListSummary_50f80f274e43b32ec92fdc1f4d460a7d } from '../../../components/admin/views/List/ListSummary'
+import { GraphQLDocumentView as GraphQLDocumentView_8745bff9ddc360092ecb4114962825db } from '../../../components/admin/views/GraphQL'
 import { TanStackListView as TanStackListView_75bec65592dc2da1b8ce75c1e9e94fc3 } from '../../../components/admin/views/List'
 import { FileSizeCell as FileSizeCell_834aeb1910f7264a00b9fec1f719477d } from '../../../components/admin/fields/FileSize/Cell'
 import { SingletonListView as SingletonListView_5435722dddf5a4a9debf735ac4adfd02 } from '../../../components/admin/views/SingletonList'
@@ -34,6 +35,7 @@ import { VercelBlobClientUploadHandler as VercelBlobClientUploadHandler_16c82c5e
 export const importMap = {
   "/components/admin/fields/Checkbox/Cell#BooleanCell": BooleanCell_c678ed40df2ca062937c6141559e58dc,
   "/components/admin/views/List/ListSummary#ListSummary": ListSummary_50f80f274e43b32ec92fdc1f4d460a7d,
+  "/components/admin/views/GraphQL#GraphQLDocumentView": GraphQLDocumentView_8745bff9ddc360092ecb4114962825db,
   "/components/admin/views/List#TanStackListView": TanStackListView_75bec65592dc2da1b8ce75c1e9e94fc3,
   "/components/admin/fields/FileSize/Cell#FileSizeCell": FileSizeCell_834aeb1910f7264a00b9fec1f719477d,
   "/components/admin/views/SingletonList#SingletonListView": SingletonListView_5435722dddf5a4a9debf735ac4adfd02,

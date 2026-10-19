@@ -1,8 +1,46 @@
-import type { CollectionConfig, Field, Plugin } from 'payload'
+import type { CollectionConfig, DocumentTabCondition, Field, GlobalConfig, Plugin } from 'payload'
 
 const LIST_VIEW = '/components/admin/views/List#TanStackListView'
 const BOOLEAN_CELL = '/components/admin/fields/Checkbox/Cell#BooleanCell'
 const LIST_SUMMARY = '/components/admin/views/List/ListSummary#ListSummary'
+const GRAPHQL_VIEW = '/components/admin/views/GraphQL#GraphQLDocumentView'
+
+/** Same rule as Payload's API tab (hidden by `admin.hideAPIURL`), plus GraphQL being enabled. */
+const showGraphQLTab: DocumentTabCondition = ({ collectionConfig, config, globalConfig }) => {
+  const entity = collectionConfig ?? globalConfig
+  return (
+    Boolean(entity) &&
+    !config.graphQL?.disable &&
+    entity?.graphQL !== false &&
+    !entity?.admin?.hideAPIURL
+  )
+}
+
+/**
+ * Adds the GraphQL document tab next to Payload's API tab (order 400), unless the collection or
+ * global sets `custom: { graphqlTab: false }`.
+ */
+function withGraphQLTab<T extends CollectionConfig | GlobalConfig>(entity: T): T['admin'] {
+  if (entity.custom?.graphqlTab === false) return entity.admin
+  const components = entity.admin?.components
+  return {
+    ...entity.admin,
+    components: {
+      ...components,
+      views: {
+        ...components?.views,
+        edit: {
+          ...components?.views?.edit,
+          graphql: {
+            Component: GRAPHQL_VIEW,
+            path: '/graphql',
+            tab: { condition: showGraphQLTab, href: '/graphql', label: 'GraphQL', order: 450 },
+          },
+        },
+      },
+    },
+  } as T['admin']
+}
 
 /** Adds the boolean list cell to checkbox fields that have no Cell of their own (any nesting). */
 function withBooleanCells(fields: Field[]): Field[] {
@@ -48,17 +86,20 @@ const withListSummary = (collection: CollectionConfig): CollectionConfig['admin'
 }
 
 /**
- * Admin UI conventions applied to every collection (ADR 0007), so new collections get them without
- * extra config: the TanStack list view, boolean cells and the list summary. Collections opt out with
- * `custom: { tanstackList: false }` or `custom: { listSummary: false }`.
+ * Admin UI conventions applied to every collection and global (ADR 0007), so new ones get them
+ * without extra config: the TanStack list view, boolean cells, the list summary and the GraphQL
+ * document tab. Opt out with `custom: { tanstackList: false }`, `custom: { listSummary: false }` or
+ * `custom: { graphqlTab: false }`.
  */
 export const adminUIPlugin = (): Plugin => (config) => ({
   ...config,
+  globals: (config.globals ?? []).map((global) => ({ ...global, admin: withGraphQLTab(global) })),
   collections: (config.collections ?? []).map((collection) => {
+    const withTab: CollectionConfig = { ...collection, admin: withGraphQLTab(collection) }
     const next: CollectionConfig = {
-      ...collection,
+      ...withTab,
       fields: withBooleanCells(collection.fields),
-      admin: withListSummary(collection),
+      admin: withListSummary(withTab),
     }
     if (!usesTanStackList(collection)) return next
     return {

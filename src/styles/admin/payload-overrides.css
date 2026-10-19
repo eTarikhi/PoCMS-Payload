@@ -17,6 +17,11 @@
     color: var(--muted-foreground);
   }
 
+  /* API and GraphQL tabs: Payload's label grey is elevation-400 (under 3:1). */
+  .query-inspector__label {
+    color: var(--muted-foreground);
+  }
+
   /* Sidebar group headings: Payload's elevation-400 is 2.6:1 on the canvas; the muted token is 5.4:1. */
   .nav-group__toggle {
     color: var(--muted-foreground);
