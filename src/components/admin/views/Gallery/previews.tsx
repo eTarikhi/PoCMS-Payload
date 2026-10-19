@@ -40,11 +40,11 @@ import { ContentHealthWidget } from '@/components/admin/widgets/ContentHealth'
 import { PublishingActivityWidget } from '@/components/admin/widgets/PublishingActivity'
 import { RecentChangesWidget } from '@/components/admin/widgets/RecentChanges'
 import { DeploymentsView, DeploymentsWidget } from '@/components/admin/widgets/Deployments'
-import { FieldReportView, PageSpeedWidget } from '@/components/admin/widgets/PageSpeed'
+import { PageSpeedReportView, PageSpeedWidget } from '@/components/admin/widgets/PageSpeed'
 import { SiteTrafficWidget, TrafficReportView } from '@/components/admin/widgets/SiteTraffic'
 import { WelcomeWidget } from '@/components/admin/widgets/Welcome'
 
-import { SAMPLE_CI, SAMPLE_DEPLOYMENTS, SAMPLE_FIELD, SAMPLE_TRAFFIC } from './samples'
+import { SAMPLE_CI, SAMPLE_DEPLOYMENTS, SAMPLE_FIELD, SAMPLE_LAB, SAMPLE_TRAFFIC } from './samples'
 import type { RegistryEntry } from './registry'
 import { ComponentPath, Specimen } from './Section'
 
@@ -169,7 +169,13 @@ export function WidgetsPreview({
       >
         <div className="acn:grid acn:gap-3 acn:lg:grid-cols-2">
           <PageSpeedWidget {...props('page-speed', { formFactor: 'PHONE' })} />
-          <FieldReportView report={SAMPLE_FIELD} origin="https://example.com" formFactor="PHONE" />
+          <PageSpeedReportView
+            lab={SAMPLE_LAB}
+            field={SAMPLE_FIELD}
+            origin="https://example.com"
+            formFactor="PHONE"
+            language={req.i18n.language}
+          />
         </div>
       </Specimen>
       <Specimen

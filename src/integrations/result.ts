@@ -4,14 +4,21 @@
  * admin.
  */
 export type IntegrationResult<T> =
-  | { status: 'ok'; data: T }
-  | { status: 'not-configured'; missing: string[] }
-  | { status: 'error'; message: string }
+  { status: 'ok'; data: T } | { status: 'not-configured'; missing: string[] } | IntegrationFailure
+
+/** A failed call. `action` links to where an administrator fixes it (enable an API, edit a key). */
+export type IntegrationFailure = {
+  status: 'error'
+  message: string
+  action?: { label: string; href: string }
+}
 
 export class IntegrationError extends Error {
   constructor(
     message: string,
     readonly status?: number,
+    /** The parsed error answer, for services whose errors carry a machine-readable reason. */
+    readonly body?: unknown,
   ) {
     super(message)
     this.name = 'IntegrationError'
@@ -76,6 +83,7 @@ export async function fetchJSON<T>(url: string, options: FetchJSONOptions = {}):
     throw new IntegrationError(
       `${new URL(url).hostname} answered ${response.status}${message ? `: ${message}` : ''}`,
       response.status,
+      json,
     )
   }
   if (json === undefined) throw new IntegrationError(`${new URL(url).hostname}: empty answer`)

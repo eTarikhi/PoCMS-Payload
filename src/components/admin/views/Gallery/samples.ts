@@ -1,5 +1,5 @@
 import type { CIReport } from '@/integrations/github'
-import type { FieldReport } from '@/integrations/google'
+import type { FieldReport, LabRun } from '@/integrations/google'
 import type { Deployment, TrafficReport } from '@/integrations/vercel'
 
 /**
@@ -92,6 +92,61 @@ export const SAMPLE_FIELD: FieldReport = {
 }
 
 const ago = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString()
+
+export const SAMPLE_LAB: LabRun = {
+  url: 'https://example.com/',
+  strategy: 'mobile',
+  fetchedAt: ago(180),
+  scores: [
+    { key: 'performance', label: 'Performance', score: 84, rating: 'average' },
+    { key: 'accessibility', label: 'Accessibility', score: 98, rating: 'good' },
+    { key: 'best-practices', label: 'Best practices', score: 100, rating: 'good' },
+    { key: 'seo', label: 'SEO', score: 42, rating: 'poor' },
+  ],
+  metrics: [
+    {
+      key: 'first-contentful-paint',
+      name: 'FCP',
+      label: 'First Contentful Paint',
+      display: '1.4 s',
+      value: 1420,
+      rating: 'good',
+    },
+    {
+      key: 'largest-contentful-paint',
+      name: 'LCP',
+      label: 'Largest Contentful Paint',
+      display: '3.1 s',
+      value: 3080,
+      rating: 'average',
+    },
+    {
+      key: 'total-blocking-time',
+      name: 'TBT',
+      label: 'Total Blocking Time',
+      display: '120 ms',
+      value: 120,
+      rating: 'good',
+    },
+    {
+      key: 'cumulative-layout-shift',
+      name: 'CLS',
+      label: 'Cumulative Layout Shift',
+      display: '0.31',
+      value: 0.31,
+      rating: 'poor',
+    },
+    {
+      key: 'speed-index',
+      name: 'SI',
+      label: 'Speed Index',
+      display: '2.9 s',
+      value: 2900,
+      rating: 'good',
+    },
+  ],
+  lighthouseVersion: '13.0.1',
+}
 
 export const SAMPLE_DEPLOYMENTS: Deployment[] = [
   {

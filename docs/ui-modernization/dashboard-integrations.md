@@ -79,7 +79,9 @@ checks. Proposals, in a suggested order:
 ### Suggested order
 
 1. Site traffic widget (Vercel Web Analytics API): quick, and useful to every editor.
-2. Page speed widget: CrUX now, PageSpeed history once jobs exist.
+2. Page speed widget: a Lighthouse lab test through PageSpeed Insights (kept a day) and CrUX field
+   data; PageSpeed history once jobs exist. Small sites have no CrUX record, so the lab test is
+   what they see (see [the guide](admin-ui-guide.md#page-speed)).
 3. Deployments and CI status.
 4. Jobs panel with its first jobs (trash clean-up, PageSpeed, link check).
 5. Audit log.

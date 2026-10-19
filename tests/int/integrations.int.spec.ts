@@ -1,8 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { latestWorkflowRuns } from '@/integrations/github'
-import { fieldData, rate, WEB_VITALS } from '@/integrations/google'
+import { fieldData, labData, rate, rateScore, WEB_VITALS } from '@/integrations/google'
+import { isPublicHost, publicSite } from '@/integrations/site'
 import { latestDeployments, siteTraffic } from '@/integrations/vercel'
+
+// Next's data cache needs a running Next.js server; here the cached function runs directly.
+vi.mock('next/cache', () => ({ unstable_cache: <T>(fn: T) => fn }))
 
 /**
  * External services are mocked: the sandbox and CI can't reach them, and tests must not need
@@ -166,11 +170,307 @@ describe('Chrome UX Report', () => {
 
   it('treats a missing record (404) as "no field data yet"', async () => {
     process.env.GOOGLE_API_KEY = 'key-1'
-    mockFetch(() => ({
+    const calls = mockFetch(() => ({
       status: 404,
       body: { error: { message: 'chrome ux report data not found' } },
     }))
     expect(await fieldData('https://example.com')).toEqual({ status: 'ok', data: null })
+    // Phones first, then all devices together (no formFactor).
+    const records = calls.filter(({ url }) => url.pathname.endsWith(':queryRecord'))
+    expect(records.map(({ init }) => JSON.parse(String(init.body)).formFactor)).toEqual([
+      'PHONE',
+      undefined,
+    ])
+  })
+
+  it('falls back to all devices when phones alone have too little data', async () => {
+    process.env.GOOGLE_API_KEY = 'key-1'
+    mockFetch((url, init) => {
+      const body = JSON.parse(String(init.body))
+      if (body.formFactor === 'PHONE') {
+        return { status: 404, body: { error: { message: 'chrome ux report data not found' } } }
+      }
+      if (url.pathname.endsWith(':queryHistoryRecord')) return { body: { record: { metrics: {} } } }
+      return {
+        body: {
+          record: {
+            metrics: { largest_contentful_paint: { percentiles: { p75: 1800 } } },
+            collectionPeriod: {
+              firstDate: { year: 2026, month: 9, day: 20 },
+              lastDate: { year: 2026, month: 10, day: 17 },
+            },
+          },
+        },
+      }
+    })
+    const result = await fieldData('https://example.com', 'PHONE')
+    expect(result.status).toBe('ok')
+    if (result.status !== 'ok') return
+    expect(result.data).toMatchObject({ formFactor: 'ALL', fallbackFrom: 'PHONE' })
+    expect(result.data?.metrics[0]).toMatchObject({ p75: 1800, rating: 'good' })
+  })
+
+  it('names the site as referrer, for keys restricted to websites', async () => {
+    process.env.GOOGLE_API_KEY = 'key-1'
+    const calls = mockFetch(() => ({ status: 404, body: {} }))
+    await fieldData('https://example.com', 'ALL')
+    expect((calls[0].init.headers as Record<string, string>).Referer).toBe('https://example.com/')
+  })
+
+  it('explains a disabled API with a link to enable it', async () => {
+    process.env.GOOGLE_API_KEY = 'key-1'
+    const activationUrl =
+      'https://console.developers.google.com/apis/api/chromeuxreport.googleapis.com/overview?project=123'
+    mockFetch(() => ({
+      status: 403,
+      body: {
+        error: {
+          code: 403,
+          message: `Chrome UX Report API has not been used in project 123 before or it is disabled. Enable it by visiting ${activationUrl} then retry.`,
+          status: 'PERMISSION_DENIED',
+          details: [
+            {
+              '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+              reason: 'SERVICE_DISABLED',
+              domain: 'googleapis.com',
+              metadata: { service: 'chromeuxreport.googleapis.com', activationUrl },
+            },
+          ],
+        },
+      },
+    }))
+    const result = await fieldData('https://example.com')
+    expect(result).toMatchObject({
+      status: 'error',
+      message: expect.stringContaining("Chrome UX Report API isn't enabled"),
+      action: { label: 'Enable the Chrome UX Report API', href: activationUrl },
+    })
+  })
+
+  it.each([
+    ['API_KEY_INVALID', 400, "GOOGLE_API_KEY isn't a valid API key"],
+    ['API_KEY_HTTP_REFERRER_BLOCKED', 403, "example.com isn't one of them"],
+    ['API_KEY_SERVICE_BLOCKED', 403, "don't include the Chrome UX Report API"],
+    ['API_KEY_IP_ADDRESS_BLOCKED', 403, 'listed IP addresses'],
+    ['RATE_LIMIT_EXCEEDED', 429, 'quota'],
+  ])('explains %s', async (reason, status, text) => {
+    process.env.GOOGLE_API_KEY = 'key-1'
+    mockFetch(() => ({
+      status,
+      body: { error: { code: status, message: 'Denied', details: [{ reason }] } },
+    }))
+    const result = await fieldData('https://example.com', 'ALL')
+    expect(result.status).toBe('error')
+    if (result.status !== 'error') return
+    expect(result.message).toContain(text)
+  })
+})
+
+/** A trimmed PageSpeed Insights answer (the real one also carries every audit's details). */
+const psiAnswer = (overrides: Record<string, unknown> = {}) => ({
+  analysisUTCTimestamp: '2026-10-19T10:00:05.000Z',
+  lighthouseResult: {
+    lighthouseVersion: '13.0.1',
+    fetchTime: '2026-10-19T10:00:00.000Z',
+    requestedUrl: 'https://example.com/',
+    finalDisplayedUrl: 'https://www.example.com/',
+    categories: {
+      performance: { score: 0.84 },
+      accessibility: { score: 0.98 },
+      'best-practices': { score: 1 },
+      seo: { score: 0.42 },
+    },
+    audits: {
+      'first-contentful-paint': { score: 0.95, numericValue: 1420.5, displayValue: '1.4\u00a0s' },
+      'largest-contentful-paint': { score: 0.6, numericValue: 3080, displayValue: '3.1\u00a0s' },
+      'total-blocking-time': { score: 0.99, numericValue: 120, displayValue: '120\u00a0ms' },
+      'cumulative-layout-shift': { score: 0.2, numericValue: 0.3123 },
+      'speed-index': { score: 0.9, numericValue: 2900, displayValue: '2.9\u00a0s' },
+    },
+    ...overrides,
+  },
+})
+
+describe('PageSpeed Insights', () => {
+  it('rates scores like Lighthouse', () => {
+    expect([100, 90, 89, 50, 49, 0].map(rateScore)).toEqual([
+      'good',
+      'good',
+      'average',
+      'average',
+      'poor',
+      'poor',
+    ])
+  })
+
+  it('asks for the API key', async () => {
+    delete process.env.GOOGLE_API_KEY
+    expect(await labData('https://example.com/', 'mobile')).toEqual({
+      status: 'not-configured',
+      missing: ['GOOGLE_API_KEY'],
+    })
+  })
+
+  it('runs every category for the strategy and reads scores and lab metrics', async () => {
+    process.env.GOOGLE_API_KEY = 'key-1'
+    const calls = mockFetch(() => ({ body: psiAnswer() }))
+    const result = await labData('https://example.com/', 'mobile')
+    expect(result.status).toBe('ok')
+    if (result.status !== 'ok') return
+
+    const { searchParams } = calls[0].url
+    expect(calls[0].url.pathname).toBe('/pagespeedonline/v5/runPagespeed')
+    expect(searchParams.get('url')).toBe('https://example.com/')
+    expect(searchParams.get('strategy')).toBe('MOBILE')
+    expect(searchParams.getAll('category')).toEqual([
+      'PERFORMANCE',
+      'ACCESSIBILITY',
+      'BEST_PRACTICES',
+      'SEO',
+    ])
+    expect(searchParams.get('key')).toBe('key-1')
+    expect((calls[0].init.headers as Record<string, string>).Referer).toBe('https://example.com/')
+
+    expect(result.data).toMatchObject({
+      url: 'https://www.example.com/',
+      strategy: 'mobile',
+      fetchedAt: '2026-10-19T10:00:00.000Z',
+      lighthouseVersion: '13.0.1',
+    })
+    expect(result.data.scores.map(({ score, rating }) => [score, rating])).toEqual([
+      [84, 'average'],
+      [98, 'good'],
+      [100, 'good'],
+      [42, 'poor'],
+    ])
+    expect(result.data.metrics.map(({ name, display, rating }) => [name, display, rating])).toEqual(
+      [
+        ['FCP', '1.4\u00a0s', 'good'],
+        ['LCP', '3.1\u00a0s', 'average'],
+        ['TBT', '120\u00a0ms', 'good'],
+        // No displayValue: formatted from numericValue.
+        ['CLS', '0.312', 'poor'],
+        ['SI', '2.9\u00a0s', 'good'],
+      ],
+    )
+  })
+
+  it('runs one test at a time for a page and strategy', async () => {
+    process.env.GOOGLE_API_KEY = 'key-1'
+    const calls = mockFetch(() => ({ body: psiAnswer() }))
+    const [first, second] = await Promise.all([
+      labData('https://example.com/', 'mobile'),
+      labData('https://example.com/', 'mobile'),
+    ])
+    expect(calls).toHaveLength(1)
+    expect(second).toEqual(first)
+  })
+
+  it('reports a page Lighthouse could not load', async () => {
+    process.env.GOOGLE_API_KEY = 'key-1'
+    mockFetch(() => ({
+      status: 500,
+      body: {
+        error: {
+          code: 500,
+          message:
+            'Lighthouse returned error: ERRORED_DOCUMENT_REQUEST. Lighthouse was unable to reliably load the page you requested. (Status code: 401)',
+        },
+      },
+    }))
+    expect(await labData('https://example.com/', 'desktop')).toEqual({
+      status: 'error',
+      message:
+        "Lighthouse couldn't test example.com (ERRORED_DOCUMENT_REQUEST). Lighthouse was unable to reliably load the page you requested. (Status code: 401)",
+    })
+  })
+
+  it('reports a test that took too long', async () => {
+    process.env.GOOGLE_API_KEY = 'key-1'
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw Object.assign(new Error('The operation was aborted due to timeout'), {
+          name: 'TimeoutError',
+        })
+      }),
+    )
+    expect(await labData('https://example.com/', 'mobile')).toEqual({
+      status: 'error',
+      message: "the test of example.com didn't finish within 55 s. The next visit tries again.",
+    })
+  })
+
+  it('reports a Lighthouse runtime error in a successful answer', async () => {
+    process.env.GOOGLE_API_KEY = 'key-1'
+    mockFetch(() => ({
+      body: psiAnswer({ runtimeError: { code: 'NO_FCP', message: 'The page did not paint.' } }),
+    }))
+    expect(await labData('https://example.com/', 'mobile')).toEqual({
+      status: 'error',
+      message: "Lighthouse couldn't test example.com (NO_FCP). The page did not paint.",
+    })
+  })
+
+  it('explains a disabled PageSpeed Insights API', async () => {
+    process.env.GOOGLE_API_KEY = 'key-1'
+    mockFetch(() => ({
+      status: 403,
+      body: {
+        error: { code: 403, message: 'Disabled', details: [{ reason: 'SERVICE_DISABLED' }] },
+      },
+    }))
+    expect(await labData('https://example.com/', 'mobile')).toMatchObject({
+      status: 'error',
+      action: {
+        label: 'Enable the PageSpeed Insights API',
+        href: 'https://console.cloud.google.com/apis/library/pagespeedonline.googleapis.com',
+      },
+    })
+  })
+})
+
+describe('Public site address', () => {
+  it('uses NEXT_PUBLIC_SITE_URL when Google can reach it', () => {
+    process.env.NEXT_PUBLIC_SITE_URL = 'https://example.com/some/path'
+    expect(publicSite()).toEqual({
+      status: 'ok',
+      origin: 'https://example.com',
+      host: 'example.com',
+    })
+  })
+
+  it("falls back to Vercel's production domain", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = 'http://localhost:3000'
+    process.env.VERCEL_PROJECT_PRODUCTION_URL = 'site.vercel.app'
+    expect(publicSite()).toMatchObject({ status: 'ok', origin: 'https://site.vercel.app' })
+  })
+
+  it('reports a local address, or none', () => {
+    delete process.env.VERCEL_PROJECT_PRODUCTION_URL
+    process.env.NEXT_PUBLIC_SITE_URL = 'http://localhost:3000'
+    expect(publicSite()).toEqual({ status: 'local', configured: 'http://localhost:3000' })
+    delete process.env.NEXT_PUBLIC_SITE_URL
+    expect(publicSite()).toEqual({ status: 'missing' })
+  })
+
+  it('tells public hosts from local and private ones', () => {
+    expect(
+      ['example.com', 'www.vtarikhi.com', '8.8.8.8', '[2001:db8::1]'].map(isPublicHost),
+    ).toEqual([true, true, true, true])
+    expect(
+      [
+        'localhost',
+        'app.localhost',
+        'pc.local',
+        '127.0.0.1',
+        '10.0.0.2',
+        '192.168.1.5',
+        '172.20.0.1',
+        '[::1]',
+        'db',
+      ].map(isPublicHost),
+    ).toEqual([false, false, false, false, false, false, false, false, false])
   })
 })
 

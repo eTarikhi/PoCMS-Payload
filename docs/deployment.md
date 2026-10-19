@@ -43,6 +43,9 @@ The docker environment is intended to provide:
    - `PAYLOAD_SECRET`
    - `NEXT_PUBLIC_SITE_URL`
    - `RESEND_API_KEY`
+   - Optional, for the admin dashboard widgets: `GOOGLE_API_KEY` (Page speed), `VERCEL_TOKEN` and
+     `VERCEL_PROJECT_ID` (Site traffic, Deployments), `GITHUB_TOKEN` (CI status of a private
+     repository). See `.env.example` for how to create each one.
 4. Deploy the application.
 
 ## Production environment checklist

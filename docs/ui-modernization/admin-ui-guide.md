@@ -337,6 +337,37 @@ cost about 118 kB (gzip) on the dashboard, this one is a few kB.
 - To add a series, add it to `PUBLISHING_SERIES`, count it in the widget and add the field to
   `PublishingPoint`.
 
+### Page speed
+
+`widgets/PageSpeed` shows what [pagespeed.web.dev](https://pagespeed.web.dev) shows for the public
+site, from `src/integrations/google.ts`:
+
+- **Lab test:** a Lighthouse run through the PageSpeed Insights API, with the performance,
+  accessibility, best practices and SEO scores and the lab metrics (FCP, LCP, TBT, CLS, Speed
+  Index) in PageSpeed's colours and shapes. A run takes 10–40 s, so it streams in behind a
+  placeholder (`<Suspense>`) and the rest of the dashboard doesn't wait. The result is kept for a
+  day in Next's data cache (`unstable_cache`, tag `pagespeed`); after that the next visit shows it
+  and runs a fresh test in the background. Failures are not kept, and visits during a run share
+  it.
+- **Real users:** Core Web Vitals of Chrome users from the Chrome UX Report API (p75, the share of
+  good, needs improvement and poor loads, the 25-week trend), kept 12 hours. Small sites have no
+  record, and the widget says so; the lab test works without one. When phones (or desktops) alone
+  have too little data, all devices together are shown.
+- **Widget setting:** Phones (Lighthouse on mobile), Desktops (desktop) or All devices (mobile).
+- **Tested site:** `NEXT_PUBLIC_SITE_URL`, else Vercel's production domain
+  (`VERCEL_PROJECT_PRODUCTION_URL`). Local and private addresses are skipped: Google can't reach
+  them (`src/integrations/site.ts`).
+- **Setup:** `GOOGLE_API_KEY`, an API key whose Google Cloud project has the PageSpeed Insights API
+  and the Chrome UX Report API enabled. Calls come from the server, so set the key's application
+  restriction to None and restrict it to those two APIs, or allow the site's domain under website
+  restrictions (requests name the site as their referrer).
+- **Errors:** Google's reason (`error.details[].reason`) becomes a message, plus a link for
+  administrators to fix it: an API that isn't enabled, an invalid key, website, IP or API
+  restrictions, an exhausted quota, or a page Lighthouse couldn't load (down, an error status, or
+  behind Vercel Deployment Protection).
+- **Layout:** each part is a size container, so gauges, metrics and table columns follow the
+  widget's width, not the viewport's.
+
 ## Bundle size
 
 Payload's admin is one Next.js route, so every client component reachable from the import map is
