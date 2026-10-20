@@ -99,8 +99,12 @@ jobs:
         run: pnpm build
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
+      # Also runs the bundle budget check (tests/e2e/bundle.e2e.spec.ts): it measures a production
+      # build, so it only asserts when BUNDLE_BUDGET is set.
       - name: End-to-end tests
         run: pnpm test:e2e
+        env:
+          BUNDLE_BUDGET: '1'
       - uses: actions/upload-artifact@v7
         if: failure()
         with:

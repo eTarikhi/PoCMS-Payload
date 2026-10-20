@@ -67,6 +67,27 @@ test.describe('Component gallery', () => {
     // Custom views read permissions from initPageResult: the nav keeps its groups and Create menu.
     await expect(page.locator('#nav-articles')).toBeVisible()
     await expect(page.getByTestId('quick-create')).toBeVisible()
+
+    // Admin tools section: the four whole-view tools, each linked for an administrator.
+    const tools = page.locator('#tools')
+    await expect(tools.getByRole('link', { name: 'Open Scheduled jobs' })).toHaveAttribute(
+      'href',
+      /\/admin\/jobs$/,
+    )
+    await expect(tools.getByRole('link', { name: 'Open Audit log' })).toHaveAttribute(
+      'href',
+      /\/admin\/collections\/audit-logs$/,
+    )
+    await expect(tools.getByRole('link', { name: 'Open System' })).toHaveAttribute(
+      'href',
+      /\/admin\/system$/,
+    )
+    // The terminal's route exists only in development; the gallery lists it with its capability.
+    await expect(tools).toContainText('useTerminal')
+    await expect(page.getByRole('link', { name: 'Admin tools' })).toHaveAttribute(
+      'href',
+      '#tools',
+    )
   })
 
   test('field components work inside a Payload form, cells show samples', async ({ page }) => {
