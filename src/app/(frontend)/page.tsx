@@ -18,7 +18,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <SiteChrome footer={content.footer}>
+      <SiteChrome footer={content.footer} navigation={content.navigation}>
         {content.header ? <Hero header={content.header} /> : null}
         <main id="main-content" data-bs-spy="scroll" data-bs-target=".navbar" data-bs-offset="51">
           <AboutSection about={content.about} />

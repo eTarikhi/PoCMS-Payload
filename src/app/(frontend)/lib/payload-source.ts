@@ -16,7 +16,7 @@
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 
-import type { Article } from '@/payload-types'
+import type { Article, SiteSetting } from '@/payload-types'
 
 import { mapPortfolioContent, type RawPortfolioDocs } from './mappers'
 import type { PortfolioContent } from './types'
@@ -36,6 +36,8 @@ export const fetchRawPortfolioDocs = async (): Promise<RawPortfolioDocs> => {
     services,
     projects,
     footer,
+    navigation,
+    settings,
   ] = await Promise.all([
     payload.find({ collection: 'header', limit: 1, depth: 1 }).then((res) => res.docs[0] ?? null),
     payload.find({ collection: 'about', limit: 1, depth: 1 }).then((res) => res.docs[0] ?? null),
@@ -64,6 +66,9 @@ export const fetchRawPortfolioDocs = async (): Promise<RawPortfolioDocs> => {
       .then((res) => res.docs),
     // Errors propagate on purpose. A database failure must not render an empty footer silently.
     payload.findGlobal({ slug: 'footer', depth: 1 }),
+    // Navigation and site settings: null-safe mappers keep the site usable before they are saved.
+    payload.findGlobal({ slug: 'navigation', depth: 0 }),
+    payload.findGlobal({ slug: 'site-settings', depth: 0 }),
   ])
 
   return {
@@ -77,6 +82,8 @@ export const fetchRawPortfolioDocs = async (): Promise<RawPortfolioDocs> => {
     services,
     projects,
     footer,
+    navigation,
+    settings,
   }
 }
 
@@ -115,4 +122,13 @@ export const fetchPublishedArticleSlugs = async (): Promise<string[]> => {
   return res.docs
     .filter((doc) => Boolean(doc.slug) && (doc.description ?? '').trim().length > 0)
     .map((doc) => doc.slug as string)
+}
+
+/**
+ * Site settings for the public layout. Its own query rather than part of the home-page payload: the
+ * layout renders on every public route, including the article pages.
+ */
+export const fetchSiteSettings = async (): Promise<SiteSetting | null> => {
+  const payload = await getPayload({ config: configPromise })
+  return payload.findGlobal({ slug: 'site-settings', depth: 0 })
 }

@@ -3,6 +3,8 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
+import type { NavLink, NavigationContent } from '@/app/(frontend)/lib/types'
+
 // Ported from vTarikhi/components/navigation.jsx. The original called require('bootstrap') inside the handler.
 // The Bootstrap module is loaded the same way (D-15). A module-scope import would run Bootstrap's `document`
 // setup while the server prerenders the page, and that fails.
@@ -16,7 +18,32 @@ const hideNavbarCollapse = async () => {
   }
 }
 
-export function Navigation() {
+/**
+ * Renders one configured link. Internal links go through next/link (client-side navigation);
+ * external ones use a plain anchor and get `rel` when they open a new tab.
+ */
+function NavItem({ link, active }: { link: NavLink; active?: boolean }) {
+  const className = `nav-item text-light nav-link${active ? ' active' : ''}`
+  if (link.newTab) {
+    return (
+      <a href={link.href} className={className} target="_blank" rel="noopener noreferrer">
+        {link.label}
+      </a>
+    )
+  }
+  return (
+    <Link href={link.href} className={className} onClick={hideNavbarCollapse}>
+      {link.label}
+    </Link>
+  )
+}
+
+/**
+ * The top bar. Links and the brand come from the Navigation global (`mapNavigation` falls back to
+ * the original vTarikhi links, so the bar is never empty). The brand sits between the two link
+ * groups on wide screens.
+ */
+export function Navigation({ navigation }: { navigation: NavigationContent }) {
   const [isVisible, setIsVisible] = useState(false)
 
   // The bar gets the extra `d-flex` class once the page is scrolled past 300px.
@@ -35,9 +62,14 @@ export function Navigation() {
       data-wow-delay="0.1s"
     >
       <Link href="/" className="navbar-brand d-block d-lg-none">
-        <h2 className="h1 text-primary fw-bold m-0">eTarikhi</h2>
+        <h2 className="h1 text-primary fw-bold m-0">{navigation.brand}</h2>
       </Link>
-      <button type="button" className="navbar-toggler" onClick={hideNavbarCollapse}>
+      <button
+        type="button"
+        className="navbar-toggler"
+        onClick={hideNavbarCollapse}
+        aria-label="Toggle navigation"
+      >
         <span className="navbar-toggler-icon"></span>
       </button>
       <div
@@ -45,45 +77,17 @@ export function Navigation() {
         id="navbarCollapse"
       >
         <div className="navbar-nav ms-auto py-0">
-          <Link
-            href="/#home"
-            className="nav-item text-light nav-link active"
-            onClick={hideNavbarCollapse}
-          >
-            Home
-          </Link>
-          <Link href="/#about" className="nav-item text-light nav-link" onClick={hideNavbarCollapse}>
-            About
-          </Link>
-          <Link href="/#skill" className="nav-item text-light nav-link" onClick={hideNavbarCollapse}>
-            Skills
-          </Link>
+          {navigation.primaryLinks.map((link) => (
+            <NavItem key={`${link.href}-${link.label}`} link={link} active={link.href === '/#home'} />
+          ))}
         </div>
         <Link href="/" className="navbar-brand bg-primary py-3 px-4 mx-3 d-none d-lg-block">
-          <h2 className="h1 text-white fw-bold m-0">eTarikhi</h2>
+          <h2 className="h1 text-white fw-bold m-0">{navigation.brand}</h2>
         </Link>
         <div className="navbar-nav me-auto py-0">
-          <Link
-            href="/#service"
-            className="nav-item text-light nav-link"
-            onClick={hideNavbarCollapse}
-          >
-            Services
-          </Link>
-          <Link
-            href="/#project"
-            className="nav-item text-light nav-link"
-            onClick={hideNavbarCollapse}
-          >
-            Projects
-          </Link>
-          <Link
-            href="/#contact"
-            className="nav-item text-light nav-link"
-            onClick={hideNavbarCollapse}
-          >
-            Contact
-          </Link>
+          {navigation.secondaryLinks.map((link) => (
+            <NavItem key={`${link.href}-${link.label}`} link={link} />
+          ))}
         </div>
       </div>
     </nav>

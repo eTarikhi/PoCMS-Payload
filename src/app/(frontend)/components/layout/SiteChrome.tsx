@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import type { FooterContent } from '@/app/(frontend)/lib/types'
+import type { FooterContent, NavigationContent } from '@/app/(frontend)/lib/types'
 
 import { BackToTop } from './BackToTop'
 import { BootstrapClient } from './BootstrapClient'
@@ -14,13 +14,21 @@ import { Navigation } from './Navigation'
  * their own content as children, so a change here applies to every page at once. The skip link is
  * the first focusable element, and it targets `#main-content`, which each page sets on its <main>.
  */
-export function SiteChrome({ footer, children }: { footer: FooterContent | null; children?: ReactNode }) {
+export function SiteChrome({
+  footer,
+  navigation,
+  children,
+}: {
+  footer: FooterContent | null
+  navigation: NavigationContent
+  children?: ReactNode
+}) {
   return (
     <>
       <a href="#main-content" className="skip-link visually-hidden-focusable">
         Skip to content
       </a>
-      <Navigation />
+      <Navigation navigation={navigation} />
       {children}
       {footer ? <Footer footer={footer} /> : null}
       <BackToTop />

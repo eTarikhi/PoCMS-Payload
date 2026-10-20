@@ -18,8 +18,10 @@ import type {
   Footer,
   Header,
   Media,
+  Navigation,
   Project,
   Service,
+  SiteSetting,
   Skill,
 } from '@/payload-types'
 
@@ -35,12 +37,15 @@ import type {
   FooterContent,
   HeaderContent,
   HiringCta,
+  NavLink,
+  NavigationContent,
   PortfolioContent,
   ProjectFilter,
   ProjectItem,
   ProjectsContent,
   ServiceItem,
   ServicesContent,
+  SiteSettingsContent,
   SkillBar,
   SkillsContent,
 } from './types'
@@ -59,6 +64,8 @@ export type RawPortfolioDocs = {
   services: Service[]
   projects: Project[]
   footer: Footer | null
+  navigation: Navigation | null
+  settings: SiteSetting | null
 }
 
 /**
@@ -248,6 +255,60 @@ export const mapHiringCta = (doc: Footer | null): HiringCta | null => {
   return { label, url }
 }
 
+/**
+ * The links the bar had before the global existed (from vTarikhi/components/navigation.jsx), in the
+ * original order. Used when the global was never saved, and as the brand default, so a fresh
+ * database keeps a working navigation instead of an empty bar.
+ */
+export const DEFAULT_NAVIGATION: NavigationContent = {
+  brand: 'eTarikhi',
+  primaryLinks: [
+    { label: 'Home', href: '/#home', newTab: false },
+    { label: 'About', href: '/#about', newTab: false },
+    { label: 'Skills', href: '/#skill', newTab: false },
+  ],
+  secondaryLinks: [
+    { label: 'Services', href: '/#service', newTab: false },
+    { label: 'Projects', href: '/#project', newTab: false },
+    { label: 'Contact', href: '/#contact', newTab: false },
+  ],
+}
+
+const mapNavLinks = (links: NonNullable<Navigation['primaryLinks']> | null | undefined): NavLink[] =>
+  (links ?? []).map((link) => ({
+    label: link.label,
+    href: link.href,
+    newTab: Boolean(link.newTab),
+  }))
+
+/**
+ * Navigation bar view model. Each side falls back to the original links independently, so an editor
+ * who saves only the left side does not lose the right one. The brand falls back when blank.
+ */
+export const mapNavigation = (doc: Navigation | null): NavigationContent => {
+  const brand = doc?.brand?.trim() ? doc.brand : DEFAULT_NAVIGATION.brand
+  const primaryLinks = mapNavLinks(doc?.primaryLinks)
+  const secondaryLinks = mapNavLinks(doc?.secondaryLinks)
+  return {
+    brand,
+    primaryLinks: primaryLinks.length > 0 ? primaryLinks : DEFAULT_NAVIGATION.primaryLinks,
+    secondaryLinks: secondaryLinks.length > 0 ? secondaryLinks : DEFAULT_NAVIGATION.secondaryLinks,
+  }
+}
+
+/** Site settings view model. A never-saved global keeps the site online and the page copy sane. */
+export const mapSiteSettings = (doc: SiteSetting | null): SiteSettingsContent => ({
+  siteName: doc?.siteName?.trim() ? doc.siteName : 'eTarikhi',
+  supportEmail: doc?.supportEmail?.trim() ? doc.supportEmail : null,
+  maintenance: {
+    enabled: Boolean(doc?.maintenance?.enabled),
+    title: doc?.maintenance?.title?.trim() ? doc.maintenance.title : 'Back soon',
+    message: doc?.maintenance?.message?.trim()
+      ? doc.maintenance.message
+      : 'The site is being updated. Everything will be back shortly — thanks for your patience.',
+  },
+})
+
 /** Builds the full home-page view model from raw documents. Pure and deterministic. */
 export const mapPortfolioContent = (raw: RawPortfolioDocs): PortfolioContent => ({
   header: mapHeader(raw.header),
@@ -260,4 +321,6 @@ export const mapPortfolioContent = (raw: RawPortfolioDocs): PortfolioContent => 
   services: mapServices(raw.services, mapHiringCta(raw.footer)),
   projects: mapProjects(raw.projects),
   footer: mapFooter(raw.footer),
+  navigation: mapNavigation(raw.navigation),
+  settings: mapSiteSettings(raw.settings),
 })

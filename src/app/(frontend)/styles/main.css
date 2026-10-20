@@ -727,3 +727,22 @@ fieldset:disabled .btn {
     left: 0.5rem;
     z-index: 1100;
 }
+
+/* Maintenance page (Site settings → Maintenance mode). Darkens the site background image and keeps
+   the copy readable at every width; the component only supplies Bootstrap layout utilities. */
+.maintenance-page {
+    background: rgba(0, 0, 0, 0.72);
+    color: #fff;
+    min-height: 100vh;
+    padding-top: 4rem;
+    padding-bottom: 4rem;
+}
+
+.maintenance-page__name {
+    letter-spacing: 0.12em;
+    font-size: 0.85rem;
+}
+
+.maintenance-page p {
+    max-width: 34rem;
+}

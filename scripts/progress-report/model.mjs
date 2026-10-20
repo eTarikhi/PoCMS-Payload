@@ -113,7 +113,11 @@ export const phases = [
       ['Logo, icon and admin.meta', 'done', '364f38c'],
       ['admin.group mapping, descriptions, useAsTitle/defaultColumns audit', 'done', '364f38c'],
       ['Nav slots: Create menu, View site, style-guide link', 'done', '364f38c'],
-      ['Resolve orphan SiteSettings / Navigation files', 'open', 'both files are still empty'],
+      [
+        'Resolve orphan SiteSettings / Navigation files',
+        'done',
+        'Navigation and Site settings globals (20261020_223003), maintenance page; unit + e2e',
+      ],
       [
         'About / Header as globals',
         'partial',
@@ -174,13 +178,17 @@ export const phases = [
     min: 4,
     max: 6,
     items: [
-      ['Visual-regression suite in CI', 'partial', 'suite exists (pnpm test:visual), not in CI'],
+      [
+        'Visual-regression suite in CI',
+        'done',
+        'CI captures every baseline screen and uploads the artifacts (ci.yml, Visual captures)',
+      ],
       [
         'axe suite, manual screen-reader pass, enforced budgets',
         'partial',
         'axe in e2e; no SR pass; budget measured by hand',
       ],
-      ['Docs: guide, ADRs, AGENTS.md, README, changelog', 'partial', 'no changelog'],
+      ['Docs: guide, ADRs, AGENTS.md, README, changelog', 'done', 'CHANGELOG.md, guide sections'],
       ['Payload 4 readiness checklist', 'done', 'ADR 0006, admin-ui-guide'],
     ],
   },

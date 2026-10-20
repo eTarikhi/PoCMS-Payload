@@ -8,6 +8,9 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Fixed
 
+- **The system page test no longer assumes `users` is one of the twelve largest tables.** It is not
+  on a freshly seeded database (one row), so the test now checks the shape of the snapshot and a
+  content table that dominates on any seeded database.
 - **Public pages follow edits immediately.** `revalidatePortfolio` now calls
   `revalidateTag('portfolio', { expire: 0 })` and `revalidatePath` for the home page and the saved
   article's page. Next 16's `revalidateTag(tag, 'max')` only marked entries stale for
@@ -30,6 +33,20 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Added
 
+- **Navigation and site settings globals, with a maintenance page (CNT / P3.4).** The two 0-byte
+  orphan files under `src/globals` are real globals now. **Navigation** stores the brand and the two
+  link lists that render around it; empty sides fall back to the original links, so a fresh database
+  keeps its bar. **Site settings** stores the site name, a support address and a maintenance switch:
+  while it is on, every public route renders `MaintenancePage` (title, message, an *Email us*
+  button) from the public layout, while `/admin` and the REST API stay reachable. Both globals are
+  read from the `portfolio` cache tag, so a save refreshes the pages immediately. Migration
+  `20261020_223003_navigation_and_site_settings`; seed in `src/seed/navigation.ts` and
+  `src/seed/siteSettings.ts`; tests in `tests/int/navigation-mapper.int.spec.ts` and
+  `tests/e2e/site-settings.e2e.spec.ts`.
+- **Visual captures in CI.** The workflow runs `pnpm test:visual` against the production build and
+  uploads every baseline screen (light/dark, desktop and phone) as an artifact for review; pixel
+  comparisons stay on the machine that owns the baselines, because screenshots are platform
+  specific.
 - **Terminal (E7).** Admin › Terminal (`useTerminal`, development only) runs an allow-listed
   package script — lint, typecheck, both admin checks, `generate:all`, `migrate:status`,
   `test:int` — through `POST /api/dev/terminal` and streams its output. Production builds answer

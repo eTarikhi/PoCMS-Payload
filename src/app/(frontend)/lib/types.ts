@@ -169,6 +169,35 @@ export type FooterContent = {
   }
 }
 
+/** One link in the top bar. `newTab` is only set for links that leave the site. */
+export type NavLink = {
+  label: string
+  href: string
+  newTab: boolean
+}
+
+/**
+ * The navigation bar. `primaryLinks` render left of the brand on wide screens, `secondaryLinks`
+ * right of it; on small screens they follow each other in that order.
+ */
+export type NavigationContent = {
+  brand: string
+  primaryLinks: NavLink[]
+  secondaryLinks: NavLink[]
+}
+
+/** The maintenance switch the public layout reads, plus the identity the page shows. */
+export type SiteSettingsContent = {
+  siteName: string
+  /** `null` when unset: the maintenance page then hides its "Email us" link. */
+  supportEmail: string | null
+  maintenance: {
+    enabled: boolean
+    title: string
+    message: string
+  }
+}
+
 /** Everything the home page renders. Singletons may be `null` when unseeded. */
 export type PortfolioContent = {
   header: HeaderContent | null
@@ -181,4 +210,6 @@ export type PortfolioContent = {
   services: ServicesContent
   projects: ProjectsContent
   footer: FooterContent | null
+  navigation: NavigationContent
+  settings: SiteSettingsContent
 }

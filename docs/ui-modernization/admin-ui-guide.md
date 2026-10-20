@@ -170,7 +170,7 @@ checkbox is a `span[role=checkbox]`, so name it with `aria-labelledby` or `aria-
 - `admin.meta` sets the `· PoCMS` title suffix and the icons.
 - Sidebar groups come from `admin.group`: **Content** (Articles, Projects, Media), **Profile**
   (the résumé sections in home-page order, Services included), **Site settings** (the Header
-  collection and the Footer global) and **Admin**. Payload orders groups by first appearance,
+  collection, the Footer global, and the Navigation and Site settings globals) and **Admin**. Payload orders groups by first appearance,
   collections before globals, so the collection order in `payload.config.ts` sets the group order.
 - `beforeNavLinks`: the **Create** control lists only collections the user may create. It is a
   native disclosure (`details`/`summary`) holding links, closed by Escape or an outside click.
@@ -217,6 +217,39 @@ checkbox is a `span[role=checkbox]`, so name it with `aria-labelledby` or `aria-
   the whole sidebar, is hidden there, and a sidebar closed by an older preference is reopened. Below
   1025px Payload's toggler is the mobile menu button and ours is hidden. The Next.js dev indicator
   sits at the bottom right (`devIndicators` in `next.config.ts`).
+
+### Site settings, navigation and maintenance
+
+Two globals live in **Site settings**, both saved through `payload.updateGlobal` and both read by the
+public site from the `portfolio` cache tag, so a save refreshes the pages immediately
+(`portfolioAfterChange` → `revalidatePortfolio`).
+
+- **Navigation** (`/admin/globals/navigation`, `src/globals/Navigation.ts`): a brand and two link
+  lists. `primaryLinks` render left of the brand on wide screens and `secondaryLinks` right of it;
+  the brand sits in the middle (the same split as the original Bootstrap bar). `newTab` renders a
+  plain anchor with `rel="noopener noreferrer"` instead of a `next/link`.
+  `mapNavigation()` falls back **per side** to the original links in `DEFAULT_NAVIGATION`
+  (`src/app/(frontend)/lib/mappers.ts`) when a side is empty, so a fresh database still has a bar,
+  and saving only one side does not wipe the other. A unit test keeps the seed
+  (`src/seed/navigation.ts`) and the fallback identical.
+- **Site settings** (`/admin/globals/site-settings`, `src/globals/SiteSettings.ts`): `siteName`,
+  `supportEmail` and the **maintenance** group. While *Show the maintenance page* is on, the public
+  layout renders `components/layout/MaintenancePage.tsx` instead of the route's content on every
+  public page (home, articles, not-found). `/admin` and the REST API are in another route group and
+  keep working, which is the point: the switch lives in the admin, so an editor can always turn it
+  off. The title and message fields only show while the switch is on; the support address becomes
+  the page's **Email us** button. `mapSiteSettings()` supplies the same defaults for an unsaved
+  global, and a never-saved global is offline (`enabled: false`).
+
+Both are seeded by `pnpm seed` and their schema is migration `20261020_223003_navigation_and_site_settings`.
+The e2e spec `tests/e2e/site-settings.e2e.spec.ts` covers the seeded bar and the full maintenance
+round trip through the admin form (including the admin staying reachable), and resets the switch
+through the API even when a test fails.
+
+Note for tests: the template hides the bar at the top of the page
+(`.navbar.fixed-top { display: none }` in `main.css`) and reveals it with the `d-flex` class after
+300 px of scroll, so a navigation assertion has to scroll first — a hidden `nav.navbar` in Playwright
+is expected, not a regression.
 
 ### Command menu
 

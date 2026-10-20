@@ -13,6 +13,8 @@ import '@/app/(frontend)/styles/bootstrap.min.css'
 import '@/app/(frontend)/styles/main.css'
 import '@fortawesome/fontawesome-svg-core/styles.css'
 
+import { MaintenancePage } from '@/app/(frontend)/components/layout/MaintenancePage'
+import { getCachedSiteSettings } from '@/app/(frontend)/lib/cache'
 import { portfolioMetadata } from '@/app/(frontend)/lib/seo'
 
 // The stylesheet is already loaded above, so icons must not inject their own CSS.
@@ -38,15 +40,23 @@ export const viewport: Viewport = {
   themeColor: '#da9100',
 }
 
-export default function FrontendLayout({ children }: { children: React.ReactNode }) {
+/**
+ * The public site's layout. It also owns the maintenance switch (Site settings global): while it is
+ * on, every public route renders the maintenance page instead of its content. The admin lives in
+ * another route group and is not affected, so an editor can always switch maintenance off.
+ */
+export default async function FrontendLayout({ children }: { children: React.ReactNode }) {
   // Background images used by main.css; preloaded as in vTarikhi/components/head.jsx.
   preload('/images/bg-mobile.webp', { as: 'image' })
   preload('/images/bg-desktop.webp', { as: 'image' })
 
+  // Cached under the portfolio tag: saving the global in /admin expires it (see lib/revalidate.ts).
+  const settings = await getCachedSiteSettings()
+
   return (
     <html lang="en" className={openSans.className}>
       <body>
-        {children}
+        {settings.maintenance.enabled ? <MaintenancePage settings={settings} /> : children}
         <Analytics />
         <SpeedInsights />
       </body>

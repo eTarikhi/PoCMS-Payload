@@ -119,9 +119,13 @@ export interface Config {
   fallbackLocale: null;
   globals: {
     footer: Footer;
+    navigation: Navigation;
+    'site-settings': SiteSetting;
   };
   globalsSelect: {
     footer: FooterSelect<false> | FooterSelect<true>;
+    navigation: NavigationSelect<false> | NavigationSelect<true>;
+    'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
   };
   locale: null;
   widgets: {
@@ -208,7 +212,6 @@ export interface Article {
 export interface Media {
   id: number;
   alt: string;
-  _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -523,6 +526,8 @@ export interface Role {
     certificates?: ('none' | 'read' | 'edit' | 'full') | null;
     header?: ('none' | 'read' | 'edit' | 'full') | null;
     footer?: ('none' | 'read' | 'edit') | null;
+    navigation?: ('none' | 'read' | 'edit') | null;
+    siteSettings?: ('none' | 'read' | 'edit') | null;
   };
   /**
    * Admin tools this role may use.
@@ -865,7 +870,6 @@ export interface ProjectsSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
-  _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -1062,6 +1066,8 @@ export interface RolesSelect<T extends boolean = true> {
         certificates?: T;
         header?: T;
         footer?: T;
+        navigation?: T;
+        siteSettings?: T;
       };
   capabilities?:
     | T
@@ -1326,6 +1332,88 @@ export interface Footer {
   createdAt?: string | null;
 }
 /**
+ * The links in the top bar. The bar is split around the brand in the middle.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "navigation".
+ */
+export interface Navigation {
+  id: number;
+  /**
+   * Brand text in the middle of the bar. Leave empty to keep the default.
+   */
+  brand?: string | null;
+  /**
+   * Shown left of the brand on wide screens, first in the mobile menu.
+   */
+  primaryLinks?:
+    | {
+        /**
+         * The text shown in the bar. Keep it short: "About", "Projects".
+         */
+        label: string;
+        /**
+         * Where the link goes. A section on the home page is `/#about`, an article `/articles/slug`.
+         */
+        href: string;
+        /**
+         * Only for links that leave the site.
+         */
+        newTab?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Shown right of the brand on wide screens.
+   */
+  secondaryLinks?:
+    | {
+        /**
+         * The text shown in the bar. Keep it short: "About", "Projects".
+         */
+        label: string;
+        /**
+         * Where the link goes. A section on the home page is `/#about`, an article `/articles/slug`.
+         */
+        href: string;
+        /**
+         * Only for links that leave the site.
+         */
+        newTab?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Site-wide switches: the maintenance page and the support address it shows.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings".
+ */
+export interface SiteSetting {
+  id: number;
+  /**
+   * Used where the site has to name itself, e.g. the maintenance page.
+   */
+  siteName?: string | null;
+  /**
+   * Shown as "Email us" on the maintenance page. Leave empty to hide the link.
+   */
+  supportEmail?: string | null;
+  maintenance?: {
+    /**
+     * Replaces every public page. /admin keeps working, so switch it off here when done.
+     */
+    enabled?: boolean | null;
+    title?: string | null;
+    message?: string | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "footer_select".
  */
@@ -1375,6 +1463,50 @@ export interface FooterSelect<T extends boolean = true> {
         year?: T;
         website?: T;
         url?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "navigation_select".
+ */
+export interface NavigationSelect<T extends boolean = true> {
+  brand?: T;
+  primaryLinks?:
+    | T
+    | {
+        label?: T;
+        href?: T;
+        newTab?: T;
+        id?: T;
+      };
+  secondaryLinks?:
+    | T
+    | {
+        label?: T;
+        href?: T;
+        newTab?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings_select".
+ */
+export interface SiteSettingsSelect<T extends boolean = true> {
+  siteName?: T;
+  supportEmail?: T;
+  maintenance?:
+    | T
+    | {
+        enabled?: T;
+        title?: T;
+        message?: T;
       };
   updatedAt?: T;
   createdAt?: T;

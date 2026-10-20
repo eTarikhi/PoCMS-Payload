@@ -18,6 +18,8 @@ import { ensureRoles } from './access/roles'
 import { createRoles } from './collections/Roles'
 import { AuditLogs } from './collections/AuditLogs'
 import { Footer } from './globals/Footer'
+import { NavigationGlobal } from './globals/Navigation'
+import { SiteSettings } from './globals/SiteSettings'
 
 import { Users } from './collections/Users'
 import { devGenerateEndpoint } from './endpoints/devGenerate'
@@ -64,7 +66,7 @@ const contentCollections = [
   Header,
 ]
 
-const globals = [Footer]
+const globals = [Footer, NavigationGlobal, SiteSettings]
 
 export default buildConfig({
   admin: {

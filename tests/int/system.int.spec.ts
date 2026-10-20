@@ -114,7 +114,13 @@ describe('System database snapshot', () => {
       '20990101_000000_future',
     ])
     expect(snapshot.error).toBeNull()
-    expect(snapshot.tables.map((table) => table.name)).toContain('users')
+    // The snapshot lists the twelve largest tables, not every table: on a freshly seeded database
+    // `users` holds at most one row and falls out of that window. Assert the shape of the result
+    // and a content table that dominates on any seeded database, not one small table's rank.
+    const tables = snapshot.tables.map((table) => table.name)
+    expect(tables.length).toBeGreaterThan(0)
+    expect(tables.length).toBeLessThanOrEqual(12)
+    expect(tables).toContain('articles')
     expect(snapshot.totalBytes).toBeGreaterThan(0)
     expect(snapshot.connections).toBeGreaterThan(0)
     // This database was created by development schema push: nothing is recorded, so every committed

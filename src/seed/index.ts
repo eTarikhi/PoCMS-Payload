@@ -12,6 +12,8 @@ import { articlesData } from './articles.js'
 import { servicesData } from './services.js'
 import { projectsData } from './projects.js'
 import { footerData } from './footer.js'
+import { navigationData } from './navigation.js'
+import { siteSettingsData } from './siteSettings.js'
 
 const collections = ['header', 'about', 'skills', 'experiences', 'educations', 'certificates', 'articles', 'services', 'projects', 'media'] as const
 
@@ -324,6 +326,29 @@ export const seed = async ({
     payload.logger.info(`  ✓ Footer seeded`)
   } catch (error) {
     payload.logger.error(`  Failed to seed footer: ${error instanceof Error ? error.message : String(error)}`)
+  }
+
+  // Navigation and site settings: saved here so the admin shows a filled-in form instead of an
+  // empty global. The public site renders the same values from its fallbacks before seeding.
+  payload.logger.info(`— Seeding navigation and site settings globals...`)
+  for (const [slug, data] of [
+    ['navigation', navigationData()],
+    ['site-settings', siteSettingsData()],
+  ] as const) {
+    try {
+      await payload.updateGlobal({
+        slug,
+        // The two globals have different shapes; the tuple above keeps each call typed to its own.
+        data: data as never,
+        overrideAccess: true,
+        context: { skipAudit: true },
+      })
+      payload.logger.info(`  ✓ ${slug} seeded`)
+    } catch (error) {
+      payload.logger.error(
+        `  Failed to seed ${slug}: ${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
   }
 
   payload.logger.info('✅ Portfolio database seeded successfully!')
