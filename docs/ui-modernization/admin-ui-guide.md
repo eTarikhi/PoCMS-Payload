@@ -324,6 +324,23 @@ switch.
 - The live renderer needs the saved document's `id` (Payload resolves the draft's cover image
   for it), which is why the article view model includes `id`.
 
+## Translations
+
+Every string this repository adds to the admin lives in `src/i18n/en.ts`, under Payload's `custom`
+namespace (`custom:widgets.pageSpeed`, `custom:imageSource.usesUrl`, …). Payload's own interface
+translations are untouched: `src/i18n/index.ts` spreads them and merges `custom` on top, and
+`payload.config.ts` passes the result as `i18n`.
+
+- **Config labels** (dashboard widget labels, widget field labels and their options) use
+  `customLabel('custom:…')` from `src/i18n/labels.ts`. A label function is resolved per request by
+  Payload's `t`, so a language switch would apply immediately; the helper exists because Payload's
+  `t` type only knows its own keys and this version has no augmentation hook.
+- **Client components** call `useCustomT()` (`src/i18n/useCustomT.ts`), the same narrowing for the
+  `useTranslation()` hook.
+- **Coverage.** `tests/int/i18n.int.spec.ts` scans `src` for every `custom:` key and fails if one is
+  not in the catalogue, so a missing string cannot reach a screen. Add a language by adding
+  `src/i18n/<lang>.ts` and an entry in `i18nConfig`; no component changes.
+
 ## Dashboard widgets
 
 Widgets are server components in `src/components/admin/widgets/<Name>/`, registered in

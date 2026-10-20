@@ -2,6 +2,10 @@
 
 import { useEffect } from 'react'
 
+import { useCustomT } from '@/i18n/useCustomT'
+
+import { labelPaginationArrows, PAGINATION_LABELS } from './labels'
+
 /**
  * Gives Payload's list pagination arrows an accessible name.
  *
@@ -16,24 +20,13 @@ import { useEffect } from 'react'
  * Payload version that ships its own label wins. Documented in
  * docs/ui-modernization/admin-ui-guide.md ("Known upstream gaps").
  */
-const LABELS: Record<string, string> = { left: 'Previous page', right: 'Next page' }
-
-/**
- * Labels every unlabelled pagination arrow under `root`. Exported for the unit test; the component
- * calls it on mount and whenever the DOM changes.
- */
-export function labelPaginationArrows(root: ParentNode = document): void {
-  for (const button of root.querySelectorAll<HTMLButtonElement>('button.clickable-arrow')) {
-    if (button.hasAttribute('aria-label')) continue
-    if (button.textContent?.trim()) continue
-    const direction = button.classList.contains('clickable-arrow--left') ? 'left' : 'right'
-    button.setAttribute('aria-label', LABELS[direction])
-  }
-}
+/** Re-exported so existing imports keep working; the implementation is in `./labels`. */
+export { labelPaginationArrows, PAGINATION_LABELS }
 
 export function PaginationLabels() {
+  const t = useCustomT()
   useEffect(() => {
-    labelPaginationArrows(document)
+    labelPaginationArrows(document, t)
     let frame = 0
     // Lists re-render their paginator on every page change and inside drawers, so watch the DOM
     // instead of labelling once. The callback is coalesced into one animation frame.
@@ -41,7 +34,7 @@ export function PaginationLabels() {
       if (frame) return
       frame = requestAnimationFrame(() => {
         frame = 0
-        labelPaginationArrows(document)
+        labelPaginationArrows(document, t)
       })
     })
     observer.observe(document.body, { childList: true, subtree: true })
@@ -49,7 +42,7 @@ export function PaginationLabels() {
       observer.disconnect()
       if (frame) cancelAnimationFrame(frame)
     }
-  }, [])
+  }, [t])
 
   return null
 }

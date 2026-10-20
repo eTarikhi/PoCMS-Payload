@@ -33,6 +33,17 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Added
 
+- **Admin translations with a completeness test (P4.5).** The admin's own strings live in
+  `src/i18n/en.ts` under the `custom` namespace and are registered through `i18n` in
+  `payload.config.ts`: dashboard widget labels, their field labels and options, the image source
+  control and the pagination labels now resolve through Payload's `t`. `customLabel()` and
+  `useCustomT()` narrow the typed `t` in one place (Payload's `t` only knows its own keys), and a
+  test scans the source for every `custom:` key so a missing string fails CI instead of rendering
+  the key.
+- **One control for two image sources (P5.2).** Articles, Projects and the Header show the upload
+  field as `ImageSourceField`: a *Media library* / *External URL* tab pair, a preview, and a line
+  naming which source the site uses. The upload tab renders Payload's own `UploadField`, and the
+  URL inputs write the existing sibling fields, which stay in the API but are hidden in the form.
 - **Navigation and site settings globals, with a maintenance page (CNT / P3.4).** The two 0-byte
   orphan files under `src/globals` are real globals now. **Navigation** stores the brand and the two
   link lists that render around it; empty sides fall back to the original links, so a fresh database

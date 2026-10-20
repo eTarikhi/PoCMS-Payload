@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { labelPaginationArrows } from '@/components/admin/providers/PaginationLabels'
+import { labelPaginationArrows } from '@/components/admin/providers/PaginationLabels/labels'
 
 /**
  * The accessible names for Payload's pagination arrows (known upstream gap, see the component).
@@ -19,7 +19,13 @@ describe('labelPaginationArrows', () => {
         <button class="clickable-arrow clickable-arrow--right" type="button"><svg></svg></button>
       </div>`
 
-    labelPaginationArrows(document)
+    // The component passes Payload's `t`; the test passes the same catalogue, so the label text
+    // stays covered together with the key lookup.
+    const t = (key: string): string => {
+      const [, path] = key.split(':')
+      return path === 'pagination.previous' ? 'Previous page' : 'Next page'
+    }
+    labelPaginationArrows(document, t)
 
     expect(document.querySelector('.clickable-arrow--left')?.getAttribute('aria-label')).toBe(
       'Previous page',
@@ -51,8 +57,18 @@ describe('labelPaginationArrows', () => {
   it('is idempotent', () => {
     document.body.innerHTML =
       '<button class="clickable-arrow clickable-arrow--right" type="button"></button>'
-    labelPaginationArrows(document)
-    labelPaginationArrows(document)
+    const t = () => 'Next page'
+    labelPaginationArrows(document, t)
+    labelPaginationArrows(document, t)
     expect(document.querySelectorAll('[aria-label="Next page"]')).toHaveLength(1)
+  })
+
+  it('falls back to the key when no translator is given (SSR safety)', () => {
+    document.body.innerHTML =
+      '<button class="clickable-arrow clickable-arrow--left" type="button"></button>'
+    labelPaginationArrows(document)
+    expect(document.querySelector('.clickable-arrow--left')?.getAttribute('aria-label')).toBe(
+      'custom:pagination.previous',
+    )
   })
 })

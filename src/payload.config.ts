@@ -17,6 +17,7 @@ import { governedEntities } from './access/permissions'
 import { ensureRoles } from './access/roles'
 import { createRoles } from './collections/Roles'
 import { AuditLogs } from './collections/AuditLogs'
+import { i18nConfig } from './i18n'
 import { Footer } from './globals/Footer'
 import { NavigationGlobal } from './globals/Navigation'
 import { SiteSettings } from './globals/SiteSettings'
@@ -188,6 +189,9 @@ export default buildConfig({
   globals,
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
+  // Our own admin strings, under the `custom` namespace (src/i18n/en.ts). Payload's interface
+  // translations stay as shipped; a second language only needs a new file and an entry here.
+  i18n: i18nConfig,
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
     // Generated files are written only by `pnpm generate:all` (scripts/generate.mjs), so local runs

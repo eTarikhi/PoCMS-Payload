@@ -5,6 +5,7 @@ import { FieldDescription, FieldError, UploadField, useField } from '@payloadcms
 import React, { useId, useState } from 'react'
 
 import { cn } from '@/components/admin/utilities/cn'
+import { useCustomT } from '@/i18n/useCustomT'
 
 /**
  * One picture, two sources (roadmap P5.2).
@@ -31,10 +32,13 @@ export function ImageSourceField({
   path,
   readOnly,
   urlField,
-  urlLabel = 'Image URL',
-  urlDescription = 'Used only when no file is chosen above. Full https:// URL.',
+  urlLabel,
+  urlDescription,
   ...rest
 }: ImageSourceFieldProps) {
+  const t = useCustomT()
+  const resolvedUrlLabel = urlLabel ?? t('custom:imageSource.externalUrlDefault')
+  const resolvedUrlDescription = urlDescription ?? t('custom:imageSource.externalUrlDescription')
   // `path` is passed outright: with `potentiallyStalePath` only, the hook resolves through the
   // surrounding FieldPathContext, which inside a field component is the field's own path — both
   // hooks then read the same field and the control reports the wrong source.
@@ -66,13 +70,13 @@ export function ImageSourceField({
 
       <div
         role="tablist"
-        aria-label="Image source"
+        aria-label={t('custom:imageSource.tabListLabel')}
         className="acn:mt-2 acn:inline-flex acn:gap-1 acn:rounded-lg acn:border acn:border-border acn:bg-muted acn:p-1"
       >
         {(
           [
-            ['upload', 'Media library'],
-            ['url', 'External URL'],
+            ['upload', t('custom:imageSource.mediaLibrary')],
+            ['url', t('custom:imageSource.externalUrl')],
           ] as const
         ).map(([value, label]) => (
           <button
@@ -114,7 +118,7 @@ export function ImageSourceField({
         className="acn:mt-3"
       >
         <label htmlFor={`field-${urlField}-source`} className="field-label">
-          {urlLabel}
+          {resolvedUrlLabel}
         </label>
         {/* Payload renders the real field as a hidden input (admin.hidden); this is its visible
             control. The id is distinct so the two never share one. */}
@@ -132,7 +136,7 @@ export function ImageSourceField({
           className="acn:mt-1 acn:w-full acn:rounded-md acn:border acn:border-border acn:bg-card acn:px-3 acn:py-2 acn:text-sm acn:text-card-foreground"
         />
         <div id={`${urlField}-description`}>
-          <FieldDescription description={urlDescription} path={urlField} />
+          <FieldDescription description={resolvedUrlDescription} path={urlField} />
         </div>
         <FieldError path={urlField} showError={url.showError} message={url.errorMessage} />
 
@@ -147,18 +151,18 @@ export function ImageSourceField({
         ) : null}
         {hasUrl && previewFailed ? (
           <p className="acn:mt-2 acn:text-sm acn:text-destructive">
-            That URL does not load an image.
+            {t('custom:imageSource.brokenUrl')}
           </p>
         ) : null}
       </div>
 
       <p className="acn:mt-3 acn:text-sm acn:text-muted-foreground" data-testid="image-source-status">
         {source === 'upload'
-          ? 'The site uses the media library file.'
+          ? t('custom:imageSource.usesUpload')
           : source === 'url'
-            ? 'The site uses the external URL.'
-            : 'No image yet: the site falls back to its placeholder.'}
-        {hasUpload && hasUrl ? ' The URL is kept but ignored while a file is chosen.' : null}
+            ? t('custom:imageSource.usesUrl')
+            : t('custom:imageSource.usesNothing')}
+        {hasUpload && hasUrl ? ` ${t('custom:imageSource.uploadWins')}` : null}
       </p>
 
       <FieldError path={path} showError={upload.showError} message={upload.errorMessage} />
