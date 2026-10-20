@@ -71,6 +71,10 @@
     --warning: var(--theme-warning-600);
     --warning-soft: var(--theme-warning-100);
     --destructive-soft: var(--theme-error-100);
+    /* Readable destructive text on tinted destructive fills (badges, soft buttons). Step 700
+       flips with the theme like the rest of Payload's status scale: #902c2b on light, #fd9a92
+       on dark. `--destructive` alone fails on the 20% tint in dark mode. */
+    --destructive-emphasis: var(--theme-error-700);
     /* Ratings (Core Web Vitals, scores): the web's green / orange / red convention, 700 shades in
        light mode so they pass as text on the canvas and on cards. */
     --rating-good: #15803d;

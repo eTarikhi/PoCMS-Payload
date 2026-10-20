@@ -701,6 +701,46 @@ pnpm test:visual        # screenshot comparisons
 ```
 
 The e2e axe tests check WCAG 2.2 AA (serious and critical findings) in both themes for the
-component gallery, which renders every custom component, and for the dashboard, the command menu
-and the tile picker fields. Performance budgets and how to measure them are in
-[`perf-budget.md`](./perf-budget.md).
+component gallery, which renders every custom component, and for the dashboard, the command menu,
+the tile picker fields, the audit log, jobs, the system page and the terminal. Performance budgets
+and how to measure them are in [`perf-budget.md`](./perf-budget.md).
+
+### Running Playwright where browsers are not installed
+
+`sandbox` images can lack Playwright's browser download and the system libraries Chromium needs.
+`@sparticuz/chromium` ships a compatible binary plus the Amazon Linux 2023 NSS libraries:
+
+```bash
+npm i @sparticuz/chromium                     # outside the repo, e.g. /tmp/chrome
+node -e "import('@sparticuz/chromium').then(async (m) => console.log(await m.default.executablePath()))"
+# /tmp/chromium, and /tmp/al2023/lib now holds libnspr4, libnss3, ...
+LD_LIBRARY_PATH=/tmp/al2023/lib PLAYWRIGHT_CHROMIUM_EXECUTABLE=/tmp/chromium pnpm test:e2e
+```
+
+`playwright.config.ts` already honours `PLAYWRIGHT_CHROMIUM_EXECUTABLE`. With
+`PLAYWRIGHT_BASE_URL=http://localhost:3000` and `CI=1` the suite runs against a production build
+(`next build` + `next start`) instead of the dev server; seed first (`pnpm seed`) — several suites
+assume the demo content exists. Tests that need the development-only terminal skip themselves when
+the production gate answers 404.
+
+## Known upstream gaps
+
+Payload 3.90 has a few admin gaps this project works around. Each one has a test, so an upgrade
+that fixes it upstream is noticed rather than silently double-fixed.
+
+- **Pagination arrows have no accessible name.** `ClickableArrow` renders a `<button
+  class="clickable-arrow clickable-arrow--left|right">` with an SVG and no text, so axe reports
+  `button-name` (critical) on every paginated list, the media drawer and the relationship pickers.
+  There is no config slot for the paginator, so `providers/PaginationLabels` labels the buttons in
+  the DOM (`aria-label="Previous page"`/`"Next page"`), and only when a button has no name yet — a
+  future Payload version that ships its own label wins. Covered by the axe checks in
+  `tests/e2e/audit-log.e2e.spec.ts`; drop the component once Payload labels the arrows.
+- **The admin template has no `<main>` landmark.** Custom views render `<Gutter>`, not a `<main>`,
+  so axe scans in the e2e tests include the whole document instead of `main`.
+- **A screen-reader-only (`acn:sr-only`) span inside a truncated line anchors to the page.** The
+  span is `position: absolute`; without a positioned ancestor it lands at its static position and
+  widens the document on phones (the responsive test measures `scrollWidth`). Any truncated element
+  that contains sr-only text therefore carries `acn:relative` (`widgets/Deployments`,
+  `widgets/CIStatus`, `widgets/PageSpeed`).
+- **Payload's list toolbar search input is a text field, not a `searchbox`.** Tests look for
+  `getByRole('textbox', { name: /Search by/ })`.

@@ -80,9 +80,15 @@ test.describe('System page', () => {
       }
       // The sidebar links to the page for users who may open it.
       await expect(page.locator('#nav-system')).toBeVisible()
-      // Database card: real tables from the test database.
-      await expect(page.getByTestId('system')).toContainText('users')
-      await expect(page.getByTestId('system')).toContainText('articles')
+      // Database card: real tables from the test database. The card lists the 12 largest, so the
+      // test only requires rows and sizes, not particular names (which database grows fastest
+      // depends on what the suite has written so far).
+      const databaseTable = page.getByTestId('system').locator('table').first()
+      await expect(databaseTable.locator('tbody tr').first()).toBeVisible()
+      await expect(databaseTable.locator('tbody tr')).toHaveCount(12)
+      await expect(
+        databaseTable.locator('tbody tr').first().locator('td').nth(2),
+      ).toHaveText(/\d+(\.\d+)? (B|kB|MB)/)
       // Updates card: both packages, whatever the registry answered.
       await expect(page.getByTestId('system')).toContainText('payload')
       await expect(page.getByTestId('system')).toContainText('next')

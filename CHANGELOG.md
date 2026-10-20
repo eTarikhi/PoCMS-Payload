@@ -6,6 +6,22 @@ modernisation programme; every entry links the roadmap item it closes
 
 ## Unreleased
 
+### Fixed
+
+- **Admin accessibility (WCAG 2.2 AA).** Payload's pagination arrows now have accessible names
+  (`Previous page`, `Next page`) through `providers/PaginationLabels`; the account menu's summary
+  carries its visible initials in its name; a destructive badge uses the new `destructive-emphasis`
+  token so it passes contrast on its own tint in dark mode (`check:contrast` covers the pair); table
+  containers are keyboard-scrollable (`tabIndex`); the Deployments and CI status widgets no longer
+  widen the page on phones because their screen-reader-only suffixes sat in unpositioned truncated
+  lines. The axe tests now also cover the audit log, jobs, system page and terminal.
+- **E2E suite runs in this environment.** `@sparticuz/chromium` plus the Amazon Linux 2023 NSS
+  libraries extracted from it give Playwright a working browser; the whole suite runs against a
+  production build (see `docs/ui-modernization/admin-ui-guide.md`, "Running Playwright where
+  browsers are not installed"). Fixes in the process: the audit log test looked for a `searchbox`
+  (Payload's filter is a text field) and scanned a `main` landmark the admin has; the system page
+  test assumed particular tables among the 12 largest.
+
 ### Added
 
 - **Terminal (E7).** Admin › Terminal (`useTerminal`, development only) runs an allow-listed

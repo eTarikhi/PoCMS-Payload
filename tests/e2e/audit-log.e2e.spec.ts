@@ -44,8 +44,8 @@ test.describe('Audit log', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Audit log' })).toBeVisible()
     await expect(page.locator('tbody')).toContainText('Signed in')
     await expect(page.locator('tbody')).toContainText(testUser.email)
-    // Payload's toolbar is the filter interface.
-    await expect(page.getByRole('searchbox').first()).toBeVisible()
+    // Payload's list toolbar is the filter interface (a text input with a search placeholder).
+    await expect(page.getByRole('textbox', { name: /Search by/ }).first()).toBeVisible()
   })
 
   test('shows the newest entries in the dashboard widget', async ({ page }) => {
@@ -64,8 +64,8 @@ test.describe('Audit log', () => {
     await page.goto(LOG)
     await expect(page.locator('tbody tr').first()).toBeVisible()
 
+    // The admin template has no <main> landmark, so scan the whole document.
     const results = await new AxeBuilder({ page })
-      .include('main')
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
       .analyze()
     const serious = results.violations.filter(

@@ -151,3 +151,39 @@ and CI status widgets, and the Page speed fix.
   components, and the GraphQL tab's client is a lazy chunk loaded only on that tab.
 - 110.1 kB of the JS budget and 20.8 kB of the CSS budget are left for the remaining admin tools
   (jobs, audit log, system page, terminal).
+
+## After the jobs, audit log, system page and terminal (2026-10-20, `6e38888` + this pass)
+
+Measured on production builds (`next build`, `next start`), logged in as an admin, with the demo
+content seeded.
+
+**Build note.** This sandbox cannot reach Google Fonts, so the build needs a mocked font response
+(`NEXT_FONT_GOOGLE_MOCKED_RESPONSES`) and `next build --webpack`: Turbopack's font loader rejects
+the mock. Webpack minifies and splits differently from the Turbopack builds used for the rows
+above, and the absolute numbers come out about 55 kB lower. The table below is therefore measured
+twice with the same setup — the tree before E5 (`6e61ec5`, in a git worktree sharing
+`node_modules`) and this one — and only the difference is compared with the budget.
+
+| Route | JS kB (before E5) | JS kB (now) | Δ | CSS kB (before E5) | CSS kB (now) | Δ |
+|---|---|---|---|---|---|---|
+| `/admin/login` | 619.7 | 619.6 | −0.1 | 65.5 | 65.6 | +0.1 |
+| `/admin` | 629.8 | 629.7 | −0.1 | 65.5 | 65.6 | +0.1 |
+| `/admin/collections/articles` | 630.2 | 630.0 | −0.2 | 65.5 | 65.6 | +0.1 |
+| `/admin/collections/articles/create` | 619.9 | 619.8 | −0.1 | 65.5 | 65.6 | +0.1 |
+| `/admin/gallery` | 731.7 | 732.0 | +0.3 | 65.5 | 65.6 | +0.1 |
+| `/admin/system` (new) | — | 619.6 | 0 | — | 65.6 | +0.1 |
+
+- **The jobs admin, the audit log (collection, widget, plugin), the system page and the terminal
+  cost nothing on the pages everyone loads.** All four are server components or whole views
+  rendered on their own route; the terminal's page shell loads its client console (xterm-free, a
+  plain streamed `<pre>`) only on `/admin/terminal`, which a production build answers with 404.
+- The audit log collection adds Payload's standard list chunk, already counted for other lists
+  (`/admin/collections/*`), and its dashboard widget is server-rendered.
+- The accessibility fixes in this pass add one ~0.5 kB client component to every admin page
+  (`providers/PaginationLabels`); it replaces nothing, and the measured JS is still level with the
+  pre-E5 tree because the E5–E7 chunks are lazy.
+- +0.1 kB CSS: the `destructive-emphasis` token and the table container's focus outline.
+- `/admin/gallery` +0.3 kB: three more registry rows.
+
+Budget status: **unaffected** — the last Turbopack measurement (685.1 kB / 64.4 kB on `/admin`)
+plus a delta of about zero stays inside +150 kB / +40 kB.

@@ -28,10 +28,10 @@ export function AccountMenu() {
   return (
     <details ref={ref} className="acn:relative" data-testid="account-menu">
       <summary
-        aria-label="Account"
         title={name}
         className="acn:flex acn:size-8 acn:cursor-pointer acn:list-none acn:items-center acn:justify-center acn:rounded-full acn:bg-primary acn:text-xs acn:font-semibold acn:text-primary-foreground acn:outline-none acn:focus-visible:ring-3 acn:focus-visible:ring-ring/50 acn:[&::-webkit-details-marker]:hidden"
       >
+        <span className="acn:sr-only">Account menu for {name}. </span>
         {initialsOf(name)}
       </summary>
       <nav

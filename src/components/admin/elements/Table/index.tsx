@@ -6,7 +6,12 @@ import { cn } from '@/components/admin/utilities/cn'
 
 function Table({ className, ...props }: React.ComponentProps<'table'>) {
   return (
-    <div data-slot="table-container" className="acn:relative acn:w-full acn:overflow-x-auto">
+    <div
+      data-slot="table-container"
+      // WCAG 2.2 AA: a region that can scroll sideways must also be reachable with the keyboard.
+      tabIndex={0}
+      className="acn:relative acn:w-full acn:overflow-x-auto acn:focus-visible:outline-2 acn:focus-visible:outline-offset-2 acn:focus-visible:outline-ring"
+    >
       <table
         data-slot="table"
         className={cn('acn:w-full acn:caption-bottom acn:text-sm', className)}

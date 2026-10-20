@@ -12,7 +12,7 @@ const badgeVariants = cva(
         default: 'acn:bg-primary acn:text-primary-foreground acn:[a]:hover:bg-primary/80',
         secondary: 'acn:bg-secondary acn:text-secondary-foreground acn:[a]:hover:bg-secondary/80',
         destructive:
-          'acn:bg-destructive/10 acn:text-destructive acn:focus-visible:ring-destructive/20 acn:dark:bg-destructive/20 acn:dark:focus-visible:ring-destructive/40 acn:[a]:hover:bg-destructive/20',
+          'acn:bg-destructive/10 acn:text-destructive-emphasis acn:focus-visible:ring-destructive/20 acn:dark:bg-destructive/20 acn:dark:focus-visible:ring-destructive/40 acn:[a]:hover:bg-destructive/20',
         outline:
           'acn:border-border acn:text-foreground acn:[a]:hover:bg-muted acn:[a]:hover:text-muted-foreground',
         ghost: 'acn:hover:bg-muted acn:hover:text-muted-foreground acn:dark:hover:bg-muted/50',

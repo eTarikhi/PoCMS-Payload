@@ -109,7 +109,10 @@ export function DeploymentsView({
                       {relativeTime(deployment.createdAt, language)}
                     </time>
                   </div>
-                  <p className="acn:m-0 acn:truncate acn:text-xs acn:text-muted-foreground">
+                  {/* `acn:relative`: the "Visit" link's screen-reader suffix is absolutely
+                      positioned; without a positioned parent it anchors to the page and widens it
+                      on phones (the line truncates, so the suffix must be clipped with it). */}
+                  <p className="acn:relative acn:m-0 acn:truncate acn:text-xs acn:text-muted-foreground">
                     {details.join(' · ')}
                     {deployment.url && deployment.state === 'READY' ? (
                       <>

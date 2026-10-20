@@ -39,6 +39,7 @@ const payload = {
     'elevation-600': '#656565',
     'elevation-800': '#2f2f2f',
     'error-600': '#b63636',
+    'error-700': '#902c2b',
     'error-100': '#fce5e3',
     'success-600': '#0b6e99',
     'success-100': '#daedf8',
@@ -52,6 +53,7 @@ const payload = {
     'elevation-600': '#b5b5b5', // base-300
     'elevation-1000': '#ffffff',
     'error-600': '#f66d67', // flips to error-400
+    'error-700': '#fd9a92', // flips to error-300
     'error-100': '#40201d', // flips to error-900
     'success-600': '#24a4df', // flips to success-400
     'success-100': '#132c3a', // flips to success-900
@@ -73,6 +75,7 @@ const themes = {
     destructive: payload.light['error-600'],
     'destructive-foreground': payload.light['elevation-0'],
     'destructive-soft': payload.light['error-100'],
+    'destructive-emphasis': payload.light['error-700'],
     success: payload.light['success-600'],
     'success-soft': payload.light['success-100'],
     warning: payload.light['warning-600'],
@@ -92,6 +95,7 @@ const themes = {
     destructive: payload.dark['error-600'],
     'destructive-foreground': rootHex['brand-navy-900'],
     'destructive-soft': payload.dark['error-100'],
+    'destructive-emphasis': payload.dark['error-700'],
     success: payload.dark['success-600'],
     'success-soft': payload.dark['success-100'],
     warning: payload.dark['warning-600'],
