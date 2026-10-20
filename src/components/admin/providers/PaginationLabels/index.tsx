@@ -18,18 +18,22 @@ import { useEffect } from 'react'
  */
 const LABELS: Record<string, string> = { left: 'Previous page', right: 'Next page' }
 
-function label(): void {
-  for (const button of document.querySelectorAll<HTMLButtonElement>('button.clickable-arrow')) {
+/**
+ * Labels every unlabelled pagination arrow under `root`. Exported for the unit test; the component
+ * calls it on mount and whenever the DOM changes.
+ */
+export function labelPaginationArrows(root: ParentNode = document): void {
+  for (const button of root.querySelectorAll<HTMLButtonElement>('button.clickable-arrow')) {
     if (button.hasAttribute('aria-label')) continue
-    const direction = button.classList.contains('clickable-arrow--left') ? 'left' : 'right'
     if (button.textContent?.trim()) continue
+    const direction = button.classList.contains('clickable-arrow--left') ? 'left' : 'right'
     button.setAttribute('aria-label', LABELS[direction])
   }
 }
 
 export function PaginationLabels() {
   useEffect(() => {
-    label()
+    labelPaginationArrows(document)
     let frame = 0
     // Lists re-render their paginator on every page change and inside drawers, so watch the DOM
     // instead of labelling once. The callback is coalesced into one animation frame.
@@ -37,7 +41,7 @@ export function PaginationLabels() {
       if (frame) return
       frame = requestAnimationFrame(() => {
         frame = 0
-        label()
+        labelPaginationArrows(document)
       })
     })
     observer.observe(document.body, { childList: true, subtree: true })

@@ -111,3 +111,20 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+      # Visual review: capture every baseline screen (light/dark, 1440/768/375) against the same
+      # production build. Screenshot comparisons are platform-specific, so CI does not assert
+      # pixel equality; the captures are uploaded for review and the suite runs here to prove the
+      # capture path (logins, navigation, both themes) still works. To compare, run
+      # `pnpm test:visual --update-snapshots` on the platform that owns the baselines.
+      - name: Visual captures
+        run: pnpm test:visual
+        env:
+          CAPTURE_DIR: playwright-captures
+          CAPTURE_WIDTHS: '1440,375'
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: visual-captures
+          path: playwright-captures/
+          retention-days: 7
