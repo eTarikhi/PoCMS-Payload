@@ -8,6 +8,10 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Added
 
+- **System page (E6).** Admin › System (`viewSystem`) shows the environment and commit, Node,
+  Next.js, Payload and React versions, which integrations are configured (never their values), the
+  database's size, tables, connections and applied/pending migrations (read-only SELECTs), and the
+  newest `payload`/`next` releases on npm (cached a day).
 - **Audit log (E5).** Admin › Audit log (`viewAuditLog`) records creations, changes, trash, restores,
   permanent deletes and sign-ins for every collection and global, with a per-field change list that
   omits secrets. Entries are append-only and written inside the caller's transaction by

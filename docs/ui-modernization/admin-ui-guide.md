@@ -585,6 +585,23 @@ Adding a capability-guarded tool: add its name to `CAPABILITIES` (`src/access/pe
 the link to `NavExtraLinks` when it has a page of its own, and add it to the role form — the form is
 generated from `CAPABILITIES`.
 
+## System page
+
+Admin › **System** (`/admin/system`, `views/System`, the `viewSystem` capability) is the deployment
+and operations view:
+
+| Card | What it shows |
+| --- | --- |
+| Application | Environment (Vercel production/preview/development, or Node's), commit (Vercel's system variables, or local git in development), Node, Next.js, Payload, React and the app version. |
+| Integrations | Set or missing for the database, Blob, Resend, Vercel, Google, GitHub and cron variables, with what each powers and the variables to set. **Values are never rendered.** |
+| Database | Total size and connections, the largest 12 tables with estimated row counts and size, applied migrations, and the committed migrations this database has not recorded. Read-only SELECTs (`src/system/database.ts`); a failure shows as an error and the rest of the page still renders. |
+| Updates | The newest `payload` and `next` releases on npm, cached a day (`next: { revalidate: 86400, tags: ['npm-versions'] }`), and whether they are newer than the declared versions. |
+
+The pure helpers live in `src/system/status.ts` (integrations, environment, commit, version
+comparison, size formatting) and are covered by `tests/int/system.int.spec.ts`; the page itself is
+covered by `tests/e2e/system.e2e.spec.ts`, which also checks that a signed-in user without the
+capability gets a 404 and that no secret value reaches the page.
+
 ## GraphQL document tab
 
 Every collection and global has a **GraphQL** tab next to Payload's **API** tab

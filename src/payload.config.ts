@@ -119,6 +119,12 @@ export default buildConfig({
           path: '/gallery',
           meta: { title: 'Component gallery' },
         },
+        // Versions, integrations, database health and npm releases (E6, viewSystem capability).
+        system: {
+          Component: '/components/admin/views/System#SystemView',
+          path: '/system',
+          meta: { title: 'System' },
+        },
         // Scheduled maintenance (manageJobs): tasks, Run now, the runs and their outcomes.
         jobs: {
           Component: '/components/admin/views/Jobs#JobsView',
