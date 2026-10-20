@@ -15,15 +15,30 @@ async function open(page: Page, path: string) {
  * Nothing to scroll sideways. Measured against the visual viewport: with mobile emulation, content
  * wider than the screen widens the layout viewport (innerWidth) along with it, so comparing the
  * page with innerWidth never fails.
+ *
+ * On failure the message names the page and the widest elements that stick out, so the CI
+ * annotation says what to fix (the report itself is an artifact that is not always reachable).
  */
-const noSidewaysScroll = (page: Page) =>
-  expect
-    .poll(() =>
-      page.evaluate(
-        () => document.documentElement.scrollWidth - Math.round(window.visualViewport!.width),
-      ),
-    )
-    .toBeLessThanOrEqual(0)
+const overflowReport = (page: Page) =>
+  page.evaluate(() => {
+    const viewport = Math.round(window.visualViewport!.width)
+    const scrollWidth = document.documentElement.scrollWidth
+    if (scrollWidth <= viewport) return null
+    const offenders = [...document.querySelectorAll<HTMLElement>('body *')]
+      .map((element) => ({ element, rect: element.getBoundingClientRect() }))
+      .filter(({ rect }) => rect.right > viewport + 1 || rect.width > viewport + 1)
+      .sort((a, b) => b.rect.right - a.rect.right)
+      .slice(0, 6)
+      .map(({ element, rect }) => {
+        const classes = String(element.className).split(' ').filter(Boolean).slice(0, 3).join('.')
+        const id = element.id ? `#${element.id}` : ''
+        const slot = element.dataset.slot ? `[data-slot=${element.dataset.slot}]` : ''
+        return `<${element.tagName.toLowerCase()}${id}${slot}> ${classes} right=${Math.round(rect.right)} width=${Math.round(rect.width)}`
+      })
+    return { page: location.pathname, viewport, scrollWidth, offenders }
+  })
+
+const noSidewaysScroll = (page: Page) => expect.poll(() => overflowReport(page)).toBeNull()
 
 async function withinViewport(page: Page, selector: string) {
   const width = page.viewportSize()!.width
