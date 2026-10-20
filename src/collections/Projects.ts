@@ -1,4 +1,5 @@
 import { contentAccess, hiddenWithout } from '@/access/roles'
+import { imageSourceField } from './imageSource'
 import type { CollectionConfig } from 'payload'
 import { portfolioAfterChange, portfolioAfterDelete } from '../app/(frontend)/lib/hooks'
 import { orderField } from '../fields/order'
@@ -41,12 +42,19 @@ export const Projects: CollectionConfig = {
       admin: {
         description:
           'Used as the full image when the Image URL below is empty. It is also the thumbnail when the Place Holder Image URL is empty.',
+        components: imageSourceField({
+          urlField: 'src',
+          urlLabel: 'External image URL',
+          urlDescription:
+            'Used only when no project image is chosen above. The Place Holder URL below is the card thumbnail.',
+        }),
       },
     },
     {
       type: 'row',
       fields: [
-        { name: 'src', label: 'Image URL', type: 'text' },
+        // Edited through the Image source control above; kept in the API and hidden in the form.
+        { name: 'src', label: 'Image URL', type: 'text', admin: { hidden: true } },
         { name: 'placeHolder', label: 'Place Holder Image URL', type: 'text' },
       ],
     },

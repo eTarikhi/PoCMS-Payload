@@ -1,4 +1,5 @@
 import { BooleanCell as BooleanCell_c678ed40df2ca062937c6141559e58dc } from '../../../components/admin/fields/Checkbox/Cell'
+import { ImageSourceField as ImageSourceField_ef9574d5c109771073508f0591f09d23 } from '../../../components/admin/fields/ImageSource'
 import { ListSummary as ListSummary_50f80f274e43b32ec92fdc1f4d460a7d } from '../../../components/admin/views/List/ListSummary'
 import { GraphQLDocumentView as GraphQLDocumentView_8745bff9ddc360092ecb4114962825db } from '../../../components/admin/views/GraphQL'
 import { TanStackListView as TanStackListView_75bec65592dc2da1b8ce75c1e9e94fc3 } from '../../../components/admin/views/List'
@@ -42,6 +43,7 @@ import { VercelBlobClientUploadHandler as VercelBlobClientUploadHandler_16c82c5e
 /** @type import('payload').ImportMap */
 export const importMap = {
   "/components/admin/fields/Checkbox/Cell#BooleanCell": BooleanCell_c678ed40df2ca062937c6141559e58dc,
+  "/components/admin/fields/ImageSource#ImageSourceField": ImageSourceField_ef9574d5c109771073508f0591f09d23,
   "/components/admin/views/List/ListSummary#ListSummary": ListSummary_50f80f274e43b32ec92fdc1f4d460a7d,
   "/components/admin/views/GraphQL#GraphQLDocumentView": GraphQLDocumentView_8745bff9ddc360092ecb4114962825db,
   "/components/admin/views/List#TanStackListView": TanStackListView_75bec65592dc2da1b8ce75c1e9e94fc3,

@@ -193,6 +193,9 @@ export interface Article {
    * Minutes. Shown as "{n} min" on the site.
    */
   readTime?: number | null;
+  /**
+   * Shown on the article card and at the top of the article page.
+   */
   image?: (number | null) | Media;
   imageUrl?: string | null;
   /**

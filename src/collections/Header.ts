@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 import { portfolioAfterChange, portfolioAfterDelete } from '../app/(frontend)/lib/hooks'
 import { contentAccess, hiddenWithout } from '../access/roles'
 import { createWhileEmpty } from '../access/singleton'
+import { imageSourceField } from './imageSource'
 
 export const Header: CollectionConfig = {
   slug: 'header',
@@ -31,8 +32,21 @@ export const Header: CollectionConfig = {
   },
   fields: [
     { name: 'sureName', type: 'text', required: true },
-    { name: 'profileImage', type: 'upload', relationTo: 'media' },
-    { name: 'imageUrl', type: 'text' },
+    {
+      name: 'profileImage',
+      type: 'upload',
+      relationTo: 'media',
+      label: 'Profile image',
+      admin: {
+        components: imageSourceField({
+          urlField: 'imageUrl',
+          urlLabel: 'External image URL',
+          urlDescription: 'Used only when no profile image is chosen above.',
+        }),
+      },
+    },
+    // Edited through the Profile image control above; kept in the API and hidden in the form.
+    { name: 'imageUrl', type: 'text', admin: { hidden: true } },
     {
       name: 'requestCV',
       type: 'text',

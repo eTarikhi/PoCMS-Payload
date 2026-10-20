@@ -1,4 +1,5 @@
 import { contentAccess, hiddenWithout } from '@/access/roles'
+import { imageSourceField } from './imageSource'
 import { articlePagePath, hasArticlePage } from '@/app/(frontend)/lib/article-page'
 import type { CollectionConfig } from 'payload'
 import {
@@ -87,8 +88,24 @@ export const Articles: CollectionConfig = {
       min: 1,
       admin: { position: 'sidebar', description: 'Minutes. Shown as "{n} min" on the site.' },
     },
-    { name: 'image', type: 'upload', relationTo: 'media' },
-    { name: 'imageUrl', type: 'text' },
+    {
+      name: 'image',
+      type: 'upload',
+      relationTo: 'media',
+      label: 'Cover image',
+      admin: {
+        description: 'Shown on the article card and at the top of the article page.',
+        // One control for both sources: the upload and the legacy URL below (P5.2).
+        components: imageSourceField({
+          urlField: 'imageUrl',
+          urlLabel: 'External image URL',
+          urlDescription:
+            'Used only when no cover is chosen above. For images hosted outside the media library.',
+        }),
+      },
+    },
+    // Edited through the Image source control above; kept in the API and hidden in the form.
+    { name: 'imageUrl', type: 'text', admin: { hidden: true } },
     {
       name: 'link',
       type: 'text',
