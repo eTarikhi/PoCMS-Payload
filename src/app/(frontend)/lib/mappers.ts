@@ -87,6 +87,32 @@ export const resolveMediaUrl = (media: number | Media | null | undefined): strin
   return media.url ?? null
 }
 
+/**
+ * URL of one of the generated sizes (`thumbnail`, `card`, `og`), or the original when that size is
+ * missing — files uploaded before the size existed, or pictures smaller than the target. Callers
+ * that need exact dimensions (Open Graph) should use `resolveMediaSize` instead.
+ */
+export const resolveMediaUrlSize = (
+  media: number | Media | null | undefined,
+  size: 'thumbnail' | 'card' | 'og',
+): string | null => {
+  if (!media || typeof media !== 'object') return null
+  return media.sizes?.[size]?.url ?? media.url ?? null
+}
+
+/** A generated size with its real dimensions, for tags that require width and height. */
+export const resolveMediaSize = (
+  media: number | Media | null | undefined,
+  size: 'thumbnail' | 'card' | 'og',
+): { url: string; width: number | null; height: number | null } | null => {
+  if (!media || typeof media !== 'object') return null
+  const generated = media.sizes?.[size]
+  if (generated?.url) {
+    return { url: generated.url, width: generated.width ?? null, height: generated.height ?? null }
+  }
+  return media.url ? { url: media.url, width: media.width ?? null, height: media.height ?? null } : null
+}
+
 const idToString = (id: number | string): string => String(id)
 
 const withFallback = (value: string | null | undefined, fallback: string): string =>

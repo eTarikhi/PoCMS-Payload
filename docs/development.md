@@ -8,23 +8,35 @@
 git checkout -b feature/your-feature
 ```
 
-2. Start the app locally.
+2. Prepare the database and start the app locally.
 
 ```bash
+pnpm migrate             # applies src/migrations to your local database
+pnpm seed                # optional: the portfolio content the site expects
 pnpm dev
 ```
 
+   The adapter runs with `push: false` (`src/payload.config.ts`), so **the migrations are the only
+   thing that changes the schema** — development push is off. Pulling a branch that adds a
+   migration means running `pnpm migrate` before the app can use the new columns; a fresh database
+   needs `pnpm migrate` before `pnpm seed` or `pnpm dev`.
+
 3. Make changes and test locally.
 
-4. Add migrations when schema changes require them.
+4. Add a migration when the schema changes.
 
 ```bash
-pnpm dev                 # pushes the schema to your local database
 pnpm migrate:create add_pages   # writes src/migrations/<timestamp>_add_pages.ts
+pnpm migrate                    # apply it locally
 ```
 
    Commit `src/migrations` with the change: the migration is how the schema reaches production.
    See [Deployment → Database migrations](deployment.md#database-migrations) for the deploy step.
+   `pnpm migrate:status` lists applied and pending migrations.
+
+   Media sizes are derived data, not schema: after adding a size in `src/collections/Media.ts` run
+   `pnpm media:regenerate` so files uploaded earlier get the new size too (see
+   `docs/ui-modernization/admin-ui-guide.md` → Media).
 
 5. Commit and push.
 

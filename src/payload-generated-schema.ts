@@ -105,6 +105,16 @@ export const enum_roles_levels_header = pgEnum('enum_roles_levels_header', [
   'full',
 ])
 export const enum_roles_levels_footer = pgEnum('enum_roles_levels_footer', ['none', 'read', 'edit'])
+export const enum_roles_levels_navigation = pgEnum('enum_roles_levels_navigation', [
+  'none',
+  'read',
+  'edit',
+])
+export const enum_roles_levels_site_settings = pgEnum('enum_roles_levels_site_settings', [
+  'none',
+  'read',
+  'edit',
+])
 export const enum_job_runs_task = pgEnum('enum_job_runs_task', [
   'trash-cleanup',
   'pagespeed-report',
@@ -313,6 +323,18 @@ export const media = pgTable(
     sizes_thumbnail_mimeType: varchar('sizes_thumbnail_mime_type'),
     sizes_thumbnail_filesize: numeric('sizes_thumbnail_filesize', { mode: 'number' }),
     sizes_thumbnail_filename: varchar('sizes_thumbnail_filename'),
+    sizes_card_url: varchar('sizes_card_url'),
+    sizes_card_width: numeric('sizes_card_width', { mode: 'number' }),
+    sizes_card_height: numeric('sizes_card_height', { mode: 'number' }),
+    sizes_card_mimeType: varchar('sizes_card_mime_type'),
+    sizes_card_filesize: numeric('sizes_card_filesize', { mode: 'number' }),
+    sizes_card_filename: varchar('sizes_card_filename'),
+    sizes_og_url: varchar('sizes_og_url'),
+    sizes_og_width: numeric('sizes_og_width', { mode: 'number' }),
+    sizes_og_height: numeric('sizes_og_height', { mode: 'number' }),
+    sizes_og_mimeType: varchar('sizes_og_mime_type'),
+    sizes_og_filesize: numeric('sizes_og_filesize', { mode: 'number' }),
+    sizes_og_filename: varchar('sizes_og_filename'),
   },
   (columns) => [
     index('media_updated_at_idx').on(columns.updatedAt),
@@ -322,6 +344,8 @@ export const media = pgTable(
     index('media_sizes_thumbnail_sizes_thumbnail_filename_idx').on(
       columns.sizes_thumbnail_filename,
     ),
+    index('media_sizes_card_sizes_card_filename_idx').on(columns.sizes_card_filename),
+    index('media_sizes_og_sizes_og_filename_idx').on(columns.sizes_og_filename),
   ],
 )
 
@@ -733,6 +757,8 @@ export const roles = pgTable(
     levels_certificates: enum_roles_levels_certificates('levels_certificates').default('none'),
     levels_header: enum_roles_levels_header('levels_header').default('none'),
     levels_footer: enum_roles_levels_footer('levels_footer').default('none'),
+    levels_navigation: enum_roles_levels_navigation('levels_navigation').default('none'),
+    levels_siteSettings: enum_roles_levels_site_settings('levels_site_settings').default('none'),
     capabilities_viewAnalytics: boolean('capabilities_view_analytics').default(false),
     capabilities_viewDeployments: boolean('capabilities_view_deployments').default(false),
     capabilities_viewAuditLog: boolean('capabilities_view_audit_log').default(false),
@@ -1212,6 +1238,68 @@ export const footer_texts = pgTable(
   ],
 )
 
+export const navigation_primary_links = pgTable(
+  'navigation_primary_links',
+  {
+    _order: integer('_order').notNull(),
+    _parentID: integer('_parent_id').notNull(),
+    id: varchar('id').primaryKey(),
+    label: varchar('label').notNull(),
+    href: varchar('href').notNull(),
+    newTab: boolean('new_tab').default(false),
+  },
+  (columns) => [
+    index('navigation_primary_links_order_idx').on(columns._order),
+    index('navigation_primary_links_parent_id_idx').on(columns._parentID),
+    foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [navigation.id],
+      name: 'navigation_primary_links_parent_id_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
+export const navigation_secondary_links = pgTable(
+  'navigation_secondary_links',
+  {
+    _order: integer('_order').notNull(),
+    _parentID: integer('_parent_id').notNull(),
+    id: varchar('id').primaryKey(),
+    label: varchar('label').notNull(),
+    href: varchar('href').notNull(),
+    newTab: boolean('new_tab').default(false),
+  },
+  (columns) => [
+    index('navigation_secondary_links_order_idx').on(columns._order),
+    index('navigation_secondary_links_parent_id_idx').on(columns._parentID),
+    foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [navigation.id],
+      name: 'navigation_secondary_links_parent_id_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
+export const navigation = pgTable('navigation', {
+  id: serial('id').primaryKey(),
+  brand: varchar('brand').default('eTarikhi'),
+  updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 }),
+  createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 }),
+})
+
+export const site_settings = pgTable('site_settings', {
+  id: serial('id').primaryKey(),
+  siteName: varchar('site_name').default('eTarikhi'),
+  supportEmail: varchar('support_email'),
+  maintenance_enabled: boolean('maintenance_enabled').default(false),
+  maintenance_title: varchar('maintenance_title').default('Back soon'),
+  maintenance_message: varchar('maintenance_message').default(
+    'The site is being updated. Everything will be back shortly — thanks for your patience.',
+  ),
+  updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 }),
+  createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 }),
+})
+
 export const relations_articles = relations(articles, ({ one }) => ({
   image: one(media, {
     fields: [articles.image],
@@ -1544,6 +1632,35 @@ export const relations_footer = relations(footer, ({ many }) => ({
     relationName: '_texts',
   }),
 }))
+export const relations_navigation_primary_links = relations(
+  navigation_primary_links,
+  ({ one }) => ({
+    _parentID: one(navigation, {
+      fields: [navigation_primary_links._parentID],
+      references: [navigation.id],
+      relationName: 'primaryLinks',
+    }),
+  }),
+)
+export const relations_navigation_secondary_links = relations(
+  navigation_secondary_links,
+  ({ one }) => ({
+    _parentID: one(navigation, {
+      fields: [navigation_secondary_links._parentID],
+      references: [navigation.id],
+      relationName: 'secondaryLinks',
+    }),
+  }),
+)
+export const relations_navigation = relations(navigation, ({ many }) => ({
+  primaryLinks: many(navigation_primary_links, {
+    relationName: 'primaryLinks',
+  }),
+  secondaryLinks: many(navigation_secondary_links, {
+    relationName: 'secondaryLinks',
+  }),
+}))
+export const relations_site_settings = relations(site_settings, () => ({}))
 
 type DatabaseSchema = {
   enum_articles_category: typeof enum_articles_category
@@ -1563,6 +1680,8 @@ type DatabaseSchema = {
   enum_roles_levels_certificates: typeof enum_roles_levels_certificates
   enum_roles_levels_header: typeof enum_roles_levels_header
   enum_roles_levels_footer: typeof enum_roles_levels_footer
+  enum_roles_levels_navigation: typeof enum_roles_levels_navigation
+  enum_roles_levels_site_settings: typeof enum_roles_levels_site_settings
   enum_job_runs_task: typeof enum_job_runs_task
   enum_job_runs_status: typeof enum_job_runs_status
   enum_job_runs_trigger: typeof enum_job_runs_trigger
@@ -1613,6 +1732,10 @@ type DatabaseSchema = {
   footer_contact_info: typeof footer_contact_info
   footer: typeof footer
   footer_texts: typeof footer_texts
+  navigation_primary_links: typeof navigation_primary_links
+  navigation_secondary_links: typeof navigation_secondary_links
+  navigation: typeof navigation
+  site_settings: typeof site_settings
   relations_articles: typeof relations_articles
   relations_projects_categories: typeof relations_projects_categories
   relations_projects: typeof relations_projects
@@ -1650,6 +1773,10 @@ type DatabaseSchema = {
   relations_footer_contact_info: typeof relations_footer_contact_info
   relations_footer_texts: typeof relations_footer_texts
   relations_footer: typeof relations_footer
+  relations_navigation_primary_links: typeof relations_navigation_primary_links
+  relations_navigation_secondary_links: typeof relations_navigation_secondary_links
+  relations_navigation: typeof relations_navigation
+  relations_site_settings: typeof relations_site_settings
 }
 
 declare module '@payloadcms/db-vercel-postgres' {

@@ -25,6 +25,7 @@
     "start:dev": "cross-env pnpm generate:all && pnpm build:all && pnpm start",
     "restart": "cross-env NODE_OPTIONS=--no-deprecation rm -rf .next && pnpm generate:all && pnpm build:all && pnpm start",
     "seed": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/seed/seed.ts",
+    "media:regenerate": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/scripts/regenerateMedia.ts",
     "migrate": "cross-env NODE_OPTIONS=--no-deprecation payload migrate",
     "migrate:status": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:status",
     "migrate:create": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:create --skip-empty --force-accept-warning",

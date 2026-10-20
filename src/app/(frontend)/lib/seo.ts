@@ -148,14 +148,25 @@ export const buildArticleMetadata = (
   site: string = siteUrl(),
 ): Metadata => {
   const url = articleCanonicalUrl(article.slug, site)
-  const image = article.coverUrl
-    ? { url: absoluteUrl(article.coverUrl, site), alt: article.coverAlt, width: 1140, height: 600 }
-    : {
-        url: `${site}${PROFILE_IMAGE_PATH}`,
-        alt: OWNER,
-        width: PROFILE_IMAGE_WIDTH,
-        height: PROFILE_IMAGE_HEIGHT,
+  // The Open Graph crop (1200x630) carries its own dimensions, which scrapers use for the card
+  // layout. A cover without that size (a legacy text URL, or a picture smaller than 1200x630) is
+  // still the article's image, just without declared dimensions; only articles with no cover at all
+  // show the profile photo.
+  const image = article.coverOg
+    ? {
+        url: absoluteUrl(article.coverOg.url, site),
+        alt: article.coverAlt,
+        ...(article.coverOg.width ? { width: article.coverOg.width } : {}),
+        ...(article.coverOg.height ? { height: article.coverOg.height } : {}),
       }
+    : article.coverUrl
+      ? { url: absoluteUrl(article.coverUrl, site), alt: article.coverAlt }
+      : {
+          url: `${site}${PROFILE_IMAGE_PATH}`,
+          alt: OWNER,
+          width: PROFILE_IMAGE_WIDTH,
+          height: PROFILE_IMAGE_HEIGHT,
+        }
 
   return {
     title: article.title,

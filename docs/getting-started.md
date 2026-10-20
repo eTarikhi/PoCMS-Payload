@@ -84,9 +84,9 @@ openssl rand -base64 32
 
 ### Fresh database
 
-In development (`pnpm dev`, `pnpm seed`) the Postgres adapter pushes the schema automatically, so a
-new empty database needs no extra step. `src/migrations` is git-ignored in this repository; create
-migrations only when you deploy schema changes to a database that does not use push.
+Run `pnpm migrate` first. The Postgres adapter runs with `push: false`, so a new empty database
+gets its schema from `src/migrations` — the same files production runs — and `pnpm dev` or
+`pnpm seed` on an unmigrated database fails instead of silently creating a schema of its own.
 
 ### Create a custom migration
 

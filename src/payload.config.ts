@@ -198,6 +198,12 @@ export default buildConfig({
     pool: {
       connectionString: process.env.POSTGRES_URL || '',
     },
+    // Schema changes go through `src/migrations` only. Development push used to create the schema
+    // from the config on every start, which meant a database's real shape depended on who ran what:
+    // migrations could then fail on columns that already existed, and a deploy built from a
+    // different commit could push a schema nobody reviewed. `pnpm migrate` is now the only writer,
+    // and CI runs it before seeding (`docs/development.md`).
+    push: false,
   }),
   // storage: [
   //   vercelBlobStorage({

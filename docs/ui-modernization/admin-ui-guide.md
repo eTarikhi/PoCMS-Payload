@@ -418,6 +418,26 @@ Prefer server components and native elements for things that render everywhere (
 Budget (raised to +150 kB JS / +40 kB CSS over the P0 baseline) and current numbers:
 [`perf-budget.md`](./perf-budget.md).
 
+## Media
+
+- **Sizes.** Every upload generates three derivatives with sharp (`src/collections/Media.ts`):
+  `thumbnail` 400×300 (admin lists, drawers and relationship pickers only), `card` 800×500 (article
+  and project cards) and `og` 1200×630 (Open Graph and Twitter cards). A picture smaller than a
+  target gets no file for that size (Payload's default `withoutEnlargement`), which is why the
+  mappers always fall back to the original. Article metadata uses `og` when it exists, the original
+  cover otherwise, and the profile photo only when the article has no cover at all.
+- **Focal point.** Enabled on the collection: the editor clicks the part of the picture that must
+  stay in frame, and every crop without an explicit `position` keeps it. `thumbnail` still crops from
+  the centre because it is an admin-only square-ish preview.
+- **Accepted types.** `image/*` plus `application/pdf`, for documents such as a CV. Payload does not
+  resize PDFs; they keep the original only.
+- **Regeneration.** `pnpm media:regenerate` re-uploads every original from `media/` (or `MEDIA_DIR`)
+  through Payload, which writes any size the document is missing — use it after adding a size so
+  files uploaded earlier catch up. `--dry-run` lists the documents without writing, `--only=og`
+  prints a reminder of the size you meant to check. Originals missing from the upload directory are
+  reported and skipped, never deleted. Size files whose size no longer exists stay on disk; remove
+  them by hand if disk use matters.
+
 ## List views
 
 `src/plugins/adminUI.ts` gives every collection the **TanStack list view** unless it defines its own
@@ -548,8 +568,8 @@ Built into Payload 3.9x; the project turns it on and adds the access-level rules
 
 Trash adds schema: a `deleted_at` column on the eight tables. (Saved views, Payload's query
 presets, were tried and removed; their `payload_query_presets` tables are dropped again.)
-Development pushes the schema automatically; for a database without push, create and run a
-migration (`npx payload migrate:create`, then `npx payload migrate`).
+Schema changes are migrations only (the adapter has `push: false`): create one with
+`pnpm migrate:create <name>` and apply it with `pnpm migrate`.
 
 ## Scheduled jobs
 

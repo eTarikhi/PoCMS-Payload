@@ -2,7 +2,7 @@ import type { Article } from '@/payload-types'
 
 import { hasArticlePage, splitArticleBody } from './article-page'
 import { formatDisplayDate, formatReadTime } from './format'
-import { resolveMediaUrl } from './mappers'
+import { resolveMediaSize, resolveMediaUrl } from './mappers'
 
 /** The view model for one article page. Components receive only this, never the Payload document. */
 export type ArticleDetail = {
@@ -19,6 +19,8 @@ export type ArticleDetail = {
   /** e.g. "3 min" */
   readTimeDisplay: string
   coverUrl: string | null
+  /** 1200x630 Open Graph crop of the cover, when the cover has one (Media → sizes.og). */
+  coverOg: { url: string; width: number | null; height: number | null } | null
   /** Alt text from the media record (§9). Falls back to the title. */
   coverAlt: string
   /** The body, split from `description` (§5.3). */
@@ -44,6 +46,8 @@ export const mapArticleDetail = (doc: Article): ArticleDetail | null => {
     publishedDisplay: formatDisplayDate(doc.publishedAt),
     readTimeDisplay: formatReadTime(doc.readTime),
     coverUrl: resolveMediaUrl(doc.image) ?? (doc.imageUrl || null),
+    // A legacy text URL has no generated sizes; the metadata then falls back to the profile image.
+    coverOg: resolveMediaSize(doc.image, 'og'),
     coverAlt: (typeof doc.image === 'object' && doc.image?.alt) || doc.title,
     paragraphs: splitArticleBody(doc.description ?? ''),
     externalLink: doc.link || null,

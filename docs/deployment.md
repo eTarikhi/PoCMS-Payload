@@ -11,10 +11,11 @@ cp .env.example .env   # set PAYLOAD_SECRET
 docker compose up
 ```
 
-The `payload` service runs `pnpm dev`, which pushes the schema to the `postgres` service on first
-start. To load the portfolio content, run in another terminal:
+The `payload` service runs `pnpm dev`. The adapter has development push disabled, so apply the
+schema first, then load the portfolio content:
 
 ```bash
+docker compose exec payload pnpm migrate
 docker compose exec payload pnpm seed
 ```
 
