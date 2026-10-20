@@ -8,6 +8,12 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Fixed
 
+- **Public pages follow edits immediately.** `revalidatePortfolio` now calls
+  `revalidateTag('portfolio', { expire: 0 })` and `revalidatePath` for the home page and the saved
+  article's page. Next 16's `revalidateTag(tag, 'max')` only marked entries stale for
+  stale-while-revalidate, so an edited article kept its old page and a trashed or deleted one kept
+  answering 200 until the cache happened to turn over. Found by the new editor journey test; the
+  revalidate-site endpoint and the jobs endpoint already used `{ expire: 0 }`.
 - **Admin accessibility (WCAG 2.2 AA).** Payload's pagination arrows now have accessible names
   (`Previous page`, `Next page`) through `providers/PaginationLabels`; the account menu's summary
   carries its visible initials in its name; a destructive badge uses the new `destructive-emphasis`

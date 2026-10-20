@@ -2,6 +2,7 @@ import type {
   CollectionAfterChangeHook,
   CollectionAfterDeleteHook,
   CollectionBeforeValidateHook,
+  CollectionConfig,
   GlobalAfterChangeHook,
 } from 'payload'
 
@@ -9,21 +10,33 @@ import { revalidatePortfolio } from './revalidate'
 import { slugify, withUniqueSuffix } from './slug'
 
 /**
- * Hooks that refresh the home-page cache when editors change content.
+ * The routes a change affects: the home page always (every collection feeds it), plus the article
+ * page when an article with a slug was saved or deleted.
+ */
+const affectedPaths = (collection?: CollectionConfig, doc?: { slug?: string | null }): string[] => {
+  const paths = ['/']
+  if (collection?.slug === 'articles' && typeof doc?.slug === 'string' && doc.slug) {
+    paths.push(`/articles/${doc.slug}`)
+  }
+  return paths
+}
+
+/**
+ * Hooks that refresh the public site's cache when editors change content.
  *
  * Attach `portfolioAfterChange` and `portfolioAfterDelete` to every content collection and the
  * `footer` global. Each hook makes one `revalidatePortfolio()` call, which never throws, so a failed
  * refresh cannot fail the save (roadmap §3.2).
  */
-export const portfolioAfterChange: CollectionAfterChangeHook & GlobalAfterChangeHook = ({
-  doc,
-}) => {
-  revalidatePortfolio()
-  return doc
+export const portfolioAfterChange: CollectionAfterChangeHook & GlobalAfterChangeHook = (args) => {
+  // Global hooks pass `global`, collection hooks pass `collection`; only the latter can be an article.
+  const collection = 'collection' in args ? (args.collection as CollectionConfig) : undefined
+  revalidatePortfolio(affectedPaths(collection, args.doc as { slug?: string | null }))
+  return args.doc
 }
 
-export const portfolioAfterDelete: CollectionAfterDeleteHook = ({ doc }) => {
-  revalidatePortfolio()
+export const portfolioAfterDelete: CollectionAfterDeleteHook = ({ collection, doc }) => {
+  revalidatePortfolio(affectedPaths(collection, doc as { slug?: string | null }))
   return doc
 }
 
