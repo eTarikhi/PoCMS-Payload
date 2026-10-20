@@ -5,7 +5,7 @@ import { defineConfig, devices } from '@playwright/test'
  * https://github.com/motdotla/dotenv
  */
 import 'dotenv/config'
-
+const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000'
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -30,7 +30,12 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'], channel: 'chromium' },
+      use: {
+        ...devices['Desktop Chrome'],
+        ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE
+          ? { launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } }
+          : { channel: 'chromium' }),
+      },
     },
   ],
   webServer: {

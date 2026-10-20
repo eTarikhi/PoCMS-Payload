@@ -19,7 +19,7 @@ export function Logo() {
         <span className="acn:text-2xl acn:font-semibold acn:tracking-tight acn:text-foreground">
           PoCMS
         </span>
-        <span className="acn:text-sm acn:text-muted-foreground">eTarikhi portfolio admin</span>
+        <span className="acn:text-sm acn:text-muted-foreground">Portfolio Content Management System with Payload</span>
       </div>
     </div>
   )

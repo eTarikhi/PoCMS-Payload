@@ -9,7 +9,7 @@ import { buttonVariants } from '@/components/admin/elements/Button'
 
 import { ElementsLazy } from './ElementsLazy'
 import { FieldsPreview, GraphicsPreview, ListPreview, WidgetsPreview } from './previews'
-import { RegistryTables } from './Registry'
+import { RegistryTables } from './GalleryRegistry'
 import { collectRegistry } from './registry'
 import { GallerySection } from './Section'
 

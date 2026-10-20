@@ -56,8 +56,19 @@ const eslintConfig = [
     },
   },
   {
-    ignores: ['.next/', 'src/payload-types.ts', 'src/payload-generated-schema.ts'],
-    ignores: ['.next/', 'vTarikhi/', 'src/payload-types.ts', 'src/payload-generated-schema.ts'],
+    ignores: [
+      '.next/',
+      'node_modules/',
+      'media/',
+      'public/',
+      'playwright-report/',
+      'test-results/',
+      'vTarikhi/',
+      'src/migrations/',
+      'src/payload-types.ts',
+      'src/payload-generated-schema.ts',
+      'src/app/(payload)/admin/importMap.js',
+    ],
   },
 ]
 

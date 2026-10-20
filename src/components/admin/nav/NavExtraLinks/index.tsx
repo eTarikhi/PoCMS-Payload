@@ -30,7 +30,7 @@ export function NavExtraLinks({ payload, user }: ServerProps) {
           href={`${payload.config.routes.admin}/gallery`}
           id="nav-gallery"
         >
-          <span className="nav__link-label">Component gallery</span>
+          <span className="nav__link-label">Components</span>
         </Link>
       ) : null}
     </div>

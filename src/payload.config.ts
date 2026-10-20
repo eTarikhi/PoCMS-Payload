@@ -50,11 +50,11 @@ const contentCollections = [
   Projects,
   Media,
   About,
-  Services,
-  Skills,
   Experiences,
   Educations,
   Certificates,
+  Services,
+  Skills,
   Header,
 ]
 

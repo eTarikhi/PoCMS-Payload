@@ -9,3 +9,6 @@ onlyBuiltDependencies:
   - sharp
   - esbuild
   - sunrs-resolver
+
+minimumReleaseAgeExclude:
+  - '@axe-core/playwright@4.14.0'
