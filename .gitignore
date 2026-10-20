@@ -48,7 +48,7 @@ node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
-/src/migrations
+# Migrations are source: they deploy schema changes to databases without push.
 test.env
 src/seed/portfolio-data.json
 /.kilo

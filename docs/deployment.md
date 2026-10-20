@@ -48,6 +48,38 @@ The docker environment is intended to provide:
      repository). See `.env.example` for how to create each one.
 4. Deploy the application.
 
+## Database migrations
+
+The schema is committed as migrations in `src/migrations`, generated from `payload.config.ts`. A
+database never changes through a deploy: migrations are applied deliberately, so a failed deploy
+cannot leave the schema half-applied.
+
+| Situation | Command |
+| --- | --- |
+| Fresh, empty database | `pnpm migrate` (applies the baseline and everything after it) |
+| Database created by development schema push (this project's Neon database, a restored copy) | `pnpm migrate:adopt` once, then `pnpm migrate` after each deploy that adds a migration |
+| Checking what is applied | `pnpm migrate:status` (also in the admin: Developer tools → Migration status) |
+| After changing collections, globals or fields | `pnpm dev` in development, then `pnpm migrate:create <name>` and commit `src/migrations` |
+
+`pnpm migrate:adopt` records the `*_baseline` migration as applied without running it, because the
+tables already exist. It is safe to run twice: the second run only reports the state. `--dry-run`
+prints the plan, `--name <migration>` targets a different migration.
+
+### Deployment step (Vercel)
+
+Vercel builds must not touch the production schema: preview builds often lack `POSTGRES_URL`, and a
+build-time migration would run once per preview. Instead:
+
+1. Add the production connection string as the repository secret `POSTGRES_URL` and enable the
+   `production-db` environment for approval (Settings → Environments).
+2. After a deploy that includes new files in `src/migrations`, run **Actions → Migrate database →
+   Run workflow**. The job prints `migrate:status`, runs `payload migrate` and prints the status
+   again; `status_only` only inspects the database.
+3. Redeploy if the new code requires the new schema before it can serve traffic (additive changes
+   usually do not: old code ignores new columns).
+
+Locally, `pnpm migrate` uses `POSTGRES_URL` from `.env`; never commit that file.
+
 ## Production environment checklist
 
 Before deployment, verify the following:

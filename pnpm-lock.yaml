@@ -147,6 +147,9 @@ importers:
       jsdom:
         specifier: 28.0.0
         version: 28.0.0(supports-color@7.2.0)
+      pg:
+        specifier: 8.20.0
+        version: 8.20.0
       prettier:
         specifier: ^3.4.2
         version: 3.9.9

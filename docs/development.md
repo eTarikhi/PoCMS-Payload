@@ -19,8 +19,12 @@ pnpm dev
 4. Add migrations when schema changes require them.
 
 ```bash
-npx payload migrate:create
+pnpm dev                 # pushes the schema to your local database
+pnpm migrate:create add_pages   # writes src/migrations/<timestamp>_add_pages.ts
 ```
+
+   Commit `src/migrations` with the change: the migration is how the schema reaches production.
+   See [Deployment → Database migrations](deployment.md#database-migrations) for the deploy step.
 
 5. Commit and push.
 
