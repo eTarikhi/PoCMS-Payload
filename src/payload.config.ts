@@ -23,6 +23,7 @@ import { Users } from './collections/Users'
 import { devGenerateEndpoint } from './endpoints/devGenerate'
 import { jobsCancelEndpoint, jobsCronEndpoint, jobsRunEndpoint } from './endpoints/jobs'
 import { devMigrateEndpoint } from './endpoints/devMigrate'
+import { devTerminalEndpoint } from './endpoints/devTerminal'
 import { devRestartEndpoint } from './endpoints/devRestart'
 import { migrationStatusEndpoint } from './endpoints/migrationStatus'
 import { purgePagesEndpoint } from './endpoints/purgePages'
@@ -125,6 +126,12 @@ export default buildConfig({
           path: '/system',
           meta: { title: 'System' },
         },
+        // Allow-listed package scripts with streamed output (E7). Development only.
+        terminal: {
+          Component: '/components/admin/views/Terminal#TerminalView',
+          path: '/terminal',
+          meta: { title: 'Terminal' },
+        },
         // Scheduled maintenance (manageJobs): tasks, Run now, the runs and their outcomes.
         jobs: {
           Component: '/components/admin/views/Jobs#JobsView',
@@ -209,6 +216,7 @@ export default buildConfig({
     jobsCancelEndpoint,
     jobsCronEndpoint,
     // Development only (they return 404 in production).
+    devTerminalEndpoint,
     resetBundlerCacheEndpoint,
     devGenerateEndpoint,
     devMigrateEndpoint,

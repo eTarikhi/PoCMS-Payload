@@ -4,6 +4,9 @@
  * and a future CLI share one source of truth. No value of a secret is ever returned.
  */
 
+/** Environment variables, as `process.env` or a literal in a test. */
+export type Env = Record<string, string | undefined>
+
 export type IntegrationStatus = {
   name: string
   label: string
@@ -15,10 +18,10 @@ export type IntegrationStatus = {
   powers: string
 }
 
-const isSet = (env: NodeJS.ProcessEnv, name: string) => Boolean(env[name]?.trim())
+const isSet = (env: Env, name: string) => Boolean(env[name]?.trim())
 
 /** Integrations, each with the variables it needs (see .env.example). */
-export function integrationStatuses(env: NodeJS.ProcessEnv = process.env): IntegrationStatus[] {
+export function integrationStatuses(env: Env = process.env): IntegrationStatus[] {
   const status = (
     name: string,
     label: string,
@@ -66,7 +69,7 @@ const environmentLabel = (value: string | undefined): EnvironmentInfo['label'] |
 }
 
 /** Where this copy runs: Vercel's environment when present, otherwise NODE_ENV. */
-export function environmentInfo(env: NodeJS.ProcessEnv = process.env): EnvironmentInfo {
+export function environmentInfo(env: Env = process.env): EnvironmentInfo {
   const vercel = environmentLabel(env.VERCEL_ENV)
   if (vercel) {
     const url = env.VERCEL_URL?.trim()
@@ -90,7 +93,7 @@ export type CommitInfo = {
 
 /** The deployed commit: Vercel's system variables, or what the view reads from local git. */
 export function commitInfo(
-  env: NodeJS.ProcessEnv = process.env,
+  env: Env = process.env,
   local?: { short: string; full: string; message: string } | null,
 ): CommitInfo {
   const sha = env.VERCEL_GIT_COMMIT_SHA?.trim()

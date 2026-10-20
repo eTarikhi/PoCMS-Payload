@@ -60,7 +60,8 @@ src/components/admin/
 │   ├── List/               index.tsx (TanStack list view), DataTable.tsx via DataTableLazy.tsx,
 │   │                       ListSummary.tsx + summaryFacts.ts (beforeListTable)
 │   ├── SingletonList/      list view of Header and About: redirects to the one document
-│   └── System/             /admin/system: versions, integrations, database and npm releases
+│   ├── System/             /admin/system: versions, integrations, database and npm releases
+│   └── Terminal/           /admin/terminal (development only): index.tsx, TerminalLazy.tsx → Console.tsx
 └── widgets/
     ├── config.ts           widget definitions and the default layout (imported by payload.config.ts)
     ├── AuditLog/           audit-log (viewAuditLog capability)

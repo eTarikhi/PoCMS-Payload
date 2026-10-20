@@ -8,6 +8,11 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Added
 
+- **Terminal (E7).** Admin › Terminal (`useTerminal`, development only) runs an allow-listed
+  package script — lint, typecheck, both admin checks, `generate:all`, `migrate:status`,
+  `test:int` — through `POST /api/dev/terminal` and streams its output. Production builds answer
+  404; the allow-list is compiled and the endpoint spawns `pnpm` without a shell. Security review in
+  `docs/ui-modernization/terminal-security.md`.
 - **System page (E6).** Admin › System (`viewSystem`) shows the environment and commit, Node,
   Next.js, Payload and React versions, which integrations are configured (never their values), the
   database's size, tables, connections and applied/pending migrations (read-only SELECTs), and the

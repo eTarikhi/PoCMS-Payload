@@ -602,6 +602,27 @@ comparison, size formatting) and are covered by `tests/int/system.int.spec.ts`; 
 covered by `tests/e2e/system.e2e.spec.ts`, which also checks that a signed-in user without the
 capability gets a 404 and that no secret value reaches the page.
 
+## Terminal (development only)
+
+Admin › **Terminal** (`/admin/terminal`, `views/Terminal`, the `useTerminal` capability) runs one
+of the project's package scripts and streams its output. A production build answers 404 on the page
+and on the endpoint, whatever the user's roles.
+
+- **The allow-list is code.** `src/terminal/scripts.ts` declares each slug, label, description,
+  `pnpm run` arguments and timeout. The browser posts a slug to `POST /api/dev/terminal`; the
+  endpoint (`src/endpoints/devTerminal.ts`) looks it up, spawns `pnpm` without a shell in the
+  repository root and streams stdout/stderr as `text/plain`. Time out and browser disconnects kill
+  the process (`SIGTERM`, then `SIGKILL`).
+- **What is on the list:** lint, typecheck, the two admin checks, `generate:all` (marked as writing
+  files), `migrate:status` and `test:int`. The dev server, the build, `seed` and `migrate` are
+  deliberately absent.
+- **The console is a lazy client chunk** (`TerminalLazy` → `Console.tsx`), so Payload's single admin
+  route does not ship it to every page. Output is plain text in a `<pre role="log">`.
+- **Security review:** [terminal-security.md](./terminal-security.md) (threat model, controls,
+  residual risks, checklist). The unit tests in `tests/int/terminal.int.spec.ts` assert the
+  allow-list shape and the production gate; `tests/e2e/terminal.e2e.spec.ts` runs a script in
+  development and skips in the CI production build.
+
 ## GraphQL document tab
 
 Every collection and global has a **GraphQL** tab next to Payload's **API** tab

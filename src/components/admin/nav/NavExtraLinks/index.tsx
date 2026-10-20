@@ -3,6 +3,7 @@ import Link from 'next/link'
 import React from 'react'
 
 import { hasCapability } from '@/access/permissions'
+import { isTerminalEnabled } from '@/terminal/scripts'
 
 /**
  * `admin.components.afterNavLinks`: "View site" for everyone and the component gallery for admins, styled with
@@ -32,6 +33,15 @@ export function NavExtraLinks({ payload, user }: ServerProps) {
       {hasCapability(user, 'viewSystem') ? (
         <Link className="nav__link" href={`${payload.config.routes.admin}/system`} id="nav-system">
           <span className="nav__link-label">System</span>
+        </Link>
+      ) : null}
+      {hasCapability(user, 'useTerminal') && isTerminalEnabled() ? (
+        <Link
+          className="nav__link"
+          href={`${payload.config.routes.admin}/terminal`}
+          id="nav-terminal"
+        >
+          <span className="nav__link-label">Terminal</span>
         </Link>
       ) : null}
       {hasCapability(user, 'useDeveloperTools') ? (
