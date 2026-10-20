@@ -554,9 +554,36 @@ list, so nothing else changes; run `pnpm generate:all` for the new select option
 `pnpm typecheck && pnpm test:int`. `tests/int/jobs.int.spec.ts` covers the queue, the permanent
 deletion, the cron secret and the access rules.
 
-The audit log (E5), the System page (E6) and the terminal (E7) use the same capability model; see
-[`docs/ui-modernization/dashboard-integrations.md`](./dashboard-integrations.md) for the outside
-services the widgets and tasks call.
+## Audit log
+
+Admin › **Audit log** (`/admin/collections/audit-logs`, the `viewAuditLog` capability) lists who
+created, changed, trashed, restored or permanently deleted a document, and who signed in or out.
+The dashboard's **Audit log** widget shows the same entries, newest first.
+
+- **Every content collection and global is audited automatically.** `auditLogPlugin`
+  (`src/plugins/auditLog.ts`) appends `afterChange` and `afterDelete` hooks to each collection and
+  an `afterChange` hook to each global; auth collections also get `afterLogin`/`afterLogout`. A new
+  collection therefore needs no audit code. Opt out with `custom: { audit: false }` on the entity,
+  or `context: { skipAudit: true }` on a Local API call (the seed uses this).
+- **The entries are append-only.** `src/collections/AuditLogs.ts` allows reads with the capability
+  and denies create, update and delete to everyone; only the server writes, through the Local API
+  with `overrideAccess`. There are no drafts and no trash.
+- **The change list is safe and small.** `src/audit/record.ts` compares the top-level fields of the
+  previous and new document, keeps at most 25 fields and 160 characters per value, and never records
+  names that look like secrets (`password`, `salt`, `token`, `apiKey`, …). The account is stored as
+  an id and an email snapshot, not a relationship, so an entry survives deleting the account.
+- **Writes join the caller's transaction.** The recorder passes the caller's `req`, so a
+  rolled-back change leaves no entry, and the insert cannot deadlock on a row the change still
+  holds. A failed log write is logged and never fails the content change.
+- **Payload's list does the filtering.** The collection sets `listSearchableFields`
+  (`summary`, `documentTitle`, `userEmail`, `entity`) and default columns, so search, filters,
+  sorting and pagination are Payload's own; the sidebar entry is hidden from users without the
+  capability.
+
+Adding a capability-guarded tool: add its name to `CAPABILITIES` (`src/access/permissions.ts`), use
+`hasCapability(req.user, '…')` in the view and `capabilityAccess('…')` in a collection's access, add
+the link to `NavExtraLinks` when it has a page of its own, and add it to the role form — the form is
+generated from `CAPABILITIES`.
 
 ## GraphQL document tab
 

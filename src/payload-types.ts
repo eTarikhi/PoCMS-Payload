@@ -81,6 +81,7 @@ export interface Config {
     roles: Role;
     'job-runs': JobRun;
     'pagespeed-reports': PagespeedReport;
+    'audit-logs': AuditLog;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -106,6 +107,7 @@ export interface Config {
     roles: RolesSelect<false> | RolesSelect<true>;
     'job-runs': JobRunsSelect<false> | JobRunsSelect<true>;
     'pagespeed-reports': PagespeedReportsSelect<false> | PagespeedReportsSelect<true>;
+    'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -132,6 +134,7 @@ export interface Config {
     'page-speed': PageSpeedWidget;
     deployments: DeploymentsWidget;
     'ci-status': CiStatusWidget;
+    'audit-log': AuditLogWidget;
     collections: CollectionsWidget;
   };
   user: User;
@@ -648,6 +651,51 @@ export interface PagespeedReport {
   createdAt: string;
 }
 /**
+ * Every content change, deletion, trash, restore and sign-in, newest first. Entries are written by the server and cannot be changed or deleted here.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-logs".
+ */
+export interface AuditLog {
+  id: number;
+  action: 'create' | 'update' | 'trash' | 'restore' | 'delete' | 'login' | 'logout';
+  /**
+   * One line: who did what to which document.
+   */
+  summary: string;
+  /**
+   * Collection or global slug.
+   */
+  entity: string;
+  entityLabel?: string | null;
+  entityKind?: ('collection' | 'global') | null;
+  documentId?: string | null;
+  documentTitle?: string | null;
+  /**
+   * Id of the account that acted. A plain id, not a relationship: the entry outlives the account.
+   */
+  userId?: string | null;
+  userEmail?: string | null;
+  /**
+   * Caller address, when known.
+   */
+  ip?: string | null;
+  /**
+   * Fields that changed, with their previous and new value (sensitive fields and long values are left out).
+   */
+  changes?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -726,6 +774,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'pagespeed-reports';
         value: number | PagespeedReport;
+      } | null)
+    | ({
+        relationTo: 'audit-logs';
+        value: number | AuditLog;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1079,6 +1131,25 @@ export interface PagespeedReportsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-logs_select".
+ */
+export interface AuditLogsSelect<T extends boolean = true> {
+  action?: T;
+  summary?: T;
+  entity?: T;
+  entityLabel?: T;
+  entityKind?: T;
+  documentId?: T;
+  documentTitle?: T;
+  userId?: T;
+  userEmail?: T;
+  ip?: T;
+  changes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
 export interface PayloadKvSelect<T extends boolean = true> {
@@ -1399,6 +1470,16 @@ export interface CiStatusWidget {
     [k: string]: unknown;
   };
   width: 'small' | 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-log_widget".
+ */
+export interface AuditLogWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

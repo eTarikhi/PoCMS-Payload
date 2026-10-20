@@ -57,6 +57,10 @@ type Query {
   PagespeedReports(draft: Boolean, where: PagespeedReport_where, limit: Int, page: Int, pagination: Boolean, select: Boolean, sort: String, trash: Boolean): PagespeedReports
   countPagespeedReports(draft: Boolean, trash: Boolean, where: PagespeedReport_where): countPagespeedReports
   docAccessPagespeedReport(id: Int!): pagespeed_reportsDocAccess
+  AuditLog(id: Int!, draft: Boolean, select: Boolean, trash: Boolean): AuditLog
+  AuditLogs(draft: Boolean, where: AuditLog_where, limit: Int, page: Int, pagination: Boolean, select: Boolean, sort: String, trash: Boolean): AuditLogs
+  countAuditLogs(draft: Boolean, trash: Boolean, where: AuditLog_where): countAuditLogs
+  docAccessAuditLog(id: Int!): audit_logsDocAccess
   PayloadKv(id: Int!, draft: Boolean, select: Boolean, trash: Boolean): PayloadKv
   PayloadKvs(draft: Boolean, where: PayloadKv_where, limit: Int, page: Int, pagination: Boolean, select: Boolean, sort: String, trash: Boolean): PayloadKvs
   countPayloadKvs(draft: Boolean, trash: Boolean, where: PayloadKv_where): countPayloadKvs
@@ -8417,6 +8421,616 @@ type PagespeedReportsDeleteDocAccess {
   where: JSONObject
 }
 
+type AuditLog {
+  id: Int!
+  action: AuditLog_action!
+  summary: String!
+  entity: String!
+  entityLabel: String
+  entityKind: AuditLog_entityKind
+  documentId: String
+  documentTitle: String
+  userId: String
+  userEmail: String
+  ip: String
+  changes: JSON
+  updatedAt: DateTime
+  createdAt: DateTime
+}
+
+enum AuditLog_action {
+  create
+  update
+  trash
+  restore
+  delete
+  login
+  logout
+}
+
+enum AuditLog_entityKind {
+  collection
+  global
+}
+
+type AuditLogs {
+  docs: [AuditLog!]!
+  hasNextPage: Boolean!
+  hasPrevPage: Boolean!
+  limit: Int!
+  nextPage: Int
+  offset: Int
+  page: Int!
+  pagingCounter: Int!
+  prevPage: Int
+  totalDocs: Int!
+  totalPages: Int!
+}
+
+input AuditLog_where {
+  action: AuditLog_action_operator
+  summary: AuditLog_summary_operator
+  entity: AuditLog_entity_operator
+  entityLabel: AuditLog_entityLabel_operator
+  entityKind: AuditLog_entityKind_operator
+  documentId: AuditLog_documentId_operator
+  documentTitle: AuditLog_documentTitle_operator
+  userId: AuditLog_userId_operator
+  userEmail: AuditLog_userEmail_operator
+  ip: AuditLog_ip_operator
+  changes: AuditLog_changes_operator
+  updatedAt: AuditLog_updatedAt_operator
+  createdAt: AuditLog_createdAt_operator
+  id: AuditLog_id_operator
+  AND: [AuditLog_where_and]
+  OR: [AuditLog_where_or]
+}
+
+input AuditLog_action_operator {
+  equals: AuditLog_action_Input
+  not_equals: AuditLog_action_Input
+  in: [AuditLog_action_Input]
+  not_in: [AuditLog_action_Input]
+  all: [AuditLog_action_Input]
+}
+
+enum AuditLog_action_Input {
+  create
+  update
+  trash
+  restore
+  delete
+  login
+  logout
+}
+
+input AuditLog_summary_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+}
+
+input AuditLog_entity_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+}
+
+input AuditLog_entityLabel_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
+}
+
+input AuditLog_entityKind_operator {
+  equals: AuditLog_entityKind_Input
+  not_equals: AuditLog_entityKind_Input
+  in: [AuditLog_entityKind_Input]
+  not_in: [AuditLog_entityKind_Input]
+  all: [AuditLog_entityKind_Input]
+  exists: Boolean
+}
+
+enum AuditLog_entityKind_Input {
+  collection
+  global
+}
+
+input AuditLog_documentId_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
+}
+
+input AuditLog_documentTitle_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
+}
+
+input AuditLog_userId_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
+}
+
+input AuditLog_userEmail_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
+}
+
+input AuditLog_ip_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
+}
+
+input AuditLog_changes_operator {
+  equals: JSON
+  not_equals: JSON
+  like: JSON
+  contains: JSON
+  within: JSON
+  intersects: JSON
+  exists: Boolean
+}
+
+input AuditLog_updatedAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+  exists: Boolean
+}
+
+input AuditLog_createdAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+  exists: Boolean
+}
+
+input AuditLog_id_operator {
+  equals: Int
+  not_equals: Int
+  greater_than_equal: Int
+  greater_than: Int
+  less_than_equal: Int
+  less_than: Int
+  exists: Boolean
+}
+
+input AuditLog_where_and {
+  action: AuditLog_action_operator
+  summary: AuditLog_summary_operator
+  entity: AuditLog_entity_operator
+  entityLabel: AuditLog_entityLabel_operator
+  entityKind: AuditLog_entityKind_operator
+  documentId: AuditLog_documentId_operator
+  documentTitle: AuditLog_documentTitle_operator
+  userId: AuditLog_userId_operator
+  userEmail: AuditLog_userEmail_operator
+  ip: AuditLog_ip_operator
+  changes: AuditLog_changes_operator
+  updatedAt: AuditLog_updatedAt_operator
+  createdAt: AuditLog_createdAt_operator
+  id: AuditLog_id_operator
+  AND: [AuditLog_where_and]
+  OR: [AuditLog_where_or]
+}
+
+input AuditLog_where_or {
+  action: AuditLog_action_operator
+  summary: AuditLog_summary_operator
+  entity: AuditLog_entity_operator
+  entityLabel: AuditLog_entityLabel_operator
+  entityKind: AuditLog_entityKind_operator
+  documentId: AuditLog_documentId_operator
+  documentTitle: AuditLog_documentTitle_operator
+  userId: AuditLog_userId_operator
+  userEmail: AuditLog_userEmail_operator
+  ip: AuditLog_ip_operator
+  changes: AuditLog_changes_operator
+  updatedAt: AuditLog_updatedAt_operator
+  createdAt: AuditLog_createdAt_operator
+  id: AuditLog_id_operator
+  AND: [AuditLog_where_and]
+  OR: [AuditLog_where_or]
+}
+
+type countAuditLogs {
+  totalDocs: Int
+}
+
+type audit_logsDocAccess {
+  fields: AuditLogsDocAccessFields
+  create: AuditLogsCreateDocAccess
+  read: AuditLogsReadDocAccess
+  update: AuditLogsUpdateDocAccess
+  delete: AuditLogsDeleteDocAccess
+}
+
+type AuditLogsDocAccessFields {
+  action: AuditLogsDocAccessFields_action
+  summary: AuditLogsDocAccessFields_summary
+  entity: AuditLogsDocAccessFields_entity
+  entityLabel: AuditLogsDocAccessFields_entityLabel
+  entityKind: AuditLogsDocAccessFields_entityKind
+  documentId: AuditLogsDocAccessFields_documentId
+  documentTitle: AuditLogsDocAccessFields_documentTitle
+  userId: AuditLogsDocAccessFields_userId
+  userEmail: AuditLogsDocAccessFields_userEmail
+  ip: AuditLogsDocAccessFields_ip
+  changes: AuditLogsDocAccessFields_changes
+  updatedAt: AuditLogsDocAccessFields_updatedAt
+  createdAt: AuditLogsDocAccessFields_createdAt
+}
+
+type AuditLogsDocAccessFields_action {
+  create: AuditLogsDocAccessFields_action_Create
+  read: AuditLogsDocAccessFields_action_Read
+  update: AuditLogsDocAccessFields_action_Update
+  delete: AuditLogsDocAccessFields_action_Delete
+}
+
+type AuditLogsDocAccessFields_action_Create {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_action_Read {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_action_Update {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_action_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_summary {
+  create: AuditLogsDocAccessFields_summary_Create
+  read: AuditLogsDocAccessFields_summary_Read
+  update: AuditLogsDocAccessFields_summary_Update
+  delete: AuditLogsDocAccessFields_summary_Delete
+}
+
+type AuditLogsDocAccessFields_summary_Create {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_summary_Read {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_summary_Update {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_summary_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_entity {
+  create: AuditLogsDocAccessFields_entity_Create
+  read: AuditLogsDocAccessFields_entity_Read
+  update: AuditLogsDocAccessFields_entity_Update
+  delete: AuditLogsDocAccessFields_entity_Delete
+}
+
+type AuditLogsDocAccessFields_entity_Create {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_entity_Read {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_entity_Update {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_entity_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_entityLabel {
+  create: AuditLogsDocAccessFields_entityLabel_Create
+  read: AuditLogsDocAccessFields_entityLabel_Read
+  update: AuditLogsDocAccessFields_entityLabel_Update
+  delete: AuditLogsDocAccessFields_entityLabel_Delete
+}
+
+type AuditLogsDocAccessFields_entityLabel_Create {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_entityLabel_Read {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_entityLabel_Update {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_entityLabel_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_entityKind {
+  create: AuditLogsDocAccessFields_entityKind_Create
+  read: AuditLogsDocAccessFields_entityKind_Read
+  update: AuditLogsDocAccessFields_entityKind_Update
+  delete: AuditLogsDocAccessFields_entityKind_Delete
+}
+
+type AuditLogsDocAccessFields_entityKind_Create {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_entityKind_Read {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_entityKind_Update {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_entityKind_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_documentId {
+  create: AuditLogsDocAccessFields_documentId_Create
+  read: AuditLogsDocAccessFields_documentId_Read
+  update: AuditLogsDocAccessFields_documentId_Update
+  delete: AuditLogsDocAccessFields_documentId_Delete
+}
+
+type AuditLogsDocAccessFields_documentId_Create {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_documentId_Read {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_documentId_Update {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_documentId_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_documentTitle {
+  create: AuditLogsDocAccessFields_documentTitle_Create
+  read: AuditLogsDocAccessFields_documentTitle_Read
+  update: AuditLogsDocAccessFields_documentTitle_Update
+  delete: AuditLogsDocAccessFields_documentTitle_Delete
+}
+
+type AuditLogsDocAccessFields_documentTitle_Create {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_documentTitle_Read {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_documentTitle_Update {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_documentTitle_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_userId {
+  create: AuditLogsDocAccessFields_userId_Create
+  read: AuditLogsDocAccessFields_userId_Read
+  update: AuditLogsDocAccessFields_userId_Update
+  delete: AuditLogsDocAccessFields_userId_Delete
+}
+
+type AuditLogsDocAccessFields_userId_Create {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_userId_Read {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_userId_Update {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_userId_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_userEmail {
+  create: AuditLogsDocAccessFields_userEmail_Create
+  read: AuditLogsDocAccessFields_userEmail_Read
+  update: AuditLogsDocAccessFields_userEmail_Update
+  delete: AuditLogsDocAccessFields_userEmail_Delete
+}
+
+type AuditLogsDocAccessFields_userEmail_Create {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_userEmail_Read {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_userEmail_Update {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_userEmail_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_ip {
+  create: AuditLogsDocAccessFields_ip_Create
+  read: AuditLogsDocAccessFields_ip_Read
+  update: AuditLogsDocAccessFields_ip_Update
+  delete: AuditLogsDocAccessFields_ip_Delete
+}
+
+type AuditLogsDocAccessFields_ip_Create {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_ip_Read {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_ip_Update {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_ip_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_changes {
+  create: AuditLogsDocAccessFields_changes_Create
+  read: AuditLogsDocAccessFields_changes_Read
+  update: AuditLogsDocAccessFields_changes_Update
+  delete: AuditLogsDocAccessFields_changes_Delete
+}
+
+type AuditLogsDocAccessFields_changes_Create {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_changes_Read {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_changes_Update {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_changes_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_updatedAt {
+  create: AuditLogsDocAccessFields_updatedAt_Create
+  read: AuditLogsDocAccessFields_updatedAt_Read
+  update: AuditLogsDocAccessFields_updatedAt_Update
+  delete: AuditLogsDocAccessFields_updatedAt_Delete
+}
+
+type AuditLogsDocAccessFields_updatedAt_Create {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_updatedAt_Read {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_updatedAt_Update {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_updatedAt_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_createdAt {
+  create: AuditLogsDocAccessFields_createdAt_Create
+  read: AuditLogsDocAccessFields_createdAt_Read
+  update: AuditLogsDocAccessFields_createdAt_Update
+  delete: AuditLogsDocAccessFields_createdAt_Delete
+}
+
+type AuditLogsDocAccessFields_createdAt_Create {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_createdAt_Read {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_createdAt_Update {
+  permission: Boolean!
+}
+
+type AuditLogsDocAccessFields_createdAt_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsCreateDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type AuditLogsReadDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type AuditLogsUpdateDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type AuditLogsDeleteDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
 type PayloadKv {
   id: Int!
   key: String!
@@ -8602,9 +9216,10 @@ enum PayloadLockedDocument_Document_RelationTo {
   roles
   job_runs
   pagespeed_reports
+  audit_logs
 }
 
-union PayloadLockedDocument_Document = Article | Project | Media | About | Service | Skill | Experience | Education | Certificate | Header | User | Role | JobRun | PagespeedReport
+union PayloadLockedDocument_Document = Article | Project | Media | About | Service | Skill | Experience | Education | Certificate | Header | User | Role | JobRun | PagespeedReport | AuditLog
 
 type PayloadLockedDocument_User_Relationship {
   relationTo: PayloadLockedDocument_User_RelationTo
@@ -8662,6 +9277,7 @@ enum PayloadLockedDocument_document_Relation_RelationTo {
   roles
   job_runs
   pagespeed_reports
+  audit_logs
 }
 
 input PayloadLockedDocument_globalSlug_operator {
@@ -10061,6 +10677,7 @@ type Access {
   roles: rolesAccess
   job_runs: job_runsAccess
   pagespeed_reports: pagespeed_reportsAccess
+  audit_logs: audit_logsAccess
   payload_kv: payload_kvAccess
   payload_locked_documents: payload_locked_documentsAccess
   payload_preferences: payload_preferencesAccess
@@ -14967,6 +15584,349 @@ type PagespeedReportsDeleteAccess {
   where: JSONObject
 }
 
+type audit_logsAccess {
+  fields: AuditLogsFields
+  create: AuditLogsCreateAccess
+  read: AuditLogsReadAccess
+  update: AuditLogsUpdateAccess
+  delete: AuditLogsDeleteAccess
+}
+
+type AuditLogsFields {
+  action: AuditLogsFields_action
+  summary: AuditLogsFields_summary
+  entity: AuditLogsFields_entity
+  entityLabel: AuditLogsFields_entityLabel
+  entityKind: AuditLogsFields_entityKind
+  documentId: AuditLogsFields_documentId
+  documentTitle: AuditLogsFields_documentTitle
+  userId: AuditLogsFields_userId
+  userEmail: AuditLogsFields_userEmail
+  ip: AuditLogsFields_ip
+  changes: AuditLogsFields_changes
+  updatedAt: AuditLogsFields_updatedAt
+  createdAt: AuditLogsFields_createdAt
+}
+
+type AuditLogsFields_action {
+  create: AuditLogsFields_action_Create
+  read: AuditLogsFields_action_Read
+  update: AuditLogsFields_action_Update
+  delete: AuditLogsFields_action_Delete
+}
+
+type AuditLogsFields_action_Create {
+  permission: Boolean!
+}
+
+type AuditLogsFields_action_Read {
+  permission: Boolean!
+}
+
+type AuditLogsFields_action_Update {
+  permission: Boolean!
+}
+
+type AuditLogsFields_action_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsFields_summary {
+  create: AuditLogsFields_summary_Create
+  read: AuditLogsFields_summary_Read
+  update: AuditLogsFields_summary_Update
+  delete: AuditLogsFields_summary_Delete
+}
+
+type AuditLogsFields_summary_Create {
+  permission: Boolean!
+}
+
+type AuditLogsFields_summary_Read {
+  permission: Boolean!
+}
+
+type AuditLogsFields_summary_Update {
+  permission: Boolean!
+}
+
+type AuditLogsFields_summary_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsFields_entity {
+  create: AuditLogsFields_entity_Create
+  read: AuditLogsFields_entity_Read
+  update: AuditLogsFields_entity_Update
+  delete: AuditLogsFields_entity_Delete
+}
+
+type AuditLogsFields_entity_Create {
+  permission: Boolean!
+}
+
+type AuditLogsFields_entity_Read {
+  permission: Boolean!
+}
+
+type AuditLogsFields_entity_Update {
+  permission: Boolean!
+}
+
+type AuditLogsFields_entity_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsFields_entityLabel {
+  create: AuditLogsFields_entityLabel_Create
+  read: AuditLogsFields_entityLabel_Read
+  update: AuditLogsFields_entityLabel_Update
+  delete: AuditLogsFields_entityLabel_Delete
+}
+
+type AuditLogsFields_entityLabel_Create {
+  permission: Boolean!
+}
+
+type AuditLogsFields_entityLabel_Read {
+  permission: Boolean!
+}
+
+type AuditLogsFields_entityLabel_Update {
+  permission: Boolean!
+}
+
+type AuditLogsFields_entityLabel_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsFields_entityKind {
+  create: AuditLogsFields_entityKind_Create
+  read: AuditLogsFields_entityKind_Read
+  update: AuditLogsFields_entityKind_Update
+  delete: AuditLogsFields_entityKind_Delete
+}
+
+type AuditLogsFields_entityKind_Create {
+  permission: Boolean!
+}
+
+type AuditLogsFields_entityKind_Read {
+  permission: Boolean!
+}
+
+type AuditLogsFields_entityKind_Update {
+  permission: Boolean!
+}
+
+type AuditLogsFields_entityKind_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsFields_documentId {
+  create: AuditLogsFields_documentId_Create
+  read: AuditLogsFields_documentId_Read
+  update: AuditLogsFields_documentId_Update
+  delete: AuditLogsFields_documentId_Delete
+}
+
+type AuditLogsFields_documentId_Create {
+  permission: Boolean!
+}
+
+type AuditLogsFields_documentId_Read {
+  permission: Boolean!
+}
+
+type AuditLogsFields_documentId_Update {
+  permission: Boolean!
+}
+
+type AuditLogsFields_documentId_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsFields_documentTitle {
+  create: AuditLogsFields_documentTitle_Create
+  read: AuditLogsFields_documentTitle_Read
+  update: AuditLogsFields_documentTitle_Update
+  delete: AuditLogsFields_documentTitle_Delete
+}
+
+type AuditLogsFields_documentTitle_Create {
+  permission: Boolean!
+}
+
+type AuditLogsFields_documentTitle_Read {
+  permission: Boolean!
+}
+
+type AuditLogsFields_documentTitle_Update {
+  permission: Boolean!
+}
+
+type AuditLogsFields_documentTitle_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsFields_userId {
+  create: AuditLogsFields_userId_Create
+  read: AuditLogsFields_userId_Read
+  update: AuditLogsFields_userId_Update
+  delete: AuditLogsFields_userId_Delete
+}
+
+type AuditLogsFields_userId_Create {
+  permission: Boolean!
+}
+
+type AuditLogsFields_userId_Read {
+  permission: Boolean!
+}
+
+type AuditLogsFields_userId_Update {
+  permission: Boolean!
+}
+
+type AuditLogsFields_userId_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsFields_userEmail {
+  create: AuditLogsFields_userEmail_Create
+  read: AuditLogsFields_userEmail_Read
+  update: AuditLogsFields_userEmail_Update
+  delete: AuditLogsFields_userEmail_Delete
+}
+
+type AuditLogsFields_userEmail_Create {
+  permission: Boolean!
+}
+
+type AuditLogsFields_userEmail_Read {
+  permission: Boolean!
+}
+
+type AuditLogsFields_userEmail_Update {
+  permission: Boolean!
+}
+
+type AuditLogsFields_userEmail_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsFields_ip {
+  create: AuditLogsFields_ip_Create
+  read: AuditLogsFields_ip_Read
+  update: AuditLogsFields_ip_Update
+  delete: AuditLogsFields_ip_Delete
+}
+
+type AuditLogsFields_ip_Create {
+  permission: Boolean!
+}
+
+type AuditLogsFields_ip_Read {
+  permission: Boolean!
+}
+
+type AuditLogsFields_ip_Update {
+  permission: Boolean!
+}
+
+type AuditLogsFields_ip_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsFields_changes {
+  create: AuditLogsFields_changes_Create
+  read: AuditLogsFields_changes_Read
+  update: AuditLogsFields_changes_Update
+  delete: AuditLogsFields_changes_Delete
+}
+
+type AuditLogsFields_changes_Create {
+  permission: Boolean!
+}
+
+type AuditLogsFields_changes_Read {
+  permission: Boolean!
+}
+
+type AuditLogsFields_changes_Update {
+  permission: Boolean!
+}
+
+type AuditLogsFields_changes_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsFields_updatedAt {
+  create: AuditLogsFields_updatedAt_Create
+  read: AuditLogsFields_updatedAt_Read
+  update: AuditLogsFields_updatedAt_Update
+  delete: AuditLogsFields_updatedAt_Delete
+}
+
+type AuditLogsFields_updatedAt_Create {
+  permission: Boolean!
+}
+
+type AuditLogsFields_updatedAt_Read {
+  permission: Boolean!
+}
+
+type AuditLogsFields_updatedAt_Update {
+  permission: Boolean!
+}
+
+type AuditLogsFields_updatedAt_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsFields_createdAt {
+  create: AuditLogsFields_createdAt_Create
+  read: AuditLogsFields_createdAt_Read
+  update: AuditLogsFields_createdAt_Update
+  delete: AuditLogsFields_createdAt_Delete
+}
+
+type AuditLogsFields_createdAt_Create {
+  permission: Boolean!
+}
+
+type AuditLogsFields_createdAt_Read {
+  permission: Boolean!
+}
+
+type AuditLogsFields_createdAt_Update {
+  permission: Boolean!
+}
+
+type AuditLogsFields_createdAt_Delete {
+  permission: Boolean!
+}
+
+type AuditLogsCreateAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type AuditLogsReadAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type AuditLogsUpdateAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type AuditLogsDeleteAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
 type payload_kvAccess {
   fields: PayloadKvFields
   create: PayloadKvCreateAccess
@@ -16174,6 +17134,10 @@ type Mutation {
   updatePagespeedReport(id: Int!, autosave: Boolean, data: mutationPagespeedReportUpdateInput!, draft: Boolean, trash: Boolean): PagespeedReport
   deletePagespeedReport(id: Int!, trash: Boolean): PagespeedReport
   duplicatePagespeedReport(id: Int!, data: mutationPagespeedReportInput!): PagespeedReport
+  createAuditLog(data: mutationAuditLogInput!, draft: Boolean): AuditLog
+  updateAuditLog(id: Int!, autosave: Boolean, data: mutationAuditLogUpdateInput!, draft: Boolean, trash: Boolean): AuditLog
+  deleteAuditLog(id: Int!, trash: Boolean): AuditLog
+  duplicateAuditLog(id: Int!, data: mutationAuditLogInput!): AuditLog
   createPayloadKv(data: mutationPayloadKvInput!, draft: Boolean): PayloadKv
   updatePayloadKv(id: Int!, autosave: Boolean, data: mutationPayloadKvUpdateInput!, draft: Boolean, trash: Boolean): PayloadKv
   deletePayloadKv(id: Int!, trash: Boolean): PayloadKv
@@ -16890,6 +17854,68 @@ enum PagespeedReportUpdate_Metrics_rating_MutationInput {
   poor
 }
 
+input mutationAuditLogInput {
+  action: AuditLog_action_MutationInput!
+  summary: String!
+  entity: String!
+  entityLabel: String
+  entityKind: AuditLog_entityKind_MutationInput
+  documentId: String
+  documentTitle: String
+  userId: String
+  userEmail: String
+  ip: String
+  changes: JSON
+  updatedAt: String
+  createdAt: String
+}
+
+enum AuditLog_action_MutationInput {
+  create
+  update
+  trash
+  restore
+  delete
+  login
+  logout
+}
+
+enum AuditLog_entityKind_MutationInput {
+  collection
+  global
+}
+
+input mutationAuditLogUpdateInput {
+  action: AuditLogUpdate_action_MutationInput
+  summary: String
+  entity: String
+  entityLabel: String
+  entityKind: AuditLogUpdate_entityKind_MutationInput
+  documentId: String
+  documentTitle: String
+  userId: String
+  userEmail: String
+  ip: String
+  changes: JSON
+  updatedAt: String
+  createdAt: String
+}
+
+enum AuditLogUpdate_action_MutationInput {
+  create
+  update
+  trash
+  restore
+  delete
+  login
+  logout
+}
+
+enum AuditLogUpdate_entityKind_MutationInput {
+  collection
+  global
+}
+
 input mutationPayloadKvInput {
   key: String!
   data: JSON!
@@ -16928,6 +17954,7 @@ enum PayloadLockedDocument_DocumentRelationshipInputRelationTo {
   roles
   job_runs
   pagespeed_reports
+  audit_logs
 }
 
 input PayloadLockedDocument_UserRelationshipInput {
@@ -16967,6 +17994,7 @@ enum PayloadLockedDocumentUpdate_DocumentRelationshipInputRelationTo {
   roles
   job_runs
   pagespeed_reports
+  audit_logs
 }
 
 input PayloadLockedDocumentUpdate_UserRelationshipInput {

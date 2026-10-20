@@ -5,7 +5,10 @@ import tsconfigPaths from 'vite-tsconfig-paths'
 export default defineConfig({
   plugins: [tsconfigPaths(), react()],
   test: {
-    environment: 'jsdom',
+    // Node, not jsdom: the integration tests exercise the Local API and the job tasks. jsdom's
+    // TextEncoder returns a Uint8Array from another realm, which jose (JWT signing for
+    // payload.login) rejects; React component tests opt into jsdom per file instead.
+    environment: 'node',
     setupFiles: ['./vitest.setup.ts'],
     include: ['tests/int/**/*.int.spec.ts'],
     // Every file calls getPayload(), which pushes the dev schema to an empty database. In parallel

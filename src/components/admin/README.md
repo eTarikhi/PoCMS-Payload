@@ -62,6 +62,7 @@ src/components/admin/
 │   └── SingletonList/      list view of Header and About: redirects to the one document
 └── widgets/
     ├── config.ts           widget definitions and the default layout (imported by payload.config.ts)
+    ├── AuditLog/           audit-log (viewAuditLog capability)
     ├── CIStatus/           ci-status
     ├── ContentCount/       content-count
     ├── ContentHealth/      content-health

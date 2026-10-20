@@ -16,6 +16,7 @@ import sharp from 'sharp'
 import { governedEntities } from './access/permissions'
 import { ensureRoles } from './access/roles'
 import { createRoles } from './collections/Roles'
+import { AuditLogs } from './collections/AuditLogs'
 import { Footer } from './globals/Footer'
 
 import { Users } from './collections/Users'
@@ -41,6 +42,7 @@ import { Skills } from './collections/Skills'
 import { Media } from './collections/Media'
 import { dashboard } from './components/admin/widgets/config'
 import { adminUIPlugin } from './plugins/adminUI'
+import { auditLogPlugin } from './plugins/auditLog'
 
 // import { MediaWithPrefix } from './collections/MediaWithPrefix'
 
@@ -165,6 +167,8 @@ export default buildConfig({
     // reports the Page speed widget reads (CR-12 E4, E4b).
     Jobs,
     PageSpeedReports,
+    // Append-only audit trail (E5). Read with the viewAuditLog capability; never governed by roles.
+    AuditLogs,
   ],
   globals,
   editor: lexicalEditor(),
@@ -219,6 +223,8 @@ export default buildConfig({
       },
       token: process.env.BLOB_READ_WRITE_TOKEN || '',
     }),
+    // Records changes to every collection and global (E5), before the admin UI plugin maps them.
+    auditLogPlugin(),
     // Last, so it sees every field other plugins add: TanStack list views, boolean cells (ADR 0007).
     adminUIPlugin(),
   ],

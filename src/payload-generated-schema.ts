@@ -131,6 +131,19 @@ export const enum_pagespeed_reports_strategy = pgEnum('enum_pagespeed_reports_st
   'mobile',
   'desktop',
 ])
+export const enum_audit_logs_action = pgEnum('enum_audit_logs_action', [
+  'create',
+  'update',
+  'trash',
+  'restore',
+  'delete',
+  'login',
+  'logout',
+])
+export const enum_audit_logs_entity_kind = pgEnum('enum_audit_logs_entity_kind', [
+  'collection',
+  'global',
+])
 export const enum_footer_social_links_platform = pgEnum('enum_footer_social_links_platform', [
   'facebook',
   'twitter',
@@ -848,6 +861,38 @@ export const pagespeed_reports = pgTable(
   ],
 )
 
+export const audit_logs = pgTable(
+  'audit_logs',
+  {
+    id: serial('id').primaryKey(),
+    action: enum_audit_logs_action('action').notNull(),
+    summary: varchar('summary').notNull(),
+    entity: varchar('entity').notNull(),
+    entityLabel: varchar('entity_label'),
+    entityKind: enum_audit_logs_entity_kind('entity_kind').default('collection'),
+    documentId: varchar('document_id'),
+    documentTitle: varchar('document_title'),
+    userId: varchar('user_id'),
+    userEmail: varchar('user_email'),
+    ip: varchar('ip'),
+    changes: jsonb('changes'),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index('audit_logs_action_idx').on(columns.action),
+    index('audit_logs_entity_idx').on(columns.entity),
+    index('audit_logs_document_id_idx').on(columns.documentId),
+    index('audit_logs_user_id_idx').on(columns.userId),
+    index('audit_logs_updated_at_idx').on(columns.updatedAt),
+    index('audit_logs_created_at_idx').on(columns.createdAt),
+  ],
+)
+
 export const payload_kv = pgTable(
   'payload_kv',
   {
@@ -898,6 +943,7 @@ export const payload_locked_documents_rels = pgTable(
     rolesID: integer('roles_id'),
     'job-runsID': integer('job_runs_id'),
     'pagespeed-reportsID': integer('pagespeed_reports_id'),
+    'audit-logsID': integer('audit_logs_id'),
   },
   (columns) => [
     index('payload_locked_documents_rels_order_idx').on(columns.order),
@@ -919,6 +965,7 @@ export const payload_locked_documents_rels = pgTable(
     index('payload_locked_documents_rels_pagespeed_reports_id_idx').on(
       columns['pagespeed-reportsID'],
     ),
+    index('payload_locked_documents_rels_audit_logs_id_idx').on(columns['audit-logsID']),
     foreignKey({
       columns: [columns['parent']],
       foreignColumns: [payload_locked_documents.id],
@@ -993,6 +1040,11 @@ export const payload_locked_documents_rels = pgTable(
       columns: [columns['pagespeed-reportsID']],
       foreignColumns: [pagespeed_reports.id],
       name: 'payload_locked_documents_rels_pagespeed_reports_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [columns['audit-logsID']],
+      foreignColumns: [audit_logs.id],
+      name: 'payload_locked_documents_rels_audit_logs_fk',
     }).onDelete('cascade'),
   ],
 )
@@ -1334,6 +1386,7 @@ export const relations_pagespeed_reports = relations(pagespeed_reports, ({ many 
     relationName: 'metrics',
   }),
 }))
+export const relations_audit_logs = relations(audit_logs, () => ({}))
 export const relations_payload_kv = relations(payload_kv, () => ({}))
 export const relations_payload_locked_documents_rels = relations(
   payload_locked_documents_rels,
@@ -1412,6 +1465,11 @@ export const relations_payload_locked_documents_rels = relations(
       fields: [payload_locked_documents_rels['pagespeed-reportsID']],
       references: [pagespeed_reports.id],
       relationName: 'pagespeed-reports',
+    }),
+    'audit-logsID': one(audit_logs, {
+      fields: [payload_locked_documents_rels['audit-logsID']],
+      references: [audit_logs.id],
+      relationName: 'audit-logs',
     }),
   }),
 )
@@ -1511,6 +1569,8 @@ type DatabaseSchema = {
   enum_pagespeed_reports_scores_rating: typeof enum_pagespeed_reports_scores_rating
   enum_pagespeed_reports_metrics_rating: typeof enum_pagespeed_reports_metrics_rating
   enum_pagespeed_reports_strategy: typeof enum_pagespeed_reports_strategy
+  enum_audit_logs_action: typeof enum_audit_logs_action
+  enum_audit_logs_entity_kind: typeof enum_audit_logs_entity_kind
   enum_footer_social_links_platform: typeof enum_footer_social_links_platform
   enum_footer_social_links_icon_name: typeof enum_footer_social_links_icon_name
   enum_footer_contact_info_type: typeof enum_footer_contact_info_type
@@ -1541,6 +1601,7 @@ type DatabaseSchema = {
   pagespeed_reports_scores: typeof pagespeed_reports_scores
   pagespeed_reports_metrics: typeof pagespeed_reports_metrics
   pagespeed_reports: typeof pagespeed_reports
+  audit_logs: typeof audit_logs
   payload_kv: typeof payload_kv
   payload_locked_documents: typeof payload_locked_documents
   payload_locked_documents_rels: typeof payload_locked_documents_rels
@@ -1577,6 +1638,7 @@ type DatabaseSchema = {
   relations_pagespeed_reports_scores: typeof relations_pagespeed_reports_scores
   relations_pagespeed_reports_metrics: typeof relations_pagespeed_reports_metrics
   relations_pagespeed_reports: typeof relations_pagespeed_reports
+  relations_audit_logs: typeof relations_audit_logs
   relations_payload_kv: typeof relations_payload_kv
   relations_payload_locked_documents_rels: typeof relations_payload_locked_documents_rels
   relations_payload_locked_documents: typeof relations_payload_locked_documents

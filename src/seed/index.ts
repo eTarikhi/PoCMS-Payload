@@ -61,6 +61,7 @@ export const seed = async ({
       },
       file: profileImageBuffer,
       overrideAccess: true,
+      context: { skipAudit: true },
     })
     payload.logger.info(`  ✓ Profile image seeded (ID: ${profileImage.id})`)
   } catch (error) {
@@ -74,6 +75,7 @@ export const seed = async ({
       collection: 'header',
       data: headerData(profileImage),
       overrideAccess: true,
+      context: { skipAudit: true },
     })
     payload.logger.info(`  ✓ Header seeded (ID: ${header.id})`)
   } catch (error) {
@@ -87,6 +89,7 @@ export const seed = async ({
       collection: 'about',
       data: aboutData(),
       overrideAccess: true,
+      context: { skipAudit: true },
     })
     payload.logger.info(`  ✓ About seeded (ID: ${about.id})`)
   } catch (error) {
@@ -102,6 +105,7 @@ export const seed = async ({
           collection: 'skills',
           data: skill,
           overrideAccess: true,
+          context: { skipAudit: true },
         }),
       ),
     )
@@ -119,6 +123,7 @@ export const seed = async ({
           collection: 'experiences',
           data: experience,
           overrideAccess: true,
+          context: { skipAudit: true },
         }),
       ),
     )
@@ -136,6 +141,7 @@ export const seed = async ({
           collection: 'educations',
           data: education,
           overrideAccess: true,
+          context: { skipAudit: true },
         }),
       ),
     )
@@ -161,6 +167,7 @@ export const seed = async ({
               image,
             },
             overrideAccess: true,
+            context: { skipAudit: true },
           })
         } catch (error) {
           payload.logger.warn(
@@ -177,6 +184,7 @@ export const seed = async ({
               imageUrl: certificate.imageUrl,
             },
             overrideAccess: true,
+            context: { skipAudit: true },
           })
         }
       }),
@@ -206,6 +214,7 @@ export const seed = async ({
               image,
             },
             overrideAccess: true,
+            context: { skipAudit: true },
           })
         } catch (error) {
           payload.logger.warn(
@@ -224,6 +233,7 @@ export const seed = async ({
               imageUrl: article.imageUrl,
             },
             overrideAccess: true,
+            context: { skipAudit: true },
           })
         }
       }),
@@ -243,6 +253,7 @@ export const seed = async ({
           collection: 'services',
           data: service,
           overrideAccess: true,
+          context: { skipAudit: true },
         }),
       ),
     )
@@ -271,6 +282,7 @@ export const seed = async ({
               image,
             },
             overrideAccess: true,
+            context: { skipAudit: true },
           })
         } catch (error) {
           payload.logger.warn(
@@ -289,6 +301,7 @@ export const seed = async ({
               src: project.src,
             },
             overrideAccess: true,
+            context: { skipAudit: true },
           })
         }
       }),
@@ -306,6 +319,7 @@ export const seed = async ({
       slug: 'footer',
       data: footerData(),
       overrideAccess: true,
+      context: { skipAudit: true },
     })
     payload.logger.info(`  ✓ Footer seeded`)
   } catch (error) {
@@ -336,6 +350,7 @@ async function createMediaFromURL(payload: Payload, url: string, alt: string): P
     data: { alt },
     file,
     overrideAccess: true,
+    context: { skipAudit: true },
   })
   return media.id
 }

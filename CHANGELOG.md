@@ -8,6 +8,11 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Added
 
+- **Audit log (E5).** Admin › Audit log (`viewAuditLog`) records creations, changes, trash, restores,
+  permanent deletes and sign-ins for every collection and global, with a per-field change list that
+  omits secrets. Entries are append-only and written inside the caller's transaction by
+  `src/plugins/auditLog.ts`; a new collection is audited without code. A dashboard widget shows the
+  newest entries. Migration `20261020_182625_audit_log`.
 - **Scheduled jobs (E4).** Admin › Scheduled jobs (`/admin/jobs`, `manageJobs` capability) lists the
   maintenance tasks with their schedule and last run, runs one on demand and cancels queued runs.
   The queue is the `job-runs` collection; `GET /api/jobs/cron` is the Vercel Cron entry point
