@@ -219,8 +219,8 @@ export const mapFooter = (doc: Footer | null): FooterContent | null => {
       iconName: link.iconName,
       ariaLabel: link.ariaLabel,
     })),
-    fullName: doc.roles.fullName,
-    roles: doc.roles.footerRoles ?? [],
+    fullName: withFallback(doc.roles?.fullName, ''),
+    roles: doc.roles?.footerRoles ?? [],
     profiles: (doc.profiles ?? []).map((profile) => ({ name: profile.name, url: profile.url })),
     contactInfo: (doc.contactInfo ?? []).map((item): ContactItem => ({
       type: item.type,
@@ -230,10 +230,12 @@ export const mapFooter = (doc: Footer | null): FooterContent | null => {
       isLink: Boolean(item.isLink),
       className: item.className ?? 'text-white',
     })),
+    // A Footer global that was never saved has an empty copyRight group: keep the page rendering
+    // (an undefined href made next/link throw, so the first home page request failed with a 500).
     copyright: {
-      year: doc.copyRight.year,
-      website: withFallback(doc.copyRight.website, ''),
-      url: doc.copyRight.url,
+      year: doc.copyRight?.year ?? new Date().getFullYear(),
+      website: withFallback(doc.copyRight?.website, ''),
+      url: doc.copyRight?.url ?? '',
     },
   }
 }

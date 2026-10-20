@@ -1,3 +1,4 @@
+import { contentAccess, hiddenWithout } from '@/access/roles'
 import type { CollectionConfig } from 'payload'
 import { portfolioAfterChange, portfolioAfterDelete } from '../app/(frontend)/lib/hooks'
 import { orderField } from '../fields/order'
@@ -9,13 +10,17 @@ export const Skills: CollectionConfig = {
     afterDelete: [portfolioAfterDelete],
   },
   admin: {
+    hidden: hiddenWithout('skills'),
+    group: 'Profile',
+    description: 'Skill bars in the résumé section, grouped by category.',
     useAsTitle: 'label',
     defaultColumns: ['label', 'group', 'value', 'color', 'order'],
   },
   defaultSort: 'order',
-    access: {
-        read: () => true,
-    },
+  // Deleting moves documents to the trash (restorable); deleting for good needs the Full level.
+  trash: true,
+  // Levels from the user's roles (ADR 0011): public read, edit and trash, full to delete for good.
+  access: contentAccess('skills'),
   fields: [
     orderField,
     { name: 'label', type: 'text', required: true },
@@ -29,6 +34,7 @@ export const Skills: CollectionConfig = {
         { label: 'Front-End', value: 'frontend' },
         { label: 'Back-End', value: 'backend' },
       ],
+      admin: { position: 'sidebar' },
     },
     {
       name: 'value',
@@ -36,7 +42,10 @@ export const Skills: CollectionConfig = {
       required: true,
       min: 0,
       max: 100,
-      admin: { description: 'Proficiency, 0-100.' },
+      admin: {
+        description: 'Proficiency, 0-100.',
+        components: { Cell: '/components/admin/fields/Progress/Cell#ProgressCell' },
+      },
     },
     {
       name: 'color',
@@ -44,7 +53,13 @@ export const Skills: CollectionConfig = {
       required: true,
       defaultValue: 'primary',
       options: ['primary', 'secondary', 'success', 'info', 'warning', 'danger'],
-      admin: { description: 'Bootstrap contextual color of the progress bar.' },
+      admin: {
+        description: 'Bootstrap contextual color of the progress bar.',
+        components: {
+          Field: '/components/admin/fields/ContextColor/Field#ContextColorField',
+          Cell: '/components/admin/fields/ContextColor/Cell#ContextColorCell',
+        },
+      },
     },
   ],
 }

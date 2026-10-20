@@ -1,0 +1,172 @@
+/*
+ * PoCMS admin design tokens (Payload 3.9x). Loaded only by the admin, via AdminUIProvider.
+ *
+ *   Tier 0  brand primitives, from src/app/(frontend)/styles/main.css
+ *   Tier 1  Payload theme variables: font, radius, focus outline, navy-tinted dark neutrals
+ *   Tier 2  semantic tokens (background, primary, muted, …), expressed through Payload variables so light/dark follow
+ *           Payload's theme switch (html[data-theme]) automatically
+ *   Tier 3  Tailwind utilities: the `@theme inline` block in admin-ui.css maps Tier 2 to acn:* classes
+ *
+ * Everything sits in `@layer payload`, which Payload orders after its own `payload-default` layer,
+ * so these values win without !important or specificity tricks.
+ * Contrast of every text/UI pair is checked by scripts/check-contrast.mjs (CI). Hex values here are
+ * parsed by that script, so keep Tier 0 and the dark neutrals in hex.
+ * Payload 4 mapping: docs/ui-modernization/admin-ui-guide.md#payload-4-readiness.
+ */
+
+@layer payload {
+  :root {
+    /* Tier 0 — brand primitives */
+    --brand-amber-500: #da9100; /* oklch(0.713 0.151 73.5) — the site's primary */
+    --brand-amber-700: #996600; /* oklch(0.551 0.116 74.8) — AA-safe amber for light surfaces */
+    --brand-gold-400: #ffc448; /* oklch(0.853 0.151 82.3) */
+    --brand-navy-950: #0d0f17; /* oklch(0.170 0.017 273.6) — the site's background */
+    --brand-navy-900: #12141d; /* oklch(0.194 0.018 274.8) */
+    --brand-on-light: #ffffff;
+
+    /* Tier 1 — Payload theme variables */
+    --font-body:
+      'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+      Arial, sans-serif;
+    --style-radius-s: 6px;
+    --style-radius-m: 8px;
+    --style-radius-l: 12px;
+    --accessibility-outline: 2px solid var(--ring);
+
+    /* Tier 1 — light canvas (ADR 0010). The page is a warm off-white "paper" (L 97.3%, 8% less
+       luminance than white, a hint of the brand's amber hue); surfaces that hold content stay white
+       (inputs, cards, popups, tables: elevation-0 and --theme-input-bg), so fields and cards read as
+       raised sheets. Steps 50–300 get the same faint tint and sit a little darker than Payload's
+       greys, so hovers, stripes and borders still separate from the canvas. Text steps (400+) keep
+       Payload's neutral greys, so text contrast is unchanged. */
+    --theme-bg: #f7f6f3;
+    --theme-elevation-50: #f2f1ee;
+    --theme-elevation-100: #ebe9e6;
+    --theme-elevation-150: #dcdad7;
+    --theme-elevation-200: #d0ceca;
+    --theme-elevation-250: #c3c1bd;
+    --theme-elevation-300: #b5b3af;
+
+    /* Tier 2 — semantic tokens */
+    --background: var(--theme-bg);
+    --foreground: var(--theme-text);
+    --card: var(--theme-elevation-0);
+    --card-foreground: var(--theme-text);
+    --popover: var(--theme-elevation-0);
+    --popover-foreground: var(--theme-text);
+    --primary: var(--brand-amber-700);
+    --primary-foreground: var(--brand-on-light);
+    --secondary: var(--theme-elevation-100);
+    --secondary-foreground: var(--theme-elevation-800);
+    --muted: var(--theme-elevation-50);
+    /* elevation-600, not 500: 5.83:1 on white (500 would fail at 3.95:1) */
+    --muted-foreground: var(--theme-elevation-600);
+    --accent: var(--theme-elevation-100);
+    --accent-foreground: var(--theme-elevation-900);
+    /* Payload's theme-* status scales flip in dark mode, so step 600 reads well on both. */
+    --destructive: var(--theme-error-600);
+    --destructive-foreground: var(--theme-elevation-0);
+    --success: var(--theme-success-600);
+    --success-soft: var(--theme-success-100);
+    --warning: var(--theme-warning-600);
+    --warning-soft: var(--theme-warning-100);
+    --destructive-soft: var(--theme-error-100);
+    /* Ratings (Core Web Vitals, scores): the web's green / orange / red convention, 700 shades in
+       light mode so they pass as text on the canvas and on cards. */
+    --rating-good: #15803d;
+    --rating-average: #b45309;
+    --rating-poor: #b91c1c;
+    --border: var(--theme-elevation-150);
+    --input: var(--theme-elevation-150);
+    --ring: var(--primary);
+    /* Single-hue chart palette. Charts always ship a text summary too. */
+    --chart-1: var(--primary);
+    --chart-2: color-mix(in oklab, var(--primary) 75%, var(--background));
+    --chart-3: color-mix(in oklab, var(--primary) 55%, var(--background));
+    --chart-4: color-mix(in oklab, var(--primary) 35%, var(--background));
+    --chart-5: color-mix(in oklab, var(--primary) 20%, var(--background));
+    --radius: 10px;
+    /* Plain custom properties as well as Tailwind theme keys: the elements reference them in
+       arbitrary values (rounded-[min(var(--radius-md),8px)]), and the acn prefix renames the theme's
+       own variables to --acn-*. */
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+  }
+
+  html[data-theme='dark'] {
+    /* Tier 1 — navy-tinted dark neutrals: Payload's lightness steps, hue 275 (the site's navy).
+       The page and the surfaces share elevation-0 again (the light canvas is light-only). */
+    --theme-bg: var(--theme-elevation-0);
+    --theme-elevation-0: #12141d;
+    --theme-elevation-50: #1f212c;
+    --theme-elevation-100: #2c2e39;
+    --theme-elevation-150: #393c46;
+    --theme-elevation-200: #474a54;
+    --theme-elevation-250: #55575f;
+    --theme-elevation-300: #63656c;
+
+    /* Tier 2 — dark overrides */
+    --card: var(--theme-elevation-50);
+    --popover: var(--theme-elevation-50);
+    --primary: var(--brand-amber-500);
+    --primary-foreground: var(--brand-navy-900);
+    --destructive-foreground: var(--brand-navy-900);
+    --rating-good: #4ade80;
+    --rating-average: #fbbf24;
+    --rating-poor: #f87171;
+  }
+}
+
+/*
+ * Body text at 14px instead of Payload's 13px, for readability in long forms and tables. Payload
+ * derives --base from --base-body-size (base = 20/body rem), so --base and the spacing scale stay
+ * 20px and 4px: only text grows.
+ */
+@layer payload {
+  :root {
+    --base-body-size: 14;
+  }
+
+  html {
+    font-size: 14px;
+    /* Phones in landscape: no automatic text inflation (Safari on iOS enlarges text otherwise). */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Separate rule: next to the prefixed one, Lightning CSS (Tailwind) drops the -webkit- form
+     Safari needs. */
+  :root {
+    text-size-adjust: 100%;
+  }
+}
+
+/*
+ * Sidebar icon tones: nav-icons.css gives each item one. Light theme: 700 shades, dark theme: 400
+ * shades, so every icon keeps at least 3:1 against the sidebar background (WCAG 1.4.11). Amber is
+ * the brand colour.
+ */
+@layer payload {
+  :root {
+    --nav-tone-amber: var(--primary);
+    --nav-tone-orange: #c2410c;
+    --nav-tone-rose: #be123c;
+    --nav-tone-violet: #6d28d9;
+    --nav-tone-blue: #1d4ed8;
+    --nav-tone-teal: #0f766e;
+    --nav-tone-green: #15803d;
+    --nav-tone-slate: #475569;
+  }
+
+  html[data-theme='dark'] {
+    --nav-tone-amber: var(--primary);
+    --nav-tone-orange: #fb923c;
+    --nav-tone-rose: #fb7185;
+    --nav-tone-violet: #a78bfa;
+    --nav-tone-blue: #60a5fa;
+    --nav-tone-teal: #2dd4bf;
+    --nav-tone-green: #4ade80;
+    --nav-tone-slate: #94a3b8;
+  }
+}

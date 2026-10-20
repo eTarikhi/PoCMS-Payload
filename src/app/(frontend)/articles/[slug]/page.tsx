@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { ArticleLayout } from '@/app/(frontend)/components/article/ArticleLayout'
+import { ArticleLivePreviewSwitch } from '@/app/(frontend)/components/article/ArticleLivePreviewSwitch'
 import { JsonLd } from '@/app/(frontend)/components/seo/JsonLd'
 import { SiteChrome } from '@/app/(frontend)/components/layout/SiteChrome'
 import { getCachedArticleBySlug, getCachedArticleSlugs } from '@/app/(frontend)/lib/articles'
@@ -41,7 +42,10 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     <>
       <SiteChrome footer={content.footer}>
         <main id="main-content" className="article-page">
-          <ArticleLayout article={article} />
+          {/* In the admin's Live Preview iframe the article follows the editor's changes. */}
+          <ArticleLivePreviewSwitch id={article.id}>
+            <ArticleLayout article={article} />
+          </ArticleLivePreviewSwitch>
         </main>
       </SiteChrome>
       <JsonLd data={buildBlogPostingJsonLd(article, content.header, content.footer)} />

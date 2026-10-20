@@ -109,9 +109,13 @@ export function Footer({ footer }: FooterProps) {
       {/* Copyright */}
       <div className="text-center p-3" style={{ backgroundColor: '#0e1017', fontSize: 'smaller' }}>
         Copyright © {footer.copyright.year}{' '}
-        <Link className="text-white" href={footer.copyright.url}>
-          {footer.copyright.website}{' '}
-        </Link>
+        {footer.copyright.url ? (
+          <Link className="text-white" href={footer.copyright.url}>
+            {footer.copyright.website}{' '}
+          </Link>
+        ) : (
+          <span className="text-white">{footer.copyright.website} </span>
+        )}
         , All Rights Reserved.
       </div>
     </footer>

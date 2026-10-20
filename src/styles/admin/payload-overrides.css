@@ -1,0 +1,73 @@
+/*
+ * The only class-level overrides of Payload 3 components. Keep this file tiny.
+ * Payload 4 replaces these with tokens (--color-bg-brand, --color-text-onbrand); delete the file then.
+ */
+
+@layer payload {
+  /* Brand-coloured primary buttons. Disabled buttons keep Payload's own styling. */
+  .btn--style-primary:not(.btn--disabled) {
+    --bg-color: var(--primary);
+    --color: var(--primary-foreground);
+    --hover-bg: color-mix(in oklab, var(--primary) 85%, var(--foreground));
+    --hover-color: var(--primary-foreground);
+  }
+
+  /* Field descriptions: Payload's elevation-400 is under 3:1 on white; the muted token passes AA. */
+  .field-description {
+    color: var(--muted-foreground);
+  }
+
+  /* API and GraphQL tabs: Payload's label grey is elevation-400 (under 3:1). */
+  .query-inspector__label {
+    color: var(--muted-foreground);
+  }
+
+  /* Sidebar group headings: Payload's elevation-400 is 2.6:1 on the canvas; the muted token is 5.4:1. */
+  .nav-group__toggle {
+    color: var(--muted-foreground);
+  }
+
+  /* Sign-in screens (no sticky bars there, so a gradient cannot show seams): a faint amber glow
+     from the top over the light canvas. */
+  html:not([data-theme='dark']) .template-minimal {
+    background:
+      radial-gradient(
+        80rem 36rem at 50% -10rem,
+        color-mix(in oklab, var(--brand-gold-400) 20%, transparent),
+        color-mix(in oklab, var(--brand-gold-400) 9%, transparent) 35%,
+        color-mix(in oklab, var(--brand-gold-400) 3%, transparent) 60%,
+        transparent 80%
+      ),
+      var(--theme-bg);
+  }
+
+  /* Roles: each access level is one row, name on the left and the levels on the right, so the
+     group reads as a matrix (collections down, levels across). Phones keep Payload's stacking. */
+  @media (min-width: 769px) {
+    .roles-levels .radio-group--layout-horizontal {
+      display: grid;
+      grid-template-columns: minmax(9rem, 14rem) 1fr;
+      align-items: center;
+      column-gap: var(--base);
+      margin: 0;
+      padding-block: calc(var(--base) * 0.35);
+      border-bottom: 1px solid var(--theme-elevation-100);
+    }
+
+    .roles-levels .radio-group--layout-horizontal:last-child {
+      border-bottom: 0;
+    }
+
+    .roles-levels .radio-group--layout-horizontal > .field-label {
+      margin: 0;
+      padding: 0;
+    }
+  }
+
+  /* Tabular figures keep numbers aligned in list tables and counters. */
+  .table td,
+  .page-controls,
+  .collection-list__page-info {
+    font-variant-numeric: tabular-nums;
+  }
+}

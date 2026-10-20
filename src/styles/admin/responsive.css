@@ -1,0 +1,453 @@
+/*
+ * Small screens and touch (audited at 360×740, 390×844, 844×390, 768×1024, 820×1180 and 1024×768
+ * in Chrome with mobile emulation). Payload's own layout handles the rest; these rules fix what the
+ * admin's additions and a few Payload defaults do on narrow screens.
+ *
+ * Phone rules use max-width: 768px, Payload's own small break: at exactly 768px (iPad mini
+ * portrait) Payload already applies its phone layout, e.g. header actions capped at 150px.
+ *
+ * Note: Payload marks some mobile rules !important in the earlier payload-default layer, and for
+ * !important declarations the earlier layer wins, so those are worked around, not overridden.
+ */
+@layer payload {
+  /*
+   * Header on phones and tablets: the actions keep their size and the breadcrumbs take what is
+   * left, ending in an ellipsis, instead of pushing the actions off screen or wrapping under them.
+   * Payload caps the actions at 150px (300px up to 1024px), less than the search, developer tools,
+   * theme and account buttons need, so at 768px they ran off screen.
+   */
+  @media (max-width: 1024px) {
+    .app-header__step-nav-wrapper {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .app-header__actions-wrapper {
+      flex: none;
+      margin-right: calc(var(--base) * 0.25);
+    }
+
+    .app-header .step-nav {
+      min-width: 0;
+      flex-wrap: nowrap;
+      white-space: nowrap;
+    }
+
+    .app-header .step-nav > * {
+      flex: none;
+    }
+
+    .app-header__actions {
+      max-width: none;
+      gap: 0.25rem;
+    }
+
+    .app-header .step-nav > .step-nav__last {
+      flex: 0 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Payload's dashboard breadcrumb select (react-select, unlayered emotion styles) wraps its arrow
+       under the label on narrow screens. */
+    .app-header .dashboard-breadcrumb-select .rs__control {
+      flex-wrap: nowrap !important;
+    }
+  }
+
+  /*
+   * Dashboard on phones: count cards two per row instead of four full-width cards. Payload sets
+   * every widget to width:100% !important there, so the container becomes a two-column grid and
+   * widgets fill their cells (count cards one cell, everything else the full row).
+   */
+  @media (max-width: 768px) {
+    .modular-dashboard:not(.editing) {
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .modular-dashboard:not(.editing) > .widget {
+      grid-column: 1 / -1;
+    }
+
+    .modular-dashboard:not(.editing) > .widget:has([data-stat-widget]) {
+      grid-column: span 1;
+    }
+  }
+
+  /* Small tablets (600–768px, e.g. iPad mini portrait): the four count cards fit on one row. */
+  @media (min-width: 600px) and (max-width: 768px) {
+    .modular-dashboard:not(.editing) {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  /* Document titles on phones: up to two lines at a smaller size instead of one cut-off line. */
+  @media (max-width: 768px) {
+    .doc-header__title {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      font-size: 1.75rem;
+      line-height: 1.2;
+    }
+
+    /* Inline, so its text takes part in the title's line clamp. */
+    .doc-header__title .render-title {
+      display: inline;
+    }
+  }
+
+  /* Lists on phones: cells wrap (full titles), the table still scrolls sideways for more columns. */
+  @media (max-width: 768px) {
+    .collection-list .table td {
+      white-space: normal;
+      min-width: 7rem;
+    }
+
+    .collection-list .table td:nth-child(2) {
+      min-width: 11rem;
+    }
+  }
+
+  /*
+   * Bulk actions bar (Payload, fixed at the bottom when rows are selected): it starts at the list's
+   * left edge but is 100% of the viewport wide, so on phones and tablets "Delete" ended off screen.
+   * Span the viewport and let the actions wrap.
+   */
+  @media (max-width: 1024px) {
+    .collection-list__list-selection {
+      left: 0;
+      right: 0;
+      width: auto;
+      padding-inline: var(--gutter-h);
+    }
+
+    .collection-list__list-selection .list-selection,
+    .collection-list__list-selection-actions {
+      flex-wrap: wrap;
+      row-gap: 0.25rem;
+    }
+  }
+
+  /* Payload fades the header actions with a gradient overlay when it thinks they scroll; the overlay
+     caught taps meant for the account menu on phones. It is decoration: never a tap target. */
+  .app-header__gradient-placeholder {
+    pointer-events: none;
+  }
+
+  @media (max-width: 768px) {
+    .app-header__gradient-placeholder {
+      display: none;
+    }
+  }
+
+  /* Account page: Payload's full-bleed dividers around "Payload Settings" are 100% + 100px wide
+     from -gutter, which overshoots narrow screens (68px of sideways scroll on a phone). Full bleed
+     exactly, as Payload's other full-bleed elements do. */
+  .payload-settings::before,
+  .payload-settings::after {
+    width: calc(100% + var(--gutter-h) * 2);
+  }
+
+  /* Payload's mobile sidebar header is 100vw wide, which includes the scrollbar: 20px of sideways
+     scroll at tablet widths. */
+  .nav__header {
+    width: 100%;
+  }
+
+  /* Payload's sort arrows in list headers: at least 24px targets (WCAG 2.5.8), on every screen. */
+  [data-slot='data-table'] .sort-column__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* px, not rem: the target size is defined in CSS pixels (the admin's rem is 14px). */
+    min-width: 24px;
+    min-height: 24px;
+  }
+
+  /* Touch: sidebar group headings and breadcrumb links get at least a 24px target (WCAG 2.5.8). */
+  @media (pointer: coarse) {
+    .nav .nav-group__toggle {
+      min-height: 2rem;
+    }
+
+    .app-header .step-nav a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 1.75rem;
+      min-width: 1.75rem;
+    }
+
+    /*
+     * Form text at 16px. Safari on iPhone (and every iOS browser, Chrome included) zooms the page
+     * into a field under 16px when it gets focus and leaves it zoomed. The admin's body text is
+     * 14px, so every Payload field, react-select and search box did that. !important: Payload's
+     * field styles, react-select's unlayered emotion styles and the admin's text utilities all set
+     * smaller sizes.
+     */
+    input:not(
+      [type='checkbox'],
+      [type='radio'],
+      [type='range'],
+      [type='color'],
+      [type='file'],
+      [type='button'],
+      [type='submit'],
+      [type='reset'],
+      [type='image']
+    ),
+    textarea,
+    select,
+    [contenteditable='true'],
+    .react-select:not(.app-header *) .rs__control {
+      font-size: 16px !important;
+    }
+
+    /* Menu rows at least 40px tall: Payload's popup lists (document and array row actions, per
+       page) and react-select options. */
+    .popup-button-list__button {
+      padding-block: 10px;
+    }
+
+    /* Payload caps popups at 200px with a hidden scrollbar: with taller rows the last action of an
+       array row ("Remove") would sit below the fold with nothing showing it is there. */
+    .popup__scroll-container {
+      max-height: min(calc(var(--base) * 18), 60dvh);
+    }
+
+    .react-select .rs__option {
+      padding-block: 10px;
+      font-size: 14px;
+    }
+
+    /* Payload's small buttons (array row actions, per page, copy, remove chip): 32px targets. */
+    .array-actions__button,
+    .popup-button--default:not(.btn),
+    .copy-to-clipboard,
+    .multi-value-remove {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 32px;
+      min-height: 32px;
+    }
+
+    /* "Collapse all" and "Show all" above array fields. */
+    .array-field__header-action {
+      min-height: 32px;
+    }
+
+    /*
+     * Date picker: bigger days (35px, 14px text) and month arrows with a 40px hit area. Payload
+     * draws the arrows as CSS border triangles in a 12px box, so the target grows with a
+     * transparent pseudo element instead of a bigger box.
+     */
+    .date-time-picker .react-datepicker__day-name,
+    .date-time-picker .react-datepicker__day {
+      width: 2.5rem;
+      line-height: 2.5rem;
+    }
+
+    .date-time-picker .react-datepicker__day {
+      font-size: 14px;
+    }
+
+    .date-time-picker .react-datepicker__day-name {
+      font-size: 12px;
+    }
+
+    .date-time-picker .react-datepicker__navigation {
+      overflow: visible;
+      color: transparent;
+    }
+
+    /* react-datepicker's own chevron, which the clipping used to hide: Payload's triangle stays. */
+    .date-time-picker .react-datepicker__navigation-icon {
+      display: none;
+    }
+
+    .date-time-picker .react-datepicker__navigation::after {
+      content: '';
+      position: absolute;
+      inset: -14px;
+    }
+
+    /* The date field's clear button sits at a fixed spot inside the input: a 32px hit area around
+       its 20px icon, without moving it. */
+    .date-time-picker__clear-button::after {
+      content: '';
+      position: absolute;
+      inset: -6px;
+    }
+  }
+}
+
+/*
+ * Lists on phones (under 640px): each row of the TanStack list (DataTable) becomes a card. The
+ * checkbox and the first data column form the card's title row; every other visible column is a
+ * "label  value" line, the label coming from the cell's data-label. The header row turns into a
+ * wrapping row of sort chips, so sorting and "select all" stay available. Payload's selection,
+ * links and cells are the same elements as on desktop; only the layout changes, so nothing jumps
+ * after hydration.
+ *
+ * In the utilities layer: it has to win over the table primitives' Tailwind classes.
+ */
+@layer utilities {
+  @media (max-width: 639px) {
+    [data-slot='data-table'] {
+      overflow: visible;
+      border: 0;
+      border-radius: 0;
+      background: none;
+    }
+
+    [data-slot='data-table'] [data-slot='table-container'] {
+      overflow: visible;
+    }
+
+    [data-slot='data-table'] [data-slot='table'],
+    [data-slot='data-table'] [data-slot='table-body'] {
+      display: block;
+      width: 100%;
+    }
+
+    /* Header: sort chips. */
+    [data-slot='data-table'] [data-slot='table-header'] {
+      display: block;
+      background: none;
+    }
+
+    [data-slot='data-table'] [data-slot='table-header'] [data-slot='table-row'] {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+      padding-bottom: 0.75rem;
+      border: 0;
+    }
+
+    [data-slot='data-table'] [data-slot='table-head'] {
+      display: flex;
+      align-items: center;
+      width: auto;
+      height: 2rem;
+      padding: 0 0.625rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    /* Rows: cards. */
+    [data-slot='data-table'] [data-slot='table-body'] [data-slot='table-row'] {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: start;
+      gap: 0.375rem 0.75rem;
+      margin-bottom: 0.625rem;
+      position: relative;
+      padding: 0.875rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg, 0.625rem);
+      background: var(--card);
+    }
+
+    [data-slot='data-table']
+      [data-slot='table-body']
+      [data-slot='table-row'][data-state='selected'] {
+      border-color: var(--primary);
+      background: color-mix(in oklab, var(--primary) 6%, var(--card));
+    }
+
+    [data-slot='data-table'] [data-slot='table-cell'] {
+      display: grid;
+      grid-column: 1 / -1;
+      grid-template-columns: minmax(5.5rem, 35%) minmax(0, 1fr);
+      align-items: center;
+      gap: 0.75rem;
+      width: auto;
+      min-width: 0;
+      padding: 0;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    [data-slot='data-table'] [data-slot='table-cell']::before {
+      content: attr(data-label);
+      color: var(--muted-foreground);
+      font-size: 12px;
+    }
+
+    /* Title row: checkbox, then the first data column, no labels. */
+    [data-slot='data-table'] [data-slot='table-cell'].cell-_select {
+      display: block;
+      grid-column: 1;
+      grid-row: 1;
+      padding-top: 0.125rem;
+    }
+
+    [data-slot='data-table'] [data-slot='table-cell'][data-primary] {
+      display: block;
+      grid-column: 2;
+      grid-row: 1;
+      padding-bottom: 0.25rem;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    [data-slot='data-table'] [data-slot='table-cell']:is(.cell-_select, [data-primary])::before {
+      content: none;
+    }
+
+    /* A thumbnail in the title (media): centre the checkbox on it instead of the first line. */
+    [data-slot='data-table'] [data-slot='table-row']:has([data-primary] img) > .cell-_select {
+      align-self: center;
+      padding-top: 0;
+    }
+
+    /*
+     * The whole card opens the document: the title link stretches over the card. The checkbox and
+     * any other control in the card sit above it. The press shows on the card, not as Chrome's
+     * tap highlight box.
+     */
+    [data-slot='data-table'] [data-slot='table-cell'][data-primary] a {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    [data-slot='data-table'] [data-slot='table-cell'][data-primary] a::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+    }
+
+    [data-slot='data-table'] [data-slot='table-cell'][data-primary] a:focus-visible {
+      outline: none;
+    }
+
+    [data-slot='data-table'] [data-slot='table-cell'][data-primary] a:focus-visible::after {
+      border-radius: var(--radius-lg, 0.625rem);
+      outline: 2px solid var(--ring);
+      outline-offset: 2px;
+    }
+
+    [data-slot='data-table'] [data-slot='table-cell'].cell-_select,
+    [data-slot='data-table']
+      [data-slot='table-cell']:not([data-primary])
+      :is(a, button, input, select, textarea, label, [role='button']) {
+      position: relative;
+      z-index: 1;
+    }
+
+    [data-slot='data-table']
+      [data-slot='table-body']
+      [data-slot='table-row']:active:not(:has(.cell-_select:active)) {
+      background: color-mix(in oklab, var(--foreground) 5%, var(--card));
+    }
+  }
+}
