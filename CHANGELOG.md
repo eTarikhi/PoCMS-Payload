@@ -13,8 +13,10 @@ modernisation programme; every entry links the roadmap item it closes
   The queue is the `job-runs` collection; `GET /api/jobs/cron` is the Vercel Cron entry point
   (daily, `CRON_SECRET`). Tasks: empty the trash after `TRASH_RETENTION_DAYS`, store Lighthouse
   results for phones and desktops, and the Monday broken-link crawl of the public pages.
-- **Page speed reports.** The two Lighthouse runs of the job are stored in `pagespeed-reports`
-  (90 days), so the dashboard can show a trend without calling Google on every visit (E4b, storage).
+- **Page speed history (E4b).** The Page speed widget draws the performance score of the stored
+  Lighthouse runs (90 days) as a sparkline, with the change over the window and the best and worst
+  score. **Run again** starts the report job; the endpoint then expires the `pagespeed` cache tag,
+  so the live lab test runs again as well.
 - **Database migrations (MIG).** `src/migrations` is committed: a baseline for the whole schema and
   a second migration for the job tables. `pnpm migrate`, `migrate:status`, `migrate:create` and
   `migrate:adopt` (records the baseline on a database whose schema came from development push).

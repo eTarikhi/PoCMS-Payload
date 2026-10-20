@@ -22,6 +22,8 @@ import {
   type Strategy,
 } from '@/integrations/google'
 import { missingEnv } from '@/integrations/result'
+
+import { StoredHistory } from './History'
 import { publicSite } from '@/integrations/site'
 
 export const FORM_FACTORS = [
@@ -144,6 +146,12 @@ export async function PageSpeedWidget({ req, user, widgetData }: WidgetServerPro
             language={req.i18n.language}
           />
         </Suspense>
+        <StoredHistory
+          url={`${site.origin}/`}
+          strategy={strategy}
+          language={req.i18n.language}
+          req={req}
+        />
         <Suspense fallback={<FieldPending />}>
           <FieldSection
             origin={site.origin}

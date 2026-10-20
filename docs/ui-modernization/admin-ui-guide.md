@@ -367,6 +367,12 @@ site, from `src/integrations/google.ts`:
   behind Vercel Deployment Protection).
 - **Layout:** each part is a size container, so gauges, metrics and table columns follow the
   widget's width, not the viewport's.
+- **History (E4b):** the `pagespeed-report` job stores a Lighthouse run for phones and desktops
+  every day in `pagespeed-reports` (90 days). Under the lab test the widget draws the performance
+  score of the stored runs as a sparkline (`StoredHistory`), with the change over the window and
+  the best and worst score written as text. **Run again** (Scheduled jobs capability) runs the job
+  through `POST /api/jobs/run`; the endpoint expires the `pagespeed` cache tag afterwards, so the
+  live lab test also runs again on the next render.
 
 ## Bundle size
 

@@ -3194,6 +3194,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "final_url": {
+          "name": "final_url",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
         "strategy": {
           "name": "strategy",
           "type": "enum_pagespeed_reports_strategy",
@@ -5067,6 +5073,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "ca2f123d-671a-4402-b924-ff1a2fad7690",
+  "id": "a6c595e9-7642-484e-bd80-b98611585e20",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

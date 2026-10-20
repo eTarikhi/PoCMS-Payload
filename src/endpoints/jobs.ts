@@ -1,5 +1,6 @@
 import { timingSafeEqual } from 'node:crypto'
 
+import { revalidateTag } from 'next/cache'
 import type { Endpoint, PayloadRequest } from 'payload'
 
 import { hasCapability } from '@/access/permissions'
@@ -29,6 +30,19 @@ async function body(req: PayloadRequest): Promise<Record<string, unknown>> {
     return data && typeof data === 'object' ? (data as Record<string, unknown>) : {}
   } catch {
     return {}
+  }
+}
+
+/**
+ * Expires the caches a finished task fills. The Page speed report stores its own runs, but the
+ * live lab test on the widget is cached for a day: expiring the tag makes the next render run
+ * Lighthouse again, which is what "Run again" means.
+ */
+function refreshTaskCaches(task: string) {
+  try {
+    if (task === 'pagespeed-report') revalidateTag('pagespeed', { expire: 0 })
+  } catch {
+    // Not in a request (integration tests): the cached value expires on its own.
   }
 }
 
@@ -86,6 +100,7 @@ export const jobsRunEndpoint: Endpoint = {
     req.payload.logger.info({ msg: `JobRun queued: ${task}`, user: req.user?.email })
     const { ran } = await runQueue(req.payload, { only: task })
     const job = ran.find((candidate) => candidate.id === queued.job.id) ?? queued.job
+    if (job.status === 'done') refreshTaskCaches(task)
     return json({ job: publicJob(job) }, job.status === 'failed' ? 500 : 200)
   },
 }
@@ -145,6 +160,7 @@ export const jobsCronEndpoint: Endpoint = {
     }
     const { queued, skipped } = await queueDueJobs(req.payload)
     const { ran } = await runQueue(req.payload)
+    for (const job of ran) if (job.status === 'done') refreshTaskCaches(job.task)
     req.payload.logger.info({
       msg: 'Scheduled jobs ran',
       queued: queued.map((job) => job.id),

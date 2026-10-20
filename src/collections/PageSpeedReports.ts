@@ -26,7 +26,18 @@ export const PageSpeedReports: CollectionConfig = {
     delete: () => false,
   },
   fields: [
-    { name: 'url', type: 'text', required: true, index: true },
+    {
+      name: 'url',
+      type: 'text',
+      required: true,
+      index: true,
+      admin: { description: 'The address that was requested (the site origin with a trailing /).' },
+    },
+    {
+      name: 'finalUrl',
+      type: 'text',
+      admin: { description: 'The page Lighthouse ended up on, after redirects.' },
+    },
     {
       name: 'strategy',
       type: 'select',

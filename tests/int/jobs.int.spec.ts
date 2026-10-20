@@ -42,6 +42,8 @@ describe('Jobs', () => {
   let administrator: Role
   let admin: User
   let editor: User
+  let viewerRole: Role
+  let viewer: User
   let skill: Skill
   const stamp = Date.now()
   const createdJobs: number[] = []
@@ -67,6 +69,19 @@ describe('Jobs', () => {
     editor = await payload.create({
       collection: 'users',
       data: { email: `jobs-editor-${stamp}@example.test`, password: 'int-test-1' },
+    })
+    // No capabilities at all: the built-in Editor role includes traffic and deployments.
+    viewerRole = await payload.create({
+      collection: 'roles',
+      data: { name: `Jobs viewer ${stamp}`, levels: { skills: 'read' } },
+    })
+    viewer = await payload.create({
+      collection: 'users',
+      data: {
+        email: `jobs-viewer-${stamp}@example.test`,
+        password: 'int-test-1',
+        roles: [viewerRole.id],
+      },
     })
     skill = await payload.create({
       collection: 'skills',
@@ -201,6 +216,46 @@ describe('Jobs', () => {
     await expect(
       payload.find({ collection: 'job-runs', user: editor, overrideAccess: false }),
     ).rejects.toThrow(/not allowed/i)
+  })
+
+  it('stores page speed reports that only the analytics capability can read', async () => {
+    // Remove a leftover from an earlier run of this file.
+    await payload.delete({
+      collection: 'pagespeed-reports',
+      where: { url: { equals: 'https://example.test/' } },
+      overrideAccess: true,
+    })
+    const report = await payload.create({
+      collection: 'pagespeed-reports',
+      overrideAccess: true,
+      data: {
+        url: 'https://example.test/',
+        finalUrl: 'https://example.test/',
+        strategy: 'mobile',
+        fetchedAt: new Date().toISOString(),
+        lighthouseVersion: '12.0.0',
+        scores: [{ key: 'performance', label: 'Performance', score: 91, rating: 'good' }],
+      },
+    })
+    const asAdmin = await payload.find({
+      collection: 'pagespeed-reports',
+      where: { url: { equals: 'https://example.test/' } },
+      user: admin,
+      overrideAccess: false,
+    })
+    expect(asAdmin.totalDocs).toBe(1)
+    expect(asAdmin.docs[0].scores?.[0]).toMatchObject({ key: 'performance', score: 91 })
+    // The built-in Editor role has the analytics capability; a role without it is refused.
+    const asEditor = await payload.find({
+      collection: 'pagespeed-reports',
+      user: editor,
+      overrideAccess: false,
+    })
+    expect(asEditor.totalDocs).toBe(1)
+    await expect(
+      payload.find({ collection: 'pagespeed-reports', user: viewer, overrideAccess: false }),
+    ).rejects.toThrow(/not allowed/i)
+    await payload.delete({ collection: 'pagespeed-reports', id: report.id, overrideAccess: true })
   })
 
   it('the cron endpoint refuses to run without the secret', async () => {

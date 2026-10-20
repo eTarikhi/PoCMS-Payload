@@ -824,6 +824,7 @@ export const pagespeed_reports = pgTable(
   {
     id: serial('id').primaryKey(),
     url: varchar('url').notNull(),
+    finalUrl: varchar('final_url'),
     strategy: enum_pagespeed_reports_strategy('strategy').notNull(),
     fetchedAt: timestamp('fetched_at', {
       mode: 'string',

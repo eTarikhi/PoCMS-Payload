@@ -614,7 +614,14 @@ export interface JobRun {
  */
 export interface PagespeedReport {
   id: number;
+  /**
+   * The address that was requested (the site origin with a trailing /).
+   */
   url: string;
+  /**
+   * The page Lighthouse ended up on, after redirects.
+   */
+  finalUrl?: string | null;
   strategy: 'mobile' | 'desktop';
   fetchedAt: string;
   lighthouseVersion?: string | null;
@@ -1044,6 +1051,7 @@ export interface JobRunsSelect<T extends boolean = true> {
  */
 export interface PagespeedReportsSelect<T extends boolean = true> {
   url?: T;
+  finalUrl?: T;
   strategy?: T;
   fetchedAt?: T;
   lighthouseVersion?: T;

@@ -7554,6 +7554,7 @@ type JobRunsDeleteDocAccess {
 type PagespeedReport {
   id: Int!
   url: String!
+  finalUrl: String
   strategy: PagespeedReport_strategy!
   fetchedAt: DateTime!
   lighthouseVersion: String
@@ -7613,6 +7614,7 @@ type PagespeedReports {
 
 input PagespeedReport_where {
   url: PagespeedReport_url_operator
+  finalUrl: PagespeedReport_finalUrl_operator
   strategy: PagespeedReport_strategy_operator
   fetchedAt: PagespeedReport_fetchedAt_operator
   lighthouseVersion: PagespeedReport_lighthouseVersion_operator
@@ -7642,6 +7644,17 @@ input PagespeedReport_url_operator {
   in: [String]
   not_in: [String]
   all: [String]
+}
+
+input PagespeedReport_finalUrl_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
 }
 
 input PagespeedReport_strategy_operator {
@@ -7835,6 +7848,7 @@ input PagespeedReport_id_operator {
 
 input PagespeedReport_where_and {
   url: PagespeedReport_url_operator
+  finalUrl: PagespeedReport_finalUrl_operator
   strategy: PagespeedReport_strategy_operator
   fetchedAt: PagespeedReport_fetchedAt_operator
   lighthouseVersion: PagespeedReport_lighthouseVersion_operator
@@ -7858,6 +7872,7 @@ input PagespeedReport_where_and {
 
 input PagespeedReport_where_or {
   url: PagespeedReport_url_operator
+  finalUrl: PagespeedReport_finalUrl_operator
   strategy: PagespeedReport_strategy_operator
   fetchedAt: PagespeedReport_fetchedAt_operator
   lighthouseVersion: PagespeedReport_lighthouseVersion_operator
@@ -7893,6 +7908,7 @@ type pagespeed_reportsDocAccess {
 
 type PagespeedReportsDocAccessFields {
   url: PagespeedReportsDocAccessFields_url
+  finalUrl: PagespeedReportsDocAccessFields_finalUrl
   strategy: PagespeedReportsDocAccessFields_strategy
   fetchedAt: PagespeedReportsDocAccessFields_fetchedAt
   lighthouseVersion: PagespeedReportsDocAccessFields_lighthouseVersion
@@ -7922,6 +7938,29 @@ type PagespeedReportsDocAccessFields_url_Update {
 }
 
 type PagespeedReportsDocAccessFields_url_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_finalUrl {
+  create: PagespeedReportsDocAccessFields_finalUrl_Create
+  read: PagespeedReportsDocAccessFields_finalUrl_Read
+  update: PagespeedReportsDocAccessFields_finalUrl_Update
+  delete: PagespeedReportsDocAccessFields_finalUrl_Delete
+}
+
+type PagespeedReportsDocAccessFields_finalUrl_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_finalUrl_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_finalUrl_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_finalUrl_Delete {
   permission: Boolean!
 }
 
@@ -14419,6 +14458,7 @@ type pagespeed_reportsAccess {
 
 type PagespeedReportsFields {
   url: PagespeedReportsFields_url
+  finalUrl: PagespeedReportsFields_finalUrl
   strategy: PagespeedReportsFields_strategy
   fetchedAt: PagespeedReportsFields_fetchedAt
   lighthouseVersion: PagespeedReportsFields_lighthouseVersion
@@ -14448,6 +14488,29 @@ type PagespeedReportsFields_url_Update {
 }
 
 type PagespeedReportsFields_url_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_finalUrl {
+  create: PagespeedReportsFields_finalUrl_Create
+  read: PagespeedReportsFields_finalUrl_Read
+  update: PagespeedReportsFields_finalUrl_Update
+  delete: PagespeedReportsFields_finalUrl_Delete
+}
+
+type PagespeedReportsFields_finalUrl_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_finalUrl_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_finalUrl_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_finalUrl_Delete {
   permission: Boolean!
 }
 
@@ -16737,6 +16800,7 @@ enum JobRunUpdate_trigger_MutationInput {
 
 input mutationPagespeedReportInput {
   url: String!
+  finalUrl: String
   strategy: PagespeedReport_strategy_MutationInput!
   fetchedAt: String!
   lighthouseVersion: String
@@ -16782,6 +16846,7 @@ enum PagespeedReport_Metrics_rating_MutationInput {
 
 input mutationPagespeedReportUpdateInput {
   url: String
+  finalUrl: String
   strategy: PagespeedReportUpdate_strategy_MutationInput
   fetchedAt: String
   lighthouseVersion: String

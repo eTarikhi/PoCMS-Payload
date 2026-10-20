@@ -49,6 +49,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   CREATE TABLE "pagespeed_reports" (
   	"id" serial PRIMARY KEY NOT NULL,
   	"url" varchar NOT NULL,
+  	"final_url" varchar,
   	"strategy" "enum_pagespeed_reports_strategy" NOT NULL,
   	"fetched_at" timestamp(3) with time zone NOT NULL,
   	"lighthouse_version" varchar,

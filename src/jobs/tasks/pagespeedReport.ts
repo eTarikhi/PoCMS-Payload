@@ -65,7 +65,9 @@ export const pagespeedReport: JobTask = {
         collection: 'pagespeed-reports',
         overrideAccess: true,
         data: {
-          url: run.url,
+          // The requested address, so the widget can query it exactly; PSI may redirect.
+          url: `${siteURL.replace(/\/$/, '')}/`,
+          finalUrl: run.url,
           strategy: run.strategy,
           fetchedAt: run.fetchedAt,
           lighthouseVersion: run.lighthouseVersion ?? undefined,
