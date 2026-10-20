@@ -14,6 +14,7 @@ import { Form } from '@payloadcms/ui'
 import Link from 'next/link'
 import React from 'react'
 
+import { hasCapability } from '@/access/permissions'
 import { buttonVariants } from '@/components/admin/elements/Button'
 import {
   Table,
@@ -34,6 +35,7 @@ import { AccountAvatar } from '@/components/admin/graphics/AccountAvatar'
 import { Icon } from '@/components/admin/graphics/Icon'
 import { Logo } from '@/components/admin/graphics/Logo'
 import { ListSummary } from '@/components/admin/views/List/ListSummary'
+import { AuditLogWidget } from '@/components/admin/widgets/AuditLog'
 import { CIStatusView, CIStatusWidget } from '@/components/admin/widgets/CIStatus'
 import { ContentCountWidget } from '@/components/admin/widgets/ContentCount'
 import { ContentHealthWidget } from '@/components/admin/widgets/ContentHealth'
@@ -199,6 +201,13 @@ export function WidgetsPreview({
           <CIStatusWidget {...props('ci-status')} />
           <CIStatusView report={SAMPLE_CI} language={req.i18n.language} />
         </div>
+      </Specimen>
+      <Specimen
+        title="Audit log"
+        path={find('AuditLogWidget')}
+        meta={`${sizes('audit-log')} · capability: viewAuditLog · live entries from the audit log`}
+      >
+        <AuditLogWidget {...props('audit-log')} />
       </Specimen>
     </div>
   )
@@ -419,6 +428,88 @@ export function FieldsPreview({
           </TableBody>
         </Table>
       </Specimen>
+    </div>
+  )
+}
+
+/**
+ * The admin's whole-view tools (jobs, audit log, system, terminal): what each one is for, the
+ * capability it needs and a link to the real route. Unlike the specimens above these are not
+ * embedded — they read the database and the environment for the signed-in user, so rendering them
+ * inside the gallery would duplicate their `DefaultTemplate` shells. A tool the role cannot open is
+ * listed with its requirement instead of a link.
+ */
+const ADMIN_TOOLS: {
+  path: string
+  title: string
+  capability?: 'viewAuditLog' | 'manageJobs' | 'viewSystem' | 'useTerminal'
+  description: string
+}[] = [
+  {
+    path: '/admin/jobs',
+    title: 'Scheduled jobs',
+    capability: 'manageJobs',
+    description:
+      'The maintenance queue: trash retention, PageSpeed runs and the broken-link crawl, with Run now and Cancel.',
+  },
+  {
+    path: '/admin/collections/audit-logs',
+    title: 'Audit log',
+    capability: 'viewAuditLog',
+    description:
+      'Append-only record of creations, changes, trash, restores, deletes and sign-ins, with a per-field change list.',
+  },
+  {
+    path: '/admin/system',
+    title: 'System',
+    capability: 'viewSystem',
+    description:
+      'Build and environment, versions, which integrations are configured (never their values), the database and its migrations, and newer releases on npm.',
+  },
+  {
+    path: '/admin/terminal',
+    title: 'Terminal',
+    capability: 'useTerminal',
+    description:
+      'Development only: runs an allow-listed package script (lint, typecheck, checks, generate, migrate:status, tests) and streams its output. Production answers 404.',
+  },
+]
+
+export function ToolsPreview({
+  initPageResult,
+}: {
+  entries: RegistryEntry[]
+  initPageResult: InitPageResult
+}) {
+  const { req } = initPageResult
+  return (
+    <div className="acn:grid acn:gap-4 acn:md:grid-cols-2">
+      {ADMIN_TOOLS.map((tool) => {
+        const allowed = !tool.capability || hasCapability(req.user, tool.capability)
+        return (
+          <Specimen
+            key={tool.path}
+            title={tool.title}
+            meta={tool.capability ? `capability: ${tool.capability}` : 'no capability needed'}
+          >
+            <div className="acn:space-y-2">
+              <p className="acn:m-0 acn:text-sm acn:text-muted-foreground">{tool.description}</p>
+              {allowed ? (
+                <Link
+                  href={tool.path}
+                  className={buttonVariants({ variant: 'secondary', size: 'sm' })}
+                >
+                  Open {tool.title}
+                </Link>
+              ) : (
+                <p className="acn:m-0 acn:text-sm">
+                  Your role does not grant <code className="acn:font-mono">{tool.capability}</code>.
+                </p>
+              )}
+            </div>
+          </Specimen>
+        )
+      })}
     </div>
   )
 }

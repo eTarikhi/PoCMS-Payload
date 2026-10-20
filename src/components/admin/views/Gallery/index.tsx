@@ -8,7 +8,13 @@ import { hasCapability } from '@/access/permissions'
 import { buttonVariants } from '@/components/admin/elements/Button'
 
 import { ElementsLazy } from './ElementsLazy'
-import { FieldsPreview, GraphicsPreview, ListPreview, WidgetsPreview } from './previews'
+import {
+  FieldsPreview,
+  GraphicsPreview,
+  ListPreview,
+  ToolsPreview,
+  WidgetsPreview,
+} from './previews'
 import { RegistryTables } from './Registry'
 import { collectRegistry } from './registry'
 import { GallerySection } from './Section'
@@ -19,6 +25,7 @@ const SECTIONS = [
   ['widgets', 'Widgets'],
   ['list', 'List view'],
   ['fields', 'Fields'],
+  ['tools', 'Admin tools'],
   ['elements', 'Elements'],
 ] as const
 
@@ -168,6 +175,14 @@ export function GalleryView({
             }}
           >
             <FieldsPreview entries={entries} initPageResult={initPageResult} />
+          </GallerySection>
+
+          <GallerySection
+            id="tools"
+            title="Admin tools"
+            description="Whole views and collections that are not components on a page: what each one is for, which capability opens it, and where it lives. The links are the real routes; a tool your role cannot open is not linked."
+          >
+            <ToolsPreview entries={entries} initPageResult={initPageResult} />
           </GallerySection>
 
           <GallerySection
