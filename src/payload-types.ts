@@ -79,6 +79,8 @@ export interface Config {
     header: Header;
     users: User;
     roles: Role;
+    'job-runs': JobRun;
+    'pagespeed-reports': PagespeedReport;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -102,6 +104,8 @@ export interface Config {
     header: HeaderSelect<false> | HeaderSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     roles: RolesSelect<false> | RolesSelect<true>;
+    'job-runs': JobRunsSelect<false> | JobRunsSelect<true>;
+    'pagespeed-reports': PagespeedReportsSelect<false> | PagespeedReportsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -563,6 +567,81 @@ export interface Role {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "job-runs".
+ */
+export interface JobRun {
+  id: number;
+  task: 'trash-cleanup' | 'pagespeed-report' | 'broken-links';
+  status: 'queued' | 'running' | 'done' | 'failed' | 'cancelled';
+  trigger: 'manual' | 'cron';
+  /**
+   * Who ran it, for manual runs.
+   */
+  startedBy?: (number | null) | User;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  /**
+   * How long the task ran, in milliseconds.
+   */
+  durationMs?: number | null;
+  /**
+   * One sentence: what the run did, or found.
+   */
+  summary?: string | null;
+  error?: string | null;
+  /**
+   * The last lines the run wrote (up to 20 kB).
+   */
+  log?: string | null;
+  /**
+   * Task-specific numbers (counts, broken links) for the run detail.
+   */
+  details?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pagespeed-reports".
+ */
+export interface PagespeedReport {
+  id: number;
+  url: string;
+  strategy: 'mobile' | 'desktop';
+  fetchedAt: string;
+  lighthouseVersion?: string | null;
+  scores?:
+    | {
+        key: string;
+        label: string;
+        score?: number | null;
+        rating?: ('good' | 'average' | 'poor') | null;
+        id?: string | null;
+      }[]
+    | null;
+  metrics?:
+    | {
+        name: string;
+        label: string;
+        display?: string | null;
+        value?: number | null;
+        rating?: ('good' | 'average' | 'poor') | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -632,6 +711,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'roles';
         value: number | Role;
+      } | null)
+    | ({
+        relationTo: 'job-runs';
+        value: number | JobRun;
+      } | null)
+    | ({
+        relationTo: 'pagespeed-reports';
+        value: number | PagespeedReport;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -929,6 +1016,56 @@ export interface RolesSelect<T extends boolean = true> {
         useTerminal?: T;
       };
   members?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "job-runs_select".
+ */
+export interface JobRunsSelect<T extends boolean = true> {
+  task?: T;
+  status?: T;
+  trigger?: T;
+  startedBy?: T;
+  startedAt?: T;
+  finishedAt?: T;
+  durationMs?: T;
+  summary?: T;
+  error?: T;
+  log?: T;
+  details?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pagespeed-reports_select".
+ */
+export interface PagespeedReportsSelect<T extends boolean = true> {
+  url?: T;
+  strategy?: T;
+  fetchedAt?: T;
+  lighthouseVersion?: T;
+  scores?:
+    | T
+    | {
+        key?: T;
+        label?: T;
+        score?: T;
+        rating?: T;
+        id?: T;
+      };
+  metrics?:
+    | T
+    | {
+        name?: T;
+        label?: T;
+        display?: T;
+        value?: T;
+        rating?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }

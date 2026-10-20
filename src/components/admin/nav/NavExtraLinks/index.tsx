@@ -24,6 +24,11 @@ export function NavExtraLinks({ payload, user }: ServerProps) {
           View site<span className="acn:sr-only"> (opens in a new tab)</span>
         </span>
       </a>
+      {hasCapability(user, 'manageJobs') ? (
+        <Link className="nav__link" href={`${payload.config.routes.admin}/jobs`} id="nav-jobs">
+          <span className="nav__link-label">Scheduled jobs</span>
+        </Link>
+      ) : null}
       {hasCapability(user, 'useDeveloperTools') ? (
         <Link
           className="nav__link"

@@ -512,6 +512,46 @@ presets, were tried and removed; their `payload_query_presets` tables are droppe
 Development pushes the schema automatically; for a database without push, create and run a
 migration (`npx payload migrate:create`, then `npx payload migrate`).
 
+## Scheduled jobs
+
+Admin › **Scheduled jobs** (`/admin/jobs`, `views/Jobs`, the `manageJobs` capability) runs the
+maintenance tasks the CMS needs and shows when each one ran and what it found. The tasks live in
+`src/jobs`:
+
+| Task | Schedule | What it does |
+| --- | --- | --- |
+| `trash-cleanup` | daily | Permanently deletes documents that have been in the trash longer than `TRASH_RETENTION_DAYS` (30), on every `trash: true` collection. Media files go with their documents. |
+| `pagespeed-report` | daily | Runs Lighthouse for phones and desktops through PageSpeed Insights (in parallel) and stores both runs in `pagespeed-reports`. Needs `GOOGLE_API_KEY` and a public site address. Keeps 90 days. |
+| `broken-links` | Mondays | Crawls the home page and every article page, collects their links and requests each one (HEAD, then GET when a server refuses HEAD). Reports the broken ones with the page they were found on. Up to 60 links per run. |
+
+How a run happens:
+
+- **The queue is the `job-runs` collection** (`src/collections/Jobs.ts`, hidden from the sidebar).
+  A run is created as `queued`, becomes `running`, then `done`, `failed` or `cancelled`, with its
+  summary, error, duration, log (last 20 kB) and task details (counts, broken links).
+- **Vercel Cron** calls `GET /api/jobs/cron` once a day (`vercel.json`). The endpoint requires
+  `Authorization: Bearer $CRON_SECRET` and answers 503 while `CRON_SECRET` is unset, so it can never
+  run unauthenticated. It queues the tasks that are due today and drains the queue in one request.
+- **Run now** (`POST /api/jobs/run`, signed in + `manageJobs`) queues one task and runs the queue
+  immediately. A task that is already queued or running returns 409 instead of running twice.
+  **Cancel** (`POST /api/jobs/cancel`) cancels a queued run before its turn; a run that has started
+  cannot be interrupted, because the function is the worker.
+- A run whose function died (a deploy, the 60 s limit) is marked failed after 15 minutes
+  (`STALE_RUN_MS`) by the next queue call, so the task is not blocked forever.
+- The collection slug is `job-runs`, not `jobs`: Payload resolves `/api/jobs/:id` as a collection
+  before the custom endpoints, which would shadow `/api/jobs/cron`.
+
+Adding a task: a file in `src/jobs/tasks` exporting a `JobTask` (`slug`, `label`, `description`,
+`schedule`, optional `weekday`, `needs`, `run`), then an entry in `TASKS`
+(`src/jobs/registry.ts`). The jobs collection options, the page and the cron endpoint read that
+list, so nothing else changes; run `pnpm generate:all` for the new select option, then
+`pnpm typecheck && pnpm test:int`. `tests/int/jobs.int.spec.ts` covers the queue, the permanent
+deletion, the cron secret and the access rules.
+
+The audit log (E5), the System page (E6) and the terminal (E7) use the same capability model; see
+[`docs/ui-modernization/dashboard-integrations.md`](./dashboard-integrations.md) for the outside
+services the widgets and tasks call.
+
 ## GraphQL document tab
 
 Every collection and global has a **GraphQL** tab next to Payload's **API** tab

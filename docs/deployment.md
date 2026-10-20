@@ -80,6 +80,27 @@ build-time migration would run once per preview. Instead:
 
 Locally, `pnpm migrate` uses `POSTGRES_URL` from `.env`; never commit that file.
 
+## Scheduled jobs
+
+`vercel.json` declares one cron job: `GET /api/jobs/cron` at 03:15 UTC every day. It empties the
+trash, stores the Page speed report and, on Mondays, checks the site's links (see
+[the admin guide](ui-modernization/admin-ui-guide.md#scheduled-jobs)).
+
+1. Add `CRON_SECRET` to Vercel (any long random string, e.g. `openssl rand -hex 32`). Vercel sends
+   it as `Authorization: Bearer $CRON_SECRET` with every cron call; without it the endpoint answers
+   503 and nothing runs on a schedule.
+2. Optional: `TRASH_RETENTION_DAYS` (default 30) and `GOOGLE_API_KEY` for the Page speed report.
+3. Run a task by hand from **Admin → Scheduled jobs → Run now**, or with curl:
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" https://your-site.vercel.app/api/jobs/cron
+```
+
+On the Hobby plan a cron job runs once a day, which is why one endpoint schedules the weekly task
+itself. A run is bounded by the function's time limit (60 s, set in `vercel.json`); the link check
+and the Lighthouse runs are sized to finish inside it. The `job-runs` collection keeps the outcome
+of every run, failure included.
+
 ## Production environment checklist
 
 Before deployment, verify the following:
@@ -88,6 +109,8 @@ Before deployment, verify the following:
 - the database connection string is valid
 - the blob token has read/write access
 - `NEXT_PUBLIC_SITE_URL` points to the production domain
+- `CRON_SECRET` is set, so scheduled jobs can run
+- the migrations in `src/migrations` are applied (Actions → Migrate database)
 - `NODE_ENV` is set appropriately
 
 ## Security notes

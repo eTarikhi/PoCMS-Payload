@@ -55,15 +55,21 @@ src/components/admin/
 ├── views/
 │   ├── Gallery/            /admin/gallery: index.tsx (server), registry.ts, Registry.tsx, Section.tsx,
 │   │                       previews.tsx, Elements.tsx via ElementsLazy.tsx
+│   ├── Jobs/               /admin/jobs: index.tsx (server, Scheduled jobs capability),
+│   │                       Actions.tsx (client: Run now, Cancel)
 │   ├── List/               index.tsx (TanStack list view), DataTable.tsx via DataTableLazy.tsx,
 │   │                       ListSummary.tsx + summaryFacts.ts (beforeListTable)
 │   └── SingletonList/      list view of Header and About: redirects to the one document
 └── widgets/
     ├── config.ts           widget definitions and the default layout (imported by payload.config.ts)
+    ├── CIStatus/           ci-status
     ├── ContentCount/       content-count
     ├── ContentHealth/      content-health
+    ├── Deployments/        deployments
+    ├── PageSpeed/          page-speed
     ├── PublishingActivity/ publishing-activity: index.tsx (server), ChartLazy.tsx → Chart.tsx, data.ts
     ├── RecentChanges/      recent-changes
+    ├── SiteTraffic/        site-traffic
     └── Welcome/            welcome
 ```
 

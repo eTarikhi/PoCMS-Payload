@@ -105,6 +105,32 @@ export const enum_roles_levels_header = pgEnum('enum_roles_levels_header', [
   'full',
 ])
 export const enum_roles_levels_footer = pgEnum('enum_roles_levels_footer', ['none', 'read', 'edit'])
+export const enum_job_runs_task = pgEnum('enum_job_runs_task', [
+  'trash-cleanup',
+  'pagespeed-report',
+  'broken-links',
+])
+export const enum_job_runs_status = pgEnum('enum_job_runs_status', [
+  'queued',
+  'running',
+  'done',
+  'failed',
+  'cancelled',
+])
+export const enum_job_runs_trigger = pgEnum('enum_job_runs_trigger', ['manual', 'cron'])
+export const enum_pagespeed_reports_scores_rating = pgEnum('enum_pagespeed_reports_scores_rating', [
+  'good',
+  'average',
+  'poor',
+])
+export const enum_pagespeed_reports_metrics_rating = pgEnum(
+  'enum_pagespeed_reports_metrics_rating',
+  ['good', 'average', 'poor'],
+)
+export const enum_pagespeed_reports_strategy = pgEnum('enum_pagespeed_reports_strategy', [
+  'mobile',
+  'desktop',
+])
 export const enum_footer_social_links_platform = pgEnum('enum_footer_social_links_platform', [
   'facebook',
   'twitter',
@@ -715,6 +741,112 @@ export const roles = pgTable(
   ],
 )
 
+export const job_runs = pgTable(
+  'job_runs',
+  {
+    id: serial('id').primaryKey(),
+    task: enum_job_runs_task('task').notNull(),
+    status: enum_job_runs_status('status').notNull().default('queued'),
+    trigger: enum_job_runs_trigger('trigger').notNull().default('manual'),
+    startedBy: integer('started_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    startedAt: timestamp('started_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    finishedAt: timestamp('finished_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    durationMs: numeric('duration_ms', { mode: 'number' }),
+    summary: varchar('summary'),
+    error: varchar('error'),
+    log: varchar('log'),
+    details: jsonb('details'),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index('job_runs_task_idx').on(columns.task),
+    index('job_runs_status_idx').on(columns.status),
+    index('job_runs_started_by_idx').on(columns.startedBy),
+    index('job_runs_updated_at_idx').on(columns.updatedAt),
+    index('job_runs_created_at_idx').on(columns.createdAt),
+  ],
+)
+
+export const pagespeed_reports_scores = pgTable(
+  'pagespeed_reports_scores',
+  {
+    _order: integer('_order').notNull(),
+    _parentID: integer('_parent_id').notNull(),
+    id: varchar('id').primaryKey(),
+    key: varchar('key').notNull(),
+    label: varchar('label').notNull(),
+    score: numeric('score', { mode: 'number' }),
+    rating: enum_pagespeed_reports_scores_rating('rating'),
+  },
+  (columns) => [
+    index('pagespeed_reports_scores_order_idx').on(columns._order),
+    index('pagespeed_reports_scores_parent_id_idx').on(columns._parentID),
+    foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [pagespeed_reports.id],
+      name: 'pagespeed_reports_scores_parent_id_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
+export const pagespeed_reports_metrics = pgTable(
+  'pagespeed_reports_metrics',
+  {
+    _order: integer('_order').notNull(),
+    _parentID: integer('_parent_id').notNull(),
+    id: varchar('id').primaryKey(),
+    name: varchar('name').notNull(),
+    label: varchar('label').notNull(),
+    display: varchar('display'),
+    value: numeric('value', { mode: 'number' }),
+    rating: enum_pagespeed_reports_metrics_rating('rating'),
+  },
+  (columns) => [
+    index('pagespeed_reports_metrics_order_idx').on(columns._order),
+    index('pagespeed_reports_metrics_parent_id_idx').on(columns._parentID),
+    foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [pagespeed_reports.id],
+      name: 'pagespeed_reports_metrics_parent_id_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
+export const pagespeed_reports = pgTable(
+  'pagespeed_reports',
+  {
+    id: serial('id').primaryKey(),
+    url: varchar('url').notNull(),
+    strategy: enum_pagespeed_reports_strategy('strategy').notNull(),
+    fetchedAt: timestamp('fetched_at', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }).notNull(),
+    lighthouseVersion: varchar('lighthouse_version'),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index('pagespeed_reports_url_idx').on(columns.url),
+    index('pagespeed_reports_strategy_idx').on(columns.strategy),
+    index('pagespeed_reports_fetched_at_idx').on(columns.fetchedAt),
+    index('pagespeed_reports_updated_at_idx').on(columns.updatedAt),
+    index('pagespeed_reports_created_at_idx').on(columns.createdAt),
+  ],
+)
+
 export const payload_kv = pgTable(
   'payload_kv',
   {
@@ -763,6 +895,8 @@ export const payload_locked_documents_rels = pgTable(
     headerID: integer('header_id'),
     usersID: integer('users_id'),
     rolesID: integer('roles_id'),
+    'job-runsID': integer('job_runs_id'),
+    'pagespeed-reportsID': integer('pagespeed_reports_id'),
   },
   (columns) => [
     index('payload_locked_documents_rels_order_idx').on(columns.order),
@@ -780,6 +914,10 @@ export const payload_locked_documents_rels = pgTable(
     index('payload_locked_documents_rels_header_id_idx').on(columns.headerID),
     index('payload_locked_documents_rels_users_id_idx').on(columns.usersID),
     index('payload_locked_documents_rels_roles_id_idx').on(columns.rolesID),
+    index('payload_locked_documents_rels_job_runs_id_idx').on(columns['job-runsID']),
+    index('payload_locked_documents_rels_pagespeed_reports_id_idx').on(
+      columns['pagespeed-reportsID'],
+    ),
     foreignKey({
       columns: [columns['parent']],
       foreignColumns: [payload_locked_documents.id],
@@ -844,6 +982,16 @@ export const payload_locked_documents_rels = pgTable(
       columns: [columns['rolesID']],
       foreignColumns: [roles.id],
       name: 'payload_locked_documents_rels_roles_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [columns['job-runsID']],
+      foreignColumns: [job_runs.id],
+      name: 'payload_locked_documents_rels_job_runs_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [columns['pagespeed-reportsID']],
+      foreignColumns: [pagespeed_reports.id],
+      name: 'payload_locked_documents_rels_pagespeed_reports_fk',
     }).onDelete('cascade'),
   ],
 )
@@ -1150,6 +1298,41 @@ export const relations_users = relations(users, ({ many }) => ({
   }),
 }))
 export const relations_roles = relations(roles, () => ({}))
+export const relations_job_runs = relations(job_runs, ({ one }) => ({
+  startedBy: one(users, {
+    fields: [job_runs.startedBy],
+    references: [users.id],
+    relationName: 'startedBy',
+  }),
+}))
+export const relations_pagespeed_reports_scores = relations(
+  pagespeed_reports_scores,
+  ({ one }) => ({
+    _parentID: one(pagespeed_reports, {
+      fields: [pagespeed_reports_scores._parentID],
+      references: [pagespeed_reports.id],
+      relationName: 'scores',
+    }),
+  }),
+)
+export const relations_pagespeed_reports_metrics = relations(
+  pagespeed_reports_metrics,
+  ({ one }) => ({
+    _parentID: one(pagespeed_reports, {
+      fields: [pagespeed_reports_metrics._parentID],
+      references: [pagespeed_reports.id],
+      relationName: 'metrics',
+    }),
+  }),
+)
+export const relations_pagespeed_reports = relations(pagespeed_reports, ({ many }) => ({
+  scores: many(pagespeed_reports_scores, {
+    relationName: 'scores',
+  }),
+  metrics: many(pagespeed_reports_metrics, {
+    relationName: 'metrics',
+  }),
+}))
 export const relations_payload_kv = relations(payload_kv, () => ({}))
 export const relations_payload_locked_documents_rels = relations(
   payload_locked_documents_rels,
@@ -1218,6 +1401,16 @@ export const relations_payload_locked_documents_rels = relations(
       fields: [payload_locked_documents_rels.rolesID],
       references: [roles.id],
       relationName: 'roles',
+    }),
+    'job-runsID': one(job_runs, {
+      fields: [payload_locked_documents_rels['job-runsID']],
+      references: [job_runs.id],
+      relationName: 'job-runs',
+    }),
+    'pagespeed-reportsID': one(pagespeed_reports, {
+      fields: [payload_locked_documents_rels['pagespeed-reportsID']],
+      references: [pagespeed_reports.id],
+      relationName: 'pagespeed-reports',
     }),
   }),
 )
@@ -1311,6 +1504,12 @@ type DatabaseSchema = {
   enum_roles_levels_certificates: typeof enum_roles_levels_certificates
   enum_roles_levels_header: typeof enum_roles_levels_header
   enum_roles_levels_footer: typeof enum_roles_levels_footer
+  enum_job_runs_task: typeof enum_job_runs_task
+  enum_job_runs_status: typeof enum_job_runs_status
+  enum_job_runs_trigger: typeof enum_job_runs_trigger
+  enum_pagespeed_reports_scores_rating: typeof enum_pagespeed_reports_scores_rating
+  enum_pagespeed_reports_metrics_rating: typeof enum_pagespeed_reports_metrics_rating
+  enum_pagespeed_reports_strategy: typeof enum_pagespeed_reports_strategy
   enum_footer_social_links_platform: typeof enum_footer_social_links_platform
   enum_footer_social_links_icon_name: typeof enum_footer_social_links_icon_name
   enum_footer_contact_info_type: typeof enum_footer_contact_info_type
@@ -1337,6 +1536,10 @@ type DatabaseSchema = {
   users: typeof users
   users_rels: typeof users_rels
   roles: typeof roles
+  job_runs: typeof job_runs
+  pagespeed_reports_scores: typeof pagespeed_reports_scores
+  pagespeed_reports_metrics: typeof pagespeed_reports_metrics
+  pagespeed_reports: typeof pagespeed_reports
   payload_kv: typeof payload_kv
   payload_locked_documents: typeof payload_locked_documents
   payload_locked_documents_rels: typeof payload_locked_documents_rels
@@ -1369,6 +1572,10 @@ type DatabaseSchema = {
   relations_users_rels: typeof relations_users_rels
   relations_users: typeof relations_users
   relations_roles: typeof relations_roles
+  relations_job_runs: typeof relations_job_runs
+  relations_pagespeed_reports_scores: typeof relations_pagespeed_reports_scores
+  relations_pagespeed_reports_metrics: typeof relations_pagespeed_reports_metrics
+  relations_pagespeed_reports: typeof relations_pagespeed_reports
   relations_payload_kv: typeof relations_payload_kv
   relations_payload_locked_documents_rels: typeof relations_payload_locked_documents_rels
   relations_payload_locked_documents: typeof relations_payload_locked_documents

@@ -49,6 +49,14 @@ type Query {
   Roles(draft: Boolean, where: Role_where, limit: Int, page: Int, pagination: Boolean, select: Boolean, sort: String, trash: Boolean): Roles
   countRoles(draft: Boolean, trash: Boolean, where: Role_where): countRoles
   docAccessRole(id: Int!): rolesDocAccess
+  JobRun(id: Int!, draft: Boolean, select: Boolean, trash: Boolean): JobRun
+  JobRuns(draft: Boolean, where: JobRun_where, limit: Int, page: Int, pagination: Boolean, select: Boolean, sort: String, trash: Boolean): JobRuns
+  countJobRuns(draft: Boolean, trash: Boolean, where: JobRun_where): countJobRuns
+  docAccessJobRun(id: Int!): job_runsDocAccess
+  PagespeedReport(id: Int!, draft: Boolean, select: Boolean, trash: Boolean): PagespeedReport
+  PagespeedReports(draft: Boolean, where: PagespeedReport_where, limit: Int, page: Int, pagination: Boolean, select: Boolean, sort: String, trash: Boolean): PagespeedReports
+  countPagespeedReports(draft: Boolean, trash: Boolean, where: PagespeedReport_where): countPagespeedReports
+  docAccessPagespeedReport(id: Int!): pagespeed_reportsDocAccess
   PayloadKv(id: Int!, draft: Boolean, select: Boolean, trash: Boolean): PayloadKv
   PayloadKvs(draft: Boolean, where: PayloadKv_where, limit: Int, page: Int, pagination: Boolean, select: Boolean, sort: String, trash: Boolean): PayloadKvs
   countPayloadKvs(draft: Boolean, trash: Boolean, where: PayloadKv_where): countPayloadKvs
@@ -6939,6 +6947,1437 @@ type RolesDeleteDocAccess {
   where: JSONObject
 }
 
+type JobRun {
+  id: Int!
+  task: JobRun_task!
+  status: JobRun_status!
+  trigger: JobRun_trigger!
+  startedBy: User
+  startedAt: DateTime
+  finishedAt: DateTime
+  durationMs: Float
+  summary: String
+  error: String
+  log: String
+  details: JSON
+  updatedAt: DateTime
+  createdAt: DateTime
+}
+
+enum JobRun_task {
+  trash_cleanup
+  pagespeed_report
+  broken_links
+}
+
+enum JobRun_status {
+  queued
+  running
+  done
+  failed
+  cancelled
+}
+
+enum JobRun_trigger {
+  manual
+  cron
+}
+
+type JobRuns {
+  docs: [JobRun!]!
+  hasNextPage: Boolean!
+  hasPrevPage: Boolean!
+  limit: Int!
+  nextPage: Int
+  offset: Int
+  page: Int!
+  pagingCounter: Int!
+  prevPage: Int
+  totalDocs: Int!
+  totalPages: Int!
+}
+
+input JobRun_where {
+  task: JobRun_task_operator
+  status: JobRun_status_operator
+  trigger: JobRun_trigger_operator
+  startedBy: JobRun_startedBy_operator
+  startedAt: JobRun_startedAt_operator
+  finishedAt: JobRun_finishedAt_operator
+  durationMs: JobRun_durationMs_operator
+  summary: JobRun_summary_operator
+  error: JobRun_error_operator
+  log: JobRun_log_operator
+  details: JobRun_details_operator
+  updatedAt: JobRun_updatedAt_operator
+  createdAt: JobRun_createdAt_operator
+  id: JobRun_id_operator
+  AND: [JobRun_where_and]
+  OR: [JobRun_where_or]
+}
+
+input JobRun_task_operator {
+  equals: JobRun_task_Input
+  not_equals: JobRun_task_Input
+  in: [JobRun_task_Input]
+  not_in: [JobRun_task_Input]
+  all: [JobRun_task_Input]
+}
+
+enum JobRun_task_Input {
+  trash_cleanup
+  pagespeed_report
+  broken_links
+}
+
+input JobRun_status_operator {
+  equals: JobRun_status_Input
+  not_equals: JobRun_status_Input
+  in: [JobRun_status_Input]
+  not_in: [JobRun_status_Input]
+  all: [JobRun_status_Input]
+}
+
+enum JobRun_status_Input {
+  queued
+  running
+  done
+  failed
+  cancelled
+}
+
+input JobRun_trigger_operator {
+  equals: JobRun_trigger_Input
+  not_equals: JobRun_trigger_Input
+  in: [JobRun_trigger_Input]
+  not_in: [JobRun_trigger_Input]
+  all: [JobRun_trigger_Input]
+}
+
+enum JobRun_trigger_Input {
+  manual
+  cron
+}
+
+input JobRun_startedBy_operator {
+  equals: JSON
+  not_equals: JSON
+  in: [JSON]
+  not_in: [JSON]
+  all: [JSON]
+  exists: Boolean
+}
+
+input JobRun_startedAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+  exists: Boolean
+}
+
+input JobRun_finishedAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+  exists: Boolean
+}
+
+input JobRun_durationMs_operator {
+  equals: Float
+  not_equals: Float
+  greater_than_equal: Float
+  greater_than: Float
+  less_than_equal: Float
+  less_than: Float
+  exists: Boolean
+}
+
+input JobRun_summary_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  exists: Boolean
+}
+
+input JobRun_error_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  exists: Boolean
+}
+
+input JobRun_log_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  exists: Boolean
+}
+
+input JobRun_details_operator {
+  equals: JSON
+  not_equals: JSON
+  like: JSON
+  contains: JSON
+  within: JSON
+  intersects: JSON
+  exists: Boolean
+}
+
+input JobRun_updatedAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+  exists: Boolean
+}
+
+input JobRun_createdAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+  exists: Boolean
+}
+
+input JobRun_id_operator {
+  equals: Int
+  not_equals: Int
+  greater_than_equal: Int
+  greater_than: Int
+  less_than_equal: Int
+  less_than: Int
+  exists: Boolean
+}
+
+input JobRun_where_and {
+  task: JobRun_task_operator
+  status: JobRun_status_operator
+  trigger: JobRun_trigger_operator
+  startedBy: JobRun_startedBy_operator
+  startedAt: JobRun_startedAt_operator
+  finishedAt: JobRun_finishedAt_operator
+  durationMs: JobRun_durationMs_operator
+  summary: JobRun_summary_operator
+  error: JobRun_error_operator
+  log: JobRun_log_operator
+  details: JobRun_details_operator
+  updatedAt: JobRun_updatedAt_operator
+  createdAt: JobRun_createdAt_operator
+  id: JobRun_id_operator
+  AND: [JobRun_where_and]
+  OR: [JobRun_where_or]
+}
+
+input JobRun_where_or {
+  task: JobRun_task_operator
+  status: JobRun_status_operator
+  trigger: JobRun_trigger_operator
+  startedBy: JobRun_startedBy_operator
+  startedAt: JobRun_startedAt_operator
+  finishedAt: JobRun_finishedAt_operator
+  durationMs: JobRun_durationMs_operator
+  summary: JobRun_summary_operator
+  error: JobRun_error_operator
+  log: JobRun_log_operator
+  details: JobRun_details_operator
+  updatedAt: JobRun_updatedAt_operator
+  createdAt: JobRun_createdAt_operator
+  id: JobRun_id_operator
+  AND: [JobRun_where_and]
+  OR: [JobRun_where_or]
+}
+
+type countJobRuns {
+  totalDocs: Int
+}
+
+type job_runsDocAccess {
+  fields: JobRunsDocAccessFields
+  create: JobRunsCreateDocAccess
+  read: JobRunsReadDocAccess
+  update: JobRunsUpdateDocAccess
+  delete: JobRunsDeleteDocAccess
+}
+
+type JobRunsDocAccessFields {
+  task: JobRunsDocAccessFields_task
+  status: JobRunsDocAccessFields_status
+  trigger: JobRunsDocAccessFields_trigger
+  startedBy: JobRunsDocAccessFields_startedBy
+  startedAt: JobRunsDocAccessFields_startedAt
+  finishedAt: JobRunsDocAccessFields_finishedAt
+  durationMs: JobRunsDocAccessFields_durationMs
+  summary: JobRunsDocAccessFields_summary
+  error: JobRunsDocAccessFields_error
+  log: JobRunsDocAccessFields_log
+  details: JobRunsDocAccessFields_details
+  updatedAt: JobRunsDocAccessFields_updatedAt
+  createdAt: JobRunsDocAccessFields_createdAt
+}
+
+type JobRunsDocAccessFields_task {
+  create: JobRunsDocAccessFields_task_Create
+  read: JobRunsDocAccessFields_task_Read
+  update: JobRunsDocAccessFields_task_Update
+  delete: JobRunsDocAccessFields_task_Delete
+}
+
+type JobRunsDocAccessFields_task_Create {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_task_Read {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_task_Update {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_task_Delete {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_status {
+  create: JobRunsDocAccessFields_status_Create
+  read: JobRunsDocAccessFields_status_Read
+  update: JobRunsDocAccessFields_status_Update
+  delete: JobRunsDocAccessFields_status_Delete
+}
+
+type JobRunsDocAccessFields_status_Create {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_status_Read {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_status_Update {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_status_Delete {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_trigger {
+  create: JobRunsDocAccessFields_trigger_Create
+  read: JobRunsDocAccessFields_trigger_Read
+  update: JobRunsDocAccessFields_trigger_Update
+  delete: JobRunsDocAccessFields_trigger_Delete
+}
+
+type JobRunsDocAccessFields_trigger_Create {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_trigger_Read {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_trigger_Update {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_trigger_Delete {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_startedBy {
+  create: JobRunsDocAccessFields_startedBy_Create
+  read: JobRunsDocAccessFields_startedBy_Read
+  update: JobRunsDocAccessFields_startedBy_Update
+  delete: JobRunsDocAccessFields_startedBy_Delete
+}
+
+type JobRunsDocAccessFields_startedBy_Create {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_startedBy_Read {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_startedBy_Update {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_startedBy_Delete {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_startedAt {
+  create: JobRunsDocAccessFields_startedAt_Create
+  read: JobRunsDocAccessFields_startedAt_Read
+  update: JobRunsDocAccessFields_startedAt_Update
+  delete: JobRunsDocAccessFields_startedAt_Delete
+}
+
+type JobRunsDocAccessFields_startedAt_Create {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_startedAt_Read {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_startedAt_Update {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_startedAt_Delete {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_finishedAt {
+  create: JobRunsDocAccessFields_finishedAt_Create
+  read: JobRunsDocAccessFields_finishedAt_Read
+  update: JobRunsDocAccessFields_finishedAt_Update
+  delete: JobRunsDocAccessFields_finishedAt_Delete
+}
+
+type JobRunsDocAccessFields_finishedAt_Create {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_finishedAt_Read {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_finishedAt_Update {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_finishedAt_Delete {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_durationMs {
+  create: JobRunsDocAccessFields_durationMs_Create
+  read: JobRunsDocAccessFields_durationMs_Read
+  update: JobRunsDocAccessFields_durationMs_Update
+  delete: JobRunsDocAccessFields_durationMs_Delete
+}
+
+type JobRunsDocAccessFields_durationMs_Create {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_durationMs_Read {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_durationMs_Update {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_durationMs_Delete {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_summary {
+  create: JobRunsDocAccessFields_summary_Create
+  read: JobRunsDocAccessFields_summary_Read
+  update: JobRunsDocAccessFields_summary_Update
+  delete: JobRunsDocAccessFields_summary_Delete
+}
+
+type JobRunsDocAccessFields_summary_Create {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_summary_Read {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_summary_Update {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_summary_Delete {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_error {
+  create: JobRunsDocAccessFields_error_Create
+  read: JobRunsDocAccessFields_error_Read
+  update: JobRunsDocAccessFields_error_Update
+  delete: JobRunsDocAccessFields_error_Delete
+}
+
+type JobRunsDocAccessFields_error_Create {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_error_Read {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_error_Update {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_error_Delete {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_log {
+  create: JobRunsDocAccessFields_log_Create
+  read: JobRunsDocAccessFields_log_Read
+  update: JobRunsDocAccessFields_log_Update
+  delete: JobRunsDocAccessFields_log_Delete
+}
+
+type JobRunsDocAccessFields_log_Create {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_log_Read {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_log_Update {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_log_Delete {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_details {
+  create: JobRunsDocAccessFields_details_Create
+  read: JobRunsDocAccessFields_details_Read
+  update: JobRunsDocAccessFields_details_Update
+  delete: JobRunsDocAccessFields_details_Delete
+}
+
+type JobRunsDocAccessFields_details_Create {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_details_Read {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_details_Update {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_details_Delete {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_updatedAt {
+  create: JobRunsDocAccessFields_updatedAt_Create
+  read: JobRunsDocAccessFields_updatedAt_Read
+  update: JobRunsDocAccessFields_updatedAt_Update
+  delete: JobRunsDocAccessFields_updatedAt_Delete
+}
+
+type JobRunsDocAccessFields_updatedAt_Create {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_updatedAt_Read {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_updatedAt_Update {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_updatedAt_Delete {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_createdAt {
+  create: JobRunsDocAccessFields_createdAt_Create
+  read: JobRunsDocAccessFields_createdAt_Read
+  update: JobRunsDocAccessFields_createdAt_Update
+  delete: JobRunsDocAccessFields_createdAt_Delete
+}
+
+type JobRunsDocAccessFields_createdAt_Create {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_createdAt_Read {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_createdAt_Update {
+  permission: Boolean!
+}
+
+type JobRunsDocAccessFields_createdAt_Delete {
+  permission: Boolean!
+}
+
+type JobRunsCreateDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type JobRunsReadDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type JobRunsUpdateDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type JobRunsDeleteDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type PagespeedReport {
+  id: Int!
+  url: String!
+  strategy: PagespeedReport_strategy!
+  fetchedAt: DateTime!
+  lighthouseVersion: String
+  scores: [PagespeedReport_Scores!]
+  metrics: [PagespeedReport_Metrics!]
+  updatedAt: DateTime
+  createdAt: DateTime
+}
+
+enum PagespeedReport_strategy {
+  mobile
+  desktop
+}
+
+type PagespeedReport_Scores {
+  key: String
+  label: String
+  score: Float
+  rating: PagespeedReport_Scores_rating
+  id: String
+}
+
+enum PagespeedReport_Scores_rating {
+  good
+  average
+  poor
+}
+
+type PagespeedReport_Metrics {
+  name: String
+  label: String
+  display: String
+  value: Float
+  rating: PagespeedReport_Metrics_rating
+  id: String
+}
+
+enum PagespeedReport_Metrics_rating {
+  good
+  average
+  poor
+}
+
+type PagespeedReports {
+  docs: [PagespeedReport!]!
+  hasNextPage: Boolean!
+  hasPrevPage: Boolean!
+  limit: Int!
+  nextPage: Int
+  offset: Int
+  page: Int!
+  pagingCounter: Int!
+  prevPage: Int
+  totalDocs: Int!
+  totalPages: Int!
+}
+
+input PagespeedReport_where {
+  url: PagespeedReport_url_operator
+  strategy: PagespeedReport_strategy_operator
+  fetchedAt: PagespeedReport_fetchedAt_operator
+  lighthouseVersion: PagespeedReport_lighthouseVersion_operator
+  scores__key: PagespeedReport_scores__key_operator
+  scores__label: PagespeedReport_scores__label_operator
+  scores__score: PagespeedReport_scores__score_operator
+  scores__rating: PagespeedReport_scores__rating_operator
+  scores__id: PagespeedReport_scores__id_operator
+  metrics__name: PagespeedReport_metrics__name_operator
+  metrics__label: PagespeedReport_metrics__label_operator
+  metrics__display: PagespeedReport_metrics__display_operator
+  metrics__value: PagespeedReport_metrics__value_operator
+  metrics__rating: PagespeedReport_metrics__rating_operator
+  metrics__id: PagespeedReport_metrics__id_operator
+  updatedAt: PagespeedReport_updatedAt_operator
+  createdAt: PagespeedReport_createdAt_operator
+  id: PagespeedReport_id_operator
+  AND: [PagespeedReport_where_and]
+  OR: [PagespeedReport_where_or]
+}
+
+input PagespeedReport_url_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+}
+
+input PagespeedReport_strategy_operator {
+  equals: PagespeedReport_strategy_Input
+  not_equals: PagespeedReport_strategy_Input
+  in: [PagespeedReport_strategy_Input]
+  not_in: [PagespeedReport_strategy_Input]
+  all: [PagespeedReport_strategy_Input]
+}
+
+enum PagespeedReport_strategy_Input {
+  mobile
+  desktop
+}
+
+input PagespeedReport_fetchedAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+}
+
+input PagespeedReport_lighthouseVersion_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
+}
+
+input PagespeedReport_scores__key_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+}
+
+input PagespeedReport_scores__label_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+}
+
+input PagespeedReport_scores__score_operator {
+  equals: Float
+  not_equals: Float
+  greater_than_equal: Float
+  greater_than: Float
+  less_than_equal: Float
+  less_than: Float
+  exists: Boolean
+}
+
+input PagespeedReport_scores__rating_operator {
+  equals: PagespeedReport_scores__rating_Input
+  not_equals: PagespeedReport_scores__rating_Input
+  in: [PagespeedReport_scores__rating_Input]
+  not_in: [PagespeedReport_scores__rating_Input]
+  all: [PagespeedReport_scores__rating_Input]
+  exists: Boolean
+}
+
+enum PagespeedReport_scores__rating_Input {
+  good
+  average
+  poor
+}
+
+input PagespeedReport_scores__id_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
+}
+
+input PagespeedReport_metrics__name_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+}
+
+input PagespeedReport_metrics__label_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+}
+
+input PagespeedReport_metrics__display_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
+}
+
+input PagespeedReport_metrics__value_operator {
+  equals: Float
+  not_equals: Float
+  greater_than_equal: Float
+  greater_than: Float
+  less_than_equal: Float
+  less_than: Float
+  exists: Boolean
+}
+
+input PagespeedReport_metrics__rating_operator {
+  equals: PagespeedReport_metrics__rating_Input
+  not_equals: PagespeedReport_metrics__rating_Input
+  in: [PagespeedReport_metrics__rating_Input]
+  not_in: [PagespeedReport_metrics__rating_Input]
+  all: [PagespeedReport_metrics__rating_Input]
+  exists: Boolean
+}
+
+enum PagespeedReport_metrics__rating_Input {
+  good
+  average
+  poor
+}
+
+input PagespeedReport_metrics__id_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
+}
+
+input PagespeedReport_updatedAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+  exists: Boolean
+}
+
+input PagespeedReport_createdAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+  exists: Boolean
+}
+
+input PagespeedReport_id_operator {
+  equals: Int
+  not_equals: Int
+  greater_than_equal: Int
+  greater_than: Int
+  less_than_equal: Int
+  less_than: Int
+  exists: Boolean
+}
+
+input PagespeedReport_where_and {
+  url: PagespeedReport_url_operator
+  strategy: PagespeedReport_strategy_operator
+  fetchedAt: PagespeedReport_fetchedAt_operator
+  lighthouseVersion: PagespeedReport_lighthouseVersion_operator
+  scores__key: PagespeedReport_scores__key_operator
+  scores__label: PagespeedReport_scores__label_operator
+  scores__score: PagespeedReport_scores__score_operator
+  scores__rating: PagespeedReport_scores__rating_operator
+  scores__id: PagespeedReport_scores__id_operator
+  metrics__name: PagespeedReport_metrics__name_operator
+  metrics__label: PagespeedReport_metrics__label_operator
+  metrics__display: PagespeedReport_metrics__display_operator
+  metrics__value: PagespeedReport_metrics__value_operator
+  metrics__rating: PagespeedReport_metrics__rating_operator
+  metrics__id: PagespeedReport_metrics__id_operator
+  updatedAt: PagespeedReport_updatedAt_operator
+  createdAt: PagespeedReport_createdAt_operator
+  id: PagespeedReport_id_operator
+  AND: [PagespeedReport_where_and]
+  OR: [PagespeedReport_where_or]
+}
+
+input PagespeedReport_where_or {
+  url: PagespeedReport_url_operator
+  strategy: PagespeedReport_strategy_operator
+  fetchedAt: PagespeedReport_fetchedAt_operator
+  lighthouseVersion: PagespeedReport_lighthouseVersion_operator
+  scores__key: PagespeedReport_scores__key_operator
+  scores__label: PagespeedReport_scores__label_operator
+  scores__score: PagespeedReport_scores__score_operator
+  scores__rating: PagespeedReport_scores__rating_operator
+  scores__id: PagespeedReport_scores__id_operator
+  metrics__name: PagespeedReport_metrics__name_operator
+  metrics__label: PagespeedReport_metrics__label_operator
+  metrics__display: PagespeedReport_metrics__display_operator
+  metrics__value: PagespeedReport_metrics__value_operator
+  metrics__rating: PagespeedReport_metrics__rating_operator
+  metrics__id: PagespeedReport_metrics__id_operator
+  updatedAt: PagespeedReport_updatedAt_operator
+  createdAt: PagespeedReport_createdAt_operator
+  id: PagespeedReport_id_operator
+  AND: [PagespeedReport_where_and]
+  OR: [PagespeedReport_where_or]
+}
+
+type countPagespeedReports {
+  totalDocs: Int
+}
+
+type pagespeed_reportsDocAccess {
+  fields: PagespeedReportsDocAccessFields
+  create: PagespeedReportsCreateDocAccess
+  read: PagespeedReportsReadDocAccess
+  update: PagespeedReportsUpdateDocAccess
+  delete: PagespeedReportsDeleteDocAccess
+}
+
+type PagespeedReportsDocAccessFields {
+  url: PagespeedReportsDocAccessFields_url
+  strategy: PagespeedReportsDocAccessFields_strategy
+  fetchedAt: PagespeedReportsDocAccessFields_fetchedAt
+  lighthouseVersion: PagespeedReportsDocAccessFields_lighthouseVersion
+  scores: PagespeedReportsDocAccessFields_scores
+  metrics: PagespeedReportsDocAccessFields_metrics
+  updatedAt: PagespeedReportsDocAccessFields_updatedAt
+  createdAt: PagespeedReportsDocAccessFields_createdAt
+}
+
+type PagespeedReportsDocAccessFields_url {
+  create: PagespeedReportsDocAccessFields_url_Create
+  read: PagespeedReportsDocAccessFields_url_Read
+  update: PagespeedReportsDocAccessFields_url_Update
+  delete: PagespeedReportsDocAccessFields_url_Delete
+}
+
+type PagespeedReportsDocAccessFields_url_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_url_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_url_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_url_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_strategy {
+  create: PagespeedReportsDocAccessFields_strategy_Create
+  read: PagespeedReportsDocAccessFields_strategy_Read
+  update: PagespeedReportsDocAccessFields_strategy_Update
+  delete: PagespeedReportsDocAccessFields_strategy_Delete
+}
+
+type PagespeedReportsDocAccessFields_strategy_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_strategy_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_strategy_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_strategy_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_fetchedAt {
+  create: PagespeedReportsDocAccessFields_fetchedAt_Create
+  read: PagespeedReportsDocAccessFields_fetchedAt_Read
+  update: PagespeedReportsDocAccessFields_fetchedAt_Update
+  delete: PagespeedReportsDocAccessFields_fetchedAt_Delete
+}
+
+type PagespeedReportsDocAccessFields_fetchedAt_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_fetchedAt_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_fetchedAt_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_fetchedAt_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_lighthouseVersion {
+  create: PagespeedReportsDocAccessFields_lighthouseVersion_Create
+  read: PagespeedReportsDocAccessFields_lighthouseVersion_Read
+  update: PagespeedReportsDocAccessFields_lighthouseVersion_Update
+  delete: PagespeedReportsDocAccessFields_lighthouseVersion_Delete
+}
+
+type PagespeedReportsDocAccessFields_lighthouseVersion_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_lighthouseVersion_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_lighthouseVersion_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_lighthouseVersion_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_scores {
+  create: PagespeedReportsDocAccessFields_scores_Create
+  read: PagespeedReportsDocAccessFields_scores_Read
+  update: PagespeedReportsDocAccessFields_scores_Update
+  delete: PagespeedReportsDocAccessFields_scores_Delete
+  fields: PagespeedReportsDocAccessFields_scores_Fields
+}
+
+type PagespeedReportsDocAccessFields_scores_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_scores_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_scores_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_scores_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_scores_Fields {
+  key: PagespeedReportsDocAccessFields_scores_key
+  label: PagespeedReportsDocAccessFields_scores_label
+  score: PagespeedReportsDocAccessFields_scores_score
+  rating: PagespeedReportsDocAccessFields_scores_rating
+  id: PagespeedReportsDocAccessFields_scores_id
+}
+
+type PagespeedReportsDocAccessFields_scores_key {
+  create: PagespeedReportsDocAccessFields_scores_key_Create
+  read: PagespeedReportsDocAccessFields_scores_key_Read
+  update: PagespeedReportsDocAccessFields_scores_key_Update
+  delete: PagespeedReportsDocAccessFields_scores_key_Delete
+}
+
+type PagespeedReportsDocAccessFields_scores_key_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_scores_key_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_scores_key_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_scores_key_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_scores_label {
+  create: PagespeedReportsDocAccessFields_scores_label_Create
+  read: PagespeedReportsDocAccessFields_scores_label_Read
+  update: PagespeedReportsDocAccessFields_scores_label_Update
+  delete: PagespeedReportsDocAccessFields_scores_label_Delete
+}
+
+type PagespeedReportsDocAccessFields_scores_label_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_scores_label_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_scores_label_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_scores_label_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_scores_score {
+  create: PagespeedReportsDocAccessFields_scores_score_Create
+  read: PagespeedReportsDocAccessFields_scores_score_Read
+  update: PagespeedReportsDocAccessFields_scores_score_Update
+  delete: PagespeedReportsDocAccessFields_scores_score_Delete
+}
+
+type PagespeedReportsDocAccessFields_scores_score_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_scores_score_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_scores_score_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_scores_score_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_scores_rating {
+  create: PagespeedReportsDocAccessFields_scores_rating_Create
+  read: PagespeedReportsDocAccessFields_scores_rating_Read
+  update: PagespeedReportsDocAccessFields_scores_rating_Update
+  delete: PagespeedReportsDocAccessFields_scores_rating_Delete
+}
+
+type PagespeedReportsDocAccessFields_scores_rating_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_scores_rating_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_scores_rating_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_scores_rating_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_scores_id {
+  create: PagespeedReportsDocAccessFields_scores_id_Create
+  read: PagespeedReportsDocAccessFields_scores_id_Read
+  update: PagespeedReportsDocAccessFields_scores_id_Update
+  delete: PagespeedReportsDocAccessFields_scores_id_Delete
+}
+
+type PagespeedReportsDocAccessFields_scores_id_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_scores_id_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_scores_id_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_scores_id_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics {
+  create: PagespeedReportsDocAccessFields_metrics_Create
+  read: PagespeedReportsDocAccessFields_metrics_Read
+  update: PagespeedReportsDocAccessFields_metrics_Update
+  delete: PagespeedReportsDocAccessFields_metrics_Delete
+  fields: PagespeedReportsDocAccessFields_metrics_Fields
+}
+
+type PagespeedReportsDocAccessFields_metrics_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_Fields {
+  name: PagespeedReportsDocAccessFields_metrics_name
+  label: PagespeedReportsDocAccessFields_metrics_label
+  display: PagespeedReportsDocAccessFields_metrics_display
+  value: PagespeedReportsDocAccessFields_metrics_value
+  rating: PagespeedReportsDocAccessFields_metrics_rating
+  id: PagespeedReportsDocAccessFields_metrics_id
+}
+
+type PagespeedReportsDocAccessFields_metrics_name {
+  create: PagespeedReportsDocAccessFields_metrics_name_Create
+  read: PagespeedReportsDocAccessFields_metrics_name_Read
+  update: PagespeedReportsDocAccessFields_metrics_name_Update
+  delete: PagespeedReportsDocAccessFields_metrics_name_Delete
+}
+
+type PagespeedReportsDocAccessFields_metrics_name_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_name_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_name_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_name_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_label {
+  create: PagespeedReportsDocAccessFields_metrics_label_Create
+  read: PagespeedReportsDocAccessFields_metrics_label_Read
+  update: PagespeedReportsDocAccessFields_metrics_label_Update
+  delete: PagespeedReportsDocAccessFields_metrics_label_Delete
+}
+
+type PagespeedReportsDocAccessFields_metrics_label_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_label_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_label_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_label_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_display {
+  create: PagespeedReportsDocAccessFields_metrics_display_Create
+  read: PagespeedReportsDocAccessFields_metrics_display_Read
+  update: PagespeedReportsDocAccessFields_metrics_display_Update
+  delete: PagespeedReportsDocAccessFields_metrics_display_Delete
+}
+
+type PagespeedReportsDocAccessFields_metrics_display_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_display_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_display_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_display_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_value {
+  create: PagespeedReportsDocAccessFields_metrics_value_Create
+  read: PagespeedReportsDocAccessFields_metrics_value_Read
+  update: PagespeedReportsDocAccessFields_metrics_value_Update
+  delete: PagespeedReportsDocAccessFields_metrics_value_Delete
+}
+
+type PagespeedReportsDocAccessFields_metrics_value_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_value_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_value_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_value_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_rating {
+  create: PagespeedReportsDocAccessFields_metrics_rating_Create
+  read: PagespeedReportsDocAccessFields_metrics_rating_Read
+  update: PagespeedReportsDocAccessFields_metrics_rating_Update
+  delete: PagespeedReportsDocAccessFields_metrics_rating_Delete
+}
+
+type PagespeedReportsDocAccessFields_metrics_rating_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_rating_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_rating_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_rating_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_id {
+  create: PagespeedReportsDocAccessFields_metrics_id_Create
+  read: PagespeedReportsDocAccessFields_metrics_id_Read
+  update: PagespeedReportsDocAccessFields_metrics_id_Update
+  delete: PagespeedReportsDocAccessFields_metrics_id_Delete
+}
+
+type PagespeedReportsDocAccessFields_metrics_id_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_id_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_id_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_metrics_id_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_updatedAt {
+  create: PagespeedReportsDocAccessFields_updatedAt_Create
+  read: PagespeedReportsDocAccessFields_updatedAt_Read
+  update: PagespeedReportsDocAccessFields_updatedAt_Update
+  delete: PagespeedReportsDocAccessFields_updatedAt_Delete
+}
+
+type PagespeedReportsDocAccessFields_updatedAt_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_updatedAt_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_updatedAt_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_updatedAt_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_createdAt {
+  create: PagespeedReportsDocAccessFields_createdAt_Create
+  read: PagespeedReportsDocAccessFields_createdAt_Read
+  update: PagespeedReportsDocAccessFields_createdAt_Update
+  delete: PagespeedReportsDocAccessFields_createdAt_Delete
+}
+
+type PagespeedReportsDocAccessFields_createdAt_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_createdAt_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_createdAt_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsDocAccessFields_createdAt_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsCreateDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type PagespeedReportsReadDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type PagespeedReportsUpdateDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type PagespeedReportsDeleteDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
 type PayloadKv {
   id: Int!
   key: String!
@@ -7122,9 +8561,11 @@ enum PayloadLockedDocument_Document_RelationTo {
   header
   users
   roles
+  job_runs
+  pagespeed_reports
 }
 
-union PayloadLockedDocument_Document = Article | Project | Media | About | Service | Skill | Experience | Education | Certificate | Header | User | Role
+union PayloadLockedDocument_Document = Article | Project | Media | About | Service | Skill | Experience | Education | Certificate | Header | User | Role | JobRun | PagespeedReport
 
 type PayloadLockedDocument_User_Relationship {
   relationTo: PayloadLockedDocument_User_RelationTo
@@ -7180,6 +8621,8 @@ enum PayloadLockedDocument_document_Relation_RelationTo {
   header
   users
   roles
+  job_runs
+  pagespeed_reports
 }
 
 input PayloadLockedDocument_globalSlug_operator {
@@ -8577,6 +10020,8 @@ type Access {
   header: headerAccess
   users: usersAccess
   roles: rolesAccess
+  job_runs: job_runsAccess
+  pagespeed_reports: pagespeed_reportsAccess
   payload_kv: payload_kvAccess
   payload_locked_documents: payload_locked_documentsAccess
   payload_preferences: payload_preferencesAccess
@@ -12621,6 +14066,844 @@ type RolesDeleteAccess {
   where: JSONObject
 }
 
+type job_runsAccess {
+  fields: JobRunsFields
+  create: JobRunsCreateAccess
+  read: JobRunsReadAccess
+  update: JobRunsUpdateAccess
+  delete: JobRunsDeleteAccess
+}
+
+type JobRunsFields {
+  task: JobRunsFields_task
+  status: JobRunsFields_status
+  trigger: JobRunsFields_trigger
+  startedBy: JobRunsFields_startedBy
+  startedAt: JobRunsFields_startedAt
+  finishedAt: JobRunsFields_finishedAt
+  durationMs: JobRunsFields_durationMs
+  summary: JobRunsFields_summary
+  error: JobRunsFields_error
+  log: JobRunsFields_log
+  details: JobRunsFields_details
+  updatedAt: JobRunsFields_updatedAt
+  createdAt: JobRunsFields_createdAt
+}
+
+type JobRunsFields_task {
+  create: JobRunsFields_task_Create
+  read: JobRunsFields_task_Read
+  update: JobRunsFields_task_Update
+  delete: JobRunsFields_task_Delete
+}
+
+type JobRunsFields_task_Create {
+  permission: Boolean!
+}
+
+type JobRunsFields_task_Read {
+  permission: Boolean!
+}
+
+type JobRunsFields_task_Update {
+  permission: Boolean!
+}
+
+type JobRunsFields_task_Delete {
+  permission: Boolean!
+}
+
+type JobRunsFields_status {
+  create: JobRunsFields_status_Create
+  read: JobRunsFields_status_Read
+  update: JobRunsFields_status_Update
+  delete: JobRunsFields_status_Delete
+}
+
+type JobRunsFields_status_Create {
+  permission: Boolean!
+}
+
+type JobRunsFields_status_Read {
+  permission: Boolean!
+}
+
+type JobRunsFields_status_Update {
+  permission: Boolean!
+}
+
+type JobRunsFields_status_Delete {
+  permission: Boolean!
+}
+
+type JobRunsFields_trigger {
+  create: JobRunsFields_trigger_Create
+  read: JobRunsFields_trigger_Read
+  update: JobRunsFields_trigger_Update
+  delete: JobRunsFields_trigger_Delete
+}
+
+type JobRunsFields_trigger_Create {
+  permission: Boolean!
+}
+
+type JobRunsFields_trigger_Read {
+  permission: Boolean!
+}
+
+type JobRunsFields_trigger_Update {
+  permission: Boolean!
+}
+
+type JobRunsFields_trigger_Delete {
+  permission: Boolean!
+}
+
+type JobRunsFields_startedBy {
+  create: JobRunsFields_startedBy_Create
+  read: JobRunsFields_startedBy_Read
+  update: JobRunsFields_startedBy_Update
+  delete: JobRunsFields_startedBy_Delete
+}
+
+type JobRunsFields_startedBy_Create {
+  permission: Boolean!
+}
+
+type JobRunsFields_startedBy_Read {
+  permission: Boolean!
+}
+
+type JobRunsFields_startedBy_Update {
+  permission: Boolean!
+}
+
+type JobRunsFields_startedBy_Delete {
+  permission: Boolean!
+}
+
+type JobRunsFields_startedAt {
+  create: JobRunsFields_startedAt_Create
+  read: JobRunsFields_startedAt_Read
+  update: JobRunsFields_startedAt_Update
+  delete: JobRunsFields_startedAt_Delete
+}
+
+type JobRunsFields_startedAt_Create {
+  permission: Boolean!
+}
+
+type JobRunsFields_startedAt_Read {
+  permission: Boolean!
+}
+
+type JobRunsFields_startedAt_Update {
+  permission: Boolean!
+}
+
+type JobRunsFields_startedAt_Delete {
+  permission: Boolean!
+}
+
+type JobRunsFields_finishedAt {
+  create: JobRunsFields_finishedAt_Create
+  read: JobRunsFields_finishedAt_Read
+  update: JobRunsFields_finishedAt_Update
+  delete: JobRunsFields_finishedAt_Delete
+}
+
+type JobRunsFields_finishedAt_Create {
+  permission: Boolean!
+}
+
+type JobRunsFields_finishedAt_Read {
+  permission: Boolean!
+}
+
+type JobRunsFields_finishedAt_Update {
+  permission: Boolean!
+}
+
+type JobRunsFields_finishedAt_Delete {
+  permission: Boolean!
+}
+
+type JobRunsFields_durationMs {
+  create: JobRunsFields_durationMs_Create
+  read: JobRunsFields_durationMs_Read
+  update: JobRunsFields_durationMs_Update
+  delete: JobRunsFields_durationMs_Delete
+}
+
+type JobRunsFields_durationMs_Create {
+  permission: Boolean!
+}
+
+type JobRunsFields_durationMs_Read {
+  permission: Boolean!
+}
+
+type JobRunsFields_durationMs_Update {
+  permission: Boolean!
+}
+
+type JobRunsFields_durationMs_Delete {
+  permission: Boolean!
+}
+
+type JobRunsFields_summary {
+  create: JobRunsFields_summary_Create
+  read: JobRunsFields_summary_Read
+  update: JobRunsFields_summary_Update
+  delete: JobRunsFields_summary_Delete
+}
+
+type JobRunsFields_summary_Create {
+  permission: Boolean!
+}
+
+type JobRunsFields_summary_Read {
+  permission: Boolean!
+}
+
+type JobRunsFields_summary_Update {
+  permission: Boolean!
+}
+
+type JobRunsFields_summary_Delete {
+  permission: Boolean!
+}
+
+type JobRunsFields_error {
+  create: JobRunsFields_error_Create
+  read: JobRunsFields_error_Read
+  update: JobRunsFields_error_Update
+  delete: JobRunsFields_error_Delete
+}
+
+type JobRunsFields_error_Create {
+  permission: Boolean!
+}
+
+type JobRunsFields_error_Read {
+  permission: Boolean!
+}
+
+type JobRunsFields_error_Update {
+  permission: Boolean!
+}
+
+type JobRunsFields_error_Delete {
+  permission: Boolean!
+}
+
+type JobRunsFields_log {
+  create: JobRunsFields_log_Create
+  read: JobRunsFields_log_Read
+  update: JobRunsFields_log_Update
+  delete: JobRunsFields_log_Delete
+}
+
+type JobRunsFields_log_Create {
+  permission: Boolean!
+}
+
+type JobRunsFields_log_Read {
+  permission: Boolean!
+}
+
+type JobRunsFields_log_Update {
+  permission: Boolean!
+}
+
+type JobRunsFields_log_Delete {
+  permission: Boolean!
+}
+
+type JobRunsFields_details {
+  create: JobRunsFields_details_Create
+  read: JobRunsFields_details_Read
+  update: JobRunsFields_details_Update
+  delete: JobRunsFields_details_Delete
+}
+
+type JobRunsFields_details_Create {
+  permission: Boolean!
+}
+
+type JobRunsFields_details_Read {
+  permission: Boolean!
+}
+
+type JobRunsFields_details_Update {
+  permission: Boolean!
+}
+
+type JobRunsFields_details_Delete {
+  permission: Boolean!
+}
+
+type JobRunsFields_updatedAt {
+  create: JobRunsFields_updatedAt_Create
+  read: JobRunsFields_updatedAt_Read
+  update: JobRunsFields_updatedAt_Update
+  delete: JobRunsFields_updatedAt_Delete
+}
+
+type JobRunsFields_updatedAt_Create {
+  permission: Boolean!
+}
+
+type JobRunsFields_updatedAt_Read {
+  permission: Boolean!
+}
+
+type JobRunsFields_updatedAt_Update {
+  permission: Boolean!
+}
+
+type JobRunsFields_updatedAt_Delete {
+  permission: Boolean!
+}
+
+type JobRunsFields_createdAt {
+  create: JobRunsFields_createdAt_Create
+  read: JobRunsFields_createdAt_Read
+  update: JobRunsFields_createdAt_Update
+  delete: JobRunsFields_createdAt_Delete
+}
+
+type JobRunsFields_createdAt_Create {
+  permission: Boolean!
+}
+
+type JobRunsFields_createdAt_Read {
+  permission: Boolean!
+}
+
+type JobRunsFields_createdAt_Update {
+  permission: Boolean!
+}
+
+type JobRunsFields_createdAt_Delete {
+  permission: Boolean!
+}
+
+type JobRunsCreateAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type JobRunsReadAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type JobRunsUpdateAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type JobRunsDeleteAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type pagespeed_reportsAccess {
+  fields: PagespeedReportsFields
+  create: PagespeedReportsCreateAccess
+  read: PagespeedReportsReadAccess
+  update: PagespeedReportsUpdateAccess
+  delete: PagespeedReportsDeleteAccess
+}
+
+type PagespeedReportsFields {
+  url: PagespeedReportsFields_url
+  strategy: PagespeedReportsFields_strategy
+  fetchedAt: PagespeedReportsFields_fetchedAt
+  lighthouseVersion: PagespeedReportsFields_lighthouseVersion
+  scores: PagespeedReportsFields_scores
+  metrics: PagespeedReportsFields_metrics
+  updatedAt: PagespeedReportsFields_updatedAt
+  createdAt: PagespeedReportsFields_createdAt
+}
+
+type PagespeedReportsFields_url {
+  create: PagespeedReportsFields_url_Create
+  read: PagespeedReportsFields_url_Read
+  update: PagespeedReportsFields_url_Update
+  delete: PagespeedReportsFields_url_Delete
+}
+
+type PagespeedReportsFields_url_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_url_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_url_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_url_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_strategy {
+  create: PagespeedReportsFields_strategy_Create
+  read: PagespeedReportsFields_strategy_Read
+  update: PagespeedReportsFields_strategy_Update
+  delete: PagespeedReportsFields_strategy_Delete
+}
+
+type PagespeedReportsFields_strategy_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_strategy_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_strategy_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_strategy_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_fetchedAt {
+  create: PagespeedReportsFields_fetchedAt_Create
+  read: PagespeedReportsFields_fetchedAt_Read
+  update: PagespeedReportsFields_fetchedAt_Update
+  delete: PagespeedReportsFields_fetchedAt_Delete
+}
+
+type PagespeedReportsFields_fetchedAt_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_fetchedAt_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_fetchedAt_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_fetchedAt_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_lighthouseVersion {
+  create: PagespeedReportsFields_lighthouseVersion_Create
+  read: PagespeedReportsFields_lighthouseVersion_Read
+  update: PagespeedReportsFields_lighthouseVersion_Update
+  delete: PagespeedReportsFields_lighthouseVersion_Delete
+}
+
+type PagespeedReportsFields_lighthouseVersion_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_lighthouseVersion_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_lighthouseVersion_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_lighthouseVersion_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_scores {
+  create: PagespeedReportsFields_scores_Create
+  read: PagespeedReportsFields_scores_Read
+  update: PagespeedReportsFields_scores_Update
+  delete: PagespeedReportsFields_scores_Delete
+  fields: PagespeedReportsFields_scores_Fields
+}
+
+type PagespeedReportsFields_scores_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_scores_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_scores_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_scores_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_scores_Fields {
+  key: PagespeedReportsFields_scores_key
+  label: PagespeedReportsFields_scores_label
+  score: PagespeedReportsFields_scores_score
+  rating: PagespeedReportsFields_scores_rating
+  id: PagespeedReportsFields_scores_id
+}
+
+type PagespeedReportsFields_scores_key {
+  create: PagespeedReportsFields_scores_key_Create
+  read: PagespeedReportsFields_scores_key_Read
+  update: PagespeedReportsFields_scores_key_Update
+  delete: PagespeedReportsFields_scores_key_Delete
+}
+
+type PagespeedReportsFields_scores_key_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_scores_key_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_scores_key_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_scores_key_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_scores_label {
+  create: PagespeedReportsFields_scores_label_Create
+  read: PagespeedReportsFields_scores_label_Read
+  update: PagespeedReportsFields_scores_label_Update
+  delete: PagespeedReportsFields_scores_label_Delete
+}
+
+type PagespeedReportsFields_scores_label_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_scores_label_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_scores_label_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_scores_label_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_scores_score {
+  create: PagespeedReportsFields_scores_score_Create
+  read: PagespeedReportsFields_scores_score_Read
+  update: PagespeedReportsFields_scores_score_Update
+  delete: PagespeedReportsFields_scores_score_Delete
+}
+
+type PagespeedReportsFields_scores_score_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_scores_score_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_scores_score_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_scores_score_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_scores_rating {
+  create: PagespeedReportsFields_scores_rating_Create
+  read: PagespeedReportsFields_scores_rating_Read
+  update: PagespeedReportsFields_scores_rating_Update
+  delete: PagespeedReportsFields_scores_rating_Delete
+}
+
+type PagespeedReportsFields_scores_rating_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_scores_rating_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_scores_rating_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_scores_rating_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_scores_id {
+  create: PagespeedReportsFields_scores_id_Create
+  read: PagespeedReportsFields_scores_id_Read
+  update: PagespeedReportsFields_scores_id_Update
+  delete: PagespeedReportsFields_scores_id_Delete
+}
+
+type PagespeedReportsFields_scores_id_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_scores_id_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_scores_id_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_scores_id_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics {
+  create: PagespeedReportsFields_metrics_Create
+  read: PagespeedReportsFields_metrics_Read
+  update: PagespeedReportsFields_metrics_Update
+  delete: PagespeedReportsFields_metrics_Delete
+  fields: PagespeedReportsFields_metrics_Fields
+}
+
+type PagespeedReportsFields_metrics_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_Fields {
+  name: PagespeedReportsFields_metrics_name
+  label: PagespeedReportsFields_metrics_label
+  display: PagespeedReportsFields_metrics_display
+  value: PagespeedReportsFields_metrics_value
+  rating: PagespeedReportsFields_metrics_rating
+  id: PagespeedReportsFields_metrics_id
+}
+
+type PagespeedReportsFields_metrics_name {
+  create: PagespeedReportsFields_metrics_name_Create
+  read: PagespeedReportsFields_metrics_name_Read
+  update: PagespeedReportsFields_metrics_name_Update
+  delete: PagespeedReportsFields_metrics_name_Delete
+}
+
+type PagespeedReportsFields_metrics_name_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_name_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_name_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_name_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_label {
+  create: PagespeedReportsFields_metrics_label_Create
+  read: PagespeedReportsFields_metrics_label_Read
+  update: PagespeedReportsFields_metrics_label_Update
+  delete: PagespeedReportsFields_metrics_label_Delete
+}
+
+type PagespeedReportsFields_metrics_label_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_label_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_label_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_label_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_display {
+  create: PagespeedReportsFields_metrics_display_Create
+  read: PagespeedReportsFields_metrics_display_Read
+  update: PagespeedReportsFields_metrics_display_Update
+  delete: PagespeedReportsFields_metrics_display_Delete
+}
+
+type PagespeedReportsFields_metrics_display_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_display_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_display_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_display_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_value {
+  create: PagespeedReportsFields_metrics_value_Create
+  read: PagespeedReportsFields_metrics_value_Read
+  update: PagespeedReportsFields_metrics_value_Update
+  delete: PagespeedReportsFields_metrics_value_Delete
+}
+
+type PagespeedReportsFields_metrics_value_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_value_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_value_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_value_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_rating {
+  create: PagespeedReportsFields_metrics_rating_Create
+  read: PagespeedReportsFields_metrics_rating_Read
+  update: PagespeedReportsFields_metrics_rating_Update
+  delete: PagespeedReportsFields_metrics_rating_Delete
+}
+
+type PagespeedReportsFields_metrics_rating_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_rating_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_rating_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_rating_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_id {
+  create: PagespeedReportsFields_metrics_id_Create
+  read: PagespeedReportsFields_metrics_id_Read
+  update: PagespeedReportsFields_metrics_id_Update
+  delete: PagespeedReportsFields_metrics_id_Delete
+}
+
+type PagespeedReportsFields_metrics_id_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_id_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_id_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_metrics_id_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_updatedAt {
+  create: PagespeedReportsFields_updatedAt_Create
+  read: PagespeedReportsFields_updatedAt_Read
+  update: PagespeedReportsFields_updatedAt_Update
+  delete: PagespeedReportsFields_updatedAt_Delete
+}
+
+type PagespeedReportsFields_updatedAt_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_updatedAt_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_updatedAt_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_updatedAt_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_createdAt {
+  create: PagespeedReportsFields_createdAt_Create
+  read: PagespeedReportsFields_createdAt_Read
+  update: PagespeedReportsFields_createdAt_Update
+  delete: PagespeedReportsFields_createdAt_Delete
+}
+
+type PagespeedReportsFields_createdAt_Create {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_createdAt_Read {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_createdAt_Update {
+  permission: Boolean!
+}
+
+type PagespeedReportsFields_createdAt_Delete {
+  permission: Boolean!
+}
+
+type PagespeedReportsCreateAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type PagespeedReportsReadAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type PagespeedReportsUpdateAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type PagespeedReportsDeleteAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
 type payload_kvAccess {
   fields: PayloadKvFields
   create: PayloadKvCreateAccess
@@ -13820,6 +16103,14 @@ type Mutation {
   updateRole(id: Int!, autosave: Boolean, data: mutationRoleUpdateInput!, draft: Boolean, trash: Boolean): Role
   deleteRole(id: Int!, trash: Boolean): Role
   duplicateRole(id: Int!, data: mutationRoleInput!): Role
+  createJobRun(data: mutationJobRunInput!, draft: Boolean): JobRun
+  updateJobRun(id: Int!, autosave: Boolean, data: mutationJobRunUpdateInput!, draft: Boolean, trash: Boolean): JobRun
+  deleteJobRun(id: Int!, trash: Boolean): JobRun
+  duplicateJobRun(id: Int!, data: mutationJobRunInput!): JobRun
+  createPagespeedReport(data: mutationPagespeedReportInput!, draft: Boolean): PagespeedReport
+  updatePagespeedReport(id: Int!, autosave: Boolean, data: mutationPagespeedReportUpdateInput!, draft: Boolean, trash: Boolean): PagespeedReport
+  deletePagespeedReport(id: Int!, trash: Boolean): PagespeedReport
+  duplicatePagespeedReport(id: Int!, data: mutationPagespeedReportInput!): PagespeedReport
   createPayloadKv(data: mutationPayloadKvInput!, draft: Boolean): PayloadKv
   updatePayloadKv(id: Int!, autosave: Boolean, data: mutationPayloadKvUpdateInput!, draft: Boolean, trash: Boolean): PayloadKv
   deletePayloadKv(id: Int!, trash: Boolean): PayloadKv
@@ -14374,6 +16665,166 @@ input mutationRoleUpdate_CapabilitiesInput {
   useTerminal: Boolean
 }
 
+input mutationJobRunInput {
+  task: JobRun_task_MutationInput!
+  status: JobRun_status_MutationInput!
+  trigger: JobRun_trigger_MutationInput!
+  startedBy: Int
+  startedAt: String
+  finishedAt: String
+  durationMs: Float
+  summary: String
+  error: String
+  log: String
+  details: JSON
+  updatedAt: String
+  createdAt: String
+}
+
+enum JobRun_task_MutationInput {
+  trash_cleanup
+  pagespeed_report
+  broken_links
+}
+
+enum JobRun_status_MutationInput {
+  queued
+  running
+  done
+  failed
+  cancelled
+}
+
+enum JobRun_trigger_MutationInput {
+  manual
+  cron
+}
+
+input mutationJobRunUpdateInput {
+  task: JobRunUpdate_task_MutationInput
+  status: JobRunUpdate_status_MutationInput
+  trigger: JobRunUpdate_trigger_MutationInput
+  startedBy: Int
+  startedAt: String
+  finishedAt: String
+  durationMs: Float
+  summary: String
+  error: String
+  log: String
+  details: JSON
+  updatedAt: String
+  createdAt: String
+}
+
+enum JobRunUpdate_task_MutationInput {
+  trash_cleanup
+  pagespeed_report
+  broken_links
+}
+
+enum JobRunUpdate_status_MutationInput {
+  queued
+  running
+  done
+  failed
+  cancelled
+}
+
+enum JobRunUpdate_trigger_MutationInput {
+  manual
+  cron
+}
+
+input mutationPagespeedReportInput {
+  url: String!
+  strategy: PagespeedReport_strategy_MutationInput!
+  fetchedAt: String!
+  lighthouseVersion: String
+  scores: [mutationPagespeedReport_ScoresInput]
+  metrics: [mutationPagespeedReport_MetricsInput]
+  updatedAt: String
+  createdAt: String
+}
+
+enum PagespeedReport_strategy_MutationInput {
+  mobile
+  desktop
+}
+
+input mutationPagespeedReport_ScoresInput {
+  key: String!
+  label: String!
+  score: Float
+  rating: PagespeedReport_Scores_rating_MutationInput
+  id: String
+}
+
+enum PagespeedReport_Scores_rating_MutationInput {
+  good
+  average
+  poor
+}
+
+input mutationPagespeedReport_MetricsInput {
+  name: String!
+  label: String!
+  display: String
+  value: Float
+  rating: PagespeedReport_Metrics_rating_MutationInput
+  id: String
+}
+
+enum PagespeedReport_Metrics_rating_MutationInput {
+  good
+  average
+  poor
+}
+
+input mutationPagespeedReportUpdateInput {
+  url: String
+  strategy: PagespeedReportUpdate_strategy_MutationInput
+  fetchedAt: String
+  lighthouseVersion: String
+  scores: [mutationPagespeedReportUpdate_ScoresInput]
+  metrics: [mutationPagespeedReportUpdate_MetricsInput]
+  updatedAt: String
+  createdAt: String
+}
+
+enum PagespeedReportUpdate_strategy_MutationInput {
+  mobile
+  desktop
+}
+
+input mutationPagespeedReportUpdate_ScoresInput {
+  key: String!
+  label: String!
+  score: Float
+  rating: PagespeedReportUpdate_Scores_rating_MutationInput
+  id: String
+}
+
+enum PagespeedReportUpdate_Scores_rating_MutationInput {
+  good
+  average
+  poor
+}
+
+input mutationPagespeedReportUpdate_MetricsInput {
+  name: String!
+  label: String!
+  display: String
+  value: Float
+  rating: PagespeedReportUpdate_Metrics_rating_MutationInput
+  id: String
+}
+
+enum PagespeedReportUpdate_Metrics_rating_MutationInput {
+  good
+  average
+  poor
+}
+
 input mutationPayloadKvInput {
   key: String!
   data: JSON!
@@ -14410,6 +16861,8 @@ enum PayloadLockedDocument_DocumentRelationshipInputRelationTo {
   header
   users
   roles
+  job_runs
+  pagespeed_reports
 }
 
 input PayloadLockedDocument_UserRelationshipInput {
@@ -14447,6 +16900,8 @@ enum PayloadLockedDocumentUpdate_DocumentRelationshipInputRelationTo {
   header
   users
   roles
+  job_runs
+  pagespeed_reports
 }
 
 input PayloadLockedDocumentUpdate_UserRelationshipInput {

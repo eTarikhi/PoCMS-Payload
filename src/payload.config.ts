@@ -20,6 +20,7 @@ import { Footer } from './globals/Footer'
 
 import { Users } from './collections/Users'
 import { devGenerateEndpoint } from './endpoints/devGenerate'
+import { jobsCancelEndpoint, jobsCronEndpoint, jobsRunEndpoint } from './endpoints/jobs'
 import { devMigrateEndpoint } from './endpoints/devMigrate'
 import { devRestartEndpoint } from './endpoints/devRestart'
 import { migrationStatusEndpoint } from './endpoints/migrationStatus'
@@ -27,6 +28,8 @@ import { purgePagesEndpoint } from './endpoints/purgePages'
 import { resetBundlerCacheEndpoint } from './endpoints/resetBundlerCache'
 import { revalidateSiteEndpoint } from './endpoints/revalidateSite'
 import { About } from './collections/About'
+import { Jobs } from './collections/Jobs'
+import { PageSpeedReports } from './collections/PageSpeedReports'
 import { Header } from './collections/Header'
 import { Articles } from './collections/Articles'
 import { Certificates } from './collections/Certificates'
@@ -114,6 +117,12 @@ export default buildConfig({
           path: '/gallery',
           meta: { title: 'Component gallery' },
         },
+        // Scheduled maintenance (manageJobs): tasks, Run now, the runs and their outcomes.
+        jobs: {
+          Component: '/components/admin/views/Jobs#JobsView',
+          path: '/jobs',
+          meta: { title: 'Scheduled jobs' },
+        },
       },
     },
     // Dashboard widgets (P4): welcome, content health, counts, publishing chart, recent changes.
@@ -152,6 +161,10 @@ export default buildConfig({
     ...contentCollections,
     Users,
     createRoles(governedEntities({ collections: contentCollections, globals })),
+    // Admin data with no document UI of its own: job runs (/admin/jobs) and the stored Lighthouse
+    // reports the Page speed widget reads (CR-12 E4, E4b).
+    Jobs,
+    PageSpeedReports,
   ],
   globals,
   editor: lexicalEditor(),
@@ -181,6 +194,10 @@ export default buildConfig({
     revalidateSiteEndpoint,
     purgePagesEndpoint,
     migrationStatusEndpoint,
+    // Scheduled maintenance: manual runs, cancel, and the Vercel Cron entry point (CRON_SECRET).
+    jobsRunEndpoint,
+    jobsCancelEndpoint,
+    jobsCronEndpoint,
     // Development only (they return 404 in production).
     resetBundlerCacheEndpoint,
     devGenerateEndpoint,
