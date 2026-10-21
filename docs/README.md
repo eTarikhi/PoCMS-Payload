@@ -8,6 +8,9 @@ This repository is organized into a small set of topic-based guides. Use the pag
 - [Getting started](getting-started.md) — install, configure, and run locally
 - [Project structure](project-structure.md) — code layout and content collections
 
+- [Frontend roadmap and research](frontend-roadmap.md) — delivered features, validation and pending release gates
+- [Standalone preview](../previews/studio/README.md) — database-free design review
+
 ## Reference and operations
 
 - [API reference](api.md) — REST and GraphQL usage

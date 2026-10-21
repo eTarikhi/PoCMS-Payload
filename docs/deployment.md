@@ -1,61 +1,47 @@
-# Deployment
+# Deployment and production validation
 
-## Docker setup
+## Required environment
 
-The repository includes a `docker-compose.yml` file for local development and service orchestration.
+Use the hosting provider's secret store:
 
-### Start local services
+- `PAYLOAD_SECRET`
+- `POSTGRES_URL`
+- `NEXT_PUBLIC_SITE_URL`
+- `BLOB_READ_WRITE_TOKEN` when using Vercel Blob
+- `RESEND_API_KEY` when using transactional email
+- `MEDIA_REMOTE_ORIGINS` for additional public HTTPS image origins
 
-```bash
-docker-compose up
-```
+See `.env.example`. Older references to `DATABASE_URI` or `PAYLOAD_PUBLIC_SERVER_URL`
+do not match this configuration. Never commit real environment files or tokens.
 
-Then, in another terminal, run:
+## Release checklist
 
-```bash
-npx payload migrate:fresh
-```
+1. Back up the database and use an isolated staging environment.
+2. If the content schema changed, review and apply the corresponding migrations through
+   your normal release process. This UI redesign introduced no schema changes.
+3. Run `pnpm test:frontend`, TypeScript, lint and the browser suite.
+4. Run a **full `pnpm build`** with staging/production services configured. A successful
+   `pnpm build:compile` alone is not a deployable full build.
+5. Verify uploaded images and configured remote origins through Next's image optimizer.
+6. Verify real homepage/archive/article content, HTTP 404s, `/robots.txt` and `/sitemap.xml`.
+7. Save/delete content in Payload and verify shared cache revalidation.
+8. Test authenticated article Live Preview and transactional email.
+9. Verify HTTPS, access controls, backups and durable media storage.
 
-After that, open the admin UI at:
+Robots restrictions are crawler hints, not authorization. Public Local API queries
+explicitly respect anonymous access controls; admin/API security remains Payload's job.
 
-```text
-http://localhost:3000/admin
-```
+## Storage
 
-### Docker notes
+With a Blob token, the configured media collection uses Vercel Blob. Without one,
+the storage adapter is disabled and media uses local disk. Ephemeral serverless disks
+are not suitable for durable production uploads. Additional image origins must be
+explicitly allowlisted; local-network image optimization is disabled.
 
-The docker environment is intended to provide:
+## Docker caveat
 
-- PostgreSQL connectivity
-- application service startup
-- hot-reload friendly development
-- isolated local environment
-
-## Vercel deployment
-
-1. Push the project to GitHub.
-2. Import the repo in Vercel.
-3. Add environment variables in the Vercel dashboard:
-   - `DATABASE_URI`
-   - `BLOB_READ_WRITE_TOKEN`
-   - `PAYLOAD_SECRET`
-   - `PAYLOAD_PUBLIC_SERVER_URL`
-4. Deploy the application.
-
-## Production environment checklist
-
-Before deployment, verify the following:
-
-- a secure `PAYLOAD_SECRET` is defined
-- the database connection string is valid
-- the blob token has read/write access
-- `PAYLOAD_PUBLIC_SERVER_URL` points to the production domain
-- `NODE_ENV` is set appropriately
-
-## Security notes
-
-- Keep `.env.local` out of source control
-- Use HTTPS in production
-- Rely on provider-managed database security and backups
-- Use Payload's built-in auth and access control features
-- Configure rate limiting and additional validation as needed
+`docker-compose.yml` is still a legacy MongoDB template and is **not a supported
+PostgreSQL deployment recipe** for this checkout. The installed Vercel adapter also
+uses a different transport for non-loopback database hosts. Do not fix the service
+name alone or run a destructive database reset to work around it. A dedicated adapter/
+Compose modernization and disposable-database validation remain future work.

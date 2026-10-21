@@ -1,76 +1,64 @@
 # Development and troubleshooting
 
-## Common development workflow
+## Public frontend workflow
 
-1. Create a feature branch.
-
-```bash
-git checkout -b feature/your-feature
+```sh
+pnpm preview:studio          # sample-content design preview on port 4173
+pnpm test:frontend           # database-independent component/query/config tests
+pnpm exec tsc --noEmit
+pnpm lint
+pnpm build:compile           # actual Next compilation, not full production generation
 ```
 
-2. Start the app locally.
+Browser checks:
 
-```bash
-pnpm dev
+```sh
+pnpm exec playwright install chromium
+PLAYWRIGHT_BASE_URL=http://localhost:4173 pnpm test:preview
 ```
 
-3. Make changes and test locally.
+A preinstalled Chromium executable can be passed through
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE`. Preview-specific fixture tests do not run against
+the production app. See [frontend roadmap](frontend-roadmap.md) for completed work
+and release gates.
 
-4. Add migrations when schema changes require them.
+For the real app, configure `.env` first and run `pnpm dev`. The normal `test:int`
+and admin browser suites need an isolated database. Never point tests or seed scripts
+at production. Setting `PLAYWRIGHT_BASE_URL` for the normal Playwright config uses
+an existing server instead of launching a second Next process.
 
-```bash
-npx payload migrate:create
-```
+## Common failures
 
-5. Commit and push.
+### Database
 
-```bash
-git add .
-git commit -m "Add your feature"
-git push origin feature/your-feature
-```
+Confirm `POSTGRES_URL` is present and targets the intended database. Verify connectivity
+using your database provider tools without copying credentials into logs or chat.
+`DATABASE_URI` is not the variable used by this config. Read [getting started](getting-started.md)
+for the Vercel adapter's loopback-host behavior.
 
-6. Open a pull request and deploy after merge.
+### Media
 
-## Troubleshooting
+- Local assets must match Next's configured `localPatterns`.
+- Public Vercel Blob origins are allowed by default.
+- Additional hosts must be configured in `MEDIA_REMOTE_ORIGINS` as HTTPS origins only.
+- Do not put signed URLs, passwords, paths or query strings into that variable.
+- Optimization refuses local-network fetches; keep local media behind relative
+  `/api/media/file/...` routes rather than enabling arbitrary local-IP optimization.
 
-### Database connection issues
+### CMS errors
 
-```bash
-# Check DATABASE_URI format
-# Should look like:
-# postgresql://user:password@host:port/dbname
+The public error boundary offers retry without exposing server exception details.
+Inspect server logs privately. There is no production fallback to sample data.
 
-psql $DATABASE_URI -c "SELECT 1"
-```
+### Cache changes
 
-### Build failures
+Content saves/deletes invalidate the shared `portfolio` tag. Homepage, archive,
+article and sitemap queries use that content cache. When changing cached view-model
+shapes or access semantics, version the cache keys to avoid incompatible old entries.
+Validate actual revalidation in the configured Next/Payload application.
 
-```bash
-rm -rf .payload
-rm -rf dist
+## Safe changes
 
-pnpm generate:all
-pnpm build
-```
-
-### Missing environment variables
-
-```bash
-echo $DATABASE_URI
-echo $BLOB_READ_WRITE_TOKEN
-echo $PAYLOAD_SECRET
-```
-
-### Vercel Blob issues
-
-- confirm the token is valid
-- check that the token has write permissions
-- ensure the variable matches the correct project
-
-## Recommended practices
-
-- keep environment variables local and secret
-- use migrations for schema changes
-- validate custom collection and field changes before deployment
-- review the Payload docs when adding advanced collection logic
+Keep view models independent of Payload runtime objects. Use collection configs as
+the source of truth, regenerate artifacts after schema changes, and review migrations
+before applying them. Generated artifacts and browser binaries should not be committed.

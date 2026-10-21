@@ -1,62 +1,38 @@
 # Project structure
 
 ```text
-PoCMS-Payload/
-├── src/
-│   ├── collections/          # Payload collections (content types)
-│   ├── blocks/               # Reusable content blocks
-│   ├── endpoints/            # Custom API endpoints
-│   ├── payload.config.ts     # Payload CMS configuration
-│   └── server.ts             # Server setup
-├── tests/                    # Test suite
-├── Dockerfile                # Production container
-├── docker-compose.yml        # Local Docker setup
-├── PAYLOAD.md                # Payload-specific notes
-├── README.md                 # Project landing page
-├── package.json              # Scripts and dependencies
-├── pnpm-lock.yaml            # Lockfile
-├── tsconfig.json             # TypeScript config
-├── vitest.config.mts         # Test config
-├── vitest.setup.ts           # Vitest setup
-├── LICENSE                   # License file
-├── .env.example              # Example environment file
-└── .gitignore
+src/
+  app/
+    (frontend)/
+      page.tsx                  # Studio homepage
+      projects/page.tsx         # searchable project archive
+      articles/page.tsx         # searchable writing archive
+      articles/[slug]/          # local article + missing-article view
+      components/studio/        # shared public design system and archives
+      components/article/       # reading layout and live preview
+      lib/                      # view models, mappers, Payload reads, cache and SEO
+      styles/                   # scoped Studio and reading styles
+      error.tsx, loading.tsx    # recovery/loading boundaries
+      sitemap.ts                # public archives and readable local articles
+    robots.ts                   # must be at App Router root
+    (payload)/                  # Payload admin and API routes
+  collections/                  # authoritative CMS content definitions
+  globals/Footer.ts             # footer/contact/hiring global
+  access/                       # roles and permissions
+  payload.config.ts             # CMS, PostgreSQL, storage and editor configuration
+  utilities/media-origins.ts     # Next image-origin validation
+previews/studio/                 # standalone Vite/sample-data preview and browser fixtures
+tests/int/                      # components, query contracts, mappers and config tests
 ```
 
-## Collections and content models
+## Content model boundaries
 
-The CMS is configured around modular collections such as:
+Header/About are singleton-like collections; Footer is a global. Projects contain
+titles, categories, images, optional slugs and outbound links. They do **not** yet
+have rich case-study bodies, outcomes, galleries or skill relationships. Article bodies
+are plain-text `description` fields. Only articles with a slug and non-empty body get
+a local page; others link to their original publication.
 
-### Users
-
-- admin user management
-- role-based access control
-- auth flows
-- session management
-
-### Media
-
-- uploads
-- image management
-- optimization and resizing
-- media storage integration
-
-### Portfolio projects
-
-This repository is structured to support portfolio content such as:
-
-- project summaries
-- case studies
-- skill references
-- technology tags
-- contact information
-
-## Payload configuration
-
-The main Payload setup is usually found in the `src` directory, most notably the configuration and collection definitions. These determine:
-
-- available collections
-- schema and field types
-- admin UI behavior
-- API endpoints and hooks
-- database and media integrations
+The public app reads Payload's Local API from server components with anonymous access
+control enforced. It does not need Apollo or a browser-side GraphQL query layer.
+See [roadmap and research](frontend-roadmap.md) for deliberate future extensions.

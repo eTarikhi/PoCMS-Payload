@@ -1,45 +1,36 @@
 # Overview
 
-PoCMS is a modern portfolio content management system powered by Payload 3.0. It provides a flexible headless CMS experience for managing portfolio projects, content blocks, media, and authentication.
+PoCMS combines Payload **3.90.2**, Next.js App Router, React and PostgreSQL with a
+public Engineer’s Studio portfolio and a customized admin UI.
 
-## Key features
+## Current capabilities
 
-- Payload 3.0 Headless CMS
-- Neon Serverless PostgreSQL support
-- Vercel Blob storage
-- Vercel deployment workflow
-- Built-in user authentication and role-based access control
-- Media optimization with focal points and resizing
-- REST and GraphQL API support
-- TypeScript-first development workflow
-- Docker-ready environment for local and production setup
+- Work-first portfolio with services, skills, profile, career and credentials
+- Project archive with search, categories and an accessible screenshot viewer
+- Writing archive with URL-backed search and local/plain-text article pages
+- Article reading progress and more-writing recommendations
+- Shared recovery/loading states, sitemap and robots metadata
+- Payload authentication, roles, REST and GraphQL APIs
+- Anonymous access-aware cached Local API reads for the public frontend
+- Optional Vercel Blob storage and configured HTTPS image sources
+- Database-independent component tests and a standalone sample-content preview
 
-## Tech stack
+## Content flow
 
-| Layer | Technology |
-| --- | --- |
-| CMS Framework | Payload CMS 3.0 |
-| Runtime | Node.js |
-| Language | TypeScript (84.4%) |
-| Database | Neon PostgreSQL |
-| File Storage | Vercel Blob |
-| Deployment | Vercel |
-| Package Manager | pnpm |
-| Containerization | Docker |
+Editors manage collections and the Footer global in `/admin`. Server components call
+the Local API, map documents into framework-independent view models, and render the
+public UI. Content hooks invalidate a shared cache tag on saves/deletes. The frontend
+does not require a client-side GraphQL layer.
 
-## Project goals
+The app uses the Vercel PostgreSQL adapter. Loopback connections use `pg`; remote
+connections use the adapter's Vercel transport. See [setup](getting-started.md).
 
-This codebase is designed to give you a strong starting point for a portfolio website or content-heavy marketing site that needs:
+## Boundaries
 
-- structured content authoring
-- a simple admin UI
-- flexible API access for frontend applications
-- production-friendly deployment options
+Project case-study bodies, galleries, project-to-skill relationships, rich-text article
+migration and contact-form handling are not implemented. The legacy Docker Compose
+file is not a supported PostgreSQL recipe. Real database, storage, cache and editor
+Live Preview validation remain release gates, separate from sample-content UI checks.
 
-## Typical workflow
-
-1. Configure the CMS and environment variables.
-2. Define collections and content models in the `src` folder.
-3. Add projects, media, and custom blocks from the admin dashboard.
-4. Use the REST or GraphQL API to power a frontend or custom app.
-5. Deploy through Vercel or a Docker-based setup.
+See the [implementation roadmap](frontend-roadmap.md) for delivered work, research
+sources and future content-model proposals.
