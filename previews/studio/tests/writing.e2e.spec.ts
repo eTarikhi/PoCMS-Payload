@@ -61,6 +61,18 @@ test.describe('Studio writing preview', () => {
     )
   })
 
+  test('offers more field notes without recommending the current demo article', async ({
+    page,
+  }) => {
+    await page.goto(`${baseURL}/articles/design-preview`)
+    const suggestions = page.getByRole('region', { name: 'More field notes.' })
+    await expect(suggestions.locator('article')).toHaveCount(2)
+    await expect(suggestions.locator('a[href="/articles/design-preview"]')).toHaveCount(0)
+    await expect(
+      suggestions.getByRole('link', { name: 'Read original publication ↗' }),
+    ).toHaveCount(2)
+  })
+
   test('hides reading progress when reduced motion is requested', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto(`${baseURL}/articles/design-preview`)

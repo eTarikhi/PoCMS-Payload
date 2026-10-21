@@ -86,6 +86,7 @@ export type CertificateItem = {
 }
 
 export type ArticleItem = {
+  category?: 'articles' | 'others' | null
   featured?: boolean
   id: string
   title: string

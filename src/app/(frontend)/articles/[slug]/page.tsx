@@ -3,6 +3,7 @@ import '@/app/(frontend)/styles/article.css'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
+import { MoreWriting } from '@/app/(frontend)/components/article/MoreWriting'
 import { ArticleLayout } from '@/app/(frontend)/components/article/ArticleLayout'
 import { ArticleLivePreviewSwitch } from '@/app/(frontend)/components/article/ArticleLivePreviewSwitch'
 import { JsonLd } from '@/app/(frontend)/components/seo/JsonLd'
@@ -46,6 +47,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           <ArticleLivePreviewSwitch id={article.id}>
             <ArticleLayout article={article} />
           </ArticleLivePreviewSwitch>
+          <MoreWriting articles={content.articles} current={article} />
         </main>
       </SiteChrome>
       <JsonLd data={buildBlogPostingJsonLd(article, content.header, content.footer)} />

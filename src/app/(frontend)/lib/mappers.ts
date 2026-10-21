@@ -176,6 +176,7 @@ export const mapArticles = (docs: Article[]): ArticleItem[] =>
     title: doc.title,
     excerpt: doc.excerpt,
     featured: Boolean(doc.featured),
+    category: doc.category ?? null,
     author: formatDisplayDate(doc.publishedAt),
     readTime: formatReadTime(doc.readTime),
     imageUrl: resolveMediaUrl(doc.image) ?? withFallback(doc.imageUrl, ''),

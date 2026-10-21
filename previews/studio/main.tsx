@@ -1,3 +1,6 @@
+import { StudioFailure } from '../../src/app/(frontend)/components/studio/StudioFailure'
+import FrontendLoading from '../../src/app/(frontend)/loading'
+import { MoreWriting } from '../../src/app/(frontend)/components/article/MoreWriting'
 import { ProjectsArchive } from '../../src/app/(frontend)/components/studio/ProjectsArchive'
 import { createRoot } from 'react-dom/client'
 import '@fontsource-variable/inter'
@@ -93,19 +96,31 @@ const path = window.location.pathname.replace(/\/$/, '') || '/'
 const articleRoute = path === '/articles/design-preview'
 const archiveRoute = path === '/articles'
 const projectsRoute = path === '/projects'
-const missingRoute = path !== '/' && !articleRoute && !archiveRoute && !projectsRoute
+const failureRoute = path === '/preview/error'
+const loadingRoute = path === '/preview/loading'
+const missingRoute =
+  path !== '/' && !articleRoute && !archiveRoute && !projectsRoute && !failureRoute && !loadingRoute
 document.title = `${articleRoute ? 'Article demo' : archiveRoute ? 'Writing' : projectsRoute ? 'Projects' : missingRoute ? 'Page not found' : 'Engineer’s Studio'} — design preview`
 
 createRoot(document.getElementById('root')!).render(
   <>
     <aside className="preview-notice">
       Design preview · checked-in sample content, not live CMS data
-      {articleRoute ? ' · Demonstration article' : ''}
+      {articleRoute
+        ? ' · Demonstration article'
+        : failureRoute || loadingRoute
+          ? ' · UI state demonstration'
+          : ''}
     </aside>
-    {articleRoute ? (
+    {failureRoute ? (
+      <StudioFailure retry={() => window.location.assign('/')} />
+    ) : loadingRoute ? (
+      <FrontendLoading />
+    ) : articleRoute ? (
       <StudioChrome active="writing" footer={content.footer} name={content.header?.sureName}>
         <main tabIndex={-1} id="main-content" className="article-page">
           <ArticleLayout article={demoArticle} />
+          <MoreWriting articles={content.articles} current={demoArticle} />
         </main>
       </StudioChrome>
     ) : archiveRoute ? (
