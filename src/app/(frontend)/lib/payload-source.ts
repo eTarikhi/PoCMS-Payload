@@ -42,7 +42,8 @@ export const fetchRawPortfolioDocs = async (): Promise<RawPortfolioDocs> => {
     payload.find({ collection: 'header', limit: 1, depth: 1 }).then((res) => res.docs[0] ?? null),
     payload.find({ collection: 'about', limit: 1, depth: 1 }).then((res) => res.docs[0] ?? null),
     payload
-      .find({ collection: 'skills', pagination: false, sort: 'order', depth: 0 })
+      // Skills is orderable: Payload keeps its fractional index in `_order`.
+      .find({ collection: 'skills', pagination: false, sort: '_order', depth: 0 })
       .then((res) => res.docs),
     payload
       .find({ collection: 'experiences', pagination: false, sort: 'order', depth: 0 })

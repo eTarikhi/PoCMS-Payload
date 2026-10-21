@@ -15,6 +15,7 @@ describe('Audit log', () => {
   let admin: User
   let auditor: User
   let skill: Skill
+  let quietSkill: Skill | undefined
   const stamp = Date.now()
 
   type Change = { field: string; from?: unknown; to?: unknown }
@@ -63,11 +64,15 @@ describe('Audit log', () => {
   })
 
   afterAll(async () => {
-    await payload.delete({
-      collection: 'skills',
-      where: { label: { like: `Audit test ${stamp}` } },
-      trash: true,
-    })
+    // By id, not by label: one test replaces the label with a long string to check truncation, so a
+    // label filter would leave that row behind (and a trashed row is not removed at all).
+    const skillIds = [
+      skill?.id,
+      quietSkill?.id,
+    ].filter((id): id is number => typeof id === 'number')
+    if (skillIds.length) {
+      await payload.delete({ collection: 'skills', where: { id: { in: skillIds } } })
+    }
     await payload.delete({
       collection: 'users',
       where: { email: { like: `-${stamp}@example.test` } },
@@ -87,7 +92,6 @@ describe('Audit log', () => {
         value: 42,
         group: 'backend',
         color: 'info',
-        order: 900,
       },
       user: admin,
       overrideAccess: false,
@@ -152,7 +156,6 @@ describe('Audit log', () => {
         value: 10,
         group: 'backend',
         color: 'info',
-        order: 901,
       },
       user: admin,
       overrideAccess: false,
@@ -280,13 +283,12 @@ describe('Audit log', () => {
         value: 1,
         group: 'backend',
         color: 'info',
-        order: 902,
       },
       user: admin,
       overrideAccess: false,
       context: { skipAudit: true },
     })
+    quietSkill = quiet
     expect(await entriesFor(quiet.id)).toHaveLength(0)
-    await payload.delete({ collection: 'skills', id: quiet.id, trash: true })
   })
 })

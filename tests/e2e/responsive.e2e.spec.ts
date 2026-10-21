@@ -90,12 +90,13 @@ test.describe('Responsive admin on a phone', () => {
 
   test('lists show each row as a card with labelled values', async ({ page }) => {
     await login({ page, user: testUser })
-    await open(page, '/admin/collections/skills')
+    // Experiences, not Skills: Skills is orderable (P5.5 pilot) and keeps Payload's own table.
+    await open(page, '/admin/collections/experiences')
     const card = page.locator('[data-slot="table-body"] [data-slot="table-row"]').first()
     await expect(card).toHaveCSS('display', 'grid')
     // A value line shows its column name; the title cell doesn't.
-    const group = card.locator('[data-label="Group"]')
-    expect(await group.evaluate((el) => getComputedStyle(el, '::before').content)).toBe('"Group"')
+    const company = card.locator('[data-label="Company"]')
+    expect(await company.evaluate((el) => getComputedStyle(el, '::before').content)).toBe('"Company"')
     expect(
       await card
         .locator('[data-primary]')
@@ -104,7 +105,7 @@ test.describe('Responsive admin on a phone', () => {
     // Rows keep their table semantics, and sorting stays available as chips.
     await expect(page.getByRole('row').nth(1)).toBeVisible()
     await expect(
-      page.locator('[data-slot="table-head"]').filter({ hasText: 'Label' }),
+      page.locator('[data-slot="table-head"]').filter({ hasText: 'Title' }),
     ).toBeVisible()
     await noSidewaysScroll(page)
     // Row checkboxes are named after their row, and the sort arrows are big enough to tap.
@@ -125,9 +126,9 @@ test.describe('Responsive admin on a phone', () => {
     await expect(card).toHaveAttribute('data-state', 'selected')
     await card.getByRole('checkbox').tap()
     await expect(card).not.toHaveAttribute('data-state', 'selected')
-    const value = (await group.boundingBox())!
+    const value = (await company.boundingBox())!
     await page.touchscreen.tap(value.x + value.width - 12, value.y + value.height / 2)
-    await expect(page).toHaveURL(/\/admin\/collections\/skills\/\d+/)
+    await expect(page).toHaveURL(/\/admin\/collections\/experiences\/\d+/)
   })
 
   test('form fields use 16px text, so phones do not zoom into them', async ({ page }) => {

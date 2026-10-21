@@ -1,7 +1,6 @@
 import { contentAccess, hiddenWithout } from '@/access/roles'
 import type { CollectionConfig } from 'payload'
 import { portfolioAfterChange, portfolioAfterDelete } from '../app/(frontend)/lib/hooks'
-import { orderField } from '../fields/order'
 
 export const Skills: CollectionConfig = {
   slug: 'skills',
@@ -14,15 +13,17 @@ export const Skills: CollectionConfig = {
     group: 'Profile',
     description: 'Skill bars in the résumé section, grouped by category.',
     useAsTitle: 'label',
-    defaultColumns: ['label', 'group', 'value', 'color', 'order'],
+    defaultColumns: ['label', 'group', 'value', 'color'],
   },
-  defaultSort: 'order',
+  // Drag and drop ordering (experimental in Payload, P5.5 pilot). Payload adds a hidden `_order`
+  // text field with a fractional index and a hook that appends new documents, so this collection
+  // no longer carries the manual `order` number the other lists use.
+  orderable: true,
   // Deleting moves documents to the trash (restorable); deleting for good needs the Full level.
   trash: true,
   // Levels from the user's roles (ADR 0011): public read, edit and trash, full to delete for good.
   access: contentAccess('skills'),
   fields: [
-    orderField,
     { name: 'label', type: 'text', required: true },
     {
       name: 'group',

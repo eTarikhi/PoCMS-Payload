@@ -101,17 +101,19 @@ export const seed = async ({
   payload.logger.info(`— Seeding skills...`)
 
   try {
-    const skillsResults = await Promise.all(
-      skillsData().map((skill) =>
-        payload.create({
-          collection: 'skills',
-          data: skill,
-          overrideAccess: true,
-          context: { skipAudit: true },
-        }),
-      ),
-    )
-    payload.logger.info(`  ✓ ${skillsResults.length} skills seeded`)
+    // One at a time: Skills is orderable, and Payload appends each new document by reading the
+    // highest `_order`, so parallel creates would give the list an arbitrary order.
+    let seededSkills = 0
+    for (const skill of skillsData()) {
+      await payload.create({
+        collection: 'skills',
+        data: skill,
+        overrideAccess: true,
+        context: { skipAudit: true },
+      })
+      seededSkills += 1
+    }
+    payload.logger.info(`  ✓ ${seededSkills} skills seeded`)
   } catch (error) {
     payload.logger.error(`  Failed to seed skills: ${error instanceof Error ? error.message : String(error)}`)
   }

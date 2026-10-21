@@ -4,6 +4,7 @@ import * as migration_20261020_182625_audit_log from './20261020_182625_audit_lo
 import * as migration_20261020_223003_navigation_and_site_settings from './20261020_223003_navigation_and_site_settings';
 import * as migration_20261020_225420_media_sizes_and_focal_point from './20261020_225420_media_sizes_and_focal_point';
 import * as migration_20261020_231332_drafts_and_scheduled_publishing from './20261020_231332_drafts_and_scheduled_publishing';
+import * as migration_20261021_001500_skills_orderable from './20261021_001500_skills_orderable';
 
 export const migrations = [
   {
@@ -35,5 +36,10 @@ export const migrations = [
     up: migration_20261020_231332_drafts_and_scheduled_publishing.up,
     down: migration_20261020_231332_drafts_and_scheduled_publishing.down,
     name: '20261020_231332_drafts_and_scheduled_publishing'
+  },
+  {
+    up: migration_20261021_001500_skills_orderable.up,
+    down: migration_20261021_001500_skills_orderable.down,
+    name: '20261021_001500_skills_orderable'
   },
 ];

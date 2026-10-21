@@ -4244,7 +4244,7 @@ type ServicesDeleteDocAccess {
 
 type Skill {
   id: Int!
-  order: Float
+  _order: String
   label: String!
   group: Skill_group!
   value: Float!
@@ -4283,7 +4283,7 @@ type Skills {
 }
 
 input Skill_where {
-  order: Skill_order_operator
+  _order: Skill__order_operator
   label: Skill_label_operator
   group: Skill_group_operator
   value: Skill_value_operator
@@ -4296,13 +4296,14 @@ input Skill_where {
   OR: [Skill_where_or]
 }
 
-input Skill_order_operator {
-  equals: Float
-  not_equals: Float
-  greater_than_equal: Float
-  greater_than: Float
-  less_than_equal: Float
-  less_than: Float
+input Skill__order_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
   exists: Boolean
 }
 
@@ -4399,7 +4400,7 @@ input Skill_id_operator {
 }
 
 input Skill_where_and {
-  order: Skill_order_operator
+  _order: Skill__order_operator
   label: Skill_label_operator
   group: Skill_group_operator
   value: Skill_value_operator
@@ -4413,7 +4414,7 @@ input Skill_where_and {
 }
 
 input Skill_where_or {
-  order: Skill_order_operator
+  _order: Skill__order_operator
   label: Skill_label_operator
   group: Skill_group_operator
   value: Skill_value_operator
@@ -4439,7 +4440,7 @@ type skillsDocAccess {
 }
 
 type SkillsDocAccessFields {
-  order: SkillsDocAccessFields_order
+  _order: SkillsDocAccessFields__order
   label: SkillsDocAccessFields_label
   group: SkillsDocAccessFields_group
   value: SkillsDocAccessFields_value
@@ -4449,26 +4450,26 @@ type SkillsDocAccessFields {
   deletedAt: SkillsDocAccessFields_deletedAt
 }
 
-type SkillsDocAccessFields_order {
-  create: SkillsDocAccessFields_order_Create
-  read: SkillsDocAccessFields_order_Read
-  update: SkillsDocAccessFields_order_Update
-  delete: SkillsDocAccessFields_order_Delete
+type SkillsDocAccessFields__order {
+  create: SkillsDocAccessFields__order_Create
+  read: SkillsDocAccessFields__order_Read
+  update: SkillsDocAccessFields__order_Update
+  delete: SkillsDocAccessFields__order_Delete
 }
 
-type SkillsDocAccessFields_order_Create {
+type SkillsDocAccessFields__order_Create {
   permission: Boolean!
 }
 
-type SkillsDocAccessFields_order_Read {
+type SkillsDocAccessFields__order_Read {
   permission: Boolean!
 }
 
-type SkillsDocAccessFields_order_Update {
+type SkillsDocAccessFields__order_Update {
   permission: Boolean!
 }
 
-type SkillsDocAccessFields_order_Delete {
+type SkillsDocAccessFields__order_Delete {
   permission: Boolean!
 }
 
@@ -14677,7 +14678,7 @@ type skillsAccess {
 }
 
 type SkillsFields {
-  order: SkillsFields_order
+  _order: SkillsFields__order
   label: SkillsFields_label
   group: SkillsFields_group
   value: SkillsFields_value
@@ -14687,26 +14688,26 @@ type SkillsFields {
   deletedAt: SkillsFields_deletedAt
 }
 
-type SkillsFields_order {
-  create: SkillsFields_order_Create
-  read: SkillsFields_order_Read
-  update: SkillsFields_order_Update
-  delete: SkillsFields_order_Delete
+type SkillsFields__order {
+  create: SkillsFields__order_Create
+  read: SkillsFields__order_Read
+  update: SkillsFields__order_Update
+  delete: SkillsFields__order_Delete
 }
 
-type SkillsFields_order_Create {
+type SkillsFields__order_Create {
   permission: Boolean!
 }
 
-type SkillsFields_order_Read {
+type SkillsFields__order_Read {
   permission: Boolean!
 }
 
-type SkillsFields_order_Update {
+type SkillsFields__order_Update {
   permission: Boolean!
 }
 
-type SkillsFields_order_Delete {
+type SkillsFields__order_Delete {
   permission: Boolean!
 }
 
@@ -20114,7 +20115,7 @@ enum ServiceUpdate_iconFont_MutationInput {
 }
 
 input mutationSkillInput {
-  order: Float
+  _order: String
   label: String!
   group: Skill_group_MutationInput!
   value: Float!
@@ -20139,7 +20140,7 @@ enum Skill_color_MutationInput {
 }
 
 input mutationSkillUpdateInput {
-  order: Float
+  _order: String
   label: String
   group: SkillUpdate_group_MutationInput
   value: Float

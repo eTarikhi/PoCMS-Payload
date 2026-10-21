@@ -25,7 +25,12 @@ export const Articles: CollectionConfig = {
     // Live Preview and the Preview button open the article page; only articles with a slug and a
     // body have one (see hasArticlePage), so the others get no preview.
     livePreview: {
-      url: ({ data }) => (hasArticlePage(data) ? articlePagePath(String(data.slug)) : null),
+      // The preview route is dynamic and renders drafts; the public page stays static and
+      // published-only. `id` gives the preview component the document to resolve relations for.
+      url: ({ data }) =>
+        hasArticlePage(data)
+          ? `/preview/articles/${String(data.slug)}?id=${String(data.id ?? '')}`
+          : null,
     },
     preview: (doc) => (hasArticlePage(doc) ? articlePagePath(String(doc.slug)) : null),
   },

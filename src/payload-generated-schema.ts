@@ -565,7 +565,7 @@ export const skills = pgTable(
   'skills',
   {
     id: serial('id').primaryKey(),
-    order: numeric('order', { mode: 'number' }).default(0),
+    _order: varchar('_order'),
     label: varchar('label').notNull(),
     group: enum_skills_group('group').notNull().default('frontend'),
     value: numeric('value', { mode: 'number' }).notNull(),
@@ -579,7 +579,7 @@ export const skills = pgTable(
     deletedAt: timestamp('deleted_at', { mode: 'string', withTimezone: true, precision: 3 }),
   },
   (columns) => [
-    index('skills_order_idx').on(columns.order),
+    index('skills__order_idx').on(columns._order),
     index('skills_group_idx').on(columns.group),
     index('skills_updated_at_idx').on(columns.updatedAt),
     index('skills_created_at_idx').on(columns.createdAt),

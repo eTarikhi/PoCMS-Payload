@@ -362,10 +362,7 @@ export interface Service {
  */
 export interface Skill {
   id: number;
-  /**
-   * Lower numbers appear first.
-   */
-  order?: number | null;
+  _order?: string | null;
   label: string;
   group: 'frontend' | 'backend';
   /**
@@ -999,7 +996,7 @@ export interface ServicesSelect<T extends boolean = true> {
  * via the `definition` "skills_select".
  */
 export interface SkillsSelect<T extends boolean = true> {
-  order?: T;
+  _order?: T;
   label?: T;
   group?: T;
   value?: T;

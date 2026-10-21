@@ -44,7 +44,9 @@ test.describe('Editor journey', () => {
     await page.locator('#field-publishedAt input').first().click()
     await page.locator('.react-datepicker__day--today').first().click()
 
-    await page.getByRole('button', { name: 'Save' }).click()
+    // `#action-save` is the publish button ("Publish changes" on a new draft). A plain name match
+    // on "Save" would also hit "Save Draft" next to it, and a draft has no public page.
+    await page.locator('#action-save').click()
 
     // 2. Payload creates the document and opens its edit view.
     await expect(page).toHaveURL(/\/admin\/collections\/articles\/\d+$/, { timeout: 30_000 })
@@ -100,6 +102,9 @@ test.describe('Editor journey', () => {
     await expect(trashed).toHaveCount(1)
     await trashed.getByRole('checkbox').click()
     await page.locator('.list-selection').getByRole('button', { name: /Restore/ }).click()
+    // With drafts enabled Payload restores as a draft unless this box is ticked, and a draft has no
+    // public page. The editor's intent here is "put it back the way it was": published.
+    await page.getByRole('checkbox', { name: /published/i }).check()
     await page.getByRole('button', { name: 'Confirm' }).click()
     await expect(page.getByText(/Restored 1 Article/i)).toBeVisible({ timeout: 30_000 })
 
