@@ -886,8 +886,17 @@ pnpm check:contrast     # token pairs meet WCAG AA in both themes
 pnpm test:int           # Vitest: Local API integration + admin component tests (jsdom)
 pnpm test:unit          # only the component tests, for a focused loop
 pnpm test:e2e           # Playwright: admin, navigation, dashboard, lists, gallery (axe), editor tasks
-pnpm test:visual        # screenshot comparisons
+pnpm test:visual        # screenshot comparisons + platform-independent invariants
 ```
+
+`tests/visual/invariants.visual.spec.ts` is the half of the visual check that is the same on every
+machine, so CI gates on it: the design tokens load (14px body text, `--theme-elevation-0`
+resolves), no screen scrolls sideways at 1440/768/375px in either theme, every thumbnail loads, dark
+mode is still the navy tint, and the dashboard keeps its heading and widget cards. Together with the
+axe suites, that means a screen that "looks broken" fails CI even where pixel diffs would be
+platform noise. Screenshot comparisons stay on the machine that owns the baselines
+(`pnpm test:visual --update-snapshots`), and CI uploads captures plus
+`test-results/visual-invariants.json` for review.
 
 The e2e axe tests check WCAG 2.2 AA (serious and critical findings) in both themes for the
 component gallery, which renders every custom component, and for the dashboard, the command menu,

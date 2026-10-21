@@ -121,10 +121,16 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
+      # Visual regression, platform-independent half: tokens loaded, no sideways scroll at any of
+      # the three live-preview widths in both themes, no broken images, dark mode still dark. This
+      # gates the build. The numbers land in test-results/visual-invariants.json.
+      - name: Visual invariants (layout, tokens, themes)
+        run: pnpm exec playwright test --config=playwright.config.ts visual/invariants
+
       # Visual review: capture every baseline screen (light/dark, 1440/768/375) against the same
-      # production build. Screenshot comparisons are platform-specific, so CI does not assert
-      # pixel equality; the captures are uploaded for review and the suite runs here to prove the
-      # capture path (logins, navigation, both themes) still works. To compare, run
+      # production build. Pixel comparisons are platform-specific (font rasterisation), so CI does
+      # not assert them; the captures are uploaded for review and the suite runs here to prove the
+      # capture path (logins, navigation, both themes) still works. To compare pixels, run
       # `pnpm test:visual --update-snapshots` on the platform that owns the baselines.
       - name: Visual captures
         run: pnpm test:visual
@@ -135,5 +141,7 @@ jobs:
         if: always()
         with:
           name: visual-captures
-          path: playwright-captures/
+          path: |
+            playwright-captures/
+            test-results/visual-invariants.json
           retention-days: 7
