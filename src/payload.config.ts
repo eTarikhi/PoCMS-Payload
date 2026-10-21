@@ -3,9 +3,7 @@ import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { GraphQL } from '@payloadcms/graphql/types'
 
-import { resendAdapter } from '@payloadcms/email-resend'
-// import nodemailerSendgrid from 'nodemailer-sendgrid'
-// import nodemailer from 'nodemailer'
+import { createEmailAdapter } from './utilities/email'
 
 import path from 'path'
 import { buildConfig } from 'payload'
@@ -60,6 +58,8 @@ const contentCollections = [
 const globals = [Footer]
 
 export default buildConfig({
+  // Isolated verification must not emit background telemetry or contact external services.
+  telemetry: process.env.POCMS_INTEGRATION === '1' ? false : undefined,
   admin: {
     user: Users.slug,
     // Compact dates in lists, dashboards and document meta ("16 Oct 2026, 16:36").
@@ -209,47 +209,7 @@ export default buildConfig({
     disablePlaygroundInProduction: false,
   },
 
-  // email: nodemailerAdapter({
-  //   defaultFromAddress: 'info@payloadcms.com',
-  //   defaultFromName: 'Payload',
-  //   // Nodemailer transportOptions
-  //   transportOptions: {
-  //     host: process.env.SMTP_HOST,
-  //     port: 587,
-  //     auth: {
-  //       user: process.env.SMTP_USER,
-  //       pass: process.env.SMTP_PASS,
-  //     },
-  //   },
-  // }),
-
-  // email: nodemailerAdapter({
-  //   defaultFromAddress: 'info@payloadcms.com',
-  //   defaultFromName: 'Payload',
-  //   // Any Nodemailer transport can be used
-  //   transport: nodemailer.createTransport({
-  //     host: process.env.SMTP_HOST,
-  //     port: 587,
-  //     auth: {
-  //       user: process.env.SMTP_USER,
-  //       pass: process.env.SMTP_PASS,
-  //     },
-  //   }),
-  // }),
-
-  // email: nodemailerAdapter({
-  //   defaultFromAddress: 'info@payloadcms.com',
-  //   defaultFromName: 'Payload',
-  //   transportOptions: nodemailerSendgrid({
-  //     apiKey: process.env.SENDGRID_API_KEY,
-  //   }),
-  // }),
-
-  email: resendAdapter({
-    defaultFromAddress: 'dev@vtarikhi.com',
-    defaultFromName: 'PoCMS',
-    apiKey: process.env.RESEND_API_KEY || '',
-  }),
+  email: createEmailAdapter(),
 })
 
 const NoProductionIntrospection: GraphQL.ValidationRule = (context) => ({
