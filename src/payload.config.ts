@@ -46,6 +46,7 @@ import { Media } from './collections/Media'
 import { dashboard } from './components/admin/widgets/config'
 import { adminUIPlugin } from './plugins/adminUI'
 import { auditLogPlugin } from './plugins/auditLog'
+import { seo } from './plugins/seo'
 
 // import { MediaWithPrefix } from './collections/MediaWithPrefix'
 
@@ -267,6 +268,8 @@ export default buildConfig({
       },
       token: process.env.BLOB_READ_WRITE_TOKEN || '',
     }),
+    // SEO metadata on articles and site settings (the `meta` group + its admin preview).
+    seo,
     // Records changes to every collection and global (E5), before the admin UI plugin maps them.
     auditLogPlugin(),
     // Last, so it sees every field other plugins add: TanStack list views, boolean cells (ADR 0007).

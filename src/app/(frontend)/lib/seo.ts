@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 import type { ArticleDetail } from './article-mappers'
 import { articlePagePath } from './article-page'
-import type { FooterContent, HeaderContent } from './types'
+import type { FooterContent, HeaderContent, SeoMeta, SiteSettingsContent } from './types'
 
 /**
  * SEO values for the site, from `vTarikhi/components/head.jsx` and `schema.json`.
@@ -83,6 +83,47 @@ export const portfolioMetadata: Metadata = {
   },
 }
 
+/**
+ * The site-wide metadata, with the values from the Site settings global's SEO group merged over the
+ * constants above. The layout calls this per request group (cached under the portfolio tag), so an
+ * editor can change the home page's title and description without a deploy. An unset field keeps
+ * the constant, and `metadataBase`, icons and the owner tag are never overridden.
+ */
+export const buildSiteMetadata = (
+  settings: SiteSettingsContent | null,
+  site: string = siteUrl(),
+): Metadata => {
+  const seo: SeoMeta | null = settings?.seo ?? null
+  const title = seo?.title ?? TITLE
+  const description = seo?.description ?? DESCRIPTION
+  const image = seo?.image
+    ? {
+        url: absoluteUrl(seo.image.url, site),
+        alt: title,
+        ...(seo.image.width ? { width: seo.image.width } : {}),
+        ...(seo.image.height ? { height: seo.image.height } : {}),
+      }
+    : portfolioMetadata.openGraph?.images
+
+  return {
+    ...portfolioMetadata,
+    metadataBase: new URL(site),
+    title,
+    description,
+    openGraph: {
+      ...portfolioMetadata.openGraph,
+      title,
+      description,
+      images: image,
+    },
+    twitter: {
+      ...portfolioMetadata.twitter,
+      title,
+      description,
+    },
+  }
+}
+
 // Values from schema.json that the CMS does not hold yet. Kept as constants.
 const ADDRESS = {
   '@type': 'PostalAddress',
@@ -148,11 +189,22 @@ export const buildArticleMetadata = (
   site: string = siteUrl(),
 ): Metadata => {
   const url = articleCanonicalUrl(article.slug, site)
+  // The SEO group in the admin wins when it has a value; otherwise the article's own fields are the
+  // metadata, which is what an article that never opened the group keeps rendering.
+  const title = article.seo.title ?? article.title
+  const description = article.seo.description ?? article.excerpt
   // The Open Graph crop (1200x630) carries its own dimensions, which scrapers use for the card
   // layout. A cover without that size (a legacy text URL, or a picture smaller than 1200x630) is
   // still the article's image, just without declared dimensions; only articles with no cover at all
   // show the profile photo.
-  const image = article.coverOg
+  const image = article.seo.image
+    ? {
+        url: absoluteUrl(article.seo.image.url, site),
+        alt: title,
+        ...(article.seo.image.width ? { width: article.seo.image.width } : {}),
+        ...(article.seo.image.height ? { height: article.seo.image.height } : {}),
+      }
+    : article.coverOg
     ? {
         url: absoluteUrl(article.coverOg.url, site),
         alt: article.coverAlt,
@@ -169,23 +221,23 @@ export const buildArticleMetadata = (
         }
 
   return {
-    title: article.title,
-    ...(article.excerpt ? { description: article.excerpt } : {}),
+    title,
+    ...(description ? { description } : {}),
     alternates: { canonical: url },
     openGraph: {
       type: 'article',
       siteName: OG_SITE_NAME,
-      title: article.title,
-      ...(article.excerpt ? { description: article.excerpt } : {}),
+      title,
+      ...(description ? { description } : {}),
       url,
       locale: 'en_US',
       ...(article.publishedAt ? { publishedTime: article.publishedAt } : {}),
       images: [image],
     },
     twitter: {
-      card: article.coverUrl ? 'summary_large_image' : 'summary',
-      title: article.title,
-      ...(article.excerpt ? { description: article.excerpt } : {}),
+      card: article.seo.image || article.coverUrl ? 'summary_large_image' : 'summary',
+      title,
+      ...(description ? { description } : {}),
       images: [image.url],
     },
   }

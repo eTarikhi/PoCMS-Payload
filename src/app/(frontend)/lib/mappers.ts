@@ -44,6 +44,7 @@ import type {
   ProjectItem,
   ProjectsContent,
   ServiceItem,
+  SeoMeta,
   ServicesContent,
   SiteSettingsContent,
   SkillBar,
@@ -111,6 +112,21 @@ export const resolveMediaSize = (
     return { url: generated.url, width: generated.width ?? null, height: generated.height ?? null }
   }
   return media.url ? { url: media.url, width: media.width ?? null, height: media.height ?? null } : null
+}
+
+/**
+ * The `meta` group Payload's SEO plugin adds to Articles and Site settings. Empty fields stay
+ * `null` so the metadata builders can tell "not set" from "set to an empty string", and the image
+ * resolves through the `og` crop so `og:image` keeps its declared dimensions.
+ */
+export const mapSeoMeta = (meta: unknown): SeoMeta => {
+  const value = (meta ?? {}) as { title?: string | null; description?: string | null; image?: unknown }
+  const image = resolveMediaSize(value.image as number | Media | null | undefined, 'og')
+  return {
+    title: value.title?.trim() ? value.title : null,
+    description: value.description?.trim() ? value.description : null,
+    image,
+  }
 }
 
 const idToString = (id: number | string): string => String(id)
@@ -325,6 +341,7 @@ export const mapNavigation = (doc: Navigation | null): NavigationContent => {
 /** Site settings view model. A never-saved global keeps the site online and the page copy sane. */
 export const mapSiteSettings = (doc: SiteSetting | null): SiteSettingsContent => ({
   siteName: doc?.siteName?.trim() ? doc.siteName : 'eTarikhi',
+  seo: mapSeoMeta(doc?.meta),
   supportEmail: doc?.supportEmail?.trim() ? doc.supportEmail : null,
   maintenance: {
     enabled: Boolean(doc?.maintenance?.enabled),

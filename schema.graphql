@@ -102,6 +102,7 @@ type Article {
   image: Media
   imageUrl: String
   link: String
+  meta: Article_Meta
   updatedAt: DateTime
   createdAt: DateTime
   deletedAt: DateTime
@@ -196,6 +197,12 @@ type Media_Sizes_Og {
   filename: String
 }
 
+type Article_Meta {
+  title: String
+  description: String
+  image: Media
+}
+
 enum Article__status {
   draft
   published
@@ -228,6 +235,9 @@ input Article_where {
   image: Article_image_operator
   imageUrl: Article_imageUrl_operator
   link: Article_link_operator
+  meta__title: Article_meta__title_operator
+  meta__description: Article_meta__description_operator
+  meta__image: Article_meta__image_operator
   updatedAt: Article_updatedAt_operator
   createdAt: Article_createdAt_operator
   deletedAt: Article_deletedAt_operator
@@ -354,6 +364,34 @@ input Article_link_operator {
   all: [String]
 }
 
+input Article_meta__title_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
+}
+
+input Article_meta__description_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  exists: Boolean
+}
+
+input Article_meta__image_operator {
+  equals: JSON
+  not_equals: JSON
+  in: [JSON]
+  not_in: [JSON]
+  all: [JSON]
+  exists: Boolean
+}
+
 input Article_updatedAt_operator {
   equals: DateTime
   not_equals: DateTime
@@ -424,6 +462,9 @@ input Article_where_and {
   image: Article_image_operator
   imageUrl: Article_imageUrl_operator
   link: Article_link_operator
+  meta__title: Article_meta__title_operator
+  meta__description: Article_meta__description_operator
+  meta__image: Article_meta__image_operator
   updatedAt: Article_updatedAt_operator
   createdAt: Article_createdAt_operator
   deletedAt: Article_deletedAt_operator
@@ -446,6 +487,9 @@ input Article_where_or {
   image: Article_image_operator
   imageUrl: Article_imageUrl_operator
   link: Article_link_operator
+  meta__title: Article_meta__title_operator
+  meta__description: Article_meta__description_operator
+  meta__image: Article_meta__image_operator
   updatedAt: Article_updatedAt_operator
   createdAt: Article_createdAt_operator
   deletedAt: Article_deletedAt_operator
@@ -481,6 +525,7 @@ type ArticlesDocAccessFields {
   image: ArticlesDocAccessFields_image
   imageUrl: ArticlesDocAccessFields_imageUrl
   link: ArticlesDocAccessFields_link
+  meta: ArticlesDocAccessFields_meta
   updatedAt: ArticlesDocAccessFields_updatedAt
   createdAt: ArticlesDocAccessFields_createdAt
   deletedAt: ArticlesDocAccessFields_deletedAt
@@ -763,6 +808,105 @@ type ArticlesDocAccessFields_link_Delete {
   permission: Boolean!
 }
 
+type ArticlesDocAccessFields_meta {
+  create: ArticlesDocAccessFields_meta_Create
+  read: ArticlesDocAccessFields_meta_Read
+  update: ArticlesDocAccessFields_meta_Update
+  delete: ArticlesDocAccessFields_meta_Delete
+  fields: ArticlesDocAccessFields_meta_Fields
+}
+
+type ArticlesDocAccessFields_meta_Create {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_Read {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_Update {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_Delete {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_Fields {
+  title: ArticlesDocAccessFields_meta_title
+  description: ArticlesDocAccessFields_meta_description
+  image: ArticlesDocAccessFields_meta_image
+}
+
+type ArticlesDocAccessFields_meta_title {
+  create: ArticlesDocAccessFields_meta_title_Create
+  read: ArticlesDocAccessFields_meta_title_Read
+  update: ArticlesDocAccessFields_meta_title_Update
+  delete: ArticlesDocAccessFields_meta_title_Delete
+}
+
+type ArticlesDocAccessFields_meta_title_Create {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_title_Read {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_title_Update {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_title_Delete {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_description {
+  create: ArticlesDocAccessFields_meta_description_Create
+  read: ArticlesDocAccessFields_meta_description_Read
+  update: ArticlesDocAccessFields_meta_description_Update
+  delete: ArticlesDocAccessFields_meta_description_Delete
+}
+
+type ArticlesDocAccessFields_meta_description_Create {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_description_Read {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_description_Update {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_description_Delete {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_image {
+  create: ArticlesDocAccessFields_meta_image_Create
+  read: ArticlesDocAccessFields_meta_image_Read
+  update: ArticlesDocAccessFields_meta_image_Update
+  delete: ArticlesDocAccessFields_meta_image_Delete
+}
+
+type ArticlesDocAccessFields_meta_image_Create {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_image_Read {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_image_Update {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_image_Delete {
+  permission: Boolean!
+}
+
 type ArticlesDocAccessFields_updatedAt {
   create: ArticlesDocAccessFields_updatedAt_Create
   read: ArticlesDocAccessFields_updatedAt_Read
@@ -907,6 +1051,7 @@ type ArticleVersion_Version {
   image: Media
   imageUrl: String
   link: String
+  meta: ArticleVersion_Version_Meta
   updatedAt: DateTime
   createdAt: DateTime
   deletedAt: DateTime
@@ -916,6 +1061,12 @@ type ArticleVersion_Version {
 enum ArticleVersion_Version_category {
   articles
   others
+}
+
+type ArticleVersion_Version_Meta {
+  title: String
+  description: String
+  image: Media
 }
 
 enum ArticleVersion_Version__status {
@@ -951,6 +1102,9 @@ input versionsArticle_where {
   version__image: versionsArticle_version__image_operator
   version__imageUrl: versionsArticle_version__imageUrl_operator
   version__link: versionsArticle_version__link_operator
+  version__meta__title: versionsArticle_version__meta__title_operator
+  version__meta__description: versionsArticle_version__meta__description_operator
+  version__meta__image: versionsArticle_version__meta__image_operator
   version__updatedAt: versionsArticle_version__updatedAt_operator
   version__createdAt: versionsArticle_version__createdAt_operator
   version__deletedAt: versionsArticle_version__deletedAt_operator
@@ -1089,6 +1243,34 @@ input versionsArticle_version__link_operator {
   all: [String]
 }
 
+input versionsArticle_version__meta__title_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
+}
+
+input versionsArticle_version__meta__description_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  exists: Boolean
+}
+
+input versionsArticle_version__meta__image_operator {
+  equals: JSON
+  not_equals: JSON
+  in: [JSON]
+  not_in: [JSON]
+  all: [JSON]
+  exists: Boolean
+}
+
 input versionsArticle_version__updatedAt_operator {
   equals: DateTime
   not_equals: DateTime
@@ -1188,6 +1370,9 @@ input versionsArticle_where_and {
   version__image: versionsArticle_version__image_operator
   version__imageUrl: versionsArticle_version__imageUrl_operator
   version__link: versionsArticle_version__link_operator
+  version__meta__title: versionsArticle_version__meta__title_operator
+  version__meta__description: versionsArticle_version__meta__description_operator
+  version__meta__image: versionsArticle_version__meta__image_operator
   version__updatedAt: versionsArticle_version__updatedAt_operator
   version__createdAt: versionsArticle_version__createdAt_operator
   version__deletedAt: versionsArticle_version__deletedAt_operator
@@ -1214,6 +1399,9 @@ input versionsArticle_where_or {
   version__image: versionsArticle_version__image_operator
   version__imageUrl: versionsArticle_version__imageUrl_operator
   version__link: versionsArticle_version__link_operator
+  version__meta__title: versionsArticle_version__meta__title_operator
+  version__meta__description: versionsArticle_version__meta__description_operator
+  version__meta__image: versionsArticle_version__meta__image_operator
   version__updatedAt: versionsArticle_version__updatedAt_operator
   version__createdAt: versionsArticle_version__createdAt_operator
   version__deletedAt: versionsArticle_version__deletedAt_operator
@@ -12447,6 +12635,7 @@ type SiteSetting {
   siteName: String
   supportEmail: EmailAddress
   maintenance: SiteSetting_Maintenance
+  meta: SiteSetting_Meta
   updatedAt: DateTime
   createdAt: DateTime
 }
@@ -12455,6 +12644,12 @@ type SiteSetting_Maintenance {
   enabled: Boolean
   title: String
   message: String
+}
+
+type SiteSetting_Meta {
+  title: String
+  description: String
+  image: Media
 }
 
 type site_settingsDocAccess {
@@ -12467,6 +12662,7 @@ type SiteSettingsDocAccessFields {
   siteName: SiteSettingsDocAccessFields_siteName
   supportEmail: SiteSettingsDocAccessFields_supportEmail
   maintenance: SiteSettingsDocAccessFields_maintenance
+  meta: SiteSettingsDocAccessFields_meta
   updatedAt: SiteSettingsDocAccessFields_updatedAt
   createdAt: SiteSettingsDocAccessFields_createdAt
 }
@@ -12616,6 +12812,105 @@ type SiteSettingsDocAccessFields_maintenance_message_Delete {
   permission: Boolean!
 }
 
+type SiteSettingsDocAccessFields_meta {
+  create: SiteSettingsDocAccessFields_meta_Create
+  read: SiteSettingsDocAccessFields_meta_Read
+  update: SiteSettingsDocAccessFields_meta_Update
+  delete: SiteSettingsDocAccessFields_meta_Delete
+  fields: SiteSettingsDocAccessFields_meta_Fields
+}
+
+type SiteSettingsDocAccessFields_meta_Create {
+  permission: Boolean!
+}
+
+type SiteSettingsDocAccessFields_meta_Read {
+  permission: Boolean!
+}
+
+type SiteSettingsDocAccessFields_meta_Update {
+  permission: Boolean!
+}
+
+type SiteSettingsDocAccessFields_meta_Delete {
+  permission: Boolean!
+}
+
+type SiteSettingsDocAccessFields_meta_Fields {
+  title: SiteSettingsDocAccessFields_meta_title
+  description: SiteSettingsDocAccessFields_meta_description
+  image: SiteSettingsDocAccessFields_meta_image
+}
+
+type SiteSettingsDocAccessFields_meta_title {
+  create: SiteSettingsDocAccessFields_meta_title_Create
+  read: SiteSettingsDocAccessFields_meta_title_Read
+  update: SiteSettingsDocAccessFields_meta_title_Update
+  delete: SiteSettingsDocAccessFields_meta_title_Delete
+}
+
+type SiteSettingsDocAccessFields_meta_title_Create {
+  permission: Boolean!
+}
+
+type SiteSettingsDocAccessFields_meta_title_Read {
+  permission: Boolean!
+}
+
+type SiteSettingsDocAccessFields_meta_title_Update {
+  permission: Boolean!
+}
+
+type SiteSettingsDocAccessFields_meta_title_Delete {
+  permission: Boolean!
+}
+
+type SiteSettingsDocAccessFields_meta_description {
+  create: SiteSettingsDocAccessFields_meta_description_Create
+  read: SiteSettingsDocAccessFields_meta_description_Read
+  update: SiteSettingsDocAccessFields_meta_description_Update
+  delete: SiteSettingsDocAccessFields_meta_description_Delete
+}
+
+type SiteSettingsDocAccessFields_meta_description_Create {
+  permission: Boolean!
+}
+
+type SiteSettingsDocAccessFields_meta_description_Read {
+  permission: Boolean!
+}
+
+type SiteSettingsDocAccessFields_meta_description_Update {
+  permission: Boolean!
+}
+
+type SiteSettingsDocAccessFields_meta_description_Delete {
+  permission: Boolean!
+}
+
+type SiteSettingsDocAccessFields_meta_image {
+  create: SiteSettingsDocAccessFields_meta_image_Create
+  read: SiteSettingsDocAccessFields_meta_image_Read
+  update: SiteSettingsDocAccessFields_meta_image_Update
+  delete: SiteSettingsDocAccessFields_meta_image_Delete
+}
+
+type SiteSettingsDocAccessFields_meta_image_Create {
+  permission: Boolean!
+}
+
+type SiteSettingsDocAccessFields_meta_image_Read {
+  permission: Boolean!
+}
+
+type SiteSettingsDocAccessFields_meta_image_Update {
+  permission: Boolean!
+}
+
+type SiteSettingsDocAccessFields_meta_image_Delete {
+  permission: Boolean!
+}
+
 type SiteSettingsDocAccessFields_updatedAt {
   create: SiteSettingsDocAccessFields_updatedAt_Create
   read: SiteSettingsDocAccessFields_updatedAt_Read
@@ -12720,6 +13015,7 @@ type ArticlesFields {
   image: ArticlesFields_image
   imageUrl: ArticlesFields_imageUrl
   link: ArticlesFields_link
+  meta: ArticlesFields_meta
   updatedAt: ArticlesFields_updatedAt
   createdAt: ArticlesFields_createdAt
   deletedAt: ArticlesFields_deletedAt
@@ -12999,6 +13295,105 @@ type ArticlesFields_link_Update {
 }
 
 type ArticlesFields_link_Delete {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta {
+  create: ArticlesFields_meta_Create
+  read: ArticlesFields_meta_Read
+  update: ArticlesFields_meta_Update
+  delete: ArticlesFields_meta_Delete
+  fields: ArticlesFields_meta_Fields
+}
+
+type ArticlesFields_meta_Create {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_Read {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_Update {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_Delete {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_Fields {
+  title: ArticlesFields_meta_title
+  description: ArticlesFields_meta_description
+  image: ArticlesFields_meta_image
+}
+
+type ArticlesFields_meta_title {
+  create: ArticlesFields_meta_title_Create
+  read: ArticlesFields_meta_title_Read
+  update: ArticlesFields_meta_title_Update
+  delete: ArticlesFields_meta_title_Delete
+}
+
+type ArticlesFields_meta_title_Create {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_title_Read {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_title_Update {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_title_Delete {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_description {
+  create: ArticlesFields_meta_description_Create
+  read: ArticlesFields_meta_description_Read
+  update: ArticlesFields_meta_description_Update
+  delete: ArticlesFields_meta_description_Delete
+}
+
+type ArticlesFields_meta_description_Create {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_description_Read {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_description_Update {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_description_Delete {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_image {
+  create: ArticlesFields_meta_image_Create
+  read: ArticlesFields_meta_image_Read
+  update: ArticlesFields_meta_image_Update
+  delete: ArticlesFields_meta_image_Delete
+}
+
+type ArticlesFields_meta_image_Create {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_image_Read {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_image_Update {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_image_Delete {
   permission: Boolean!
 }
 
@@ -20079,6 +20474,7 @@ type SiteSettingsFields {
   siteName: SiteSettingsFields_siteName
   supportEmail: SiteSettingsFields_supportEmail
   maintenance: SiteSettingsFields_maintenance
+  meta: SiteSettingsFields_meta
   updatedAt: SiteSettingsFields_updatedAt
   createdAt: SiteSettingsFields_createdAt
 }
@@ -20225,6 +20621,105 @@ type SiteSettingsFields_maintenance_message_Update {
 }
 
 type SiteSettingsFields_maintenance_message_Delete {
+  permission: Boolean!
+}
+
+type SiteSettingsFields_meta {
+  create: SiteSettingsFields_meta_Create
+  read: SiteSettingsFields_meta_Read
+  update: SiteSettingsFields_meta_Update
+  delete: SiteSettingsFields_meta_Delete
+  fields: SiteSettingsFields_meta_Fields
+}
+
+type SiteSettingsFields_meta_Create {
+  permission: Boolean!
+}
+
+type SiteSettingsFields_meta_Read {
+  permission: Boolean!
+}
+
+type SiteSettingsFields_meta_Update {
+  permission: Boolean!
+}
+
+type SiteSettingsFields_meta_Delete {
+  permission: Boolean!
+}
+
+type SiteSettingsFields_meta_Fields {
+  title: SiteSettingsFields_meta_title
+  description: SiteSettingsFields_meta_description
+  image: SiteSettingsFields_meta_image
+}
+
+type SiteSettingsFields_meta_title {
+  create: SiteSettingsFields_meta_title_Create
+  read: SiteSettingsFields_meta_title_Read
+  update: SiteSettingsFields_meta_title_Update
+  delete: SiteSettingsFields_meta_title_Delete
+}
+
+type SiteSettingsFields_meta_title_Create {
+  permission: Boolean!
+}
+
+type SiteSettingsFields_meta_title_Read {
+  permission: Boolean!
+}
+
+type SiteSettingsFields_meta_title_Update {
+  permission: Boolean!
+}
+
+type SiteSettingsFields_meta_title_Delete {
+  permission: Boolean!
+}
+
+type SiteSettingsFields_meta_description {
+  create: SiteSettingsFields_meta_description_Create
+  read: SiteSettingsFields_meta_description_Read
+  update: SiteSettingsFields_meta_description_Update
+  delete: SiteSettingsFields_meta_description_Delete
+}
+
+type SiteSettingsFields_meta_description_Create {
+  permission: Boolean!
+}
+
+type SiteSettingsFields_meta_description_Read {
+  permission: Boolean!
+}
+
+type SiteSettingsFields_meta_description_Update {
+  permission: Boolean!
+}
+
+type SiteSettingsFields_meta_description_Delete {
+  permission: Boolean!
+}
+
+type SiteSettingsFields_meta_image {
+  create: SiteSettingsFields_meta_image_Create
+  read: SiteSettingsFields_meta_image_Read
+  update: SiteSettingsFields_meta_image_Update
+  delete: SiteSettingsFields_meta_image_Delete
+}
+
+type SiteSettingsFields_meta_image_Create {
+  permission: Boolean!
+}
+
+type SiteSettingsFields_meta_image_Read {
+  permission: Boolean!
+}
+
+type SiteSettingsFields_meta_image_Update {
+  permission: Boolean!
+}
+
+type SiteSettingsFields_meta_image_Delete {
   permission: Boolean!
 }
 
@@ -20386,6 +20881,7 @@ input mutationArticleInput {
   image: Int
   imageUrl: String
   link: String!
+  meta: mutationArticle_MetaInput
   updatedAt: String
   createdAt: String
   deletedAt: String
@@ -20395,6 +20891,12 @@ input mutationArticleInput {
 enum Article_category_MutationInput {
   articles
   others
+}
+
+input mutationArticle_MetaInput {
+  title: String
+  description: String
+  image: Int
 }
 
 enum Article__status_MutationInput {
@@ -20415,6 +20917,7 @@ input mutationArticleUpdateInput {
   image: Int
   imageUrl: String
   link: String
+  meta: mutationArticleUpdate_MetaInput
   updatedAt: String
   createdAt: String
   deletedAt: String
@@ -20424,6 +20927,12 @@ input mutationArticleUpdateInput {
 enum ArticleUpdate_category_MutationInput {
   articles
   others
+}
+
+input mutationArticleUpdate_MetaInput {
+  title: String
+  description: String
+  image: Int
 }
 
 enum ArticleUpdate__status_MutationInput {
@@ -21479,6 +21988,7 @@ input mutationSiteSettingInput {
   siteName: String
   supportEmail: String
   maintenance: mutationSiteSetting_MaintenanceInput
+  meta: mutationSiteSetting_MetaInput
   updatedAt: String
   createdAt: String
 }
@@ -21487,4 +21997,10 @@ input mutationSiteSetting_MaintenanceInput {
   enabled: Boolean
   title: String
   message: String
+}
+
+input mutationSiteSetting_MetaInput {
+  title: String
+  description: String
+  image: Int
 }

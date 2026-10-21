@@ -2,7 +2,8 @@ import type { Article } from '@/payload-types'
 
 import { hasArticlePage, splitArticleBody } from './article-page'
 import { formatDisplayDate, formatReadTime } from './format'
-import { resolveMediaSize, resolveMediaUrl } from './mappers'
+import { mapSeoMeta, resolveMediaSize, resolveMediaUrl } from './mappers'
+import type { SeoMeta } from './types'
 
 /** The view model for one article page. Components receive only this, never the Payload document. */
 export type ArticleDetail = {
@@ -27,6 +28,8 @@ export type ArticleDetail = {
   paragraphs: string[]
   /** Where the article is also published (LinkedIn, Medium). */
   externalLink: string | null
+  /** Editor-written metadata (Payload's SEO plugin). Empty fields fall back to the fields above. */
+  seo: SeoMeta
 }
 
 /**
@@ -51,5 +54,6 @@ export const mapArticleDetail = (doc: Article): ArticleDetail | null => {
     coverAlt: (typeof doc.image === 'object' && doc.image?.alt) || doc.title,
     paragraphs: splitArticleBody(doc.description ?? ''),
     externalLink: doc.link || null,
+    seo: mapSeoMeta(doc.meta),
   }
 }

@@ -7,6 +7,7 @@ import {
   nameFolderThumbnails,
 } from '@/components/admin/providers/AdminDomFixes/folders'
 import { ensureLandmarks, MAIN_ID, SKIP_LINK_ID } from '@/components/admin/providers/AdminDomFixes/landmarks'
+import { fixSeoFieldNotes, hideSeoPreview } from '@/components/admin/providers/AdminDomFixes/seo'
 import { nameIconOnlyControls } from '@/components/admin/providers/AdminDomFixes/names'
 import { skipHiddenSelectControls } from '@/components/admin/providers/AdminDomFixes/reactSelect'
 import {
@@ -324,6 +325,68 @@ describe('AdminDomFixes', () => {
       const inner = document.querySelector('.create-new-doc-in-folder__popup-button')
       expect(inner?.hasAttribute('role')).toBe(false)
       expect(inner?.hasAttribute('tabindex')).toBe(false)
+    })
+  })
+
+  describe('SEO plugin fixes', () => {
+    const seoMarkup = `
+      <div class="group-field">
+        <div class="plugin-seo__field">Title</div>
+        <div style="color: rgb(154, 154, 154)">Between 50 and 60 characters. <a href="https://example.com">Best practices</a></div>
+        <div style="margin-bottom: 10px"><input id="field-meta__title" /></div>
+        <div style="display: flex">
+          <div style="background-color: orange; border-radius: 2px; color: white"><small>Almost there</small></div>
+        </div>
+        <div style="color: rgb(154, 154, 154); margin-bottom: 5px">Exact result listings may vary.</div>
+        <div style="pointer-events: none; padding: 20px">
+          <div><a href="https://example.test/articles/a" style="text-decoration: none">https://example.test/articles/a</a></div>
+          <h4><a href="/" style="text-decoration: none"></a></h4>
+        </div>
+      </div>`
+
+    it('marks the instruction lines and the length pills', () => {
+      document.body.innerHTML = seoMarkup
+      fixSeoFieldNotes(document)
+
+      const notes = [...document.querySelectorAll('[data-pocms-seo="note"]')]
+      expect(notes).toHaveLength(2)
+      expect(notes[0].textContent).toContain('Between 50 and 60 characters')
+      expect(notes[1].textContent).toContain('Exact result listings')
+
+      const pill = document.querySelector('[data-pocms-seo="pill"]')
+      expect(pill?.textContent).toBe('Almost there')
+      // The label row itself is not an instruction line.
+      expect(document.querySelector('.plugin-seo__field')?.hasAttribute('data-pocms-seo')).toBe(false)
+    })
+
+    it('leaves text that is not the plugin grey alone', () => {
+      document.body.innerHTML =
+        '<div class="group-field"><div style="color: rgb(1, 2, 3)">Our own note</div></div>'
+      fixSeoFieldNotes(document)
+      expect(document.querySelectorAll('[data-pocms-seo="note"]')).toHaveLength(0)
+    })
+
+    it('hides the mock preview and unlinks its anchors', () => {
+      document.body.innerHTML = seoMarkup
+      hideSeoPreview(document)
+
+      const card = document.querySelector<HTMLElement>('[data-pocms-seo-preview="true"]')
+      expect(card?.getAttribute('aria-hidden')).toBe('true')
+      for (const link of card!.querySelectorAll('a')) {
+        expect(link.hasAttribute('href')).toBe(false)
+        expect(link.getAttribute('tabindex')).toBe('-1')
+      }
+      // Content outside the preview keeps its links.
+      expect(document.querySelector('.plugin-seo__field + div a')?.getAttribute('href')).toBe(
+        'https://example.com',
+      )
+    })
+
+    it('is idempotent: a second pass adds nothing and keeps the data attribute', () => {
+      document.body.innerHTML = seoMarkup
+      hideSeoPreview(document)
+      hideSeoPreview(document)
+      expect(document.querySelectorAll('[aria-hidden="true"]')).toHaveLength(1)
     })
   })
 

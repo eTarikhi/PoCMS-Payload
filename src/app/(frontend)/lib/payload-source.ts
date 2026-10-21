@@ -141,5 +141,6 @@ export const fetchPublishedArticleSlugs = async (): Promise<string[]> => {
  */
 export const fetchSiteSettings = async (): Promise<SiteSetting | null> => {
   const payload = await getPayload({ config: configPromise })
-  return payload.findGlobal({ slug: 'site-settings', depth: 0 })
+  // Depth 1 resolves the SEO group's image (a media document) so the metadata can use its og crop.
+  return payload.findGlobal({ slug: 'site-settings', depth: 1 })
 }

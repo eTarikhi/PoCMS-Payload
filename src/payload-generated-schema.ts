@@ -236,6 +236,11 @@ export const articles = pgTable(
     }),
     imageUrl: varchar('image_url'),
     link: varchar('link'),
+    meta_title: varchar('meta_title'),
+    meta_description: varchar('meta_description'),
+    meta_image: integer('meta_image_id').references(() => media.id, {
+      onDelete: 'set null',
+    }),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
@@ -251,6 +256,7 @@ export const articles = pgTable(
     index('articles_published_at_idx').on(columns.publishedAt),
     index('articles_publish_at_idx').on(columns.publishAt),
     index('articles_image_idx').on(columns.image),
+    index('articles_meta_meta_image_idx').on(columns.meta_image),
     index('articles_updated_at_idx').on(columns.updatedAt),
     index('articles_created_at_idx').on(columns.createdAt),
     index('articles_deleted_at_idx').on(columns.deletedAt),
@@ -287,6 +293,11 @@ export const _articles_v = pgTable(
     }),
     version_imageUrl: varchar('version_image_url'),
     version_link: varchar('version_link'),
+    version_meta_title: varchar('version_meta_title'),
+    version_meta_description: varchar('version_meta_description'),
+    version_meta_image: integer('version_meta_image_id').references(() => media.id, {
+      onDelete: 'set null',
+    }),
     version_updatedAt: timestamp('version_updated_at', {
       mode: 'string',
       withTimezone: true,
@@ -318,6 +329,7 @@ export const _articles_v = pgTable(
     index('_articles_v_version_version_published_at_idx').on(columns.version_publishedAt),
     index('_articles_v_version_version_publish_at_idx').on(columns.version_publishAt),
     index('_articles_v_version_version_image_idx').on(columns.version_image),
+    index('_articles_v_version_meta_version_meta_image_idx').on(columns.version_meta_image),
     index('_articles_v_version_version_updated_at_idx').on(columns.version_updatedAt),
     index('_articles_v_version_version_created_at_idx').on(columns.version_createdAt),
     index('_articles_v_version_version_deleted_at_idx').on(columns.version_deletedAt),
@@ -1424,24 +1436,38 @@ export const navigation = pgTable('navigation', {
   createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 }),
 })
 
-export const site_settings = pgTable('site_settings', {
-  id: serial('id').primaryKey(),
-  siteName: varchar('site_name').default('eTarikhi'),
-  supportEmail: varchar('support_email'),
-  maintenance_enabled: boolean('maintenance_enabled').default(false),
-  maintenance_title: varchar('maintenance_title').default('Back soon'),
-  maintenance_message: varchar('maintenance_message').default(
-    'The site is being updated. Everything will be back shortly — thanks for your patience.',
-  ),
-  updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 }),
-  createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 }),
-})
+export const site_settings = pgTable(
+  'site_settings',
+  {
+    id: serial('id').primaryKey(),
+    siteName: varchar('site_name').default('eTarikhi'),
+    supportEmail: varchar('support_email'),
+    maintenance_enabled: boolean('maintenance_enabled').default(false),
+    maintenance_title: varchar('maintenance_title').default('Back soon'),
+    maintenance_message: varchar('maintenance_message').default(
+      'The site is being updated. Everything will be back shortly — thanks for your patience.',
+    ),
+    meta_title: varchar('meta_title'),
+    meta_description: varchar('meta_description'),
+    meta_image: integer('meta_image_id').references(() => media.id, {
+      onDelete: 'set null',
+    }),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 }),
+  },
+  (columns) => [index('site_settings_meta_meta_image_idx').on(columns.meta_image)],
+)
 
 export const relations_articles = relations(articles, ({ one }) => ({
   image: one(media, {
     fields: [articles.image],
     references: [media.id],
     relationName: 'image',
+  }),
+  meta_image: one(media, {
+    fields: [articles.meta_image],
+    references: [media.id],
+    relationName: 'meta_image',
   }),
 }))
 export const relations__articles_v = relations(_articles_v, ({ one }) => ({
@@ -1454,6 +1480,11 @@ export const relations__articles_v = relations(_articles_v, ({ one }) => ({
     fields: [_articles_v.version_image],
     references: [media.id],
     relationName: 'version_image',
+  }),
+  version_meta_image: one(media, {
+    fields: [_articles_v.version_meta_image],
+    references: [media.id],
+    relationName: 'version_meta_image',
   }),
 }))
 export const relations_projects_categories = relations(projects_categories, ({ one }) => ({
@@ -1840,7 +1871,13 @@ export const relations_navigation = relations(navigation, ({ many }) => ({
     relationName: 'secondaryLinks',
   }),
 }))
-export const relations_site_settings = relations(site_settings, () => ({}))
+export const relations_site_settings = relations(site_settings, ({ one }) => ({
+  meta_image: one(media, {
+    fields: [site_settings.meta_image],
+    references: [media.id],
+    relationName: 'meta_image',
+  }),
+}))
 
 type DatabaseSchema = {
   enum_articles_category: typeof enum_articles_category

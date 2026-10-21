@@ -211,6 +211,14 @@ export interface Article {
    * Where the article is published (LinkedIn, Medium, ...).
    */
   link: string;
+  meta?: {
+    title?: string | null;
+    description?: string | null;
+    /**
+     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
+     */
+    image?: (number | null) | Media;
+  };
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -889,6 +897,13 @@ export interface ArticlesSelect<T extends boolean = true> {
   image?: T;
   imageUrl?: T;
   link?: T;
+  meta?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        image?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -1492,6 +1507,14 @@ export interface SiteSetting {
     title?: string | null;
     message?: string | null;
   };
+  meta?: {
+    title?: string | null;
+    description?: string | null;
+    /**
+     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
+     */
+    image?: (number | null) | Media;
+  };
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1589,6 +1612,13 @@ export interface SiteSettingsSelect<T extends boolean = true> {
         enabled?: T;
         title?: T;
         message?: T;
+      };
+  meta?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        image?: T;
       };
   updatedAt?: T;
   createdAt?: T;

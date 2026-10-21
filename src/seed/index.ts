@@ -14,6 +14,7 @@ import { projectsData } from './projects.js'
 import { footerData } from './footer.js'
 import { navigationData } from './navigation.js'
 import { siteSettingsData } from './siteSettings.js'
+import { seoGenerate, seoImageId } from '@/plugins/seo'
 
 const collections = [
   'header',
@@ -271,6 +272,13 @@ export const seed = async ({
               readTime: article.readTime,
               link: article.link,
               image,
+              // What the SEO group's Auto-generate buttons would fill in, so the seeded pages show
+              // their titles and descriptions the way an editor would leave them.
+              meta: {
+                title: seoGenerate.title({ doc: { title: article.title } }),
+                description: seoGenerate.description({ doc: { excerpt: article.excerpt } }),
+                image: seoImageId(image),
+              },
               // Drafts are on for Articles, so a document created without a status is a draft and
               // would not appear on the site: the sample content has to be published.
               _status: 'published' as const,
@@ -293,6 +301,10 @@ export const seed = async ({
               readTime: article.readTime,
               link: article.link,
               imageUrl: article.imageUrl,
+              meta: {
+                title: seoGenerate.title({ doc: { title: article.title } }),
+                description: seoGenerate.description({ doc: { excerpt: article.excerpt } }),
+              },
               _status: 'published' as const,
             },
             overrideAccess: true,

@@ -45,6 +45,40 @@
     opacity: 1;
   }
 
+  /* SEO plugin fields: the instruction line is inline `#9A9A9A` (2.6:1) and the length pills are
+     white on orange/red/green (2–3:1). `AdminDomFixes/seo.ts` marks them; the muted token and a
+     near-black label on the same pill colours pass AA in both themes. */
+  [data-pocms-seo='note'] {
+    color: var(--muted-foreground) !important;
+  }
+
+  [data-pocms-seo='note'] a {
+    color: inherit;
+  }
+
+  /* The length pills: the plugin paints white on the CSS keywords red/orange/orangered/green
+     (1.9–4:1). Darkening each fill to a shade of the same hue keeps the status colour and gives
+     white text 7.5:1 or better, in both themes. */
+  [data-pocms-seo='pill'] {
+    color: #fff !important;
+  }
+
+  [data-pocms-seo='pill'][style*='background-color: green'] {
+    background-color: #14532d !important;
+  }
+
+  [data-pocms-seo='pill'][style*='background-color: orange'] {
+    background-color: #78350f !important;
+  }
+
+  [data-pocms-seo='pill'][style*='background-color: orangered'] {
+    background-color: #7c2d12 !important;
+  }
+
+  [data-pocms-seo='pill'][style*='background-color: red'] {
+    background-color: #7f1d1d !important;
+  }
+
   /* Sign-in screens (no sticky bars there, so a gradient cannot show seams): a faint amber glow
      from the top over the light canvas. */
   html:not([data-theme='dark']) .template-minimal {

@@ -55,6 +55,7 @@ This project documentation is split across multiple files for easier maintenance
 - TanStack Table list views with custom cells; orderable lists with drag-and-drop (no manual order field)
 - Tile pickers for colours and icons, an image-source control for uploads vs external URLs
 - Drafts, scheduled publishing and Live Preview for articles
+- SEO metadata per article and per site, with auto-generation, counters and a search-result preview
 - Rich media management: MIME allow-list, focal point, thumbnail/card/OG sizes, a regeneration script, and folders (beta) with a folder browser
 - REST and GraphQL APIs
 - Type-safe TypeScript codebase

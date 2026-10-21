@@ -8,6 +8,17 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Added
 
+- **Per-document SEO metadata (Payload's SEO plugin).** Articles and the Site settings global get a
+  `meta` group — title, description and an image — with a character counter, a search-result
+  preview and an *Auto-generate* button per field. The generators fill in what the site would use
+  anyway (the article title with the site name, the excerpt, the cover), so the group is optional:
+  with an empty group the page renders exactly as before. Metadata is read where the tags are
+  built — `buildArticleMetadata` prefers the group and falls back to the article's fields, and the
+  root layout's `generateMetadata` merges the Site settings group over the constants in `seo.ts`,
+  which makes the site title and description editable without a deploy. Drafts keep their metadata
+  in the version row (`_articles_v`), so a preview shows the editor's values. Migration
+  `20261022_090000_seo_meta`; the seed writes the generated values. `tabbedUI` is off on purpose:
+  it would move the article sidebar fields into a new "Content" tab.
 - **Media folders (beta).** `folders: true` on Media turns on Payload's folder feature: the sidebar
   gains **Browse by Folder** at `/admin/browse-by-folder`, the library is grouped by where an image
   is used, and folders nest. The seed creates *Project covers*, *Article covers* and *Certificates*
@@ -70,6 +81,13 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Fixed
 
+- **The SEO plugin's fields, from the accessibility gate.** Its instruction lines are inline
+  `#9A9A9A` (2.6:1), its length pills white on the CSS keywords red/orange/green (1.9–4:1), and its
+  search-result preview is a mock (`pointer-events: none`) whose links are still focusable — one
+  with no name, one under the 24px target size. `AdminDomFixes/seo.ts` marks the notes and pills
+  (coloured by `payload-overrides.css`: the muted token, and dark fills that keep the status hue
+  with white text at 7.5:1 or better) and hides the preview from assistive tech, unlinking its
+  anchors. The article and site-settings screens pass axe in both themes.
 - **The folder browser's accessibility gaps.** Payload 3.90's folder view renders the grid/list
   toggles and the folder "…" menu without a name, its card thumbnails without `alt` (fourteen
   images on the seeded library), the "Create folder" control as a `<div type="button">` that takes

@@ -52,6 +52,9 @@ CI runs all of the above, regenerates the generated files and fails if they diff
 - Ordered collections are orderable (`orderable: true`, hidden `_order`): no manual order field,
   sorted `_order` in the admin and in `src/app/(frontend)/lib/payload-source.ts`, seeded one
   document at a time. See the guide's "Orderable lists".
+- SEO metadata is Payload's SEO plugin (`src/plugins/seo.ts`): the `meta` group on Articles and
+  Site settings is optional, and the page metadata prefers it over the document's own fields. Add
+  a new entity to `collections`/`globals` only with a matching fallback in `lib/seo.ts`.
 - Media uses Payload's beta folders (`folders: true` on the collection). The folder collection is
   hidden, so its schema changes appear in generated files and migrations like any collection; the
   seed files images into folders after clearing `media`. The folder drawer's `<div type="button">`

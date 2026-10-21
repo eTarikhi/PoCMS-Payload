@@ -7,6 +7,7 @@ import * as migration_20261020_231332_drafts_and_scheduled_publishing from './20
 import * as migration_20261021_001500_skills_orderable from './20261021_001500_skills_orderable';
 import * as migration_20261021_150000_orderable_profile_and_services from './20261021_150000_orderable_profile_and_services';
 import * as migration_20261021_163000_media_folders from './20261021_163000_media_folders';
+import * as migration_20261022_090000_seo_meta from './20261022_090000_seo_meta';
 
 export const migrations = [
   {
@@ -53,5 +54,10 @@ export const migrations = [
     up: migration_20261021_163000_media_folders.up,
     down: migration_20261021_163000_media_folders.down,
     name: '20261021_163000_media_folders'
+  },
+  {
+    up: migration_20261022_090000_seo_meta.up,
+    down: migration_20261022_090000_seo_meta.down,
+    name: '20261022_090000_seo_meta'
   },
 ];

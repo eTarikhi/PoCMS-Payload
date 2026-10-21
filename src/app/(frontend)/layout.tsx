@@ -15,7 +15,7 @@ import '@fortawesome/fontawesome-svg-core/styles.css'
 
 import { MaintenancePage } from '@/app/(frontend)/components/layout/MaintenancePage'
 import { getCachedSiteSettings } from '@/app/(frontend)/lib/cache'
-import { portfolioMetadata } from '@/app/(frontend)/lib/seo'
+import { buildSiteMetadata } from '@/app/(frontend)/lib/seo'
 
 // The stylesheet is already loaded above, so icons must not inject their own CSS.
 // Client islands that render Font Awesome set this too (see ProjectsGrid.tsx).
@@ -28,9 +28,13 @@ const openSans = Open_Sans({
   display: 'swap',
 })
 
-// Title, description, icons, Open Graph, and the owner tag live in src/app/(frontend)/lib/seo.ts (D-5, D-7).
+// Title, description, icons, Open Graph, and the owner tag live in src/app/(frontend)/lib/seo.ts (D-5,
+// D-7). The SEO group in Site settings overrides the title and description, so the layout resolves
+// its metadata per request; the settings read is cached under the portfolio tag.
 // The Person JSON-LD is rendered by the home page, which has the content it needs (Set 6).
-export const metadata: Metadata = portfolioMetadata
+export async function generateMetadata(): Promise<Metadata> {
+  return buildSiteMetadata(await getCachedSiteSettings())
+}
 
 export const viewport: Viewport = {
   width: 'device-width',

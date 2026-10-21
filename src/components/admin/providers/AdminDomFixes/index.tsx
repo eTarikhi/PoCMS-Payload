@@ -12,6 +12,7 @@ import {
 } from './folders'
 import { ensureLandmarks } from './landmarks'
 import { nameIconOnlyControls } from './names'
+import { fixSeoFieldNotes, hideSeoPreview } from './seo'
 import { skipHiddenSelectControls } from './reactSelect'
 import { nameSelectionCheckboxes } from './selection'
 import { presentTabRows, trustVisibleTabText } from './tabs'
@@ -22,7 +23,9 @@ import { presentTabRows, trustVisibleTabText } from './tabs'
  * the tab order, and the document tab row's list semantics. Each helper only fills in something
  * missing, so a Payload upgrade that ships the fix itself wins — see the module comments for the
  * upstream markup. Icon-only document controls (the "…" menu, edit/remove on an upload) get names,
- * and the same goes for the folder browser's view toggles and its unlabelled thumbnails.
+ * and the same goes for the folder browser's view toggles and its unlabelled thumbnails. The SEO
+ * plugin's inline-styled notes, pills and mock preview links are marked or hidden here so CSS can
+ * colour them and the tab order skips the preview.
  *
  * One MutationObserver drives all of them, coalesced into an animation frame: the admin replaces
  * whole views on client-side navigation, re-renders the paginator on page changes and rebuilds
@@ -39,6 +42,8 @@ export function AdminDomFixes() {
       nameIconOnlyControls(document, t)
       nameFolderControls(document, t)
       nameFolderThumbnails(document, t)
+      fixSeoFieldNotes(document)
+      hideSeoPreview(document)
       makeFolderCreateButtonFocusable(document)
       presentTabRows(document)
       trustVisibleTabText(document)

@@ -692,6 +692,39 @@ to the public site, **Publish** (or **Publish changes**) makes it live.
   drafts, and **backfills every existing row to `published`** — without that, enabling drafts hides
   all existing content.
 
+## SEO metadata
+
+Payload's SEO plugin (`@payloadcms/plugin-seo`, wired in `src/plugins/seo.ts`) adds a **meta**
+group to Articles and the Site settings global: a title, a description and an image, each with an
+*Auto-generate* button, plus a character counter and a search-result preview.
+
+- **The group is optional.** `buildArticleMetadata` (`src/app/(frontend)/lib/seo.ts`) uses the
+  group's values when they are set and the article's own title, excerpt and cover otherwise; an
+  article that never opened the group renders exactly as it did before. An empty string counts as
+  unset, which is what clearing a field writes.
+- **Auto-generate** fills in what the site would use anyway — `{title} | Amir v.Tarikhi`, the
+  excerpt, the cover — through the same functions the seed calls (`seoGenerate` in the plugin
+  module), so the preview matches the page.
+- **Site settings → SEO** is the site-wide default. The root layout resolves its metadata per
+  request (`generateMetadata`) and merges that group over the constants in `seo.ts`: `metadataBase`,
+  icons, the owner tag and the `keywords` list stay in code, while the title and description become
+  editable without a deploy. The read is cached under the `portfolio` tag like the rest of the
+  global.
+- **Drafts.** Articles keep versions, so the group's columns exist twice: `articles.meta_*` on the
+  published row and `_articles_v.version_meta_*` on each version. A preview of a draft shows the
+  draft's metadata.
+- **`tabbedUI` is off.** With it on, the plugin moves every field into a new "Content" tab, which
+  drags the sidebar fields (slug, category, publish date) into the main column. With it off the
+  group is appended below the body.
+- **Admin fixes.** The plugin renders its widgets with inline styles: instruction lines at
+  `#9A9A9A` (2.6:1), white text on red/orange/green pills (1.9–4:1), and a non-interactive mock
+  preview whose links are still focusable. `AdminDomFixes/seo.ts` marks the first two for
+  `payload-overrides.css` and hides the preview from assistive tech; the article and site-settings
+  screens are in the axe sweep.
+- Migration `20261022_090000_seo_meta` adds the columns (hand-written, like the other post-baseline
+  schema changes). Tests: `tests/int/seo.int.spec.ts` (wiring, storage, fallbacks) and
+  `tests/e2e/seo.e2e.spec.ts` (edit in the admin, read the tags off the page).
+
 ## Scheduled jobs
 
 Admin › **Scheduled jobs** (`/admin/jobs`, `views/Jobs`, the `manageJobs` capability) runs the

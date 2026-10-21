@@ -186,9 +186,22 @@ export type NavigationContent = {
   secondaryLinks: NavLink[]
 }
 
+/**
+ * An editor-written SEO value with its resolved image (Payload's SEO plugin `meta` group). Every
+ * field is nullable so the metadata builders can fall back to what the document already says.
+ */
+export type SeoMeta = {
+  title: string | null
+  description: string | null
+  /** The `og` crop when the media record has one, the original otherwise. */
+  image: { url: string; width: number | null; height: number | null } | null
+}
+
 /** The maintenance switch the public layout reads, plus the identity the page shows. */
 export type SiteSettingsContent = {
   siteName: string
+  /** Site-wide SEO defaults, edited in Site settings → SEO. Empty fields fall back to `seo.ts`. */
+  seo: SeoMeta
   /** `null` when unset: the maintenance page then hides its "Email us" link. */
   supportEmail: string | null
   maintenance: {
