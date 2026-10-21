@@ -1,43 +1,41 @@
-version: '3'
-
+# Local development only. See docs/docker.md before starting against existing data.
 services:
   payload:
-    image: node:20-alpine
+    image: node:22-bookworm-slim
+    init: true
+    working_dir: /home/node/app
     ports:
-      - '3000:3000'
+      - '127.0.0.1:3000:3000'
     volumes:
       - .:/home/node/app
       - node_modules:/home/node/app/node_modules
-    working_dir: /home/node/app/
-    command: sh -c "corepack enable && corepack prepare pnpm@latest --activate && pnpm install && pnpm dev"
+    command: sh -c "corepack enable && corepack prepare pnpm@10.17.1 --activate && pnpm install --frozen-lockfile && pnpm dev --hostname 0.0.0.0"
     depends_on:
-      - mongo
-      # - postgres
+      postgres:
+        condition: service_healthy
     env_file:
       - .env
-
-  # Ensure your DATABASE_URL uses 'mongo' as the hostname ie. mongodb://mongo/my-db-name
-  mongo:
-    image: mongo:latest
-    ports:
-      - '27017:27017'
-    command:
-      - --storageEngine=wiredTiger
+    environment:
+      DATABASE_ADAPTER: postgres
+      # Use a generated hex password: reserved URL characters need encoding in connection URLs.
+      POSTGRES_URL: postgres://pocms:${POCMS_POSTGRES_PASSWORD:?Set a private hex POCMS_POSTGRES_PASSWORD in .env}@postgres:5432/pocms
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET:?Set a private PAYLOAD_SECRET in .env}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: pocms
+      POSTGRES_DB: pocms
+      POSTGRES_PASSWORD: ${POCMS_POSTGRES_PASSWORD:?Set a private hex POCMS_POSTGRES_PASSWORD in .env}
     volumes:
-      - data:/data/db
-    logging:
-      driver: none
-
-  # Uncomment the following to use postgres
-  # postgres:
-  #   restart: always
-  #   image: postgres:latest
-  #   volumes:
-  #     - pgdata:/var/lib/postgresql/data
-  #   ports:
-  #     - "5432:5432"
-
+      - postgres_data:/var/lib/postgresql/data
+    # Do not expose PostgreSQL on the host network.
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 volumes:
-  data:
-  # pgdata:
+  postgres_data:
   node_modules:
