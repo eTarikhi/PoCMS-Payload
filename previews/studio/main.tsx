@@ -1,5 +1,5 @@
 import { StudioFailure } from '../../src/app/(frontend)/components/studio/StudioFailure'
-import FrontendLoading from '../../src/app/(frontend)/loading'
+import FrontendLoading from '../../src/app/(frontend)/(studio)/loading'
 import { MoreWriting } from '../../src/app/(frontend)/components/article/MoreWriting'
 import { ProjectsArchive } from '../../src/app/(frontend)/components/studio/ProjectsArchive'
 import { createRoot } from 'react-dom/client'

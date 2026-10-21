@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
-import { ProjectsArchive } from '../components/studio/ProjectsArchive'
-import { getCachedPortfolioContent } from '../lib/cache'
-import { siteUrl } from '../lib/seo'
+import { ProjectsArchive } from '@/app/(frontend)/components/studio/ProjectsArchive'
+import { getCachedPortfolioContent } from '@/app/(frontend)/lib/cache'
+import { siteUrl } from '@/app/(frontend)/lib/seo'
 
 export const metadata: Metadata = {
   title: 'Projects',

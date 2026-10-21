@@ -2,7 +2,7 @@ import React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import FrontendError from '@/app/(frontend)/error'
-import FrontendLoading from '@/app/(frontend)/loading'
+import FrontendLoading from '@/app/(frontend)/(studio)/loading'
 import robots from '@/app/robots'
 import { publicSitemapEntries } from '@/app/(frontend)/lib/discovery'
 

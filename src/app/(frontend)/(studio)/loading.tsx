@@ -1,4 +1,4 @@
-import { StudioChrome } from './components/studio/StudioChrome'
+import { StudioChrome } from '@/app/(frontend)/components/studio/StudioChrome'
 
 export default function FrontendLoading() {
   return (
