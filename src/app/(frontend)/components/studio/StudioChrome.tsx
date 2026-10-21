@@ -45,6 +45,7 @@ export function StudioChrome({
           © {new Date().getFullYear()} {footer?.copyright.website || displayName}
         </p>
         <div>
+          <a href="/feed.xml">RSS feed</a>
           {footer?.socialLinks.map((link, i) => (
             <a key={i} href={link.url} target="_blank" rel="noopener noreferrer">
               {link.ariaLabel} ↗

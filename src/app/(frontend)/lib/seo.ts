@@ -38,6 +38,7 @@ const OG_DESCRIPTION =
 const OWNER = 'Amir v.Tarikhi'
 
 const SITE_URL = siteUrl()
+export const writingFeedTypes = { 'application/rss+xml': `${SITE_URL}/feed.xml` }
 
 /** Site-wide metadata for the root layout. */
 export const portfolioMetadata: Metadata = {
@@ -46,6 +47,7 @@ export const portfolioMetadata: Metadata = {
   description: DESCRIPTION,
   keywords: KEYWORDS,
   robots: 'index, follow',
+  alternates: { types: writingFeedTypes },
   manifest: '/images/favicon/site.webmanifest',
   icons: {
     icon: [
@@ -160,7 +162,7 @@ export const buildArticleMetadata = (
   return {
     title: article.title,
     ...(article.excerpt ? { description: article.excerpt } : {}),
-    alternates: { canonical: url },
+    alternates: { canonical: url, types: writingFeedTypes },
     openGraph: {
       type: 'article',
       siteName: OG_SITE_NAME,

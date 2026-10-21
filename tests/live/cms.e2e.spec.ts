@@ -139,6 +139,9 @@ test('revalidates new, renamed, trashed, restored and permanently deleted articl
     await expect
       .poll(async () => (await request.get('/sitemap.xml')).text())
       .toContain(`/articles/${slug}`)
+    await expect
+      .poll(async () => (await request.get('/feed.xml')).text())
+      .toContain(`/articles/${slug}`)
     expect(
       (await request.patch(`/api/articles/${article.id}`, { data: { slug: renamed } })).ok(),
     ).toBe(true)
@@ -154,6 +157,7 @@ test('revalidates new, renamed, trashed, restored and permanently deleted articl
     await expect.poll(async () => (await request.get(`/articles/${renamed}`)).status()).toBe(404)
     await expect.poll(async () => (await request.get('/articles')).text()).not.toContain(slug)
     await expect.poll(async () => (await request.get('/sitemap.xml')).text()).not.toContain(renamed)
+    await expect.poll(async () => (await request.get('/feed.xml')).text()).not.toContain(renamed)
     expect(
       (
         await request.patch(`/api/articles/${article.id}?trash=true`, { data: { deletedAt: null } })
@@ -165,6 +169,7 @@ test('revalidates new, renamed, trashed, restored and permanently deleted articl
     await expect.poll(async () => (await request.get(`/articles/${renamed}`)).status()).toBe(404)
     await expect.poll(async () => (await request.get('/articles')).text()).not.toContain(slug)
     await expect.poll(async () => (await request.get('/sitemap.xml')).text()).not.toContain(renamed)
+    await expect.poll(async () => (await request.get('/feed.xml')).text()).not.toContain(renamed)
   } finally {
     if (!removed)
       expect((await request.delete(`/api/articles/${article.id}?trash=true`)).ok()).toBe(true)
@@ -227,4 +232,28 @@ test('resolves uploaded image relations in the real Live Preview iframe', async 
       expect((await page.request.delete(`/api/articles/${articleID}`)).ok()).toBe(true)
     expect((await page.request.delete(`/api/media/${media.id}`)).ok()).toBe(true)
   }
+})
+
+test('serves a discoverable, well-formed RSS feed from actual CMS records', async ({ page }) => {
+  const response = await page.request.get('/feed.xml')
+  expect(response.status()).toBe(200)
+  expect(response.headers()['content-type']).toBe('application/rss+xml; charset=utf-8')
+  expect(response.headers()['cache-control']).toBe('no-cache')
+  const text = await response.text()
+  await page.goto('/articles')
+  await expect(page.getByRole('link', { name: 'RSS feed', exact: true })).toHaveAttribute(
+    'href',
+    '/feed.xml',
+  )
+  const parsed = await page.evaluate((xml) => {
+    const doc = new DOMParser().parseFromString(xml, 'application/xml')
+    return {
+      error: !!doc.querySelector('parsererror'),
+      title: doc.querySelector('item > title')?.textContent,
+      link: doc.querySelector('item > link')?.textContent,
+    }
+  }, text)
+  expect(parsed.error).toBe(false)
+  expect(parsed.title).toBe('Integration field note')
+  expect(parsed.link).toBe('http://localhost:3000/articles/integration-field-note')
 })

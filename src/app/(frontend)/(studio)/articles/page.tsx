@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
 import { WritingArchive } from '@/app/(frontend)/components/studio/WritingArchive'
 import { getCachedPortfolioContent } from '@/app/(frontend)/lib/cache'
-import { siteUrl } from '@/app/(frontend)/lib/seo'
+import { siteUrl, writingFeedTypes } from '@/app/(frontend)/lib/seo'
 
 export const metadata: Metadata = {
   title: 'Writing',
-  alternates: { canonical: `${siteUrl()}/articles` },
+  alternates: { types: writingFeedTypes, canonical: `${siteUrl()}/articles` },
   openGraph: {
     type: 'website',
     title: 'Writing',
