@@ -27,6 +27,15 @@
     color: var(--muted-foreground);
   }
 
+  /* List headers and the upload dropzone: Payload's elevation-400/500 greys are 2.6:1 and 3.65:1 on
+     the warm canvas. The muted token keeps the secondary weight and passes AA in both themes. */
+  .sort-column__label .field-label,
+  .upload__dropzoneContent__orText,
+  .upload__dragAndDropText,
+  .upload-relationship-details__meta {
+    color: var(--muted-foreground);
+  }
+
   /* Sign-in screens (no sticky bars there, so a gradient cannot show seams): a faint amber glow
      from the top over the light canvas. */
   html:not([data-theme='dark']) .template-minimal {
@@ -69,5 +78,34 @@
   .page-controls,
   .collection-list__page-info {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Skip link (AdminDomFixes inserts it as <body>'s first child): off screen until it takes focus,
+     then a readable pill over the sidebar. Fixed, so it never shifts the layout. */
+  .pocms-skip-link {
+    position: fixed;
+    top: 0.5rem;
+    left: 0.5rem;
+    z-index: 1000;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--style-radius-s);
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    transform: translateY(calc(-100% - 1rem));
+  }
+
+  .pocms-skip-link:focus {
+    transform: none;
+    outline: var(--accessibility-outline);
+    outline-offset: 2px;
+  }
+
+  /* The landmark receives focus when the skip link is used; do not draw a ring around the page. */
+  [role='main']:focus,
+  main:focus {
+    outline: none;
   }
 }

@@ -898,10 +898,14 @@ platform noise. Screenshot comparisons stay on the machine that owns the baselin
 (`pnpm test:visual --update-snapshots`), and CI uploads captures plus
 `test-results/visual-invariants.json` for review.
 
-The e2e axe tests check WCAG 2.2 AA (serious and critical findings) in both themes for the
-component gallery, which renders every custom component, and for the dashboard, the command menu,
-the tile picker fields, the audit log, jobs, the system page and the terminal. Performance budgets
-and how to measure them are in [`perf-budget.md`](./perf-budget.md).
+`tests/e2e/a11y.e2e.spec.ts` is the accessibility gate: axe against the WCAG 2.2 AA tags on
+fourteen admin surfaces in both themes, plus the structure axe cannot see (one main landmark, one
+`<h1>`, title, language, and a skip link that is the first tab stop and moves focus to main). It
+runs in CI with the rest of `pnpm test:e2e` and writes `test-results/a11y-<theme>.json`. The
+allowlisted upstream findings, the fixes made for them and the manual screen-reader checklist are
+in [`a11y.md`](./a11y.md). The older per-feature axe checks (component gallery, command menu, tile
+pickers, audit log, jobs, system, terminal) still run alongside it. Performance budgets and how to
+measure them are in [`perf-budget.md`](./perf-budget.md).
 
 ### Running Playwright where browsers are not installed
 
@@ -929,12 +933,20 @@ that fixes it upstream is noticed rather than silently double-fixed.
 - **Pagination arrows have no accessible name.** `ClickableArrow` renders a `<button
   class="clickable-arrow clickable-arrow--left|right">` with an SVG and no text, so axe reports
   `button-name` (critical) on every paginated list, the media drawer and the relationship pickers.
-  There is no config slot for the paginator, so `providers/PaginationLabels` labels the buttons in
-  the DOM (`aria-label="Previous page"`/`"Next page"`), and only when a button has no name yet — a
-  future Payload version that ships its own label wins. Covered by the axe checks in
-  `tests/e2e/audit-log.e2e.spec.ts`; drop the component once Payload labels the arrows.
-- **The admin template has no `<main>` landmark.** Custom views render `<Gutter>`, not a `<main>`,
-  so axe scans in the e2e tests include the whole document instead of `main`.
+  There is no config slot for the paginator, so `providers/AdminDomFixes` labels the buttons in the
+  DOM (`aria-label="Previous page"`/`"Next page"`), and only when a button has no name yet — a
+  future Payload version that ships its own label wins. Covered by
+  `tests/e2e/a11y.e2e.spec.ts`; drop the module once Payload labels the arrows.
+- **The dashboard and list templates have no `<main>` landmark, and the shell has no skip link.**
+  Document views render their own `<main>`; the dashboard and every list render a `<div>` after the
+  header. `providers/AdminDomFixes/landmarks.ts` marks the view as `role="main"` (or reuses the
+  page's `<main>`) and inserts the skip link. The dashboard and sign-in screens also had no `<h1>`;
+  `views/PageTitle` supplies one through `beforeDashboard`/`beforeLogin`.
+- **Payload's select decorations are `aria-hidden` but focusable.** `.dropdown-indicator` and
+  `.clear-indicator` are taken out of the tab order by the same component, and the icon-only
+  document controls (the "…" menu, edit/remove on an upload, clear on a date field) are named there
+  because Payload passes no label. The row-selection checkboxes had `aria-label=""` and are named
+  too; the full list, with the rules that are allowlisted instead, is in [`a11y.md`](./a11y.md).
 - **A screen-reader-only (`acn:sr-only`) span inside a truncated line anchors to the page.** The
   span is `position: absolute`; without a positioned ancestor it lands at its static position and
   widens the document on phones (the responsive test measures `scrollWidth`). Any truncated element

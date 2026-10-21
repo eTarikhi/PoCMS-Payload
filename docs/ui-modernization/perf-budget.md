@@ -187,3 +187,30 @@ twice with the same setup — the tree before E5 (`6e61ec5`, in a git worktree s
 
 Budget status: **unaffected** — the last Turbopack measurement (685.1 kB / 64.4 kB on `/admin`)
 plus a delta of about zero stays inside +150 kB / +40 kB.
+
+## After the accessibility pass (2026-10-21, `AdminDomFixes` + hidden page headings)
+
+Measured on the same production build setup as the row above (webpack build in this sandbox, logged
+in as an admin, demo content seeded), so the numbers are comparable with it and not with the
+Turbopack rows.
+
+| Route | JS files | JS kB (compressed) | JS kB (decoded) | CSS files | CSS kB (compressed) | CSS kB (decoded) |
+|---|---|---|---|---|---|---|
+| `/admin/login` | 11 | 621.2 | 2026.2 | 5 | 65.7 | 453.0 |
+| `/admin` | 14 | 631.3 | 2053.0 | 5 | 65.7 | 453.0 |
+| `/admin/collections/articles` | 13 | 631.7 | 2059.0 | 5 | 65.7 | 453.0 |
+| `/admin/collections/articles/create` | 12 | 621.4 | 2026.3 | 5 | 65.7 | 453.0 |
+| `/admin/collections/skills` | 11 | 621.2 | 2026.2 | 5 | 65.7 | 453.0 |
+| `/admin/gallery` | 21 | 733.6 | 2372.7 | 5 | 65.7 | 453.0 |
+| `/admin/jobs` | 11 | 621.2 | 2026.2 | 5 | 65.7 | 453.0 |
+| `/admin/system` | 11 | 621.2 | 2026.2 | 5 | 65.7 | 453.0 |
+
+- `/admin` is **631.3 kB JS (+0.7 kB)** and **65.7 kB CSS (+0.1 kB)** over the previous row
+  (630.6 / 65.6 at the start of this pass). One client component (about 0.7 kB) now carries all
+  the DOM fixes — the main landmark, skip link, checkbox and icon-button names, hidden select
+  controls and tab-row semantics; the two page headings are server components.
+- **Budget status: unaffected.** The absolute numbers are well inside 795 kB JS / 85 kB CSS, and
+  `tests/e2e/bundle.e2e.spec.ts` enforces that in CI with `BUNDLE_BUDGET=1`. 163.7 kB of the JS
+  budget and 19.3 kB of the CSS budget remain.
+- No route grew more than the dashboard except the two list routes (+0.4 kB, Payload's own list
+  chunk), so the per-page allowance is untouched.

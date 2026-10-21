@@ -8,6 +8,19 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Added
 
+- **An accessibility gate for the whole admin (P6.2).** `tests/e2e/a11y.e2e.spec.ts` scans fourteen
+  admin surfaces in both themes against the WCAG 2.2 AA tags and fails on any serious or critical
+  finding that is not one of Payload's own, with the upstream ones listed by rule, node count and
+  component, so an upgrade that fixes them is noticed. It also checks what axe cannot: one main
+  landmark and one `<h1>` per screen, a document title, a language, and a skip link that is the
+  first tab stop and moves focus to main (a real keyboard test in both themes). Reports land in
+  `test-results/a11y-<theme>.json`; the gaps and the remaining manual screen-reader pass are
+  documented in `docs/ui-modernization/a11y.md`. The fixes it found are in Fixed below.
+- **Visual invariants in CI (P6.1).** `tests/visual/invariants.visual.spec.ts` runs in the workflow
+  beside the captures and asserts what is the same on every machine: tokens load, no screen
+  scrolls sideways at 1440/768/375px in either theme, thumbnails load, dark mode stays navy and
+  the dashboard keeps its heading and widget cards. The pixels stay platform-specific; these
+  invariants gate the build.
 - **Drafts and scheduled publishing on Articles (CNT / P5.5).** Articles keep versions with drafts:
   an editor can write for days, save a draft and publish later, and the public site keeps showing
   only published work — anonymous REST reads filter on `_status`, and the frontend queries add the
@@ -40,6 +53,16 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Fixed
 
+- **Admin accessibility findings, from the new gate.** The dashboard and every list now have a main
+  landmark and the shell a skip link (`providers/AdminDomFixes`), and the dashboard and sign-in
+  screens an `<h1>` (`views/PageTitle`). Payload's row-selection checkboxes (`aria-label=""`), its
+  icon-only document controls (the "…" menu, edit/remove on an upload, clear on a date field) and
+  the hidden select chevron/clear control are named or taken out of the tab order in the DOM, the
+  document tab row loses list semantics it does not honour, and the Versions tab stops hiding its
+  visible count from voice control. Contrast: list-header labels, upload hints and upload metadata
+  use the muted token (2.6–3.65:1 before); the inactive image-source tab no longer inherits
+  Payload's grey button fill (2.59:1 in dark). Target size: sort arrows and the date clear button
+  are 24×24 CSS pixels.
 - **The seed publishes its articles.** Articles keep drafts, and a document created without a
   status is a draft, so `pnpm seed` left the public site empty.
 - **The system page test no longer assumes `users` is one of the twelve largest tables.** It is not

@@ -88,7 +88,9 @@ export function ImageSourceField({
             aria-controls={`${tabsId}-${value}-panel`}
             onClick={() => setTab(value)}
             className={cn(
-              'acn:rounded-md acn:px-3 acn:py-1.5 acn:text-sm acn:font-medium acn:transition-colors',
+              // bg-transparent: Payload styles bare <button>s with a grey fill, which axe measured
+              // as 2.59:1 for the inactive tab in dark mode (light text on mid grey).
+              'acn:rounded-md acn:bg-transparent acn:px-3 acn:py-1.5 acn:text-sm acn:font-medium acn:transition-colors',
               'acn:focus-visible:ring-3 acn:focus-visible:ring-ring/50 acn:focus-visible:outline-none',
               tab === value
                 ? 'acn:bg-card acn:text-card-foreground acn:shadow-sm'

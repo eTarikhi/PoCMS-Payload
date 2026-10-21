@@ -162,8 +162,11 @@
     width: 100%;
   }
 
-  /* Payload's sort arrows in list headers: at least 24px targets (WCAG 2.5.8), on every screen. */
-  [data-slot='data-table'] .sort-column__button {
+  /* Payload's sort arrows in list headers: at least 24px targets (WCAG 2.5.8), on every screen.
+     Bare `.sort-column__button` covers Payload's own list table (orderable collections, users,
+     roles); the data-slot variant covers the TanStack table. */
+  .sort-column__button,
+  .date-time-picker__clear-button {
     display: inline-flex;
     align-items: center;
     justify-content: center;

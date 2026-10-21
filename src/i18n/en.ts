@@ -2,8 +2,8 @@
  * Admin translations (roadmap P4.5).
  *
  * Payload ships translations for its own interface; everything this repository adds lives in the
- * namespaces below (`widgets`, `imageSource`, `pagination`). A second language would be another file
- * of the same shape registered in `payload.config.ts` — no component changes.
+ * namespaces below (`widgets`, `imageSource`, `pagination`, `a11y`). A second language would be
+ * another file of the same shape registered in `payload.config.ts` — no component changes.
  *
  * Keys are **flat inside a namespace**: Payload's `t` splits `key` on the first colon and then looks
  * the rest up as a single property, so `t('custom:widgets.welcome')` cannot resolve a nested object.
@@ -51,6 +51,17 @@ export const en = {
   pagination: {
     previous: 'Previous page',
     next: 'Next page',
+  },
+  a11y: {
+    skipToContent: 'Skip to main content',
+    dashboardTitle: 'Dashboard',
+    loginTitle: 'Sign in to PoCMS',
+    selectAllRows: 'Select all rows on this page',
+    selectRow: 'Select row',
+    moreDocumentActions: 'More document actions',
+    editFile: 'Edit file',
+    removeFile: 'Remove file',
+    clearDate: 'Clear date',
   },
 }
 

@@ -106,6 +106,9 @@ export default buildConfig({
       afterNavLinks: ['/components/admin/nav/NavExtraLinks#NavExtraLinks'],
       // Log out is in the header account menu.
       logout: { Button: '/components/admin/nav/HiddenLogout#HiddenLogout' },
+      // The one h1 on the two screens Payload renders without a heading (dashboard, sign-in).
+      beforeDashboard: ['/components/admin/views/PageTitle#DashboardTitle'],
+      beforeLogin: ['/components/admin/views/PageTitle#LoginTitle'],
       // Header: command menu (Ctrl+K / Cmd+K) and the light/dark switch.
       // (Payload renders the actions right to left, so the search button lands first.)
       actions: [

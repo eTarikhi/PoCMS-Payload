@@ -20,6 +20,8 @@ import { ThemeToggle as ThemeToggle_8f4f323d2faa282a07e047b6492d04e9 } from '../
 import { DevTools as DevTools_642b9bb6ee8a5d9c2ec1196f2890112f } from '../../../components/admin/actions/DevTools'
 import { CommandMenuTrigger as CommandMenuTrigger_f0e5accbcce6a7c4bf75f7d0d264d5ec } from '../../../components/admin/actions/CommandMenu'
 import { NavExtraLinks as NavExtraLinks_700740d072e8454ecc3891cae76c4088 } from '../../../components/admin/nav/NavExtraLinks'
+import { DashboardTitle as DashboardTitle_03a67529de9cc3a3fa892f1aeeb67e01 } from '../../../components/admin/views/PageTitle'
+import { LoginTitle as LoginTitle_03a67529de9cc3a3fa892f1aeeb67e01 } from '../../../components/admin/views/PageTitle'
 import { SidebarToggle as SidebarToggle_a76174464917710a175c5cd60d5d20c2 } from '../../../components/admin/nav/SidebarToggle'
 import { QuickCreate as QuickCreate_40af7464928ae24d32e94dc581ae3dc7 } from '../../../components/admin/nav/QuickCreate'
 import { AdminUIProvider as AdminUIProvider_2e693efb1c8fbc92da8884e85d9ef9cf } from '../../../components/admin/providers/AdminUIProvider'
@@ -64,6 +66,8 @@ export const importMap = {
   "/components/admin/actions/DevTools#DevTools": DevTools_642b9bb6ee8a5d9c2ec1196f2890112f,
   "/components/admin/actions/CommandMenu#CommandMenuTrigger": CommandMenuTrigger_f0e5accbcce6a7c4bf75f7d0d264d5ec,
   "/components/admin/nav/NavExtraLinks#NavExtraLinks": NavExtraLinks_700740d072e8454ecc3891cae76c4088,
+  "/components/admin/views/PageTitle#DashboardTitle": DashboardTitle_03a67529de9cc3a3fa892f1aeeb67e01,
+  "/components/admin/views/PageTitle#LoginTitle": LoginTitle_03a67529de9cc3a3fa892f1aeeb67e01,
   "/components/admin/nav/SidebarToggle#SidebarToggle": SidebarToggle_a76174464917710a175c5cd60d5d20c2,
   "/components/admin/nav/QuickCreate#QuickCreate": QuickCreate_40af7464928ae24d32e94dc581ae3dc7,
   "/components/admin/providers/AdminUIProvider#AdminUIProvider": AdminUIProvider_2e693efb1c8fbc92da8884e85d9ef9cf,
