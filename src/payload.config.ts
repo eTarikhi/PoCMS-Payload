@@ -3,7 +3,6 @@ import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { GraphQL } from '@payloadcms/graphql/types'
 
-import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
 import { resendAdapter } from '@payloadcms/email-resend'
 // import nodemailerSendgrid from 'nodemailer-sendgrid'
 // import nodemailer from 'nodemailer'
@@ -206,7 +205,7 @@ export default buildConfig({
     adminUIPlugin(),
   ],
   graphQL: {
-    validationRules: (args) => [NoProductionIntrospection],
+    validationRules: () => [NoProductionIntrospection],
     disablePlaygroundInProduction: false,
   },
 

@@ -102,6 +102,12 @@ const missingRoute =
   path !== '/' && !articleRoute && !archiveRoute && !projectsRoute && !failureRoute && !loadingRoute
 document.title = `${articleRoute ? 'Article demo' : archiveRoute ? 'Writing' : projectsRoute ? 'Projects' : missingRoute ? 'Page not found' : 'Engineer’s Studio'} — design preview`
 
+// This standalone Vite harness has no Next router; the real error boundary calls reset().
+const recoverPreview = () => {
+  // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+  window.location.assign('/')
+}
+
 createRoot(document.getElementById('root')!).render(
   <>
     <aside className="preview-notice">
@@ -113,7 +119,7 @@ createRoot(document.getElementById('root')!).render(
           : ''}
     </aside>
     {failureRoute ? (
-      <StudioFailure retry={() => window.location.assign('/')} />
+      <StudioFailure retry={recoverPreview} />
     ) : loadingRoute ? (
       <FrontendLoading />
     ) : articleRoute ? (
