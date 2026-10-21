@@ -83,3 +83,6 @@ try {
 } finally {
   await payload.destroy()
 }
+
+// This one-shot CLI has completed awaited fixture writes and database teardown.
+process.exit(0)

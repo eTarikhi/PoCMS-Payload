@@ -1,4 +1,4 @@
-import { vercelPostgresAdapter } from '@payloadcms/db-vercel-postgres'
+import { createDatabaseAdapter } from './utilities/database'
 import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { GraphQL } from '@payloadcms/graphql/types'
@@ -161,11 +161,7 @@ export default buildConfig({
     // without a Blob token no longer rewrite them in a different shape. CI checks they are current.
     autoGenerate: false,
   },
-  db: vercelPostgresAdapter({
-    pool: {
-      connectionString: process.env.POSTGRES_URL || '',
-    },
-  }),
+  db: createDatabaseAdapter(),
   // storage: [
   //   vercelBlobStorage({
   //     collections: {
