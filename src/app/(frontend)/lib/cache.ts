@@ -12,6 +12,7 @@ import type { PortfolioContent } from './types'
  */
 export const getCachedPortfolioContent: () => Promise<PortfolioContent> = unstable_cache(
   () => getPortfolioContent(),
-  ['portfolio-content'],
+  // v2 exposes featured writing and project further-reading links to the Studio UI.
+  ['portfolio-content-v2'],
   { tags: [PORTFOLIO_CACHE_TAG] },
 )

@@ -11,6 +11,7 @@ export function ArticleCover({ src, alt }: ArticleCoverProps) {
     <figure className="article-cover">
       <CoverImage
         src={src}
+        priority
         alt={alt}
         fallbackSrc="/placeholder.svg"
         sizes="(max-width: 1200px) calc(100vw - 2.5rem), 1140px"

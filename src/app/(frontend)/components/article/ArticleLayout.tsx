@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import type { ArticleDetail } from '../../lib/article-mappers'
 import { ArticleBody } from './ArticleBody'
 import { ArticleCover } from './ArticleCover'
@@ -12,6 +13,9 @@ export function ArticleLayout({ article }: { article: ArticleDetail }) {
     <>
       <ReadingProgress />
       <article className="article-layout">
+        <Link href="/articles" className="article-back-link">
+          ← All writing
+        </Link>
         <ArticleHeader
           title={article.title}
           excerpt={article.excerpt}

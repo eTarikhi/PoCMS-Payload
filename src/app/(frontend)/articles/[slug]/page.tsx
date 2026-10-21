@@ -40,8 +40,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
   return (
     <>
-      <SiteChrome footer={content.footer}>
-        <main id="main-content" className="article-page">
+      <SiteChrome footer={content.footer} name={content.header?.sureName}>
+        <main tabIndex={-1} id="main-content" className="article-page">
           {/* In the admin's Live Preview iframe the article follows the editor's changes. */}
           <ArticleLivePreviewSwitch id={article.id}>
             <ArticleLayout article={article} />

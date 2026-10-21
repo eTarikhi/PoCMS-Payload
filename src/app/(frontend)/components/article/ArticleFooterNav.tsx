@@ -9,7 +9,7 @@ type ArticleFooterNavProps = {
 export function ArticleFooterNav({ externalLink }: ArticleFooterNavProps) {
   return (
     <div className="article-footer-nav">
-      <Link href="/#article">Back to articles</Link>
+      <Link href="/articles">Back to articles</Link>
       {externalLink ? (
         <a href={externalLink} target="_blank" rel="noopener noreferrer">
           Originally published at

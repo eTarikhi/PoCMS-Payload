@@ -1,0 +1,13 @@
+body {
+  margin: 0;
+  font-family: 'Inter Variable', sans-serif;
+}
+.preview-notice {
+  background: #202820;
+  color: #fff;
+  text-align: center;
+  padding: 9px 16px;
+  font:
+    11px/1.6 ui-monospace,
+    monospace;
+}

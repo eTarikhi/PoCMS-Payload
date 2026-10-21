@@ -86,6 +86,7 @@ export type CertificateItem = {
 }
 
 export type ArticleItem = {
+  featured?: boolean
   id: string
   title: string
   excerpt: string
@@ -124,6 +125,7 @@ export type ProjectFilter = {
 }
 
 export type ProjectItem = {
+  readMoreUrl?: string
   id: string
   title: string
   categories: string[]

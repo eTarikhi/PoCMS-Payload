@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import type { SyntheticEvent } from 'react'
+import { useState } from 'react'
 
 // Ported from the article image in vTarikhi/components/sections/articles.tsx.
 // The original set src to "/placeholder.svg" on error, but that file did not exist (F-08).
@@ -17,6 +17,7 @@ export type CoverImageProps = {
   height: number
   sizes?: string
   className?: string
+  priority?: boolean
 }
 
 export function CoverImage({
@@ -27,24 +28,24 @@ export function CoverImage({
   height,
   sizes,
   className,
+  priority = false,
 }: CoverImageProps) {
-  const handleError = (event: SyntheticEvent<HTMLImageElement, Event>) => {
-    // Stop once the fallback itself has failed, so an error cannot loop.
-    if (!event.currentTarget.src.endsWith(fallbackSrc)) {
-      event.currentTarget.src = fallbackSrc
-    }
-  }
+  const [failedSrc, setFailedSrc] = useState<string | null>(null)
+  const resolvedSrc = !src || failedSrc === src ? fallbackSrc : src
 
   return (
     <Image
-      src={src || fallbackSrc}
+      src={resolvedSrc}
       alt={alt}
       sizes={sizes}
       width={width}
       height={height}
-      loading="lazy"
+      priority={priority}
+      loading={priority ? undefined : 'lazy'}
       className={className}
-      onError={handleError}
+      onError={() => {
+        if (resolvedSrc !== fallbackSrc) setFailedSrc(src)
+      }}
     />
   )
 }

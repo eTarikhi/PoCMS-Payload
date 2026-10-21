@@ -175,6 +175,7 @@ export const mapArticles = (docs: Article[]): ArticleItem[] =>
     id: idToString(doc.id),
     title: doc.title,
     excerpt: doc.excerpt,
+    featured: Boolean(doc.featured),
     author: formatDisplayDate(doc.publishedAt),
     readTime: formatReadTime(doc.readTime),
     imageUrl: resolveMediaUrl(doc.image) ?? withFallback(doc.imageUrl, ''),
@@ -194,7 +195,7 @@ export const mapServices = (docs: Service[], hiringCta: HiringCta | null): Servi
 
 /**
  * The thumbnail is the legacy `placeHolder` URL, and falls back to the upload.
- * Payload's `media.sizes` is not configured yet (see the migration analysis, F-10).
+ * Explicit full-size image URLs take precedence over the shared upload, matching the editor's field description.
  */
 export const mapProjects = (docs: Project[]): ProjectsContent => ({
   filters: PROJECT_FILTERS,
@@ -205,8 +206,9 @@ export const mapProjects = (docs: Project[]): ProjectsContent => ({
       title: doc.title,
       categories: doc.categories ?? [],
       thumbnailUrl: withFallback(doc.placeHolder, uploadUrl ?? ''),
-      imageUrl: uploadUrl ?? withFallback(doc.src, ''),
+      imageUrl: withFallback(doc.src, uploadUrl ?? ''),
       url: withFallback(doc.url, '#'),
+      readMoreUrl: doc.readMoreUrl || undefined,
     }
   }),
 })
