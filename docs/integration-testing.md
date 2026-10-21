@@ -98,8 +98,17 @@ this is **not a production authentication recommendation**.
 
 Remote Vercel Blob, remote HTTPS image fetches, email delivery, hosted staging and
 real-person content review remain separate deployment checks. A successful local
-integration run does not certify those services. The legacy Mongo Compose template
-is unchanged and is not an integration setup for this adapter.
+integration run does not certify those services. The development Compose recipe is now PostgreSQL-based with explicit native
+transport, but has not been engine-tested here; see [Docker setup](docker.md).
 
 See [transactional email](email.md) for the new guarded password-reset lifecycle
 check, trusted reset origins and the distinction between capture and real delivery.
+
+## Database adapter matrix
+
+Keep `DATABASE_ADAPTER` unset to test the hosted default (Vercel adapter). To exercise
+the native adapter against the same isolated local database, prefix commands with
+`DATABASE_ADAPTER=postgres`, including bootstrap, tests, build and `next start`. Do
+not change adapters or rebuild `.next` beneath a running server. Both adapters have
+passed real integration tests/full builds; native mode has also passed all real-app
+CMS browser checks. This does not validate container service-name networking.

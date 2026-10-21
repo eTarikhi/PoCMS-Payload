@@ -48,7 +48,7 @@ This project documentation is split across multiple files for easier maintenance
 - Rich media management
 - REST and GraphQL APIs
 - Type-safe TypeScript codebase
-- Legacy Docker template (see deployment caveat)
+- Local PostgreSQL Compose recipe (engine validation pending; see Docker guide)
 
 ## Engineer’s Studio frontend
 
@@ -80,8 +80,9 @@ Projects currently have images/categories/outbound links, not rich case-study bo
 Article bodies are plain text. Rich case studies, testimonials, contact forms and
 project-to-skill relationships are potential extensions, not implemented features.
 
-**Docker note:** the existing Compose file is a legacy MongoDB template, not a validated
-PostgreSQL setup for the current config. Read the deployment caveat before using it.
+**Docker note:** the development Compose recipe now uses PostgreSQL with explicit
+native-adapter selection. Runtime adapter checks passed outside Docker; container
+startup/networking still require engine validation. See [Docker guide](docs/docker.md).
 
 ## License
 

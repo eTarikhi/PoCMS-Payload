@@ -38,10 +38,13 @@ the storage adapter is disabled and media uses local disk. Ephemeral serverless 
 are not suitable for durable production uploads. Additional image origins must be
 explicitly allowlisted; local-network image optimization is disabled.
 
-## Docker caveat
+## Local Docker recipe and database transport
 
-`docker-compose.yml` is still a legacy MongoDB template and is **not a supported
-PostgreSQL deployment recipe** for this checkout. The installed Vercel adapter also
-uses a different transport for non-loopback database hosts. Do not fix the service
-name alone or run a destructive database reset to work around it. A dedicated adapter/
-Compose modernization and disposable-database validation remain future work.
+The development Compose recipe uses PostgreSQL 17 with explicit
+`DATABASE_ADAPTER=postgres`. Hosted defaults remain the Vercel adapter when this
+variable is unset. It is not safe to infer an adapter change from a service hostname.
+
+See [Docker guide](docker.md) for required secrets and persistent-volume safeguards.
+The YAML contracts, both adapters and full builds were validated outside Docker;
+container startup/networking/image behavior remain unverified because no Docker
+engine is available here. This is not a production container/deployment recipe.

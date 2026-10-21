@@ -34,6 +34,18 @@ See [integration instructions](integration-testing.md) for the guarded fixture s
   GUIDs, safe XML, bounded newest-first existing content, local/external destinations,
   footer subscription link and metadata discovery. Reuses anonymous tag-aware caching.
 
+## Database transport and local-stack follow-up
+
+Researched pinned Payload PostgreSQL adapter documentation and installed transport
+selection. Added explicit `DATABASE_ADAPTER=postgres`, preserving `vercel` as the
+hosted default. Both adapters passed real Payload integration tests and full builds;
+native mode passed real CMS/admin/media/cache/Live Preview browser checks. Replaced
+the incompatible Mongo Compose template with a secret-required PostgreSQL recipe,
+healthcheck-gated startup, private database networking and retained data volume.
+YAML contract tests and the pinned pnpm frozen-lockfile check pass. Docker runtime
+validation is still pending (no engine in this sandbox), not claimed complete.
+See [Docker guide](docker.md). No content schema or real deployment was changed.
+
 ## Email reliability follow-up
 
 Researched the installed-version email adapter and authentication-email documentation.
@@ -114,9 +126,10 @@ These are future proposals, not completed functionality:
 - Project-to-skill/service relationships for evidence-backed expertise.
 - Migrating article bodies from plain text to Lexical rich text.
 - Structured career dates and a dedicated hero headline/introduction.
-- Updating the legacy Docker stack to PostgreSQL. Its Mongo service is incompatible
-  with this config; the Vercel adapter also treats non-loopback hosts specially, so
-  changing a Compose hostname alone is not sufficient.
+- Docker engine smoke validation of the new development PostgreSQL recipe. The
+  incompatible Mongo template has been replaced, native adapter selection added,
+  and both transport modes/full builds tested outside Docker. Container networking,
+  images, healthchecks and volume persistence still need an actual Docker engine.
 
 Implement these with a reviewed content/migration plan and a disposable database.
 Never invent testimonials, metrics, employment availability or case-study outcomes.

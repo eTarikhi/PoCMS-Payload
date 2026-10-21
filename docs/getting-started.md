@@ -28,6 +28,8 @@ Edit `.env` privately. At minimum configure:
 For a local PostgreSQL instance the Vercel adapter uses `pg` when the URL hostname is
 `localhost` or `127.0.0.1`. Other hosts use the Vercel/Neon transport. Do not assume an
 arbitrary Docker service hostname behaves like a local PostgreSQL connection.
+For ordinary PostgreSQL servers, set `DATABASE_ADAPTER=postgres` explicitly. The
+default remains `vercel`; unknown values are rejected.
 
 `BLOB_READ_WRITE_TOKEN` enables Vercel Blob. With no token, media stays on local disk;
 use durable storage for production. `RESEND_API_KEY` enables transactional email.
@@ -63,5 +65,6 @@ use reviewed migrations and the normal release process.
 existing database as a routine setup step.** No schema changes are needed for the
 Studio redesign delivered here.
 
-The current `docker-compose.yml` is a legacy MongoDB template and does not match the
-PostgreSQL adapter. Do not use it as the setup path until it has been modernized.
+The local Compose recipe now uses PostgreSQL and explicitly selects the native
+adapter. See [Docker setup](docker.md) for required secrets and data-safety guidance.
+It is structurally tested but not engine-tested in this sandbox.

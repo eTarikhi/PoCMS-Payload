@@ -16,7 +16,46 @@ All changes were committed and pushed directly to the designated branch. No pull
 request was created. No production deployment, production-data reset or content-model
 migration was performed. The earlier Studio redesign and hardening remain intact.
 
-## Latest autonomous pass: email recovery reliability
+## Latest autonomous pass: native PostgreSQL and development Compose
+
+Prioritized the deferred local-stack task after reviewing the external gates. The
+sandbox still has no Docker executable/engine, so container verification cannot be
+claimed. The application transport and development recipe were nevertheless corrected
+and tested independently, without changing hosted defaults or resetting real data.
+
+- Researched the pinned Payload 3.90.2 PostgreSQL docs and installed Vercel adapter.
+  Confirmed ordinary service-name hosts need an explicit native adapter, not just a
+  Compose hostname replacement.
+- Added `DATABASE_ADAPTER=postgres` for the installed native PostgreSQL adapter;
+  unset/empty/`vercel` preserves the existing hosted adapter. Invalid modes fail
+  without printing supplied values or connection strings. Five contract tests verify
+  selection and that no hostname-based automatic switch occurs.
+- Replaced the incompatible Mongo template with a **development-only** PostgreSQL 17
+  recipe: Node 22 Debian, pinned pnpm 10.17.1, frozen lockfile, mandatory private
+  secrets, healthcheck-gated app startup, no published database port, localhost-only
+  application publishing and a dedicated PostgreSQL volume. Old Mongo volumes are
+  neither reinterpreted nor deleted.
+- Added five semantic YAML tests using the dev-only `yaml` dependency. These assert
+  the intended recipe contract, not Docker engine semantics. Validated the lockfile
+  with the exact pnpm version selected by the recipe.
+- Completed **80 integration/component tests in each adapter mode** and **full
+  production builds in both modes** against the same isolated PostgreSQL 18.4 schema.
+  Counts overlap: these are 80 tests run twice, not 160 distinct tests.
+- With native mode, passed fixture bootstrap, captured email recovery, all ten real
+  CMS/media/cache/Live Preview browser tests and all six admin/public smoke tests.
+  The Studio design preview also retains all 24 passing browser checks.
+- Bootstrap now explicitly exits after awaited writes and Payload teardown, matching
+  the existing one-shot email CLI behavior; it does not force success on an exception.
+- Reconciled README, environment, setup, deployment and roadmap guides. The new
+  [Docker guide](docker.md) documents secrets, volume safety and exactly which engine
+  checks remain pending. No Docker image was pulled or container started here.
+
+No new content-model fields, migration, production deployment, default transport
+change or real database reset was introduced. Native mode has been verified on
+loopback outside Docker; service-name networking and PostgreSQL 17 container startup
+remain unverified. The running port-3000 fixture app now explicitly uses native mode.
+
+## Earlier autonomous pass: email recovery reliability
 
 Prioritized the remaining email gate. Actual provider/inbox validation is still
 blocked by missing deployment credentials and outbound provider access, so this
@@ -129,8 +168,8 @@ RSS is served by the real app, not simulated by the standalone Vite design previ
 
 | Check                                             | Final result                                                                                           |
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Database-independent frontend tests               | **69 passed**, 11 files                                                                                |
-| `pnpm test:int` against isolated PostgreSQL       | **70 passed**, 12 files; includes the 69 above plus the real Payload API test                          |
+| Database-independent frontend tests               | **79 passed**, 13 files                                                                                |
+| `pnpm test:int` against isolated PostgreSQL       | **80 passed** per adapter mode, 14 files; includes the 79 above plus the real Payload API test         |
 | `pnpm test:integration:email`                     | **Passed**; real Payload reset/auth lifecycle with an in-process captured Resend boundary, no delivery |
 | `pnpm test:integration:browser`                   | **10 passed** against the full production build                                                        |
 | Normal admin/public Playwright suite              | **6 passed** against the same production app                                                           |
@@ -160,7 +199,10 @@ homepage. They do not substitute for manual screen-reader testing or owner revie
 - `14db12f` — prior integration/RSS report and documentation
 - `4e64d5f` — configurable fail-closed email adapter and guarded reset lifecycle check
 - `4941ccf` — canonical-origin password reset template and unsafe-origin coverage
-- Updated email operations/environment documentation and this report follow these commits.
+- `4b24677` — email operations and execution report
+- `69b33de` — explicit native adapter mode, selection tests and one-shot bootstrap teardown
+- `05532c1` — PostgreSQL development Compose recipe and YAML contract tests
+- Updated Docker/setup/environment documentation and this report follow these commits.
 
 Earlier implementation commits through `a643696` remain on the same branch: Studio
 homepage/archives, recovery states, SEO routes, anonymous query hardening, article
@@ -183,13 +225,16 @@ These were not silently declared complete:
 6. **Deferred schema work:** rich case studies, project-to-skill relationships and
    plain-text-to-Lexical migration remain proposals requiring a reviewed content and
    migration plan. No testimonials, metrics or case-study outcomes were invented.
-7. **Legacy Compose:** its MongoDB service is still incompatible with the configured
-   PostgreSQL adapter. It has not been presented as a tested deployment stack.
+7. **Docker runtime:** the incompatible Mongo template has been replaced, but the
+   new PostgreSQL recipe still requires engine smoke tests for images, startup,
+   healthchecks, networking, package installation and volume persistence. Outside-
+   Docker adapter/YAML tests do not certify a working container deployment.
 
 ## Handoff
 
-- **Port 3000:** real production-mode Next/Payload app using disposable database fixtures.
+- **Port 3000:** real production-mode Next/Payload app using native PostgreSQL and disposable fixtures.
 - **Port 4173:** sample-content Vite design preview, independent of the database.
+- [Docker guide](docker.md): local recipe, explicit transport, safe volumes and unverified engine checks.
 - [Email operations](email.md): configuration, trusted links, captured lifecycle and delivery limits.
 - [Integration guide](integration-testing.md): setup, guards, commands and cleanup limits.
 - [Frontend roadmap](frontend-roadmap.md): completed gates, research and deferred proposals.

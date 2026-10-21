@@ -14,7 +14,8 @@ This repository uses **Payload 3.90.2**, Next.js App Router and PostgreSQL throu
 
 Use [getting started](docs/getting-started.md) and `.env.example` for setup. Do not
 run database-reset/seed operations against existing data as part of routine setup.
-The current Compose file is a legacy MongoDB recipe and must not be assumed compatible.
+Compose now selects the native PostgreSQL adapter explicitly. See [Docker guide](docs/docker.md);
+its YAML and native runtime were checked separately, but container startup has not been engine-tested.
 
 ## Important version-specific behavior
 
