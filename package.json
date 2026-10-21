@@ -24,6 +24,8 @@
     "seed": "cross-env NODE_OPTIONS=--no-deprecation tsx ./src/seed/seed.ts",
     "test": "pnpm run test:int && pnpm run test:e2e",
     "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" playwright test --config=playwright.config.ts",
+    "integration:bootstrap": "tsx scripts/integration/bootstrap.ts",
+    "test:integration:browser": "playwright test --config playwright.integration.config.ts",
     "test:frontend": "vitest run tests/int/studio*.int.spec.ts tests/int/projects.int.spec.ts tests/int/writing.int.spec.ts",
     "test:preview": "playwright test --config previews/studio/playwright.config.ts",
     "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts"
