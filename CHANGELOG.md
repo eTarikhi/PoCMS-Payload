@@ -6,8 +6,42 @@ modernisation programme; every entry links the roadmap item it closes
 
 ## Unreleased
 
+### Added
+
+- **Drafts and scheduled publishing on Articles (CNT / P5.5).** Articles keep versions with drafts:
+  an editor can write for days, save a draft and publish later, and the public site keeps showing
+  only published work — anonymous REST reads filter on `_status`, and the frontend queries add the
+  same condition because the Local API bypasses access control. A new `publishAt` sidebar field
+  feeds the daily `publish-scheduled` task, which publishes the drafts whose time has come with
+  their own field values (Payload merges an update over the published document, so a status-only
+  write would publish stale content). The jobs endpoint expires the site cache when the run
+  finishes, since the task runs outside a request. Migration
+  `20261020_231332_drafts_and_scheduled_publishing` backfills existing articles to `published`.
+  Tests: `tests/e2e/drafts.e2e.spec.ts`.
+- **Live Preview for drafts.** The edit view's Live Preview used to point at the public article
+  page, which is prerendered and published-only — a draft's preview landed on "Article not found".
+  It now opens `/preview/articles/[slug]`, a dynamic `noindex` route that renders the published
+  article when there is one and an empty article shell otherwise, which the preview component fills
+  from the editor's form state. Access control still decides what the preview's own requests may
+  see.
+- **Task-based acceptance tests (P5.6).** Three editor tasks — publish an article with a cover
+  image, write a draft and publish it in a second step, and replace a cover with an external URL —
+  run through a `TaskMeter` that counts steps and time, compared with
+  `tests/acceptance-baseline.json` (two extra steps and 60% more time allowed). A redesign that
+  adds clicks to a routine task has to change the baseline in the same commit.
+- **Component tests for the admin primitives (P2.6).** Testing Library and jsdom in the existing
+  Vitest run cover the element each primitive renders, the ARIA state of tabs, toggle groups and
+  progress bars, a dialog's focus handling, the sparkline geometry and the status components'
+  text. `pnpm test:unit` runs only these.
+- **Drag-and-drop ordering pilot on Skills (P5.5).** `orderable: true` replaces the manual `order`
+  number with Payload's hidden fractional-index `_order`: the list gets drag handles, the site
+  sorts by the same key, and the seed appends documents one at a time. Migration
+  `20261021_001500_skills_orderable` backfills the keys from the old numbers and drops the column.
+
 ### Fixed
 
+- **The seed publishes its articles.** Articles keep drafts, and a document created without a
+  status is a draft, so `pnpm seed` left the public site empty.
 - **The system page test no longer assumes `users` is one of the twelve largest tables.** It is not
   on a freshly seeded database (one row), so the test now checks the shape of the snapshot and a
   content table that dominates on any seeded database.

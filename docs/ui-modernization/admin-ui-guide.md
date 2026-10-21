@@ -315,14 +315,14 @@ switch.
 
 ### Article Live Preview
 
-- Articles set `admin.livePreview.url` and `admin.preview` to the article page, but only for
-  articles that have a page (slug and body, `hasArticlePage`). The others have no preview.
-- The page renders the article on the server as before. `ArticleLivePreviewSwitch` (a few hundred
-  bytes) checks whether the page runs inside a frame; only then does it load `ArticleLivePreview`
-  (`@payloadcms/live-preview-react`) as a separate chunk, which renders the editor's unsaved form
-  state. Public visitors download none of it.
+- Articles set `admin.livePreview.url` and `admin.preview` to `/preview/articles/<slug>`, but only
+  for articles that have a page (slug and body, `hasArticlePage`). The others have no preview. See
+  [Live Preview](#live-preview) for why the preview is its own route rather than the article page.
+- `ArticleLivePreviewSwitch` (a few hundred bytes) checks whether the page runs inside a frame;
+  only then does it load `ArticleLivePreview` (`@payloadcms/live-preview-react`) as a separate
+  chunk, which renders the editor's unsaved form state. Public visitors download none of it.
 - The live renderer needs the saved document's `id` (Payload resolves the draft's cover image
-  for it), which is why the article view model includes `id`.
+  for it), which is why the article view model includes `id` and why the preview URL carries it.
 
 ## Translations
 
@@ -477,6 +477,28 @@ no cell of its own.
 **One-document collections** (Header, About): `access.create` is `createWhileEmpty(slug)`, and the
 list view (`SingletonListView`) redirects to the document, or to the create form when there is none.
 
+### Orderable lists
+
+Opt a collection into Payload's drag-and-drop ordering with `orderable: true` (experimental in
+Payload 3.90, so the API may change in a minor release). Skills is the pilot:
+
+- Payload adds a hidden, read-only `_order` text field holding a fractional index, a `beforeChange`
+  hook that appends each new document, and a `/api/<collection>/reorder` endpoint the list calls on
+  a drop. Only the moved document is written.
+- The list is Payload's own (the TanStack view steps aside for orderable collections), so it gets
+  the drag handles, and `defaultSort` is not needed — the list sorts by `_order`.
+- Queries that feed the site sort by `_order` too (`src/app/(frontend)/lib/payload-source.ts`).
+- Seed data is created one document at a time; parallel creates would each read the same "last"
+  key and land in an arbitrary order.
+- Migration `20261021_001500_skills_orderable` backfills `_order` from the old numeric `order` and
+  `id` (`lpad((order * 100000 + id), 11, '0') || '1'`, a key that sorts like the numbers and does
+  not end in `0`), then drops the column. `tests/int/orderable.int.spec.ts` covers append, sort,
+  and the hidden field; `tests/e2e/orderable.e2e.spec.ts` drags a row with pointer events, because
+  dnd-kit ignores HTML5 drag events.
+
+The other ordered collections (Projects, Experiences, Educations, Services) still use the manual
+`order` number, so an editor can compare both approaches before the rest is converted.
+
 ### List summary
 
 `adminUIPlugin` adds `ListSummary` (`beforeListTable`) to every collection: total, edited in the
@@ -563,11 +585,24 @@ left that width broken (header actions off screen, count cards one per row). "To
   now. The e2e check measures the page against the visual viewport: with mobile emulation, a wider
   page widens `innerWidth` along with it, so comparing with `innerWidth` never failed.
 
-## Trash
+## Live Preview
 
-Built into Payload 3.9x; the project turns it on and adds the access-level rules.
+The article edit view has Payload's Live Preview toggle. The iframe opens `/preview/articles/[slug]`
+(a dynamic, `noindex` route) — not the public article page:
 
-### Trash (soft delete)
+- The public page is prerendered from `generateStaticParams` and only knows published articles.
+  Pointing Live Preview at it meant a draft's preview landed on "Article not found".
+- The preview route renders the published article when there is one, and an otherwise empty article
+  page for a draft. `ArticleLivePreview` (loaded only inside a frame, as its own chunk) fills that
+  from the editor's form state, which Payload posts on load and on every change.
+- The relationships the preview needs are fetched through Payload's REST API with the editor's own
+  session, so access control still decides what may be seen: for anyone who is not signed in, a
+  draft stays invisible and the route shows only the shell.
+
+`Articles.admin.livePreview.url` builds the address (`?id=<doc id>` lets the preview resolve the
+cover image); articles without a slug or a body get no preview.
+
+## Trash (soft delete)
 
 - On Articles, Projects, Services, Experiences, Educations, Certificates, Skills and Media
   (`trash: true`). Deleting moves documents to the collection's **Trash** tab
@@ -592,6 +627,35 @@ Trash adds schema: a `deleted_at` column on the eight tables. (Saved views, Payl
 presets, were tried and removed; their `payload_query_presets` tables are dropped again.)
 Schema changes are migrations only (the adapter has `push: false`): create one with
 `pnpm migrate:create <name>` and apply it with `pnpm migrate`.
+
+## Drafts and scheduled publishing
+
+Articles keep versions with drafts (`versions: { drafts: true, maxPerDoc: 20 }`). The publish
+controls in the edit view are Payload's own: **Save Draft** keeps the article editable and invisible
+to the public site, **Publish** (or **Publish changes**) makes it live.
+
+- **Public reads skip drafts.** Anonymous REST reads get `_status = published` from
+  `Articles.access.read`; the frontend queries in `src/app/(frontend)/lib/payload-source.ts` add the
+  same condition, because the Local API bypasses access control (`overrideAccess` defaults to true).
+  A draft therefore 404s and stays out of lists, the sitemap and the home page.
+- **Scheduled publishing.** The `publishAt` date field (sidebar, only while the article is not
+  published) is read by the `publish-scheduled` daily task: it finds drafts whose `publishAt` has
+  passed and publishes each one with its own field values. Payload's core `schedulePublish` job
+  (`versions.drafts.schedulePublish`) is not used — the task registry is the project's own
+  scheduler, so admins see the run, its log and its result in Admin › Scheduled jobs like any other
+  task. A status-only update would publish stale content, because Payload merges `data` over the
+  published document rather than over the latest draft.
+- **Trash and restore.** Payload restores as a **draft** when the collection keeps drafts; the
+  restore dialog has a "restore as published" box for the editor who wants the article back on the
+  site.
+- **Cache invalidation.** Saving in the admin runs the collection hooks, which expire the portfolio
+  cache tag and the affected paths. The publish task runs inside a job, where there is no request
+  store, so the jobs endpoint expires the tag and the published article paths itself when the run
+  finishes.
+- Migration `20261020_231332_drafts_and_scheduled_publishing` creates the versions table, adds
+  `_status` (default `draft`) and `publish_at`, makes title/excerpt/publishedAt/link nullable for
+  drafts, and **backfills every existing row to `published`** — without that, enabling drafts hides
+  all existing content.
 
 ## Scheduled jobs
 
