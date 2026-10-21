@@ -62,7 +62,7 @@ export const seed = async ({
 
   payload.logger.info(`— Seeding media and images...`)
 
-  let profileImage: any = null
+  let profileImage: { id: number } | null = null
 
   try {
     const profileImageBuffer = await fetchFileByURL(
