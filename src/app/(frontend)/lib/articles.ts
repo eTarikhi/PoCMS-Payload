@@ -15,13 +15,13 @@ export const getCachedArticleBySlug = (slug: string): Promise<ArticleDetail | nu
       const doc = await fetchArticleBySlug(slug)
       return doc ? mapArticleDetail(doc) : null
     },
-    // v2: the view model gained `id` (Live Preview); old cache entries lack it.
-    ['portfolio-article-v2', slug],
+    // v3: invalidate entries fetched before anonymous access control was enforced.
+    ['portfolio-article-v3', slug],
     { tags: [PORTFOLIO_CACHE_TAG] },
   )()
 
 /** The slugs of every article that has a page. Used by `generateStaticParams`. */
 export const getCachedArticleSlugs = (): Promise<string[]> =>
-  unstable_cache(() => fetchPublishedArticleSlugs(), ['portfolio-article-slugs'], {
+  unstable_cache(() => fetchPublishedArticleSlugs(), ['portfolio-article-slugs-v2'], {
     tags: [PORTFOLIO_CACHE_TAG],
   })()
