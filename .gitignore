@@ -62,3 +62,4 @@ src/payload-generated-schema.ts
 src/payload-types.ts
 src/app/(payload)/admin/importMap.js
 src/styles/admin/nav-icons.css
+/src/migrations
