@@ -629,6 +629,29 @@ list, so nothing else changes; run `pnpm generate:all` for the new select option
 `pnpm typecheck && pnpm test:int`. `tests/int/jobs.int.spec.ts` covers the queue, the permanent
 deletion, the cron secret and the access rules.
 
+## Component tests
+
+`tests/unit/admin-components.spec.tsx` covers the primitives the admin is built from, with Testing
+Library and jsdom: the element a primitive renders (a `button` that refuses clicks while disabled,
+a `span` that becomes a link through `render`), the ARIA state of the tab list, toggle group and
+progress bar, a dialog that opens from its trigger, names itself and returns focus on Escape, and
+the two status components' text. They run in the same Vitest pass as the integration tests
+(`pnpm test:int`; `pnpm test:unit` for just these), with `// @vitest-environment jsdom` at the top
+of the file, because the default environment is node (see `vitest.config.mts` for why).
+
+Rules of thumb:
+
+- Test behaviour that a Payload or Base UI upgrade could break, not classes. The one class
+  assertion per primitive is there to catch a variant being dropped, not to freeze the design.
+- Keep admin components React-only here. A component that pulls in `@payloadcms/ui` (fields that
+  call `useField`, anything with Payload's CSS) cannot load in Vitest — the CSS import throws. Those
+  are covered by the e2e suites instead; the pure parts are split into their own modules (see
+  `PaginationLabels/labels.ts`) precisely so they can be tested this way.
+- Popups that need layout (tooltips, because Base UI measures the trigger) are not testable in
+  jsdom; the axe e2e checks them in a real browser.
+- Testing Library cleans up between tests only when the framework provides global `afterEach`, and
+  this project keeps Vitest globals off: the file calls `afterEach(cleanup)` itself.
+
 ## Acceptance tests (editor tasks)
 
 `tests/e2e/acceptance.e2e.spec.ts` measures the three tasks an editor does most often, rather than
@@ -796,7 +819,8 @@ pnpm typecheck          # TypeScript
 pnpm lint               # ESLint
 pnpm check:tw-prefix    # admin classes carry the acn: prefix
 pnpm check:contrast     # token pairs meet WCAG AA in both themes
-pnpm test:int           # Vitest + Local API (roles, singletons, API)
+pnpm test:int           # Vitest: Local API integration + admin component tests (jsdom)
+pnpm test:unit          # only the component tests, for a focused loop
 pnpm test:e2e           # Playwright: admin, navigation, dashboard, lists, gallery (axe), editor tasks
 pnpm test:visual        # screenshot comparisons
 ```

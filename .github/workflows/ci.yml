@@ -66,7 +66,9 @@ jobs:
       # empty database is migrated before anything connects to it.
       - name: Migrate the database
         run: pnpm migrate
-      - name: Integration tests
+      # Vitest runs the Local API integration tests and the admin's component tests (jsdom); the
+      # config keeps the unit files in the same run, `test:unit` exists for a focused loop.
+      - name: Unit and integration tests
         run: pnpm test:int
 
   e2e:

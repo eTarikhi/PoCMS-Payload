@@ -10,7 +10,7 @@ export default defineConfig({
     // payload.login) rejects; React component tests opt into jsdom per file instead.
     environment: 'node',
     setupFiles: ['./vitest.setup.ts'],
-    include: ['tests/int/**/*.int.spec.ts'],
+    include: ['tests/int/**/*.int.spec.ts', 'tests/unit/**/*.spec.tsx'],
     // Every file calls getPayload(), which pushes the dev schema to an empty database. In parallel
     // the pushes race (duplicate CREATE TYPE on a fresh CI database), so run files one at a time.
     fileParallelism: false,
