@@ -717,7 +717,8 @@ Rules of thumb:
 - Keep admin components React-only here. A component that pulls in `@payloadcms/ui` (fields that
   call `useField`, anything with Payload's CSS) cannot load in Vitest — the CSS import throws. Those
   are covered by the e2e suites instead; the pure parts are split into their own modules (see
-  `PaginationLabels/labels.ts`) precisely so they can be tested this way.
+  `AdminDomFixes/landmarks.ts` or `PaginationLabels/labels.ts`) precisely so they can be tested
+  this way.
 - Popups that need layout (tooltips, because Base UI measures the trigger) are not testable in
   jsdom; the axe e2e checks them in a real browser.
 - Testing Library cleans up between tests only when the framework provides global `afterEach`, and

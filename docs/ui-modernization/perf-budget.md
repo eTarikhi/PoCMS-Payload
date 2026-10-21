@@ -180,8 +180,8 @@ twice with the same setup — the tree before E5 (`6e61ec5`, in a git worktree s
 - The audit log collection adds Payload's standard list chunk, already counted for other lists
   (`/admin/collections/*`), and its dashboard widget is server-rendered.
 - The accessibility fixes in this pass add one ~0.5 kB client component to every admin page
-  (`providers/PaginationLabels`); it replaces nothing, and the measured JS is still level with the
-  pre-E5 tree because the E5–E7 chunks are lazy.
+  (`providers/PaginationLabels`, since grown into `providers/AdminDomFixes`); it replaces nothing,
+  and the measured JS is still level with the pre-E5 tree because the E5–E7 chunks are lazy.
 - +0.1 kB CSS: the `destructive-emphasis` token and the table container's focus outline.
 - `/admin/gallery` +0.3 kB: three more registry rows.
 

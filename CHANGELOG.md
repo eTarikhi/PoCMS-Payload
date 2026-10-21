@@ -16,6 +16,10 @@ modernisation programme; every entry links the roadmap item it closes
   first tab stop and moves focus to main (a real keyboard test in both themes). Reports land in
   `test-results/a11y-<theme>.json`; the gaps and the remaining manual screen-reader pass are
   documented in `docs/ui-modernization/a11y.md`. The fixes it found are in Fixed below.
+- **Documentation refresh (P6.3).** `AGENTS.md` now records the accessibility gate, the orderable
+  convention and the DOM-fix pattern for new work; the README points at the component gallery (the
+  old `/admin/ui-kit` path) and at `docs/ui-modernization/a11y.md`, and lists drafts, Live Preview,
+  orderable lists and the media pipeline among the features.
 - **Visual invariants in CI (P6.1).** `tests/visual/invariants.visual.spec.ts` runs in the workflow
   beside the captures and asserts what is the same on every machine: tokens load, no screen
   scrolls sideways at 1440/768/375px in either theme, thumbnails load, dark mode stays navy and

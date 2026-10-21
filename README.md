@@ -21,11 +21,12 @@ This project documentation is split across multiple files for easier maintenance
 - [Contributing](docs/contributing.md)
 - [Admin UI guide](docs/ui-modernization/admin-ui-guide.md): design tokens, Tailwind (`acn:`), Base UI primitives, dashboard widgets, list views
 - [Admin UI decisions (ADRs)](docs/ui-modernization/adr/README.md) and [performance budget](docs/ui-modernization/perf-budget.md)
+- [Admin accessibility](docs/ui-modernization/a11y.md): the WCAG 2.2 AA gate, the upstream gaps and the manual screen-reader checklist
 
 ## Quick access
 
 - Admin panel: `http://localhost:3000/admin`
-- UI kit (admins only): `http://localhost:3000/admin/ui-kit`
+- Component gallery (admins only): `http://localhost:3000/admin/gallery`
 - API: `http://localhost:3000/api`
 - GraphQL: `http://localhost:3000/graphql`
 
@@ -51,10 +52,13 @@ This project documentation is split across multiple files for easier maintenance
 - Authentication with admin and editor roles
 - Branded admin: light/dark design tokens, grouped navigation, permission-aware Create menu
 - Admin dashboard widgets: content counts, publishing activity, content checks, recent changes
-- TanStack Table list views with custom cells; tile pickers for colours and icons
-- Rich media management
+- TanStack Table list views with custom cells; orderable lists with drag-and-drop (no manual order field)
+- Tile pickers for colours and icons, an image-source control for uploads vs external URLs
+- Drafts, scheduled publishing and Live Preview for articles
+- Rich media management: MIME allow-list, focal point, thumbnail/card/OG sizes, a regeneration script
 - REST and GraphQL APIs
 - Type-safe TypeScript codebase
+- Accessibility and visual gates in CI (axe on every admin screen, platform-independent visual invariants)
 - Docker support
 
 ## Content use cases

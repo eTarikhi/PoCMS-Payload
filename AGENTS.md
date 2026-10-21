@@ -40,7 +40,18 @@ CI runs all of the above, regenerates the generated files and fails if they diff
 - Custom admin views render `DefaultTemplate` with `permissions`, `locale` and `visibleEntities`
   from `initPageResult` (they are not top-level props; without them the sidebar loses its groups).
 - Schema changes are additive. Deploying them to a database without push needs a migration
-  (`npx payload migrate:create`).
+  (`npx payload migrate:create`). Ambiguous renames cannot be generated non-interactively: write
+  those by hand and register them in `src/migrations/index.ts` (without the `.js` extension).
 - New admin components get a preview in the component gallery (`/admin/gallery`,
-  `views/Gallery/previews.tsx`) and new features an e2e test; accessibility checks use
-  `@axe-core/playwright` with the WCAG 2.2 AA tags (see `tests/e2e/gallery.e2e.spec.ts`).
+  `views/Gallery/previews.tsx`) and new features an e2e test.
+- Accessibility is a gate, not a review: `tests/e2e/a11y.e2e.spec.ts` scans every admin surface in
+  both themes. A new screen belongs in its `SURFACES` list. Payload's own unfixed findings are
+  allowlisted there by rule and node count, so a Payload upgrade that fixes one fails the suite —
+  remove the entry then. The upstream markup and the manual screen-reader checklist are in
+  `docs/ui-modernization/a11y.md`.
+- Ordered collections are orderable (`orderable: true`, hidden `_order`): no manual order field,
+  sorted `_order` in the admin and in `src/app/(frontend)/lib/payload-source.ts`, seeded one
+  document at a time. See the guide's "Orderable lists".
+- Admin DOM fixes Payload's config cannot express live in `providers/AdminDomFixes`, one module per
+  upstream component with the markup it repairs in its comment. They only fill in what is missing,
+  so an upgrade that ships the fix wins; add a unit test in `tests/int/admin-dom-fixes.int.spec.ts`.
