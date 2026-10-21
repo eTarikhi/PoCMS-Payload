@@ -90,13 +90,14 @@ test.describe('Responsive admin on a phone', () => {
 
   test('lists show each row as a card with labelled values', async ({ page }) => {
     await login({ page, user: testUser })
-    // Experiences, not Skills: Skills is orderable (P5.5 pilot) and keeps Payload's own table.
-    await open(page, '/admin/collections/experiences')
+    // Certificates: the ordered collections are all orderable (P5.5) and keep Payload's own
+    // table, so the TanStack list this test is about lives on an unordered collection.
+    await open(page, '/admin/collections/certificates')
     const card = page.locator('[data-slot="table-body"] [data-slot="table-row"]').first()
     await expect(card).toHaveCSS('display', 'grid')
     // A value line shows its column name; the title cell doesn't.
-    const company = card.locator('[data-label="Company"]')
-    expect(await company.evaluate((el) => getComputedStyle(el, '::before').content)).toBe('"Company"')
+    const issuer = card.locator('[data-label="Issuer"]')
+    expect(await issuer.evaluate((el) => getComputedStyle(el, '::before').content)).toBe('"Issuer"')
     expect(
       await card
         .locator('[data-primary]')
@@ -126,9 +127,9 @@ test.describe('Responsive admin on a phone', () => {
     await expect(card).toHaveAttribute('data-state', 'selected')
     await card.getByRole('checkbox').tap()
     await expect(card).not.toHaveAttribute('data-state', 'selected')
-    const value = (await company.boundingBox())!
+    const value = (await issuer.boundingBox())!
     await page.touchscreen.tap(value.x + value.width - 12, value.y + value.height / 2)
-    await expect(page).toHaveURL(/\/admin\/collections\/experiences\/\d+/)
+    await expect(page).toHaveURL(/\/admin\/collections\/certificates\/\d+/)
   })
 
   test('form fields use 16px text, so phones do not zoom into them', async ({ page }) => {
