@@ -151,6 +151,19 @@ describe('AdminDomFixes', () => {
       expect(document.getElementById('plain')?.hasAttribute('aria-label')).toBe(false)
     })
 
+    it('keeps a wrapping label that already names the box after the row', () => {
+      document.body.innerHTML = `
+        <td class="cell-_select"><div class="select-row__checkbox">
+          <label><span class="sr-only">Select IT Department Manager</span>
+            <input type="checkbox" aria-label=""></label>
+        </div></td>`
+
+      nameSelectionCheckboxes(document, () => 'Select row')
+
+      // Untouched: still the empty attribute Payload renders, so the wrapping label wins the name.
+      expect(document.querySelector('input[type="checkbox"]')?.getAttribute('aria-label')).toBe('')
+    })
+
     it('is idempotent', () => {
       document.body.innerHTML = `<div class="select-all"><input type="checkbox" name="select-all" aria-label=""></div>`
       nameSelectionCheckboxes(document, () => 'Select all rows')

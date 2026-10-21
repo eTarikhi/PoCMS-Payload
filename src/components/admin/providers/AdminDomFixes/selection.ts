@@ -28,11 +28,22 @@ function selfLabelled(box: HTMLInputElement): boolean {
   return Boolean(labelledBy && box.id && labelledBy.split(/\s+/).includes(box.id))
 }
 
+/**
+ * True when a wrapping `<label>` already names the box. The list's own `DataTable` wraps Payload's
+ * checkbox in a label with "Select <document title>", which is a better name than a generic one;
+ * `aria-label` would override it, so those boxes are left exactly as they are.
+ */
+function wrappedInNamedLabel(box: HTMLInputElement): boolean {
+  const label = box.closest('label')
+  return Boolean(label?.textContent?.trim())
+}
+
 export function nameSelectionCheckboxes(
   root: ParentNode = document,
   translate: (key: string) => string = (key) => key,
 ): void {
   for (const box of root.querySelectorAll<HTMLInputElement>(SELECTOR)) {
+    if (wrappedInNamedLabel(box)) continue
     if (selfLabelled(box)) box.removeAttribute('aria-labelledby')
     if (box.getAttribute('aria-label')?.trim()) continue
     const selectsAll =
