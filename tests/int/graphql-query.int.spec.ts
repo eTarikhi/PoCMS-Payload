@@ -20,12 +20,14 @@ describe('GraphQL document query', () => {
     expect(query).not.toBeNull()
     expect(query!.field).toBe('Article')
     expect(query!.idType).toBe('Int!')
-    expect(query!.args).toEqual({ draft: false, fallbackLocale: false, locale: false, trash: true })
+    // Articles keep versions with drafts (scheduled publishing), so the query takes the draft argument.
+    expect(query!.args).toEqual({ draft: true, fallbackLocale: false, locale: false, trash: true })
     expect(query!.queries).toHaveLength(MAX_GRAPHQL_DEPTH + 1)
     // Depth 0: the image relationship selects only its id; depth 1 expands it.
     expect(query!.queries[0]).toMatch(/image \{\s+id\s+\}/)
     expect(query!.queries[1]).toMatch(/image \{\s+id\s+alt/)
-    expect(query!.queries[0]).toContain('query GetArticle($id: Int!, $trash: Boolean)')
+    // Drafts are enabled on Articles, so the query declares `$draft` too (before `$trash`).
+    expect(query!.queries[0]).toContain('query GetArticle($id: Int!, $draft: Boolean, $trash: Boolean)')
   })
 
   it('builds the query for a global (no id argument)', () => {

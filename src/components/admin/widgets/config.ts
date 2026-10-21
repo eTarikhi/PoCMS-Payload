@@ -28,7 +28,7 @@ const statFields: Field[] = [
     type: 'select',
     required: true,
     defaultValue: 'articles',
-    label: customLabel('custom:widgets.fields.collection'),
+    label: customLabel('widgets:collection'),
     options: STAT_COLLECTIONS.map(({ label, value }) => ({ label, value })),
   },
 ]
@@ -38,11 +38,11 @@ const periodField: Field = {
   type: 'select',
   required: true,
   defaultValue: '7',
-  label: customLabel('custom:widgets.fields.period'),
+  label: customLabel('widgets:period'),
   options: [
-    { label: customLabel('custom:widgets.period.last7'), value: '7' },
-    { label: customLabel('custom:widgets.period.last30'), value: '30' },
-    { label: customLabel('custom:widgets.period.last90'), value: '90' },
+    { label: customLabel('widgets:last7'), value: '7' },
+    { label: customLabel('widgets:last30'), value: '30' },
+    { label: customLabel('widgets:last90'), value: '90' },
   ],
 }
 
@@ -50,32 +50,32 @@ export const dashboard: DashboardConfig = {
   widgets: [
     {
       slug: 'welcome',
-      label: customLabel('custom:widgets.welcome'),
+      label: customLabel('widgets:welcome'),
       Component: `${dir}/Welcome#WelcomeWidget`,
       minWidth: 'medium',
     },
     {
       slug: 'content-health',
-      label: customLabel('custom:widgets.contentHealth'),
+      label: customLabel('widgets:contentHealth'),
       Component: `${dir}/ContentHealth#ContentHealthWidget`,
       minWidth: 'small',
     },
     {
       slug: 'content-count',
-      label: customLabel('custom:widgets.contentCount'),
+      label: customLabel('widgets:contentCount'),
       Component: `${dir}/ContentCount#ContentCountWidget`,
       fields: statFields,
       maxWidth: 'medium',
     },
     {
       slug: 'publishing-activity',
-      label: customLabel('custom:widgets.publishingActivity'),
+      label: customLabel('widgets:publishingActivity'),
       Component: `${dir}/PublishingActivity#PublishingActivityWidget`,
       minWidth: 'medium',
     },
     {
       slug: 'recent-changes',
-      label: customLabel('custom:widgets.recentChanges'),
+      label: customLabel('widgets:recentChanges'),
       Component: `${dir}/RecentChanges#RecentChangesWidget`,
       minWidth: 'small',
     },
@@ -83,14 +83,14 @@ export const dashboard: DashboardConfig = {
     // (ADR 0011) and shows a setup hint until its environment variables are set.
     {
       slug: 'site-traffic',
-      label: customLabel('custom:widgets.siteTraffic'),
+      label: customLabel('widgets:siteTraffic'),
       Component: `${dir}/SiteTraffic#SiteTrafficWidget`,
       fields: [periodField],
       minWidth: 'medium',
     },
     {
       slug: 'page-speed',
-      label: customLabel('custom:widgets.pageSpeed'),
+      label: customLabel('widgets:pageSpeed'),
       Component: `${dir}/PageSpeed#PageSpeedWidget`,
       fields: [
         {
@@ -98,11 +98,11 @@ export const dashboard: DashboardConfig = {
           type: 'select',
           required: true,
           defaultValue: 'PHONE',
-          label: customLabel('custom:widgets.fields.formFactor'),
+          label: customLabel('widgets:formFactor'),
           options: [
-            { label: customLabel('custom:widgets.devices.phones'), value: 'PHONE' },
-            { label: customLabel('custom:widgets.devices.desktops'), value: 'DESKTOP' },
-            { label: customLabel('custom:widgets.devices.all'), value: 'ALL' },
+            { label: customLabel('widgets:phones'), value: 'PHONE' },
+            { label: customLabel('widgets:desktops'), value: 'DESKTOP' },
+            { label: customLabel('widgets:allDevices'), value: 'ALL' },
           ],
         },
       ],
@@ -110,19 +110,19 @@ export const dashboard: DashboardConfig = {
     },
     {
       slug: 'deployments',
-      label: customLabel('custom:widgets.deployments'),
+      label: customLabel('widgets:deployments'),
       Component: `${dir}/Deployments#DeploymentsWidget`,
       minWidth: 'small',
     },
     {
       slug: 'ci-status',
-      label: customLabel('custom:widgets.ciStatus'),
+      label: customLabel('widgets:ciStatus'),
       Component: `${dir}/CIStatus#CIStatusWidget`,
       minWidth: 'small',
     },
     {
       slug: 'audit-log',
-      label: customLabel('custom:widgets.auditLog'),
+      label: customLabel('widgets:auditLog'),
       Component: `${dir}/AuditLog#AuditLogWidget`,
       minWidth: 'medium',
     },

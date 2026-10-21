@@ -1,6 +1,7 @@
 import type { JobTask } from './types'
 import { brokenLinks } from './tasks/brokenLinks'
 import { pagespeedReport } from './tasks/pagespeedReport'
+import { publishScheduled } from './tasks/publishScheduled'
 import { trashCleanup } from './tasks/trashCleanup'
 
 /**
@@ -8,7 +9,12 @@ import { trashCleanup } from './tasks/trashCleanup'
  * means adding a file in `tasks/` and an entry here; the jobs collection options, the admin page
  * and the cron endpoint all read this list.
  */
-export const TASKS: readonly JobTask[] = [trashCleanup, pagespeedReport, brokenLinks]
+export const TASKS: readonly JobTask[] = [
+  trashCleanup,
+  pagespeedReport,
+  publishScheduled,
+  brokenLinks,
+]
 
 export const TASK_SLUGS = TASKS.map((task) => task.slug)
 

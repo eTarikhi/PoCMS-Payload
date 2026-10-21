@@ -54,9 +54,17 @@ export const fetchRawPortfolioDocs = async (): Promise<RawPortfolioDocs> => {
     payload
       .find({ collection: 'certificates', pagination: false, sort: 'issuedAt', depth: 1 })
       .then((res) => res.docs),
-    // Newest first, which matches the original site.
+    // Newest first, which matches the original site. Drafts are excluded here as well as in the
+    // collection's access control: the Local API runs with `overrideAccess` by default, so the
+    // query itself has to say "published only".
     payload
-      .find({ collection: 'articles', pagination: false, sort: '-publishedAt', depth: 1 })
+      .find({
+        collection: 'articles',
+        pagination: false,
+        sort: '-publishedAt',
+        depth: 1,
+        where: { _status: { equals: 'published' } },
+      })
       .then((res) => res.docs),
     payload
       .find({ collection: 'services', pagination: false, sort: 'order', depth: 0 })
@@ -100,7 +108,8 @@ export const fetchArticleBySlug = async (slug: string): Promise<Article | null> 
   const payload = await getPayload({ config: configPromise })
   const res = await payload.find({
     collection: 'articles',
-    where: { slug: { equals: slug } },
+    // A draft has a slug too; it must not answer on the public URL.
+    where: { and: [{ slug: { equals: slug } }, { _status: { equals: 'published' } }] },
     limit: 1,
     depth: 1,
   })
@@ -118,6 +127,7 @@ export const fetchPublishedArticleSlugs = async (): Promise<string[]> => {
     pagination: false,
     depth: 0,
     sort: 'publishedAt',
+    where: { _status: { equals: 'published' } },
   })
   return res.docs
     .filter((doc) => Boolean(doc.slug) && (doc.description ?? '').trim().length > 0)

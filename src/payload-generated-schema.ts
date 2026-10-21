@@ -23,6 +23,15 @@ import {
 } from '@payloadcms/db-vercel-postgres/drizzle/pg-core'
 import { sql, relations } from '@payloadcms/db-vercel-postgres/drizzle'
 export const enum_articles_category = pgEnum('enum_articles_category', ['articles', 'others'])
+export const enum_articles_status = pgEnum('enum_articles_status', ['draft', 'published'])
+export const enum__articles_v_version_category = pgEnum('enum__articles_v_version_category', [
+  'articles',
+  'others',
+])
+export const enum__articles_v_version_status = pgEnum('enum__articles_v_version_status', [
+  'draft',
+  'published',
+])
 export const enum_projects_categories = pgEnum('enum_projects_categories', [
   'front-end',
   'back-end',
@@ -118,6 +127,7 @@ export const enum_roles_levels_site_settings = pgEnum('enum_roles_levels_site_se
 export const enum_job_runs_task = pgEnum('enum_job_runs_task', [
   'trash-cleanup',
   'pagespeed-report',
+  'publish-scheduled',
   'broken-links',
 ])
 export const enum_job_runs_status = pgEnum('enum_job_runs_status', [
@@ -208,23 +218,20 @@ export const articles = pgTable(
   'articles',
   {
     id: serial('id').primaryKey(),
-    title: varchar('title').notNull(),
-    excerpt: varchar('excerpt').notNull(),
+    title: varchar('title'),
+    excerpt: varchar('excerpt'),
     slug: varchar('slug'),
     description: varchar('description'),
     featured: boolean('featured'),
     category: enum_articles_category('category'),
-    publishedAt: timestamp('published_at', {
-      mode: 'string',
-      withTimezone: true,
-      precision: 3,
-    }).notNull(),
+    publishedAt: timestamp('published_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    publishAt: timestamp('publish_at', { mode: 'string', withTimezone: true, precision: 3 }),
     readTime: numeric('read_time', { mode: 'number' }),
     image: integer('image_id').references(() => media.id, {
       onDelete: 'set null',
     }),
     imageUrl: varchar('image_url'),
-    link: varchar('link').notNull(),
+    link: varchar('link'),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
@@ -232,15 +239,88 @@ export const articles = pgTable(
       .defaultNow()
       .notNull(),
     deletedAt: timestamp('deleted_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    _status: enum_articles_status('_status').default('draft'),
   },
   (columns) => [
     uniqueIndex('articles_slug_idx').on(columns.slug),
     index('articles_category_idx').on(columns.category),
     index('articles_published_at_idx').on(columns.publishedAt),
+    index('articles_publish_at_idx').on(columns.publishAt),
     index('articles_image_idx').on(columns.image),
     index('articles_updated_at_idx').on(columns.updatedAt),
     index('articles_created_at_idx').on(columns.createdAt),
     index('articles_deleted_at_idx').on(columns.deletedAt),
+    index('articles__status_idx').on(columns._status),
+  ],
+)
+
+export const _articles_v = pgTable(
+  '_articles_v',
+  {
+    id: serial('id').primaryKey(),
+    parent: integer('parent_id').references(() => articles.id, {
+      onDelete: 'set null',
+    }),
+    version_title: varchar('version_title'),
+    version_excerpt: varchar('version_excerpt'),
+    version_slug: varchar('version_slug'),
+    version_description: varchar('version_description'),
+    version_featured: boolean('version_featured'),
+    version_category: enum__articles_v_version_category('version_category'),
+    version_publishedAt: timestamp('version_published_at', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }),
+    version_publishAt: timestamp('version_publish_at', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }),
+    version_readTime: numeric('version_read_time', { mode: 'number' }),
+    version_image: integer('version_image_id').references(() => media.id, {
+      onDelete: 'set null',
+    }),
+    version_imageUrl: varchar('version_image_url'),
+    version_link: varchar('version_link'),
+    version_updatedAt: timestamp('version_updated_at', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }),
+    version_createdAt: timestamp('version_created_at', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }),
+    version_deletedAt: timestamp('version_deleted_at', {
+      mode: 'string',
+      withTimezone: true,
+      precision: 3,
+    }),
+    version__status: enum__articles_v_version_status('version__status').default('draft'),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    latest: boolean('latest'),
+  },
+  (columns) => [
+    index('_articles_v_parent_idx').on(columns.parent),
+    index('_articles_v_version_version_slug_idx').on(columns.version_slug),
+    index('_articles_v_version_version_category_idx').on(columns.version_category),
+    index('_articles_v_version_version_published_at_idx').on(columns.version_publishedAt),
+    index('_articles_v_version_version_publish_at_idx').on(columns.version_publishAt),
+    index('_articles_v_version_version_image_idx').on(columns.version_image),
+    index('_articles_v_version_version_updated_at_idx').on(columns.version_updatedAt),
+    index('_articles_v_version_version_created_at_idx').on(columns.version_createdAt),
+    index('_articles_v_version_version_deleted_at_idx').on(columns.version_deletedAt),
+    index('_articles_v_version_version__status_idx').on(columns.version__status),
+    index('_articles_v_created_at_idx').on(columns.createdAt),
+    index('_articles_v_updated_at_idx').on(columns.updatedAt),
+    index('_articles_v_latest_idx').on(columns.latest),
   ],
 )
 
@@ -1307,6 +1387,18 @@ export const relations_articles = relations(articles, ({ one }) => ({
     relationName: 'image',
   }),
 }))
+export const relations__articles_v = relations(_articles_v, ({ one }) => ({
+  parent: one(articles, {
+    fields: [_articles_v.parent],
+    references: [articles.id],
+    relationName: 'parent',
+  }),
+  version_image: one(media, {
+    fields: [_articles_v.version_image],
+    references: [media.id],
+    relationName: 'version_image',
+  }),
+}))
 export const relations_projects_categories = relations(projects_categories, ({ one }) => ({
   parent: one(projects, {
     fields: [projects_categories.parent],
@@ -1664,6 +1756,9 @@ export const relations_site_settings = relations(site_settings, () => ({}))
 
 type DatabaseSchema = {
   enum_articles_category: typeof enum_articles_category
+  enum_articles_status: typeof enum_articles_status
+  enum__articles_v_version_category: typeof enum__articles_v_version_category
+  enum__articles_v_version_status: typeof enum__articles_v_version_status
   enum_projects_categories: typeof enum_projects_categories
   enum_services_icon_font: typeof enum_services_icon_font
   enum_skills_group: typeof enum_skills_group
@@ -1696,6 +1791,7 @@ type DatabaseSchema = {
   enum_footer_contact_info_icon_name: typeof enum_footer_contact_info_icon_name
   enum_footer_contact_info_class_name: typeof enum_footer_contact_info_class_name
   articles: typeof articles
+  _articles_v: typeof _articles_v
   projects_categories: typeof projects_categories
   projects: typeof projects
   media: typeof media
@@ -1737,6 +1833,7 @@ type DatabaseSchema = {
   navigation: typeof navigation
   site_settings: typeof site_settings
   relations_articles: typeof relations_articles
+  relations__articles_v: typeof relations__articles_v
   relations_projects_categories: typeof relations_projects_categories
   relations_projects: typeof relations_projects
   relations_media: typeof relations_media

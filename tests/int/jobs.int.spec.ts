@@ -17,7 +17,12 @@ describe('JobRun registry', () => {
   it('registers every task with a unique slug and a schedule', () => {
     const slugs = TASKS.map((task) => task.slug)
     expect(new Set(slugs).size).toBe(slugs.length)
-    expect(slugs).toEqual(['trash-cleanup', 'pagespeed-report', 'broken-links'])
+    expect(slugs).toEqual([
+      'trash-cleanup',
+      'pagespeed-report',
+      'publish-scheduled',
+      'broken-links',
+    ])
     for (const task of TASKS) {
       expect(task.label.length).toBeGreaterThan(0)
       expect(task.description.length).toBeGreaterThan(0)

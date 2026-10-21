@@ -4,8 +4,8 @@
  * stylesheets (the component itself pulls in all of Payload's UI).
  */
 export const PAGINATION_LABELS: Record<'left' | 'right', string> = {
-  left: 'custom:pagination.previous',
-  right: 'custom:pagination.next',
+  left: 'pagination:previous',
+  right: 'pagination:next',
 }
 
 /**

@@ -1,3 +1,4 @@
+import { can } from '@/access/permissions'
 import { contentAccess, hiddenWithout } from '@/access/roles'
 import { imageSourceField } from './imageSource'
 import { articlePagePath, hasArticlePage } from '@/app/(frontend)/lib/article-page'
@@ -28,11 +29,23 @@ export const Articles: CollectionConfig = {
     },
     preview: (doc) => (hasArticlePage(doc) ? articlePagePath(String(doc.slug)) : null),
   },
+  // Drafts and versions (CNT): an editor can write and preview an article for days before it goes
+  // live. Public reads skip drafts by default, so a draft is invisible until it is published.
+  versions: {
+    drafts: true,
+    maxPerDoc: 20,
+  },
   defaultSort: 'publishedAt',
   // Deleting moves documents to the trash (restorable); deleting for good needs the Full level.
   trash: true,
   // Levels from the user's roles (ADR 0011): public read, edit and trash, full to delete for good.
-  access: contentAccess('articles'),
+  // Drafts change "public": an anonymous reader only sees published articles, while the admin's
+  // signed-in readers see drafts too — that is what makes a draft private until it is published.
+  access: {
+    ...contentAccess('articles'),
+    read: ({ req }) =>
+      req.user ? can(req.user, 'articles', 'read') : { _status: { equals: 'published' } },
+  },
   fields: [
     { name: 'title', type: 'text', required: true },
     { name: 'excerpt', type: 'textarea', required: true },
@@ -80,6 +93,19 @@ export const Articles: CollectionConfig = {
       admin: {
         position: 'sidebar',
         date: { pickerAppearance: 'dayOnly', displayFormat: 'MMMM d, yyyy' },
+      },
+    },
+    {
+      name: 'publishAt',
+      type: 'date',
+      index: true,
+      admin: {
+        position: 'sidebar',
+        // Only meaningful while the article is still a draft.
+        condition: (data) => data?._status !== 'published',
+        date: { pickerAppearance: 'dayAndTime' },
+        description:
+          'Publish this draft automatically at this time. The daily jobs cron checks; Admin › Scheduled jobs → Run now publishes immediately.',
       },
     },
     {

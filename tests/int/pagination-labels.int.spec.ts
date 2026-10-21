@@ -21,10 +21,7 @@ describe('labelPaginationArrows', () => {
 
     // The component passes Payload's `t`; the test passes the same catalogue, so the label text
     // stays covered together with the key lookup.
-    const t = (key: string): string => {
-      const [, path] = key.split(':')
-      return path === 'pagination.previous' ? 'Previous page' : 'Next page'
-    }
+    const t = (key: string): string => (key === 'pagination:previous' ? 'Previous page' : 'Next page')
     labelPaginationArrows(document, t)
 
     expect(document.querySelector('.clickable-arrow--left')?.getAttribute('aria-label')).toBe(
@@ -68,7 +65,7 @@ describe('labelPaginationArrows', () => {
       '<button class="clickable-arrow clickable-arrow--left" type="button"></button>'
     labelPaginationArrows(document)
     expect(document.querySelector('.clickable-arrow--left')?.getAttribute('aria-label')).toBe(
-      'custom:pagination.previous',
+      'pagination:previous',
     )
   })
 })

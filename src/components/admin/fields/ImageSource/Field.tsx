@@ -37,8 +37,8 @@ export function ImageSourceField({
   ...rest
 }: ImageSourceFieldProps) {
   const t = useCustomT()
-  const resolvedUrlLabel = urlLabel ?? t('custom:imageSource.externalUrlDefault')
-  const resolvedUrlDescription = urlDescription ?? t('custom:imageSource.externalUrlDescription')
+  const resolvedUrlLabel = urlLabel ?? t('imageSource:externalUrlDefault')
+  const resolvedUrlDescription = urlDescription ?? t('imageSource:externalUrlDescription')
   // `path` is passed outright: with `potentiallyStalePath` only, the hook resolves through the
   // surrounding FieldPathContext, which inside a field component is the field's own path — both
   // hooks then read the same field and the control reports the wrong source.
@@ -70,13 +70,13 @@ export function ImageSourceField({
 
       <div
         role="tablist"
-        aria-label={t('custom:imageSource.tabListLabel')}
+        aria-label={t('imageSource:tabListLabel')}
         className="acn:mt-2 acn:inline-flex acn:gap-1 acn:rounded-lg acn:border acn:border-border acn:bg-muted acn:p-1"
       >
         {(
           [
-            ['upload', t('custom:imageSource.mediaLibrary')],
-            ['url', t('custom:imageSource.externalUrl')],
+            ['upload', t('imageSource:mediaLibrary')],
+            ['url', t('imageSource:externalUrl')],
           ] as const
         ).map(([value, label]) => (
           <button
@@ -151,18 +151,18 @@ export function ImageSourceField({
         ) : null}
         {hasUrl && previewFailed ? (
           <p className="acn:mt-2 acn:text-sm acn:text-destructive">
-            {t('custom:imageSource.brokenUrl')}
+            {t('imageSource:brokenUrl')}
           </p>
         ) : null}
       </div>
 
       <p className="acn:mt-3 acn:text-sm acn:text-muted-foreground" data-testid="image-source-status">
         {source === 'upload'
-          ? t('custom:imageSource.usesUpload')
+          ? t('imageSource:usesUpload')
           : source === 'url'
-            ? t('custom:imageSource.usesUrl')
-            : t('custom:imageSource.usesNothing')}
-        {hasUpload && hasUrl ? ` ${t('custom:imageSource.uploadWins')}` : null}
+            ? t('imageSource:usesUrl')
+            : t('imageSource:usesNothing')}
+        {hasUpload && hasUrl ? ` ${t('imageSource:uploadWins')}` : null}
       </p>
 
       <FieldError path={path} showError={upload.showError} message={upload.errorMessage} />

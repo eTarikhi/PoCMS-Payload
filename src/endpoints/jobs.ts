@@ -1,12 +1,13 @@
 import { timingSafeEqual } from 'node:crypto'
 
-import { revalidateTag } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import type { Endpoint, PayloadRequest } from 'payload'
 
 import { hasCapability } from '@/access/permissions'
 import type { JobRun } from '@/payload-types'
 
 import { taskBySlug } from '@/jobs/registry'
+import { PORTFOLIO_CACHE_TAG } from '@/app/(frontend)/lib/revalidate'
 import { queueDueJobs, queueJob, runQueue } from '@/jobs/runner'
 
 /**
@@ -34,16 +35,35 @@ async function body(req: PayloadRequest): Promise<Record<string, unknown>> {
 }
 
 /**
- * Expires the caches a finished task fills. The Page speed report stores its own runs, but the
- * live lab test on the widget is cached for a day: expiring the tag makes the next render run
- * Lighthouse again, which is what "Run again" means.
+ * Expires the caches a finished task changes.
+ *
+ * The Page speed report stores its own runs, but the live lab test on the widget is cached for a
+ * day: expiring the tag makes the next render run Lighthouse again, which is what "Run again" means.
+ *
+ * Scheduled publishing changes what the public site shows, and it runs outside a document hook — the
+ * collection hooks do call `revalidatePortfolio`, but there is no request store in a job, so those
+ * calls log and do nothing. Here the endpoint *is* a request, so the tag and the affected article
+ * paths are expired explicitly.
  */
-function refreshTaskCaches(task: string) {
+function refreshTaskCaches(job: JobRun) {
   try {
-    if (task === 'pagespeed-report') revalidateTag('pagespeed', { expire: 0 })
+    if (job.task === 'pagespeed-report') revalidateTag('pagespeed', { expire: 0 })
+    if (job.task === 'publish-scheduled') {
+      revalidateTag(PORTFOLIO_CACHE_TAG, { expire: 0 })
+      revalidatePath('/')
+      for (const slug of publishedSlugs(job)) revalidatePath(`/articles/${slug}`)
+    }
   } catch {
     // Not in a request (integration tests): the cached value expires on its own.
   }
+}
+
+/** Slugs a finished publish run reported, from its `details`. */
+function publishedSlugs(job: JobRun): string[] {
+  const details = job.details as { published?: unknown } | null | undefined
+  return Array.isArray(details?.published)
+    ? details.published.filter((slug): slug is string => typeof slug === 'string')
+    : []
 }
 
 const publicJob = (job: JobRun) => ({
@@ -100,7 +120,7 @@ export const jobsRunEndpoint: Endpoint = {
     req.payload.logger.info({ msg: `JobRun queued: ${task}`, user: req.user?.email })
     const { ran } = await runQueue(req.payload, { only: task })
     const job = ran.find((candidate) => candidate.id === queued.job.id) ?? queued.job
-    if (job.status === 'done') refreshTaskCaches(task)
+    if (job.status === 'done') refreshTaskCaches(job)
     return json({ job: publicJob(job) }, job.status === 'failed' ? 500 : 200)
   },
 }
@@ -160,7 +180,7 @@ export const jobsCronEndpoint: Endpoint = {
     }
     const { queued, skipped } = await queueDueJobs(req.payload)
     const { ran } = await runQueue(req.payload)
-    for (const job of ran) if (job.status === 'done') refreshTaskCaches(job.task)
+    for (const job of ran) if (job.status === 'done') refreshTaskCaches(job)
     req.payload.logger.info({
       msg: 'Scheduled jobs ran',
       queued: queued.map((job) => job.id),

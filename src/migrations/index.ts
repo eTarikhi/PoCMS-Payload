@@ -3,6 +3,7 @@ import * as migration_20261020_131351_jobs_and_pagespeed from './20261020_131351
 import * as migration_20261020_182625_audit_log from './20261020_182625_audit_log';
 import * as migration_20261020_223003_navigation_and_site_settings from './20261020_223003_navigation_and_site_settings';
 import * as migration_20261020_225420_media_sizes_and_focal_point from './20261020_225420_media_sizes_and_focal_point';
+import * as migration_20261020_231332_drafts_and_scheduled_publishing from './20261020_231332_drafts_and_scheduled_publishing';
 
 export const migrations = [
   {
@@ -28,6 +29,11 @@ export const migrations = [
   {
     up: migration_20261020_225420_media_sizes_and_focal_point.up,
     down: migration_20261020_225420_media_sizes_and_focal_point.down,
-    name: '20261020_225420_media_sizes_and_focal_point'
+    name: '20261020_225420_media_sizes_and_focal_point',
+  },
+  {
+    up: migration_20261020_231332_drafts_and_scheduled_publishing.up,
+    down: migration_20261020_231332_drafts_and_scheduled_publishing.down,
+    name: '20261020_231332_drafts_and_scheduled_publishing'
   },
 ];

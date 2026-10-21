@@ -3,6 +3,8 @@ type Query {
   Articles(draft: Boolean, where: Article_where, limit: Int, page: Int, pagination: Boolean, select: Boolean, sort: String, trash: Boolean): Articles
   countArticles(draft: Boolean, trash: Boolean, where: Article_where): countArticles
   docAccessArticle(id: Int!): articlesDocAccess
+  versionArticle(id: Int, trash: Boolean): ArticleVersion
+  versionsArticles(where: versionsArticle_where, limit: Int, page: Int, pagination: Boolean, select: Boolean, sort: String, trash: Boolean): versionsArticles
   Project(id: Int!, draft: Boolean, select: Boolean, trash: Boolean): Project
   Projects(draft: Boolean, where: Project_where, limit: Int, page: Int, pagination: Boolean, select: Boolean, sort: String, trash: Boolean): Projects
   countProjects(draft: Boolean, trash: Boolean, where: Project_where): countProjects
@@ -84,20 +86,22 @@ type Query {
 
 type Article {
   id: Int!
-  title: String!
-  excerpt: String!
+  title: String
+  excerpt: String
   slug: String
   description: String
   featured: Boolean
   category: Article_category
-  publishedAt: DateTime!
+  publishedAt: DateTime
+  publishAt: DateTime
   readTime: Float
   image: Media
   imageUrl: String
-  link: String!
+  link: String
   updatedAt: DateTime
   createdAt: DateTime
   deletedAt: DateTime
+  _status: Article__status
 }
 
 enum Article_category {
@@ -162,6 +166,11 @@ type Media_Sizes_Og {
   filename: String
 }
 
+enum Article__status {
+  draft
+  published
+}
+
 type Articles {
   docs: [Article!]!
   hasNextPage: Boolean!
@@ -184,6 +193,7 @@ input Article_where {
   featured: Article_featured_operator
   category: Article_category_operator
   publishedAt: Article_publishedAt_operator
+  publishAt: Article_publishAt_operator
   readTime: Article_readTime_operator
   image: Article_image_operator
   imageUrl: Article_imageUrl_operator
@@ -191,6 +201,7 @@ input Article_where {
   updatedAt: Article_updatedAt_operator
   createdAt: Article_createdAt_operator
   deletedAt: Article_deletedAt_operator
+  _status: Article__status_operator
   id: Article_id_operator
   AND: [Article_where_and]
   OR: [Article_where_or]
@@ -260,6 +271,17 @@ input Article_publishedAt_operator {
   less_than_equal: DateTime
   less_than: DateTime
   like: DateTime
+}
+
+input Article_publishAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+  exists: Boolean
 }
 
 input Article_readTime_operator {
@@ -340,6 +362,20 @@ input Article_deletedAt_operator {
   exists: Boolean
 }
 
+input Article__status_operator {
+  equals: Article__status_Input
+  not_equals: Article__status_Input
+  in: [Article__status_Input]
+  not_in: [Article__status_Input]
+  all: [Article__status_Input]
+  exists: Boolean
+}
+
+enum Article__status_Input {
+  draft
+  published
+}
+
 input Article_id_operator {
   equals: Int
   not_equals: Int
@@ -358,6 +394,7 @@ input Article_where_and {
   featured: Article_featured_operator
   category: Article_category_operator
   publishedAt: Article_publishedAt_operator
+  publishAt: Article_publishAt_operator
   readTime: Article_readTime_operator
   image: Article_image_operator
   imageUrl: Article_imageUrl_operator
@@ -365,6 +402,7 @@ input Article_where_and {
   updatedAt: Article_updatedAt_operator
   createdAt: Article_createdAt_operator
   deletedAt: Article_deletedAt_operator
+  _status: Article__status_operator
   id: Article_id_operator
   AND: [Article_where_and]
   OR: [Article_where_or]
@@ -378,6 +416,7 @@ input Article_where_or {
   featured: Article_featured_operator
   category: Article_category_operator
   publishedAt: Article_publishedAt_operator
+  publishAt: Article_publishAt_operator
   readTime: Article_readTime_operator
   image: Article_image_operator
   imageUrl: Article_imageUrl_operator
@@ -385,6 +424,7 @@ input Article_where_or {
   updatedAt: Article_updatedAt_operator
   createdAt: Article_createdAt_operator
   deletedAt: Article_deletedAt_operator
+  _status: Article__status_operator
   id: Article_id_operator
   AND: [Article_where_and]
   OR: [Article_where_or]
@@ -400,6 +440,7 @@ type articlesDocAccess {
   read: ArticlesReadDocAccess
   update: ArticlesUpdateDocAccess
   delete: ArticlesDeleteDocAccess
+  readVersions: ArticlesReadVersionsDocAccess
 }
 
 type ArticlesDocAccessFields {
@@ -410,6 +451,7 @@ type ArticlesDocAccessFields {
   featured: ArticlesDocAccessFields_featured
   category: ArticlesDocAccessFields_category
   publishedAt: ArticlesDocAccessFields_publishedAt
+  publishAt: ArticlesDocAccessFields_publishAt
   readTime: ArticlesDocAccessFields_readTime
   image: ArticlesDocAccessFields_image
   imageUrl: ArticlesDocAccessFields_imageUrl
@@ -417,6 +459,7 @@ type ArticlesDocAccessFields {
   updatedAt: ArticlesDocAccessFields_updatedAt
   createdAt: ArticlesDocAccessFields_createdAt
   deletedAt: ArticlesDocAccessFields_deletedAt
+  _status: ArticlesDocAccessFields__status
 }
 
 type ArticlesDocAccessFields_title {
@@ -577,6 +620,29 @@ type ArticlesDocAccessFields_publishedAt_Update {
 }
 
 type ArticlesDocAccessFields_publishedAt_Delete {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_publishAt {
+  create: ArticlesDocAccessFields_publishAt_Create
+  read: ArticlesDocAccessFields_publishAt_Read
+  update: ArticlesDocAccessFields_publishAt_Update
+  delete: ArticlesDocAccessFields_publishAt_Delete
+}
+
+type ArticlesDocAccessFields_publishAt_Create {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_publishAt_Read {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_publishAt_Update {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_publishAt_Delete {
   permission: Boolean!
 }
 
@@ -741,6 +807,29 @@ type ArticlesDocAccessFields_deletedAt_Delete {
   permission: Boolean!
 }
 
+type ArticlesDocAccessFields__status {
+  create: ArticlesDocAccessFields__status_Create
+  read: ArticlesDocAccessFields__status_Read
+  update: ArticlesDocAccessFields__status_Update
+  delete: ArticlesDocAccessFields__status_Delete
+}
+
+type ArticlesDocAccessFields__status_Create {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields__status_Read {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields__status_Update {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields__status_Delete {
+  permission: Boolean!
+}
+
 type ArticlesCreateDocAccess {
   permission: Boolean!
   where: JSONObject
@@ -764,6 +853,352 @@ type ArticlesUpdateDocAccess {
 type ArticlesDeleteDocAccess {
   permission: Boolean!
   where: JSONObject
+}
+
+type ArticlesReadVersionsDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type ArticleVersion {
+  parent(draft: Boolean): Article
+  version: ArticleVersion_Version
+  createdAt: DateTime
+  updatedAt: DateTime
+  latest: Boolean
+  id: Int
+}
+
+type ArticleVersion_Version {
+  title: String
+  excerpt: String
+  slug: String
+  description: String
+  featured: Boolean
+  category: ArticleVersion_Version_category
+  publishedAt: DateTime
+  publishAt: DateTime
+  readTime: Float
+  image: Media
+  imageUrl: String
+  link: String
+  updatedAt: DateTime
+  createdAt: DateTime
+  deletedAt: DateTime
+  _status: ArticleVersion_Version__status
+}
+
+enum ArticleVersion_Version_category {
+  articles
+  others
+}
+
+enum ArticleVersion_Version__status {
+  draft
+  published
+}
+
+type versionsArticles {
+  docs: [ArticleVersion!]!
+  hasNextPage: Boolean!
+  hasPrevPage: Boolean!
+  limit: Int!
+  nextPage: Int
+  offset: Int
+  page: Int!
+  pagingCounter: Int!
+  prevPage: Int
+  totalDocs: Int!
+  totalPages: Int!
+}
+
+input versionsArticle_where {
+  parent: versionsArticle_parent_operator
+  version__title: versionsArticle_version__title_operator
+  version__excerpt: versionsArticle_version__excerpt_operator
+  version__slug: versionsArticle_version__slug_operator
+  version__description: versionsArticle_version__description_operator
+  version__featured: versionsArticle_version__featured_operator
+  version__category: versionsArticle_version__category_operator
+  version__publishedAt: versionsArticle_version__publishedAt_operator
+  version__publishAt: versionsArticle_version__publishAt_operator
+  version__readTime: versionsArticle_version__readTime_operator
+  version__image: versionsArticle_version__image_operator
+  version__imageUrl: versionsArticle_version__imageUrl_operator
+  version__link: versionsArticle_version__link_operator
+  version__updatedAt: versionsArticle_version__updatedAt_operator
+  version__createdAt: versionsArticle_version__createdAt_operator
+  version__deletedAt: versionsArticle_version__deletedAt_operator
+  version___status: versionsArticle_version___status_operator
+  createdAt: versionsArticle_createdAt_operator
+  updatedAt: versionsArticle_updatedAt_operator
+  latest: versionsArticle_latest_operator
+  id: versionsArticle_id_operator
+  AND: [versionsArticle_where_and]
+  OR: [versionsArticle_where_or]
+}
+
+input versionsArticle_parent_operator {
+  equals: JSON
+  not_equals: JSON
+  in: [JSON]
+  not_in: [JSON]
+  all: [JSON]
+  exists: Boolean
+}
+
+input versionsArticle_version__title_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+}
+
+input versionsArticle_version__excerpt_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+}
+
+input versionsArticle_version__slug_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
+}
+
+input versionsArticle_version__description_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  exists: Boolean
+}
+
+input versionsArticle_version__featured_operator {
+  equals: Boolean
+  not_equals: Boolean
+  exists: Boolean
+}
+
+input versionsArticle_version__category_operator {
+  equals: versionsArticle_version__category_Input
+  not_equals: versionsArticle_version__category_Input
+  in: [versionsArticle_version__category_Input]
+  not_in: [versionsArticle_version__category_Input]
+  all: [versionsArticle_version__category_Input]
+  exists: Boolean
+}
+
+enum versionsArticle_version__category_Input {
+  articles
+  others
+}
+
+input versionsArticle_version__publishedAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+}
+
+input versionsArticle_version__publishAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+  exists: Boolean
+}
+
+input versionsArticle_version__readTime_operator {
+  equals: Float
+  not_equals: Float
+  greater_than_equal: Float
+  greater_than: Float
+  less_than_equal: Float
+  less_than: Float
+  exists: Boolean
+}
+
+input versionsArticle_version__image_operator {
+  equals: JSON
+  not_equals: JSON
+  in: [JSON]
+  not_in: [JSON]
+  all: [JSON]
+  exists: Boolean
+}
+
+input versionsArticle_version__imageUrl_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
+}
+
+input versionsArticle_version__link_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+}
+
+input versionsArticle_version__updatedAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+  exists: Boolean
+}
+
+input versionsArticle_version__createdAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+  exists: Boolean
+}
+
+input versionsArticle_version__deletedAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+  exists: Boolean
+}
+
+input versionsArticle_version___status_operator {
+  equals: versionsArticle_version___status_Input
+  not_equals: versionsArticle_version___status_Input
+  in: [versionsArticle_version___status_Input]
+  not_in: [versionsArticle_version___status_Input]
+  all: [versionsArticle_version___status_Input]
+  exists: Boolean
+}
+
+enum versionsArticle_version___status_Input {
+  draft
+  published
+}
+
+input versionsArticle_createdAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+  exists: Boolean
+}
+
+input versionsArticle_updatedAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+  exists: Boolean
+}
+
+input versionsArticle_latest_operator {
+  equals: Boolean
+  not_equals: Boolean
+  exists: Boolean
+}
+
+input versionsArticle_id_operator {
+  equals: Int
+  not_equals: Int
+  greater_than_equal: Int
+  greater_than: Int
+  less_than_equal: Int
+  less_than: Int
+  exists: Boolean
+}
+
+input versionsArticle_where_and {
+  parent: versionsArticle_parent_operator
+  version__title: versionsArticle_version__title_operator
+  version__excerpt: versionsArticle_version__excerpt_operator
+  version__slug: versionsArticle_version__slug_operator
+  version__description: versionsArticle_version__description_operator
+  version__featured: versionsArticle_version__featured_operator
+  version__category: versionsArticle_version__category_operator
+  version__publishedAt: versionsArticle_version__publishedAt_operator
+  version__publishAt: versionsArticle_version__publishAt_operator
+  version__readTime: versionsArticle_version__readTime_operator
+  version__image: versionsArticle_version__image_operator
+  version__imageUrl: versionsArticle_version__imageUrl_operator
+  version__link: versionsArticle_version__link_operator
+  version__updatedAt: versionsArticle_version__updatedAt_operator
+  version__createdAt: versionsArticle_version__createdAt_operator
+  version__deletedAt: versionsArticle_version__deletedAt_operator
+  version___status: versionsArticle_version___status_operator
+  createdAt: versionsArticle_createdAt_operator
+  updatedAt: versionsArticle_updatedAt_operator
+  latest: versionsArticle_latest_operator
+  id: versionsArticle_id_operator
+  AND: [versionsArticle_where_and]
+  OR: [versionsArticle_where_or]
+}
+
+input versionsArticle_where_or {
+  parent: versionsArticle_parent_operator
+  version__title: versionsArticle_version__title_operator
+  version__excerpt: versionsArticle_version__excerpt_operator
+  version__slug: versionsArticle_version__slug_operator
+  version__description: versionsArticle_version__description_operator
+  version__featured: versionsArticle_version__featured_operator
+  version__category: versionsArticle_version__category_operator
+  version__publishedAt: versionsArticle_version__publishedAt_operator
+  version__publishAt: versionsArticle_version__publishAt_operator
+  version__readTime: versionsArticle_version__readTime_operator
+  version__image: versionsArticle_version__image_operator
+  version__imageUrl: versionsArticle_version__imageUrl_operator
+  version__link: versionsArticle_version__link_operator
+  version__updatedAt: versionsArticle_version__updatedAt_operator
+  version__createdAt: versionsArticle_version__createdAt_operator
+  version__deletedAt: versionsArticle_version__deletedAt_operator
+  version___status: versionsArticle_version___status_operator
+  createdAt: versionsArticle_createdAt_operator
+  updatedAt: versionsArticle_updatedAt_operator
+  latest: versionsArticle_latest_operator
+  id: versionsArticle_id_operator
+  AND: [versionsArticle_where_and]
+  OR: [versionsArticle_where_or]
 }
 
 type Project {
@@ -7597,6 +8032,7 @@ type JobRun {
 enum JobRun_task {
   trash_cleanup
   pagespeed_report
+  publish_scheduled
   broken_links
 }
 
@@ -7657,6 +8093,7 @@ input JobRun_task_operator {
 enum JobRun_task_Input {
   trash_cleanup
   pagespeed_report
+  publish_scheduled
   broken_links
 }
 
@@ -9815,7 +10252,7 @@ type PayloadKvDeleteDocAccess {
 
 type PayloadLockedDocument {
   id: Int!
-  document: PayloadLockedDocument_Document_Relationship
+  document(draft: Boolean): PayloadLockedDocument_Document_Relationship
   globalSlug: String
   user: PayloadLockedDocument_User_Relationship
   updatedAt: DateTime
@@ -11908,6 +12345,7 @@ type articlesAccess {
   read: ArticlesReadAccess
   update: ArticlesUpdateAccess
   delete: ArticlesDeleteAccess
+  readVersions: ArticlesReadVersionsAccess
 }
 
 type ArticlesFields {
@@ -11918,6 +12356,7 @@ type ArticlesFields {
   featured: ArticlesFields_featured
   category: ArticlesFields_category
   publishedAt: ArticlesFields_publishedAt
+  publishAt: ArticlesFields_publishAt
   readTime: ArticlesFields_readTime
   image: ArticlesFields_image
   imageUrl: ArticlesFields_imageUrl
@@ -11925,6 +12364,7 @@ type ArticlesFields {
   updatedAt: ArticlesFields_updatedAt
   createdAt: ArticlesFields_createdAt
   deletedAt: ArticlesFields_deletedAt
+  _status: ArticlesFields__status
 }
 
 type ArticlesFields_title {
@@ -12085,6 +12525,29 @@ type ArticlesFields_publishedAt_Update {
 }
 
 type ArticlesFields_publishedAt_Delete {
+  permission: Boolean!
+}
+
+type ArticlesFields_publishAt {
+  create: ArticlesFields_publishAt_Create
+  read: ArticlesFields_publishAt_Read
+  update: ArticlesFields_publishAt_Update
+  delete: ArticlesFields_publishAt_Delete
+}
+
+type ArticlesFields_publishAt_Create {
+  permission: Boolean!
+}
+
+type ArticlesFields_publishAt_Read {
+  permission: Boolean!
+}
+
+type ArticlesFields_publishAt_Update {
+  permission: Boolean!
+}
+
+type ArticlesFields_publishAt_Delete {
   permission: Boolean!
 }
 
@@ -12249,6 +12712,29 @@ type ArticlesFields_deletedAt_Delete {
   permission: Boolean!
 }
 
+type ArticlesFields__status {
+  create: ArticlesFields__status_Create
+  read: ArticlesFields__status_Read
+  update: ArticlesFields__status_Update
+  delete: ArticlesFields__status_Delete
+}
+
+type ArticlesFields__status_Create {
+  permission: Boolean!
+}
+
+type ArticlesFields__status_Read {
+  permission: Boolean!
+}
+
+type ArticlesFields__status_Update {
+  permission: Boolean!
+}
+
+type ArticlesFields__status_Delete {
+  permission: Boolean!
+}
+
 type ArticlesCreateAccess {
   permission: Boolean!
   where: JSONObject
@@ -12265,6 +12751,11 @@ type ArticlesUpdateAccess {
 }
 
 type ArticlesDeleteAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type ArticlesReadVersionsAccess {
   permission: Boolean!
   where: JSONObject
 }
@@ -19240,6 +19731,7 @@ type Mutation {
   updateArticle(id: Int!, autosave: Boolean, data: mutationArticleUpdateInput!, draft: Boolean, trash: Boolean): Article
   deleteArticle(id: Int!, trash: Boolean): Article
   duplicateArticle(id: Int!, data: mutationArticleInput!): Article
+  restoreVersionArticle(id: Int, draft: Boolean): Article
   createProject(data: mutationProjectInput!, draft: Boolean): Project
   updateProject(id: Int!, autosave: Boolean, data: mutationProjectUpdateInput!, draft: Boolean, trash: Boolean): Project
   deleteProject(id: Int!, trash: Boolean): Project
@@ -19327,6 +19819,7 @@ input mutationArticleInput {
   featured: Boolean
   category: Article_category_MutationInput
   publishedAt: String!
+  publishAt: String
   readTime: Float
   image: Int
   imageUrl: String
@@ -19334,11 +19827,17 @@ input mutationArticleInput {
   updatedAt: String
   createdAt: String
   deletedAt: String
+  _status: Article__status_MutationInput
 }
 
 enum Article_category_MutationInput {
   articles
   others
+}
+
+enum Article__status_MutationInput {
+  draft
+  published
 }
 
 input mutationArticleUpdateInput {
@@ -19349,6 +19848,7 @@ input mutationArticleUpdateInput {
   featured: Boolean
   category: ArticleUpdate_category_MutationInput
   publishedAt: String
+  publishAt: String
   readTime: Float
   image: Int
   imageUrl: String
@@ -19356,11 +19856,17 @@ input mutationArticleUpdateInput {
   updatedAt: String
   createdAt: String
   deletedAt: String
+  _status: ArticleUpdate__status_MutationInput
 }
 
 enum ArticleUpdate_category_MutationInput {
   articles
   others
+}
+
+enum ArticleUpdate__status_MutationInput {
+  draft
+  published
 }
 
 input mutationProjectInput {
@@ -19921,6 +20427,7 @@ input mutationJobRunInput {
 enum JobRun_task_MutationInput {
   trash_cleanup
   pagespeed_report
+  publish_scheduled
   broken_links
 }
 
@@ -19956,6 +20463,7 @@ input mutationJobRunUpdateInput {
 enum JobRunUpdate_task_MutationInput {
   trash_cleanup
   pagespeed_report
+  publish_scheduled
   broken_links
 }
 

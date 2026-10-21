@@ -326,10 +326,15 @@ switch.
 
 ## Translations
 
-Every string this repository adds to the admin lives in `src/i18n/en.ts`, under Payload's `custom`
-namespace (`custom:widgets.pageSpeed`, `custom:imageSource.usesUrl`, …). Payload's own interface
-translations are untouched: `src/i18n/index.ts` spreads them and merges `custom` on top, and
-`payload.config.ts` passes the result as `i18n`.
+Every string this repository adds to the admin lives in `src/i18n/en.ts`, in its own namespaces
+(`widgets:pageSpeed`, `imageSource:usesUrl`, `pagination:next`, …). Payload's interface translations
+are untouched: `src/i18n/index.ts` spreads them and merges ours on top, and `payload.config.ts`
+passes the result as `i18n`.
+
+**Keys have no dots.** Payload's `t` splits on the first colon and looks the rest up as a single
+property, so `t('custom:widgets.pageSpeed')` always misses (Payload logs `key not found` and renders
+the key). One flat level per namespace is the shape that resolves; the i18n test fails on a dotted
+key.
 
 - **Config labels** (dashboard widget labels, widget field labels and their options) use
   `customLabel('custom:…')` from `src/i18n/labels.ts`. A label function is resolved per request by
@@ -337,8 +342,8 @@ translations are untouched: `src/i18n/index.ts` spreads them and merges `custom`
   `t` type only knows its own keys and this version has no augmentation hook.
 - **Client components** call `useCustomT()` (`src/i18n/useCustomT.ts`), the same narrowing for the
   `useTranslation()` hook.
-- **Coverage.** `tests/int/i18n.int.spec.ts` scans `src` for every `custom:` key and fails if one is
-  not in the catalogue, so a missing string cannot reach a screen. Add a language by adding
+- **Coverage.** `tests/int/i18n.int.spec.ts` scans `src` for every key of our namespaces and fails if
+  one is not in the catalogue, so a missing string cannot reach a screen. Add a language by adding
   `src/i18n/<lang>.ts` and an entry in `i18nConfig`; no component changes.
 
 ## Dashboard widgets

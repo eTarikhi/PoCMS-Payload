@@ -190,6 +190,10 @@ export interface Article {
   category?: ('articles' | 'others') | null;
   publishedAt: string;
   /**
+   * Publish this draft automatically at this time. The daily jobs cron checks; Admin › Scheduled jobs → Run now publishes immediately.
+   */
+  publishAt?: string | null;
+  /**
    * Minutes. Shown as "{n} min" on the site.
    */
   readTime?: number | null;
@@ -205,6 +209,7 @@ export interface Article {
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
+  _status?: ('draft' | 'published') | null;
 }
 /**
  * Images and files used across the site. Alt text is required for accessibility.
@@ -599,7 +604,7 @@ export interface Role {
  */
 export interface JobRun {
   id: number;
-  task: 'trash-cleanup' | 'pagespeed-report' | 'broken-links';
+  task: 'trash-cleanup' | 'pagespeed-report' | 'publish-scheduled' | 'broken-links';
   status: 'queued' | 'running' | 'done' | 'failed' | 'cancelled';
   trigger: 'manual' | 'cron';
   /**
@@ -858,6 +863,7 @@ export interface ArticlesSelect<T extends boolean = true> {
   featured?: T;
   category?: T;
   publishedAt?: T;
+  publishAt?: T;
   readTime?: T;
   image?: T;
   imageUrl?: T;
@@ -865,6 +871,7 @@ export interface ArticlesSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
+  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

@@ -3,9 +3,10 @@ import type { LabelFunction } from 'payload'
 /**
  * A label that resolves through Payload's `t` from our `custom` namespace.
  *
- * Payload types `t` against its own catalogue, and this version has no module-augmentation hook for
- * additional keys, so the cast lives here once instead of in every label. The key still has to exist
- * in `src/i18n/en.ts` — a unit test checks every `custom:` key used in the code against that file.
+ * The key is `namespace:key` with no dots: Payload splits on the first colon only. Payload types `t`
+ * against its own catalogue and this version has no module-augmentation hook for additional keys, so
+ * the cast lives here once instead of in every label. A unit test checks every key used in the code
+ * against `src/i18n/en.ts`.
  */
 export const customLabel =
   (key: string): LabelFunction =>
