@@ -629,6 +629,32 @@ list, so nothing else changes; run `pnpm generate:all` for the new select option
 `pnpm typecheck && pnpm test:int`. `tests/int/jobs.int.spec.ts` covers the queue, the permanent
 deletion, the cron secret and the access rules.
 
+## Acceptance tests (editor tasks)
+
+`tests/e2e/acceptance.e2e.spec.ts` measures the three tasks an editor does most often, rather than
+checking one screen:
+
+| Task | What it does |
+| --- | --- |
+| `publish-article-with-cover` | Writes an article, adds a cover through the media drawer (file + alt text) and publishes it, then reads it on the public site with the cover rendered. |
+| `draft-then-publish` | Saves an article as a draft, checks the public site still answers 404, then publishes the same document. |
+| `replace-cover-with-external-url` | Finds an article in the list, removes its media file, switches to the URL tab and saves the external URL (the file wins while it is attached, so both steps are the real workflow). |
+
+Each task runs through `TaskMeter` (`tests/helpers/measure.ts`), which counts one step per editor
+action (open a screen, type a field, click a button, choose a file) and times the task against the
+production build. The numbers are compared with `tests/acceptance-baseline.json`: steps may grow by
+two, time by 60% plus two seconds. The point is the diff — when a redesign adds clicks to a routine
+task, the baseline has to change in the same commit, so the cost is visible in review. Every run
+also writes `test-results/acceptance.json` and adds an `acceptance` annotation to the test, so the
+numbers appear in the report without reading logs.
+
+Re-record the baseline after an intentional UX change:
+
+```bash
+rm tests/acceptance-baseline.json && pnpm test:e2e --grep "Editor acceptance tasks"
+cat test-results/acceptance.json   # then copy steps/ms into tests/acceptance-baseline.json
+```
+
 ## Audit log
 
 Admin › **Audit log** (`/admin/collections/audit-logs`, the `viewAuditLog` capability) lists who
@@ -771,7 +797,7 @@ pnpm lint               # ESLint
 pnpm check:tw-prefix    # admin classes carry the acn: prefix
 pnpm check:contrast     # token pairs meet WCAG AA in both themes
 pnpm test:int           # Vitest + Local API (roles, singletons, API)
-pnpm test:e2e           # Playwright: admin, navigation, dashboard, lists, component gallery (axe)
+pnpm test:e2e           # Playwright: admin, navigation, dashboard, lists, gallery (axe), editor tasks
 pnpm test:visual        # screenshot comparisons
 ```
 

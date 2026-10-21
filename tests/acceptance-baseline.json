@@ -1,0 +1,5 @@
+{
+  "publish-article-with-cover": { "steps": 12, "ms": 5000 },
+  "draft-then-publish": { "steps": 9, "ms": 4000 },
+  "replace-cover-with-external-url": { "steps": 6, "ms": 3500 }
+}
