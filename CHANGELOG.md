@@ -19,6 +19,13 @@ modernisation programme; every entry links the roadmap item it closes
   in the version row (`_articles_v`), so a preview shows the editor's values. Migration
   `20261022_090000_seo_meta`; the seed writes the generated values. `tabbedUI` is off on purpose:
   it would move the article sidebar fields into a new "Content" tab.
+- **A sitemap and a robots policy.** `/sitemap.xml` lists the home page and every article that has a
+  page — slug and body, the same rule as the route — with `lastmod` from `updatedAt`, so a listed
+  URL never 404s. `/robots.txt` allows the site, keeps crawlers out of `/admin`, `/api` and
+  `/preview`, and names the sitemap. Both are Next metadata routes fed by the shared `portfolio`
+  cache tag, so a save in the admin refreshes them with the pages. The rules live in
+  `lib/sitemap-entries.ts` and are covered by `tests/int/sitemap.int.spec.ts` and
+  `tests/e2e/sitemap.e2e.spec.ts`; the e2e spec also requests every listed URL.
 - **Media folders (beta).** `folders: true` on Media turns on Payload's folder feature: the sidebar
   gains **Browse by Folder** at `/admin/browse-by-folder`, the library is grouped by where an image
   is used, and folders nest. The seed creates *Project covers*, *Article covers* and *Certificates*

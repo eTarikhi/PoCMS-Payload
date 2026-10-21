@@ -55,6 +55,11 @@ CI runs all of the above, regenerates the generated files and fails if they diff
 - SEO metadata is Payload's SEO plugin (`src/plugins/seo.ts`): the `meta` group on Articles and
   Site settings is optional, and the page metadata prefers it over the document's own fields. Add
   a new entity to `collections`/`globals` only with a matching fallback in `lib/seo.ts`.
+- `/sitemap.xml` and `/robots.txt` are Next metadata routes (`src/app/(frontend)/sitemap.ts`,
+  `src/app/robots.ts`) whose rules live in `lib/sitemap-entries.ts` — not `lib/sitemap.ts`, because
+  Next treats every `sitemap.*` file inside `app/` as a route. `robots.ts` must stay at the app
+  root: the file convention does not match route groups. The sitemap lists only pages that exist,
+  so the same "has a slug and a body" rule as the article route applies.
 - Media uses Payload's beta folders (`folders: true` on the collection). The folder collection is
   hidden, so its schema changes appear in generated files and migrations like any collection; the
   seed files images into folders after clearing `media`. The folder drawer's `<div type="button">`

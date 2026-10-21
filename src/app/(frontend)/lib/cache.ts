@@ -1,8 +1,9 @@
 import { unstable_cache } from 'next/cache'
 
 import { mapSiteSettings } from './mappers'
-import { fetchSiteSettings, getPortfolioContent } from './payload-source'
+import { fetchSiteSettings, fetchSitemapArticles, getPortfolioContent } from './payload-source'
 import { PORTFOLIO_CACHE_TAG } from './revalidate'
+import type { SitemapArticle } from './sitemap-entries'
 import type { PortfolioContent, SiteSettingsContent } from './types'
 
 /**
@@ -25,5 +26,15 @@ export const getCachedPortfolioContent: () => Promise<PortfolioContent> = unstab
 export const getCachedSiteSettings: () => Promise<SiteSettingsContent> = unstable_cache(
   async () => mapSiteSettings(await fetchSiteSettings()),
   ['site-settings'],
+  { tags: [PORTFOLIO_CACHE_TAG] },
+)
+
+/**
+ * The article list for `/sitemap.xml`: slugs and timestamps only, cached under the same tag as the
+ * pages so a save in the admin refreshes the sitemap too.
+ */
+export const getCachedSitemapArticles: () => Promise<SitemapArticle[]> = unstable_cache(
+  () => fetchSitemapArticles(),
+  ['portfolio-sitemap-articles'],
   { tags: [PORTFOLIO_CACHE_TAG] },
 )

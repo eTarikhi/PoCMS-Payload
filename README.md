@@ -56,6 +56,7 @@ This project documentation is split across multiple files for easier maintenance
 - Tile pickers for colours and icons, an image-source control for uploads vs external URLs
 - Drafts, scheduled publishing and Live Preview for articles
 - SEO metadata per article and per site, with auto-generation, counters and a search-result preview
+- A generated `/sitemap.xml` and a `/robots.txt` that keeps crawlers out of the admin and the API
 - Rich media management: MIME allow-list, focal point, thumbnail/card/OG sizes, a regeneration script, and folders (beta) with a folder browser
 - REST and GraphQL APIs
 - Type-safe TypeScript codebase

@@ -721,9 +721,18 @@ group to Articles and the Site settings global: a title, a description and an im
   preview whose links are still focusable. `AdminDomFixes/seo.ts` marks the first two for
   `payload-overrides.css` and hides the preview from assistive tech; the article and site-settings
   screens are in the axe sweep.
+- **Crawlability.** `/sitemap.xml` lists the home page and every article that has a page — slug and
+  body, the same rule as the route — with `lastmod` from the document's `updatedAt`; drafts, trashed
+  documents and articles that only link out are absent, so nothing in the sitemap 404s. `/robots.txt`
+  allows the site and disallows `/admin`, `/api` and `/preview`, and names the sitemap. Both are
+  Next metadata routes, backed by the shared `portfolio` cache tag, so saving content refreshes them
+  with the pages: `src/app/(frontend)/sitemap.ts` and `src/app/robots.ts` call the rules in
+  `lib/sitemap-entries.ts` (not `lib/sitemap.ts` — inside `app/`, any `sitemap.*` file is a route).
+  `robots.ts` sits at the app root because the convention does not match route groups.
 - Migration `20261022_090000_seo_meta` adds the columns (hand-written, like the other post-baseline
-  schema changes). Tests: `tests/int/seo.int.spec.ts` (wiring, storage, fallbacks) and
-  `tests/e2e/seo.e2e.spec.ts` (edit in the admin, read the tags off the page).
+  schema changes). Tests: `tests/int/seo.int.spec.ts` (wiring, storage, fallbacks),
+  `tests/int/sitemap.int.spec.ts` (the URL rules, in isolation) and `tests/e2e/seo.e2e.spec.ts` +
+  `tests/e2e/sitemap.e2e.spec.ts` (edit in the admin, read the tags and the XML off the site).
 
 ## Scheduled jobs
 

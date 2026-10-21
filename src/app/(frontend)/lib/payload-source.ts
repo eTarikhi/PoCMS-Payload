@@ -135,6 +135,24 @@ export const fetchPublishedArticleSlugs = async (): Promise<string[]> => {
     .map((doc) => doc.slug as string)
 }
 
+/** Articles with a page, with the timestamp the sitemap reports as `lastModified`. */
+export const fetchSitemapArticles = async (): Promise<
+  { slug: string; updatedAt: string | null }[]
+> => {
+  const payload = await getPayload({ config: configPromise })
+  const res = await payload.find({
+    collection: 'articles',
+    pagination: false,
+    depth: 0,
+    sort: 'publishedAt',
+    select: { slug: true, description: true, updatedAt: true },
+    where: { _status: { equals: 'published' } },
+  })
+  return res.docs
+    .filter((doc) => Boolean(doc.slug) && (doc.description ?? '').trim().length > 0)
+    .map((doc) => ({ slug: doc.slug as string, updatedAt: doc.updatedAt ?? null }))
+}
+
 /**
  * Site settings for the public layout. Its own query rather than part of the home-page payload: the
  * layout renders on every public route, including the article pages.
