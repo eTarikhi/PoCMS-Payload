@@ -7,6 +7,7 @@ assertIntegrationEnvironment()
 // No real API key or outbound delivery is allowed in this harness.
 process.env.RESEND_API_KEY = 'integration-capture-only'
 process.env.EMAIL_FROM_ADDRESS = 'mail@example.test'
+process.env.NEXT_PUBLIC_SITE_URL = 'http://localhost:3000'
 process.env.EMAIL_FROM_NAME = 'Integration mail'
 const captured: { to: string; html: string; from: string }[] = []
 const originalFetch = globalThis.fetch
@@ -36,7 +37,7 @@ try {
   assert(captured[0].to === email, 'Reset message recipient mismatch.')
   assert(captured[0].from.includes('mail@example.test'), 'Configured sender was not used.')
   assert(
-    captured[0].html.includes(`/reset/${token}`),
+    captured[0].html.includes(`http://localhost:3000/admin/reset/${token}`),
     'Reset message lacks the expected reset link.',
   )
   await payload.resetPassword({

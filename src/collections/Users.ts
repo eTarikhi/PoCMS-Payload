@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload'
+import { passwordResetEmail } from '../utilities/email'
 
 import { hasAnyRole, isAdmin } from '../access/permissions'
 import {
@@ -22,7 +23,16 @@ export const Users: CollectionConfig = {
     // Everyone else manages their own account from the account menu; the list is for admins.
     hidden: ({ user }) => !isAdmin(user),
   },
-  auth: true,
+  auth: {
+    forgotPassword: {
+      generateEmailHTML: ({ token, req } = {}) =>
+        passwordResetEmail(
+          token,
+          req?.payload.config.routes.admin || '/admin',
+          req?.payload.config.admin.routes.reset || '/reset',
+        ),
+    },
+  },
   access: {
     // The admin panel needs at least one role (ADR 0011); REST and GraphQL logins still work.
     admin: ({ req }) => hasAnyRole(req.user),

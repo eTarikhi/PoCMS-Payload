@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createEmailAdapter } from '@/utilities/email'
+import { createEmailAdapter, passwordResetEmail } from '@/utilities/email'
 import type { Payload } from 'payload'
 const payload = {} as Payload
 const message = {
@@ -60,5 +60,36 @@ describe('Transactional email configuration', () => {
     )
     const adapter = createEmailAdapter({ RESEND_API_KEY: 'fixture-only' })({ payload })
     await expect(adapter.sendEmail(message)).rejects.toThrow('Sender not verified')
+  })
+})
+
+describe('Trusted password reset links', () => {
+  it('uses the configured canonical origin and custom admin routes', () => {
+    expect(
+      passwordResetEmail('private/segment', '/cms', '/recover', 'https://studio.example'),
+    ).toContain('https://studio.example/cms/recover/private%2Fsegment')
+  })
+  it('allows local HTTP only for development and integration', () => {
+    expect(passwordResetEmail('fixture', '/admin', '/reset', 'http://localhost:3000')).toContain(
+      'http://localhost:3000/admin/reset/fixture',
+    )
+  })
+  it.each([
+    '',
+    'not-a-url',
+    'http://public.example',
+    'javascript:alert(1)',
+    'https://user:secret@example.test',
+    'https://example.test/subpath',
+    'https://example.test/?token=private',
+  ])('rejects missing or unsafe origins without exposing their contents', (site) => {
+    expect(() => passwordResetEmail('fixture', '/admin', '/reset', site)).toThrow(
+      /Password reset requires/,
+    )
+  })
+  it('refuses to generate a tokenless reset email', () => {
+    expect(() => passwordResetEmail(undefined, '/admin', '/reset', 'https://example.test')).toThrow(
+      /and a token/,
+    )
   })
 })
