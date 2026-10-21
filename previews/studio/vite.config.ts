@@ -9,6 +9,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      '@': fileURLToPath(new URL('../../src', import.meta.url)),
       'next/link': fileURLToPath(new URL('./link.tsx', import.meta.url)),
       'next/image': fileURLToPath(new URL('./image.tsx', import.meta.url)),
     },
