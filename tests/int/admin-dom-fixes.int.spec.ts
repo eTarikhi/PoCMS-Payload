@@ -1,6 +1,11 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import {
+  makeFolderCreateButtonFocusable,
+  nameFolderControls,
+  nameFolderThumbnails,
+} from '@/components/admin/providers/AdminDomFixes/folders'
 import { ensureLandmarks, MAIN_ID, SKIP_LINK_ID } from '@/components/admin/providers/AdminDomFixes/landmarks'
 import { nameIconOnlyControls } from '@/components/admin/providers/AdminDomFixes/names'
 import { skipHiddenSelectControls } from '@/components/admin/providers/AdminDomFixes/reactSelect'
@@ -233,6 +238,92 @@ describe('AdminDomFixes', () => {
       nameIconOnlyControls(document, () => 'More document actions')
       expect(document.querySelector('.popup-button')?.getAttribute('aria-label')).toBe('Document menu')
       expect(document.querySelector('.upload-relationship-details__edit')?.hasAttribute('aria-label')).toBe(false)
+    })
+  })
+
+  describe('folder browser fixes', () => {
+    const translate = (key: string) =>
+      (
+        {
+          'a11y:gridView': 'Grid view',
+          'a11y:listView': 'List view',
+          'a11y:folderActions': 'Folder actions',
+          'a11y:filePreview': 'File preview',
+        } as Record<string, string>
+      )[key] ?? key
+
+    it('names the grid/list toggles by the icon they render', () => {
+      document.body.innerHTML = `
+        <button class="folder-view-toggle-button"><svg class="icon icon--grid-view"></svg></button>
+        <button class="folder-view-toggle-button"><svg class="icon icon--list-view"></svg></button>`
+      nameFolderControls(document, translate)
+      const labels = [...document.querySelectorAll('.folder-view-toggle-button')].map((button) =>
+        button.getAttribute('aria-label'),
+      )
+      expect(labels).toEqual(['Grid view', 'List view'])
+    })
+
+    it('names the folder actions menu inside the folder view', () => {
+      document.body.innerHTML =
+        '<div class="current-folder-actions"><button class="popup-button"><div class="dots"></div></button></div>'
+      nameFolderControls(document, translate)
+      expect(document.querySelector('.current-folder-actions .popup-button')?.getAttribute('aria-label')).toBe(
+        'Folder actions',
+      )
+    })
+
+    it('uses the file name as the thumbnail alt, and falls back to a generic label', () => {
+      document.body.innerHTML = `
+        <div class="folder-file-card folder-file-card--file">
+          <div class="folder-file-card__preview-area"><img src="/api/media/file/a.webp"></div>
+          <p class="folder-file-card__name"><span>a.webp</span></p>
+        </div>
+        <div class="folder-file-card folder-file-card--file">
+          <div class="folder-file-card__preview-area"><img src="/api/media/file/b.webp"></div>
+        </div>`
+      nameFolderThumbnails(document, translate)
+      const alts = [...document.querySelectorAll('.folder-file-card--file img')].map((image) =>
+        image.getAttribute('alt'),
+      )
+      expect(alts).toEqual(['a.webp', 'File preview'])
+    })
+
+    it('leaves an alt Payload already provides alone', () => {
+      document.body.innerHTML = `
+        <div class="folder-file-card folder-file-card--file">
+          <div class="folder-file-card__preview-area"><img src="/x.webp" alt="Alt from Payload"></div>
+          <p class="folder-file-card__name"><span>x.webp</span></p>
+        </div>`
+      nameFolderThumbnails(document, translate)
+      expect(document.querySelector('img')?.getAttribute('alt')).toBe('Alt from Payload')
+    })
+
+    it('turns the create-folder div into a focusable button that responds to Enter', () => {
+      document.body.innerHTML = '<div type="button" class="btn create-new-doc-in-folder__button">Create folder</div>'
+      makeFolderCreateButtonFocusable(document)
+      const button = document.querySelector<HTMLElement>('.create-new-doc-in-folder__button')
+      expect(button?.getAttribute('role')).toBe('button')
+      expect(button?.getAttribute('tabindex')).toBe('0')
+
+      let clicks = 0
+      button?.addEventListener('click', () => clicks++)
+      button?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+      expect(clicks).toBe(1)
+    })
+
+    it('does not touch the real button inside the multi-collection popup', () => {
+      // With two folder-enabled collections Payload wraps a div in a real <button>; making the div
+      // a button too would nest interactive controls (axe `nested-interactive`).
+      document.body.innerHTML = `
+        <div class="popup create-new-doc-in-folder__action-popup">
+          <div class="popup__trigger-wrap"><button class="popup-button" type="button">
+            <div type="button" class="btn create-new-doc-in-folder__popup-button">Create New</div>
+          </button></div>
+        </div>`
+      makeFolderCreateButtonFocusable(document)
+      const inner = document.querySelector('.create-new-doc-in-folder__popup-button')
+      expect(inner?.hasAttribute('role')).toBe(false)
+      expect(inner?.hasAttribute('tabindex')).toBe(false)
     })
   })
 

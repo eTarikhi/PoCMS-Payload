@@ -89,6 +89,17 @@ const SURFACES: Surface[] = [
     ],
   },
   { name: 'media list', path: '/admin/collections/media' },
+  { name: 'browse by folder', path: '/admin/browse-by-folder' },
+  {
+    name: 'folder contents',
+    path: async (page) => {
+      const response = await page.request.get(`${BASE}/api/payload-folders?limit=1&depth=0`)
+      const data = (await response.json()) as { docs?: { id?: number | string }[] }
+      const id = data.docs?.[0]?.id
+      expect(id, 'the seed must provide at least one media folder').toBeTruthy()
+      return `/admin/browse-by-folder/${id}`
+    },
+  },
   { name: 'site settings global', path: '/admin/globals/site-settings' },
   { name: 'users list', path: '/admin/collections/users' },
   { name: 'roles list', path: '/admin/collections/roles' },

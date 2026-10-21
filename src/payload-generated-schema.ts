@@ -19,6 +19,7 @@ import {
   numeric,
   integer,
   jsonb,
+  type AnyPgColumn,
   pgEnum,
 } from '@payloadcms/db-vercel-postgres/drizzle/pg-core'
 import { sql, relations } from '@payloadcms/db-vercel-postgres/drizzle'
@@ -163,6 +164,9 @@ export const enum_audit_logs_action = pgEnum('enum_audit_logs_action', [
 export const enum_audit_logs_entity_kind = pgEnum('enum_audit_logs_entity_kind', [
   'collection',
   'global',
+])
+export const enum_payload_folders_folder_type = pgEnum('enum_payload_folders_folder_type', [
+  'media',
 ])
 export const enum_footer_social_links_platform = pgEnum('enum_footer_social_links_platform', [
   'facebook',
@@ -381,6 +385,9 @@ export const media = pgTable(
     id: serial('id').primaryKey(),
     alt: varchar('alt').notNull(),
     _objectKey: varchar('_objectkey'),
+    folder: integer('folder_id').references(() => payload_folders.id, {
+      onDelete: 'set null',
+    }),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
@@ -417,6 +424,7 @@ export const media = pgTable(
     sizes_og_filename: varchar('sizes_og_filename'),
   },
   (columns) => [
+    index('media_folder_idx').on(columns.folder),
     index('media_updated_at_idx').on(columns.updatedAt),
     index('media_created_at_idx').on(columns.createdAt),
     index('media_deleted_at_idx').on(columns.deletedAt),
@@ -1009,6 +1017,48 @@ export const payload_kv = pgTable(
   (columns) => [uniqueIndex('payload_kv_key_idx').on(columns.key)],
 )
 
+export const payload_folders_folder_type = pgTable(
+  'payload_folders_folder_type',
+  {
+    order: integer('order').notNull(),
+    parent: integer('parent_id').notNull(),
+    value: enum_payload_folders_folder_type('value'),
+    id: serial('id').primaryKey(),
+  },
+  (columns) => [
+    index('payload_folders_folder_type_order_idx').on(columns.order),
+    index('payload_folders_folder_type_parent_idx').on(columns.parent),
+    foreignKey({
+      columns: [columns['parent']],
+      foreignColumns: [payload_folders.id],
+      name: 'payload_folders_folder_type_parent_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
+export const payload_folders = pgTable(
+  'payload_folders',
+  {
+    id: serial('id').primaryKey(),
+    name: varchar('name').notNull(),
+    folder: integer('folder_id').references((): AnyPgColumn => payload_folders.id, {
+      onDelete: 'set null',
+    }),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index('payload_folders_name_idx').on(columns.name),
+    index('payload_folders_folder_idx').on(columns.folder),
+    index('payload_folders_updated_at_idx').on(columns.updatedAt),
+    index('payload_folders_created_at_idx').on(columns.createdAt),
+  ],
+)
+
 export const payload_locked_documents = pgTable(
   'payload_locked_documents',
   {
@@ -1050,6 +1100,7 @@ export const payload_locked_documents_rels = pgTable(
     'job-runsID': integer('job_runs_id'),
     'pagespeed-reportsID': integer('pagespeed_reports_id'),
     'audit-logsID': integer('audit_logs_id'),
+    'payload-foldersID': integer('payload_folders_id'),
   },
   (columns) => [
     index('payload_locked_documents_rels_order_idx').on(columns.order),
@@ -1072,6 +1123,7 @@ export const payload_locked_documents_rels = pgTable(
       columns['pagespeed-reportsID'],
     ),
     index('payload_locked_documents_rels_audit_logs_id_idx').on(columns['audit-logsID']),
+    index('payload_locked_documents_rels_payload_folders_id_idx').on(columns['payload-foldersID']),
     foreignKey({
       columns: [columns['parent']],
       foreignColumns: [payload_locked_documents.id],
@@ -1151,6 +1203,11 @@ export const payload_locked_documents_rels = pgTable(
       columns: [columns['audit-logsID']],
       foreignColumns: [audit_logs.id],
       name: 'payload_locked_documents_rels_audit_logs_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [columns['payload-foldersID']],
+      foreignColumns: [payload_folders.id],
+      name: 'payload_locked_documents_rels_payload_folders_fk',
     }).onDelete('cascade'),
   ],
 )
@@ -1416,7 +1473,13 @@ export const relations_projects = relations(projects, ({ one, many }) => ({
     relationName: 'categories',
   }),
 }))
-export const relations_media = relations(media, () => ({}))
+export const relations_media = relations(media, ({ one }) => ({
+  folder: one(payload_folders, {
+    fields: [media.folder],
+    references: [payload_folders.id],
+    relationName: 'folder',
+  }),
+}))
 export const relations_about_images = relations(about_images, ({ one }) => ({
   _parentID: one(about, {
     fields: [about_images._parentID],
@@ -1568,6 +1631,26 @@ export const relations_pagespeed_reports = relations(pagespeed_reports, ({ many 
 }))
 export const relations_audit_logs = relations(audit_logs, () => ({}))
 export const relations_payload_kv = relations(payload_kv, () => ({}))
+export const relations_payload_folders_folder_type = relations(
+  payload_folders_folder_type,
+  ({ one }) => ({
+    parent: one(payload_folders, {
+      fields: [payload_folders_folder_type.parent],
+      references: [payload_folders.id],
+      relationName: 'folderType',
+    }),
+  }),
+)
+export const relations_payload_folders = relations(payload_folders, ({ one, many }) => ({
+  folder: one(payload_folders, {
+    fields: [payload_folders.folder],
+    references: [payload_folders.id],
+    relationName: 'folder',
+  }),
+  folderType: many(payload_folders_folder_type, {
+    relationName: 'folderType',
+  }),
+}))
 export const relations_payload_locked_documents_rels = relations(
   payload_locked_documents_rels,
   ({ one }) => ({
@@ -1650,6 +1733,11 @@ export const relations_payload_locked_documents_rels = relations(
       fields: [payload_locked_documents_rels['audit-logsID']],
       references: [audit_logs.id],
       relationName: 'audit-logs',
+    }),
+    'payload-foldersID': one(payload_folders, {
+      fields: [payload_locked_documents_rels['payload-foldersID']],
+      references: [payload_folders.id],
+      relationName: 'payload-folders',
     }),
   }),
 )
@@ -1785,6 +1873,7 @@ type DatabaseSchema = {
   enum_pagespeed_reports_strategy: typeof enum_pagespeed_reports_strategy
   enum_audit_logs_action: typeof enum_audit_logs_action
   enum_audit_logs_entity_kind: typeof enum_audit_logs_entity_kind
+  enum_payload_folders_folder_type: typeof enum_payload_folders_folder_type
   enum_footer_social_links_platform: typeof enum_footer_social_links_platform
   enum_footer_social_links_icon_name: typeof enum_footer_social_links_icon_name
   enum_footer_contact_info_type: typeof enum_footer_contact_info_type
@@ -1818,6 +1907,8 @@ type DatabaseSchema = {
   pagespeed_reports: typeof pagespeed_reports
   audit_logs: typeof audit_logs
   payload_kv: typeof payload_kv
+  payload_folders_folder_type: typeof payload_folders_folder_type
+  payload_folders: typeof payload_folders
   payload_locked_documents: typeof payload_locked_documents
   payload_locked_documents_rels: typeof payload_locked_documents_rels
   payload_preferences: typeof payload_preferences
@@ -1860,6 +1951,8 @@ type DatabaseSchema = {
   relations_pagespeed_reports: typeof relations_pagespeed_reports
   relations_audit_logs: typeof relations_audit_logs
   relations_payload_kv: typeof relations_payload_kv
+  relations_payload_folders_folder_type: typeof relations_payload_folders_folder_type
+  relations_payload_folders: typeof relations_payload_folders
   relations_payload_locked_documents_rels: typeof relations_payload_locked_documents_rels
   relations_payload_locked_documents: typeof relations_payload_locked_documents
   relations_payload_preferences_rels: typeof relations_payload_preferences_rels

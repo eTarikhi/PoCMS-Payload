@@ -14,6 +14,10 @@ export const Media: CollectionConfig = {
     description: 'Images and files used across the site. Alt text is required for accessibility.',
     defaultColumns: ['filename', 'alt', 'mimeType', 'filesize', 'updatedAt'],
   },
+  // Folders (beta in Payload 3.90): group images by where they are used. Payload adds a hidden
+  // `folder` relationship and a `payload-folders` collection, and the admin gets the folder browser
+  // at /admin/browse-by-folder.
+  folders: true,
   // Deleting moves documents to the trash (restorable); deleting for good needs the Full level.
   trash: true,
   // Levels from the user's roles (ADR 0011): public read, edit and trash, full to delete for good.

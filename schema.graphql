@@ -67,6 +67,10 @@ type Query {
   PayloadKvs(draft: Boolean, where: PayloadKv_where, limit: Int, page: Int, pagination: Boolean, select: Boolean, sort: String, trash: Boolean): PayloadKvs
   countPayloadKvs(draft: Boolean, trash: Boolean, where: PayloadKv_where): countPayloadKvs
   docAccessPayloadKv(id: Int!): payload_kvDocAccess
+  PayloadFolder(id: Int!, draft: Boolean, select: Boolean, trash: Boolean): PayloadFolder
+  PayloadFolders(draft: Boolean, where: PayloadFolder_where, limit: Int, page: Int, pagination: Boolean, select: Boolean, sort: String, trash: Boolean): PayloadFolders
+  countPayloadFolders(draft: Boolean, trash: Boolean, where: PayloadFolder_where): countPayloadFolders
+  docAccessPayloadFolder(id: Int!): payload_foldersDocAccess
   PayloadLockedDocument(id: Int!, draft: Boolean, select: Boolean, trash: Boolean): PayloadLockedDocument
   PayloadLockedDocuments(draft: Boolean, where: PayloadLockedDocument_where, limit: Int, page: Int, pagination: Boolean, select: Boolean, sort: String, trash: Boolean): PayloadLockedDocuments
   countPayloadLockedDocuments(draft: Boolean, trash: Boolean, where: PayloadLockedDocument_where): countPayloadLockedDocuments
@@ -118,6 +122,7 @@ type Media {
   id: Int!
   alt: String!
   _objectKey: String
+  folder: PayloadFolder
   updatedAt: DateTime
   createdAt: DateTime
   deletedAt: DateTime
@@ -131,6 +136,31 @@ type Media {
   focalX: Float
   focalY: Float
   sizes: Media_Sizes
+}
+
+type PayloadFolder {
+  id: Int!
+  name: String!
+  folder: PayloadFolder
+  documentsAndFolders(count: Boolean, limit: Int, page: Int, sort: String, where: JSON): PayloadFolder_DocumentsAndFolders
+  folderType: [PayloadFolder_folderType!]
+  updatedAt: DateTime
+  createdAt: DateTime
+}
+
+type PayloadFolder_DocumentsAndFolders {
+  docs: JSON!
+  hasNextPage: Boolean!
+  totalDocs: Int
+}
+
+"""
+The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
+"""
+scalar JSON @specifiedBy(url: "http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf")
+
+enum PayloadFolder_folderType {
+  media
 }
 
 type Media_Sizes {
@@ -302,11 +332,6 @@ input Article_image_operator {
   all: [JSON]
   exists: Boolean
 }
-
-"""
-The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
-"""
-scalar JSON @specifiedBy(url: "http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf")
 
 input Article_imageUrl_operator {
   equals: String
@@ -1773,6 +1798,7 @@ type allMedia {
 input Media_where {
   alt: Media_alt_operator
   _objectKey: Media__objectKey_operator
+  folder: Media_folder_operator
   updatedAt: Media_updatedAt_operator
   createdAt: Media_createdAt_operator
   deletedAt: Media_deletedAt_operator
@@ -1826,6 +1852,15 @@ input Media__objectKey_operator {
   in: [String]
   not_in: [String]
   all: [String]
+  exists: Boolean
+}
+
+input Media_folder_operator {
+  equals: JSON
+  not_equals: JSON
+  in: [JSON]
+  not_in: [JSON]
+  all: [JSON]
   exists: Boolean
 }
 
@@ -2158,6 +2193,7 @@ input Media_id_operator {
 input Media_where_and {
   alt: Media_alt_operator
   _objectKey: Media__objectKey_operator
+  folder: Media_folder_operator
   updatedAt: Media_updatedAt_operator
   createdAt: Media_createdAt_operator
   deletedAt: Media_deletedAt_operator
@@ -2196,6 +2232,7 @@ input Media_where_and {
 input Media_where_or {
   alt: Media_alt_operator
   _objectKey: Media__objectKey_operator
+  folder: Media_folder_operator
   updatedAt: Media_updatedAt_operator
   createdAt: Media_createdAt_operator
   deletedAt: Media_deletedAt_operator
@@ -2246,6 +2283,7 @@ type mediaDocAccess {
 type MediaDocAccessFields {
   alt: MediaDocAccessFields_alt
   _objectKey: MediaDocAccessFields__objectKey
+  folder: MediaDocAccessFields_folder
   updatedAt: MediaDocAccessFields_updatedAt
   createdAt: MediaDocAccessFields_createdAt
   deletedAt: MediaDocAccessFields_deletedAt
@@ -2304,6 +2342,29 @@ type MediaDocAccessFields__objectKey_Update {
 }
 
 type MediaDocAccessFields__objectKey_Delete {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_folder {
+  create: MediaDocAccessFields_folder_Create
+  read: MediaDocAccessFields_folder_Read
+  update: MediaDocAccessFields_folder_Update
+  delete: MediaDocAccessFields_folder_Delete
+}
+
+type MediaDocAccessFields_folder_Create {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_folder_Read {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_folder_Update {
+  permission: Boolean!
+}
+
+type MediaDocAccessFields_folder_Delete {
   permission: Boolean!
 }
 
@@ -10255,6 +10316,296 @@ type PayloadKvDeleteDocAccess {
   where: JSONObject
 }
 
+type PayloadFolders {
+  docs: [PayloadFolder!]!
+  hasNextPage: Boolean!
+  hasPrevPage: Boolean!
+  limit: Int!
+  nextPage: Int
+  offset: Int
+  page: Int!
+  pagingCounter: Int!
+  prevPage: Int
+  totalDocs: Int!
+  totalPages: Int!
+}
+
+input PayloadFolder_where {
+  name: PayloadFolder_name_operator
+  folder: PayloadFolder_folder_operator
+  folderType: PayloadFolder_folderType_operator
+  updatedAt: PayloadFolder_updatedAt_operator
+  createdAt: PayloadFolder_createdAt_operator
+  id: PayloadFolder_id_operator
+  AND: [PayloadFolder_where_and]
+  OR: [PayloadFolder_where_or]
+}
+
+input PayloadFolder_name_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+}
+
+input PayloadFolder_folder_operator {
+  equals: JSON
+  not_equals: JSON
+  in: [JSON]
+  not_in: [JSON]
+  all: [JSON]
+  exists: Boolean
+}
+
+input PayloadFolder_folderType_operator {
+  equals: PayloadFolder_folderType_Input
+  not_equals: PayloadFolder_folderType_Input
+  in: [PayloadFolder_folderType_Input]
+  not_in: [PayloadFolder_folderType_Input]
+  all: [PayloadFolder_folderType_Input]
+  exists: Boolean
+}
+
+enum PayloadFolder_folderType_Input {
+  media
+}
+
+input PayloadFolder_updatedAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+  exists: Boolean
+}
+
+input PayloadFolder_createdAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+  exists: Boolean
+}
+
+input PayloadFolder_id_operator {
+  equals: Int
+  not_equals: Int
+  greater_than_equal: Int
+  greater_than: Int
+  less_than_equal: Int
+  less_than: Int
+  exists: Boolean
+}
+
+input PayloadFolder_where_and {
+  name: PayloadFolder_name_operator
+  folder: PayloadFolder_folder_operator
+  folderType: PayloadFolder_folderType_operator
+  updatedAt: PayloadFolder_updatedAt_operator
+  createdAt: PayloadFolder_createdAt_operator
+  id: PayloadFolder_id_operator
+  AND: [PayloadFolder_where_and]
+  OR: [PayloadFolder_where_or]
+}
+
+input PayloadFolder_where_or {
+  name: PayloadFolder_name_operator
+  folder: PayloadFolder_folder_operator
+  folderType: PayloadFolder_folderType_operator
+  updatedAt: PayloadFolder_updatedAt_operator
+  createdAt: PayloadFolder_createdAt_operator
+  id: PayloadFolder_id_operator
+  AND: [PayloadFolder_where_and]
+  OR: [PayloadFolder_where_or]
+}
+
+type countPayloadFolders {
+  totalDocs: Int
+}
+
+type payload_foldersDocAccess {
+  fields: PayloadFoldersDocAccessFields
+  create: PayloadFoldersCreateDocAccess
+  read: PayloadFoldersReadDocAccess
+  update: PayloadFoldersUpdateDocAccess
+  delete: PayloadFoldersDeleteDocAccess
+}
+
+type PayloadFoldersDocAccessFields {
+  name: PayloadFoldersDocAccessFields_name
+  folder: PayloadFoldersDocAccessFields_folder
+  documentsAndFolders: PayloadFoldersDocAccessFields_documentsAndFolders
+  folderType: PayloadFoldersDocAccessFields_folderType
+  updatedAt: PayloadFoldersDocAccessFields_updatedAt
+  createdAt: PayloadFoldersDocAccessFields_createdAt
+}
+
+type PayloadFoldersDocAccessFields_name {
+  create: PayloadFoldersDocAccessFields_name_Create
+  read: PayloadFoldersDocAccessFields_name_Read
+  update: PayloadFoldersDocAccessFields_name_Update
+  delete: PayloadFoldersDocAccessFields_name_Delete
+}
+
+type PayloadFoldersDocAccessFields_name_Create {
+  permission: Boolean!
+}
+
+type PayloadFoldersDocAccessFields_name_Read {
+  permission: Boolean!
+}
+
+type PayloadFoldersDocAccessFields_name_Update {
+  permission: Boolean!
+}
+
+type PayloadFoldersDocAccessFields_name_Delete {
+  permission: Boolean!
+}
+
+type PayloadFoldersDocAccessFields_folder {
+  create: PayloadFoldersDocAccessFields_folder_Create
+  read: PayloadFoldersDocAccessFields_folder_Read
+  update: PayloadFoldersDocAccessFields_folder_Update
+  delete: PayloadFoldersDocAccessFields_folder_Delete
+}
+
+type PayloadFoldersDocAccessFields_folder_Create {
+  permission: Boolean!
+}
+
+type PayloadFoldersDocAccessFields_folder_Read {
+  permission: Boolean!
+}
+
+type PayloadFoldersDocAccessFields_folder_Update {
+  permission: Boolean!
+}
+
+type PayloadFoldersDocAccessFields_folder_Delete {
+  permission: Boolean!
+}
+
+type PayloadFoldersDocAccessFields_documentsAndFolders {
+  create: PayloadFoldersDocAccessFields_documentsAndFolders_Create
+  read: PayloadFoldersDocAccessFields_documentsAndFolders_Read
+  update: PayloadFoldersDocAccessFields_documentsAndFolders_Update
+  delete: PayloadFoldersDocAccessFields_documentsAndFolders_Delete
+}
+
+type PayloadFoldersDocAccessFields_documentsAndFolders_Create {
+  permission: Boolean!
+}
+
+type PayloadFoldersDocAccessFields_documentsAndFolders_Read {
+  permission: Boolean!
+}
+
+type PayloadFoldersDocAccessFields_documentsAndFolders_Update {
+  permission: Boolean!
+}
+
+type PayloadFoldersDocAccessFields_documentsAndFolders_Delete {
+  permission: Boolean!
+}
+
+type PayloadFoldersDocAccessFields_folderType {
+  create: PayloadFoldersDocAccessFields_folderType_Create
+  read: PayloadFoldersDocAccessFields_folderType_Read
+  update: PayloadFoldersDocAccessFields_folderType_Update
+  delete: PayloadFoldersDocAccessFields_folderType_Delete
+}
+
+type PayloadFoldersDocAccessFields_folderType_Create {
+  permission: Boolean!
+}
+
+type PayloadFoldersDocAccessFields_folderType_Read {
+  permission: Boolean!
+}
+
+type PayloadFoldersDocAccessFields_folderType_Update {
+  permission: Boolean!
+}
+
+type PayloadFoldersDocAccessFields_folderType_Delete {
+  permission: Boolean!
+}
+
+type PayloadFoldersDocAccessFields_updatedAt {
+  create: PayloadFoldersDocAccessFields_updatedAt_Create
+  read: PayloadFoldersDocAccessFields_updatedAt_Read
+  update: PayloadFoldersDocAccessFields_updatedAt_Update
+  delete: PayloadFoldersDocAccessFields_updatedAt_Delete
+}
+
+type PayloadFoldersDocAccessFields_updatedAt_Create {
+  permission: Boolean!
+}
+
+type PayloadFoldersDocAccessFields_updatedAt_Read {
+  permission: Boolean!
+}
+
+type PayloadFoldersDocAccessFields_updatedAt_Update {
+  permission: Boolean!
+}
+
+type PayloadFoldersDocAccessFields_updatedAt_Delete {
+  permission: Boolean!
+}
+
+type PayloadFoldersDocAccessFields_createdAt {
+  create: PayloadFoldersDocAccessFields_createdAt_Create
+  read: PayloadFoldersDocAccessFields_createdAt_Read
+  update: PayloadFoldersDocAccessFields_createdAt_Update
+  delete: PayloadFoldersDocAccessFields_createdAt_Delete
+}
+
+type PayloadFoldersDocAccessFields_createdAt_Create {
+  permission: Boolean!
+}
+
+type PayloadFoldersDocAccessFields_createdAt_Read {
+  permission: Boolean!
+}
+
+type PayloadFoldersDocAccessFields_createdAt_Update {
+  permission: Boolean!
+}
+
+type PayloadFoldersDocAccessFields_createdAt_Delete {
+  permission: Boolean!
+}
+
+type PayloadFoldersCreateDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type PayloadFoldersReadDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type PayloadFoldersUpdateDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type PayloadFoldersDeleteDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
 type PayloadLockedDocument {
   id: Int!
   document(draft: Boolean): PayloadLockedDocument_Document_Relationship
@@ -10285,9 +10636,10 @@ enum PayloadLockedDocument_Document_RelationTo {
   job_runs
   pagespeed_reports
   audit_logs
+  payload_folders
 }
 
-union PayloadLockedDocument_Document = Article | Project | Media | About | Service | Skill | Experience | Education | Certificate | Header | User | Role | JobRun | PagespeedReport | AuditLog
+union PayloadLockedDocument_Document = Article | Project | Media | About | Service | Skill | Experience | Education | Certificate | Header | User | Role | JobRun | PagespeedReport | AuditLog | PayloadFolder
 
 type PayloadLockedDocument_User_Relationship {
   relationTo: PayloadLockedDocument_User_RelationTo
@@ -10346,6 +10698,7 @@ enum PayloadLockedDocument_document_Relation_RelationTo {
   job_runs
   pagespeed_reports
   audit_logs
+  payload_folders
 }
 
 input PayloadLockedDocument_globalSlug_operator {
@@ -12337,6 +12690,7 @@ type Access {
   pagespeed_reports: pagespeed_reportsAccess
   audit_logs: audit_logsAccess
   payload_kv: payload_kvAccess
+  payload_folders: payload_foldersAccess
   payload_locked_documents: payload_locked_documentsAccess
   payload_preferences: payload_preferencesAccess
   footer: footerAccess
@@ -13095,6 +13449,7 @@ type mediaAccess {
 type MediaFields {
   alt: MediaFields_alt
   _objectKey: MediaFields__objectKey
+  folder: MediaFields_folder
   updatedAt: MediaFields_updatedAt
   createdAt: MediaFields_createdAt
   deletedAt: MediaFields_deletedAt
@@ -13153,6 +13508,29 @@ type MediaFields__objectKey_Update {
 }
 
 type MediaFields__objectKey_Delete {
+  permission: Boolean!
+}
+
+type MediaFields_folder {
+  create: MediaFields_folder_Create
+  read: MediaFields_folder_Read
+  update: MediaFields_folder_Update
+  delete: MediaFields_folder_Delete
+}
+
+type MediaFields_folder_Create {
+  permission: Boolean!
+}
+
+type MediaFields_folder_Read {
+  permission: Boolean!
+}
+
+type MediaFields_folder_Update {
+  permission: Boolean!
+}
+
+type MediaFields_folder_Delete {
   permission: Boolean!
 }
 
@@ -18112,6 +18490,181 @@ type PayloadKvDeleteAccess {
   where: JSONObject
 }
 
+type payload_foldersAccess {
+  fields: PayloadFoldersFields
+  create: PayloadFoldersCreateAccess
+  read: PayloadFoldersReadAccess
+  update: PayloadFoldersUpdateAccess
+  delete: PayloadFoldersDeleteAccess
+}
+
+type PayloadFoldersFields {
+  name: PayloadFoldersFields_name
+  folder: PayloadFoldersFields_folder
+  documentsAndFolders: PayloadFoldersFields_documentsAndFolders
+  folderType: PayloadFoldersFields_folderType
+  updatedAt: PayloadFoldersFields_updatedAt
+  createdAt: PayloadFoldersFields_createdAt
+}
+
+type PayloadFoldersFields_name {
+  create: PayloadFoldersFields_name_Create
+  read: PayloadFoldersFields_name_Read
+  update: PayloadFoldersFields_name_Update
+  delete: PayloadFoldersFields_name_Delete
+}
+
+type PayloadFoldersFields_name_Create {
+  permission: Boolean!
+}
+
+type PayloadFoldersFields_name_Read {
+  permission: Boolean!
+}
+
+type PayloadFoldersFields_name_Update {
+  permission: Boolean!
+}
+
+type PayloadFoldersFields_name_Delete {
+  permission: Boolean!
+}
+
+type PayloadFoldersFields_folder {
+  create: PayloadFoldersFields_folder_Create
+  read: PayloadFoldersFields_folder_Read
+  update: PayloadFoldersFields_folder_Update
+  delete: PayloadFoldersFields_folder_Delete
+}
+
+type PayloadFoldersFields_folder_Create {
+  permission: Boolean!
+}
+
+type PayloadFoldersFields_folder_Read {
+  permission: Boolean!
+}
+
+type PayloadFoldersFields_folder_Update {
+  permission: Boolean!
+}
+
+type PayloadFoldersFields_folder_Delete {
+  permission: Boolean!
+}
+
+type PayloadFoldersFields_documentsAndFolders {
+  create: PayloadFoldersFields_documentsAndFolders_Create
+  read: PayloadFoldersFields_documentsAndFolders_Read
+  update: PayloadFoldersFields_documentsAndFolders_Update
+  delete: PayloadFoldersFields_documentsAndFolders_Delete
+}
+
+type PayloadFoldersFields_documentsAndFolders_Create {
+  permission: Boolean!
+}
+
+type PayloadFoldersFields_documentsAndFolders_Read {
+  permission: Boolean!
+}
+
+type PayloadFoldersFields_documentsAndFolders_Update {
+  permission: Boolean!
+}
+
+type PayloadFoldersFields_documentsAndFolders_Delete {
+  permission: Boolean!
+}
+
+type PayloadFoldersFields_folderType {
+  create: PayloadFoldersFields_folderType_Create
+  read: PayloadFoldersFields_folderType_Read
+  update: PayloadFoldersFields_folderType_Update
+  delete: PayloadFoldersFields_folderType_Delete
+}
+
+type PayloadFoldersFields_folderType_Create {
+  permission: Boolean!
+}
+
+type PayloadFoldersFields_folderType_Read {
+  permission: Boolean!
+}
+
+type PayloadFoldersFields_folderType_Update {
+  permission: Boolean!
+}
+
+type PayloadFoldersFields_folderType_Delete {
+  permission: Boolean!
+}
+
+type PayloadFoldersFields_updatedAt {
+  create: PayloadFoldersFields_updatedAt_Create
+  read: PayloadFoldersFields_updatedAt_Read
+  update: PayloadFoldersFields_updatedAt_Update
+  delete: PayloadFoldersFields_updatedAt_Delete
+}
+
+type PayloadFoldersFields_updatedAt_Create {
+  permission: Boolean!
+}
+
+type PayloadFoldersFields_updatedAt_Read {
+  permission: Boolean!
+}
+
+type PayloadFoldersFields_updatedAt_Update {
+  permission: Boolean!
+}
+
+type PayloadFoldersFields_updatedAt_Delete {
+  permission: Boolean!
+}
+
+type PayloadFoldersFields_createdAt {
+  create: PayloadFoldersFields_createdAt_Create
+  read: PayloadFoldersFields_createdAt_Read
+  update: PayloadFoldersFields_createdAt_Update
+  delete: PayloadFoldersFields_createdAt_Delete
+}
+
+type PayloadFoldersFields_createdAt_Create {
+  permission: Boolean!
+}
+
+type PayloadFoldersFields_createdAt_Read {
+  permission: Boolean!
+}
+
+type PayloadFoldersFields_createdAt_Update {
+  permission: Boolean!
+}
+
+type PayloadFoldersFields_createdAt_Delete {
+  permission: Boolean!
+}
+
+type PayloadFoldersCreateAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type PayloadFoldersReadAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type PayloadFoldersUpdateAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type PayloadFoldersDeleteAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
 type payload_locked_documentsAccess {
   fields: PayloadLockedDocumentsFields
   create: PayloadLockedDocumentsCreateAccess
@@ -19803,6 +20356,10 @@ type Mutation {
   updatePayloadKv(id: Int!, autosave: Boolean, data: mutationPayloadKvUpdateInput!, draft: Boolean, trash: Boolean): PayloadKv
   deletePayloadKv(id: Int!, trash: Boolean): PayloadKv
   duplicatePayloadKv(id: Int!, data: mutationPayloadKvInput!): PayloadKv
+  createPayloadFolder(data: mutationPayloadFolderInput!, draft: Boolean): PayloadFolder
+  updatePayloadFolder(id: Int!, autosave: Boolean, data: mutationPayloadFolderUpdateInput!, draft: Boolean, trash: Boolean): PayloadFolder
+  deletePayloadFolder(id: Int!, trash: Boolean): PayloadFolder
+  duplicatePayloadFolder(id: Int!, data: mutationPayloadFolderInput!): PayloadFolder
   createPayloadLockedDocument(data: mutationPayloadLockedDocumentInput!, draft: Boolean): PayloadLockedDocument
   updatePayloadLockedDocument(id: Int!, autosave: Boolean, data: mutationPayloadLockedDocumentUpdateInput!, draft: Boolean, trash: Boolean): PayloadLockedDocument
   deletePayloadLockedDocument(id: Int!, trash: Boolean): PayloadLockedDocument
@@ -19919,6 +20476,7 @@ enum ProjectUpdate_categories_MutationInput {
 input mutationMediaInput {
   alt: String!
   _objectKey: String
+  folder: Int
   updatedAt: String
   createdAt: String
   deletedAt: String
@@ -19970,6 +20528,7 @@ input mutationMedia_Sizes_OgInput {
 input mutationMediaUpdateInput {
   alt: String
   _objectKey: String
+  folder: Int
   updatedAt: String
   createdAt: String
   deletedAt: String
@@ -20649,6 +21208,30 @@ input mutationPayloadKvUpdateInput {
   data: JSON
 }
 
+input mutationPayloadFolderInput {
+  name: String!
+  folder: Int
+  folderType: [PayloadFolder_folderType_MutationInput]
+  updatedAt: String
+  createdAt: String
+}
+
+enum PayloadFolder_folderType_MutationInput {
+  media
+}
+
+input mutationPayloadFolderUpdateInput {
+  name: String
+  folder: Int
+  folderType: [PayloadFolderUpdate_folderType_MutationInput]
+  updatedAt: String
+  createdAt: String
+}
+
+enum PayloadFolderUpdate_folderType_MutationInput {
+  media
+}
+
 input mutationPayloadLockedDocumentInput {
   document: PayloadLockedDocument_DocumentRelationshipInput
   globalSlug: String
@@ -20678,6 +21261,7 @@ enum PayloadLockedDocument_DocumentRelationshipInputRelationTo {
   job_runs
   pagespeed_reports
   audit_logs
+  payload_folders
 }
 
 input PayloadLockedDocument_UserRelationshipInput {
@@ -20718,6 +21302,7 @@ enum PayloadLockedDocumentUpdate_DocumentRelationshipInputRelationTo {
   job_runs
   pagespeed_reports
   audit_logs
+  payload_folders
 }
 
 input PayloadLockedDocumentUpdate_UserRelationshipInput {

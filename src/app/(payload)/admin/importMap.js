@@ -3,6 +3,8 @@ import { ImageSourceField as ImageSourceField_ef9574d5c109771073508f0591f09d23 }
 import { ListSummary as ListSummary_50f80f274e43b32ec92fdc1f4d460a7d } from '../../../components/admin/views/List/ListSummary'
 import { GraphQLDocumentView as GraphQLDocumentView_8745bff9ddc360092ecb4114962825db } from '../../../components/admin/views/GraphQL'
 import { TanStackListView as TanStackListView_75bec65592dc2da1b8ce75c1e9e94fc3 } from '../../../components/admin/views/List'
+import { FolderTableCell as FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
+import { FolderField as FolderField_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 import { FileSizeCell as FileSizeCell_834aeb1910f7264a00b9fec1f719477d } from '../../../components/admin/fields/FileSize/Cell'
 import { SingletonListView as SingletonListView_5435722dddf5a4a9debf735ac4adfd02 } from '../../../components/admin/views/SingletonList'
 import { IconCell as IconCell_d2356f2fb39743b65c78d38759e4340b } from '../../../components/admin/fields/ServiceIcon/Cell'
@@ -11,6 +13,7 @@ import { ProgressCell as ProgressCell_937c0102c09968a42d1e38df73da1cb6 } from '.
 import { ContextColorCell as ContextColorCell_fd2a787f4acf1ad0a094b719a251472c } from '../../../components/admin/fields/ContextColor/Cell'
 import { ContextColorField as ContextColorField_2b4457f3fcd97f1118be72a8560c1f3a } from '../../../components/admin/fields/ContextColor/Field'
 import { AccessOverview as AccessOverview_0041e4cd9fa7615b3251865edafc9266 } from '../../../components/admin/views/Roles/AccessOverview'
+import { FolderTypeField as FolderTypeField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
 import { AccountAvatar as AccountAvatar_c3bba9300643314266b9f8dbd31e71aa } from '../../../components/admin/graphics/AccountAvatar'
 import { HiddenLogout as HiddenLogout_0b87bd55f4d244b27d7b4e405bf54f07 } from '../../../components/admin/nav/HiddenLogout'
 import { Icon as Icon_8c7579001d094aae258586b09a2f4a85 } from '../../../components/admin/graphics/Icon'
@@ -49,6 +52,8 @@ export const importMap = {
   "/components/admin/views/List/ListSummary#ListSummary": ListSummary_50f80f274e43b32ec92fdc1f4d460a7d,
   "/components/admin/views/GraphQL#GraphQLDocumentView": GraphQLDocumentView_8745bff9ddc360092ecb4114962825db,
   "/components/admin/views/List#TanStackListView": TanStackListView_75bec65592dc2da1b8ce75c1e9e94fc3,
+  "@payloadcms/next/rsc#FolderTableCell": FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1,
+  "@payloadcms/next/rsc#FolderField": FolderField_f9c02e79a4aed9a3924487c0cd4cafb1,
   "/components/admin/fields/FileSize/Cell#FileSizeCell": FileSizeCell_834aeb1910f7264a00b9fec1f719477d,
   "/components/admin/views/SingletonList#SingletonListView": SingletonListView_5435722dddf5a4a9debf735ac4adfd02,
   "/components/admin/fields/ServiceIcon/Cell#IconCell": IconCell_d2356f2fb39743b65c78d38759e4340b,
@@ -57,6 +62,7 @@ export const importMap = {
   "/components/admin/fields/ContextColor/Cell#ContextColorCell": ContextColorCell_fd2a787f4acf1ad0a094b719a251472c,
   "/components/admin/fields/ContextColor/Field#ContextColorField": ContextColorField_2b4457f3fcd97f1118be72a8560c1f3a,
   "/components/admin/views/Roles/AccessOverview#AccessOverview": AccessOverview_0041e4cd9fa7615b3251865edafc9266,
+  "@payloadcms/next/client#FolderTypeField": FolderTypeField_2b8867833a34864a02ddf429b0728a40,
   "/components/admin/graphics/AccountAvatar#AccountAvatar": AccountAvatar_c3bba9300643314266b9f8dbd31e71aa,
   "/components/admin/nav/HiddenLogout#HiddenLogout": HiddenLogout_0b87bd55f4d244b27d7b4e405bf54f07,
   "/components/admin/graphics/Icon#Icon": Icon_8c7579001d094aae258586b09a2f4a85,

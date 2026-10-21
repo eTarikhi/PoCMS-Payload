@@ -9,7 +9,7 @@ import { resendAdapter } from '@payloadcms/email-resend'
 // import nodemailer from 'nodemailer'
 
 import path from 'path'
-import { buildConfig } from 'payload'
+import { buildConfig, type Field } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
@@ -192,6 +192,22 @@ export default buildConfig({
   globals,
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET || '',
+  // Media folders (Payload's beta folders feature, enabled per collection in src/collections/Media.ts).
+  // Only Media uses folders, so the folder drawer hides Payload's "Folder Type" select and defaults
+  // it to Media: with one type there is nothing to choose, and a folder saved from the UI still
+  // gets a type. If a second collection enables folders, drop `hidden` to bring the scoping back.
+  folders: {
+    collectionOverrides: [
+      ({ collection }) => ({
+        ...collection,
+        fields: collection.fields.map((field) =>
+          'name' in field && field.name === 'folderType'
+            ? ({ ...field, defaultValue: ['media'], admin: { ...field.admin, hidden: true } } as Field)
+            : field,
+        ),
+      }),
+    ],
+  },
   // Our own admin strings, under the `custom` namespace (src/i18n/en.ts). Payload's interface
   // translations stay as shipped; a second language only needs a new file and an entry here.
   i18n: i18nConfig,

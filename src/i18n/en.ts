@@ -62,6 +62,10 @@ export const en = {
     editFile: 'Edit file',
     removeFile: 'Remove file',
     clearDate: 'Clear date',
+    gridView: 'Grid view',
+    listView: 'List view',
+    folderActions: 'Folder actions',
+    filePreview: 'File preview',
   },
 }
 

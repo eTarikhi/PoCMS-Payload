@@ -15,7 +15,20 @@ import { footerData } from './footer.js'
 import { navigationData } from './navigation.js'
 import { siteSettingsData } from './siteSettings.js'
 
-const collections = ['header', 'about', 'skills', 'experiences', 'educations', 'certificates', 'articles', 'services', 'projects', 'media'] as const
+const collections = [
+  'header',
+  'about',
+  'skills',
+  'experiences',
+  'educations',
+  'certificates',
+  'articles',
+  'services',
+  'projects',
+  'media',
+  // Payload's folder collection (media folders, beta). After media: it holds the relations.
+  'payload-folders',
+] as const
 
 /**
  * Database seed function
@@ -82,6 +95,35 @@ export const seed = async ({
     payload.logger.info(`  ✓ Header seeded (ID: ${header.id})`)
   } catch (error) {
     payload.logger.error(`  Failed to seed header: ${error instanceof Error ? error.message : String(error)}`)
+  }
+
+  payload.logger.info(`— Seeding media folders...`)
+
+  const folders: Record<'projects' | 'articles' | 'certificates', number> = {
+    projects: 0,
+    articles: 0,
+    certificates: 0,
+  }
+
+  try {
+    // Folders group the media library by where the images are used. The folder browser in the admin
+    // (/admin/browse-by-folder) reads them, and the media list gains a Folder column.
+    for (const [name, key] of [
+      ['Project covers', 'projects'],
+      ['Article covers', 'articles'],
+      ['Certificates', 'certificates'],
+    ] as const) {
+      const folder = await payload.create({
+        collection: 'payload-folders',
+        data: { name, folderType: ['media'] } as never,
+        overrideAccess: true,
+        context: { skipAudit: true },
+      })
+      folders[key] = folder.id
+    }
+    payload.logger.info(`  ✓ ${Object.keys(folders).length} media folders seeded`)
+  } catch (error) {
+    payload.logger.error(`  Failed to seed media folders: ${error instanceof Error ? error.message : String(error)}`)
   }
 
   payload.logger.info(`— Seeding about section...`)
@@ -163,7 +205,12 @@ export const seed = async ({
     const certificatesResults = await Promise.allSettled(
       certificatesData().map(async (certificate) => {
         try {
-          const image = await createMediaFromURL(payload, certificate.imageUrl, certificate.title)
+          const image = await createMediaFromURL(
+            payload,
+            certificate.imageUrl,
+            certificate.title,
+            folders.certificates || undefined,
+          )
           return await payload.create({
             collection: 'certificates',
             data: {
@@ -208,7 +255,12 @@ export const seed = async ({
     const articlesResults = await Promise.allSettled(
       articlesData().map(async (article) => {
         try {
-          const image = await createMediaFromURL(payload, article.imageUrl, article.title)
+          const image = await createMediaFromURL(
+            payload,
+            article.imageUrl,
+            article.title,
+            folders.articles || undefined,
+          )
           return await payload.create({
             collection: 'articles',
             data: {
@@ -282,7 +334,12 @@ export const seed = async ({
     const prepared = await Promise.all(
       projectsData().map(async (project) => ({
         project,
-        image: await createMediaFromURL(payload, project.src, project.title).catch(() => undefined),
+        image: await createMediaFromURL(
+          payload,
+          project.src,
+          project.title,
+          folders.projects || undefined,
+        ).catch(() => undefined),
       })),
     )
 
@@ -389,11 +446,16 @@ const MIME_TYPES: Record<string, string> = {
  * Uploads the image at `url` to the `media` collection and returns the new document ID,
  * so seeded documents reference a real upload (thumbnails in the admin, `image` relations).
  */
-async function createMediaFromURL(payload: Payload, url: string, alt: string): Promise<number> {
+async function createMediaFromURL(
+  payload: Payload,
+  url: string,
+  alt: string,
+  folder?: number,
+): Promise<number> {
   const file = await fetchFileByURL(url)
   const media = await payload.create({
     collection: 'media',
-    data: { alt },
+    data: { alt, ...(folder ? { folder } : {}) } as never,
     file,
     overrideAccess: true,
     context: { skipAudit: true },

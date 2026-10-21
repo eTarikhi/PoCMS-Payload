@@ -52,6 +52,10 @@ CI runs all of the above, regenerates the generated files and fails if they diff
 - Ordered collections are orderable (`orderable: true`, hidden `_order`): no manual order field,
   sorted `_order` in the admin and in `src/app/(frontend)/lib/payload-source.ts`, seeded one
   document at a time. See the guide's "Orderable lists".
+- Media uses Payload's beta folders (`folders: true` on the collection). The folder collection is
+  hidden, so its schema changes appear in generated files and migrations like any collection; the
+  seed files images into folders after clearing `media`. The folder drawer's `<div type="button">`
+  and unlabelled controls are fixed in `AdminDomFixes/folders.ts`, not with CSS-only tricks.
 - Admin DOM fixes Payload's config cannot express live in `providers/AdminDomFixes`, one module per
   upstream component with the markup it repairs in its comment. They only fill in what is missing,
   so an upgrade that ships the fix wins; add a unit test in `tests/int/admin-dom-fixes.int.spec.ts`.

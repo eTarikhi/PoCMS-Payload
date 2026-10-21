@@ -36,6 +36,15 @@
     color: var(--muted-foreground);
   }
 
+  /* Folder browser (beta): the section title is elevation-400 and the "assigned collections" label
+     halves its own opacity — 2.6:1 and worse on the canvas. The muted token passes AA in both
+     themes and keeps the secondary weight. */
+  .item-card-grid__title,
+  .folder-file-card__assigned-collections {
+    color: var(--muted-foreground);
+    opacity: 1;
+  }
+
   /* Sign-in screens (no sticky bars there, so a gradient cannot show seams): a faint amber glow
      from the top over the light canvas. */
   html:not([data-theme='dark']) .template-minimal {

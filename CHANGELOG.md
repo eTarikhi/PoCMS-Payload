@@ -8,7 +8,18 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Added
 
-- **An accessibility gate for the whole admin (P6.2).** `tests/e2e/a11y.e2e.spec.ts` scans fourteen
+- **Media folders (beta).** `folders: true` on Media turns on Payload's folder feature: the sidebar
+  gains **Browse by Folder** at `/admin/browse-by-folder`, the library is grouped by where an image
+  is used, and folders nest. The seed creates *Project covers*, *Article covers* and *Certificates*
+  and files every upload into its folder. Only Media uses folders, so a root-config collection
+  override hides Payload's "Folder Type" select and defaults it to `media` — creating a folder asks
+  for a name only, and the API fills the type. Migration
+  `20261021_163000_media_folders` adds the hidden `payload-folders` collection, its type join table,
+  `media.folder_id` and the lock row; the folder tables are cleared after media in the seed. The
+  feature ships with the accessibility fixes below and with
+  `tests/e2e/folders.e2e.spec.ts` + `tests/int/media-folders.int.spec.ts`; both folder surfaces join
+  the axe sweep.
+- **An accessibility gate for the whole admin (P6.2).** `tests/e2e/a11y.e2e.spec.ts` scans sixteen
   admin surfaces in both themes against the WCAG 2.2 AA tags and fails on any serious or critical
   finding that is not one of Payload's own, with the upstream ones listed by rule, node count and
   component, so an upgrade that fixes them is noticed. It also checks what axe cannot: one main
@@ -59,6 +70,13 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Fixed
 
+- **The folder browser's accessibility gaps.** Payload 3.90's folder view renders the grid/list
+  toggles and the folder "…" menu without a name, its card thumbnails without `alt` (fourteen
+  images on the seeded library), the "Create folder" control as a `<div type="button">` that takes
+  no focus, and its section titles and "Media" chips under 3:1. `AdminDomFixes/folders.ts` names
+  the controls, fills the alt text from the file name and turns the create control into a real
+  button (Enter/Space included); the two labels use the muted token instead of elevation-400 with
+  50% opacity.
 - **Admin accessibility findings, from the new gate.** The dashboard and every list now have a main
   landmark and the shell a skip link (`providers/AdminDomFixes`), and the dashboard and sign-in
   screens an `<h1>` (`views/PageTitle`). Payload's row-selection checkboxes (`aria-label=""`), its

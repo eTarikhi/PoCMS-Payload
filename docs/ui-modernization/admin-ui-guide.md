@@ -460,6 +460,34 @@ Budget (raised to +150 kB JS / +40 kB CSS over the P0 baseline) and current numb
   reported and skipped, never deleted. Size files whose size no longer exists stay on disk; remove
   them by hand if disk use matters.
 
+### Folders (beta)
+
+`folders: true` on Media turns on Payload's beta folder feature. The sidebar gains **Browse by
+Folder** (`/admin/browse-by-folder`), where the library is grouped by where an image is used; the
+seed creates *Project covers*, *Article covers* and *Certificates* and files each upload into its
+folder. A media document carries a hidden `folder` relationship, and folders can be nested.
+
+- **Only Media uses folders.** The folder drawer would otherwise ask which collection type a folder
+  may hold, with one option. The root config (`src/payload.config.ts`, `folders.collectionOverrides`)
+  hides that select and defaults it to `media`; the server fills it in on create, so `create` from
+  the API works with just a name. Add `admin.hidden: false` back — or drop the override — when a
+  second collection enables folders.
+- **Schema.** Payload adds the hidden `payload-folders` collection, the join table for its type, the
+  `media.folder_id` column and a row in the lock table. `20261021_163000_media_folders` creates them
+  (hand-written: the schema diff cannot be generated non-interactively after the orderable
+  migrations), and the folder collection is cleared after `media` in the seed.
+- **Accessibility.** Payload's folder view ships three gaps that the admin's gate caught: the
+  grid/list toggles and the folder "…" menu are icon-only buttons with no label, the card
+  thumbnails have no `alt`, and the "Create folder" control is a `<div type="button">`. The DOM
+  fixes name them and make the create control a real button (see `docs/ui-modernization/a11y.md`);
+  the section titles and the "Media" chips use the muted token because Payload's own colours fall
+  under 3:1. `tests/e2e/folders.e2e.spec.ts` covers the browser, the file cards and creating a
+  folder, and both folder surfaces are part of the axe sweep.
+- **Beta caveat.** Payload labels folders beta; the collection slug (`payload-folders`), the field
+  name (`folder`) and the route are Payload's defaults so a later release can change its internals
+  without a config migration here. `debug: true` in the root config would reveal the hidden
+  collection and fields; it stays off.
+
 ## List views
 
 `src/plugins/adminUI.ts` gives every collection the **TanStack list view** unless it defines its own
