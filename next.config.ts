@@ -1,6 +1,7 @@
 import { withPayload } from '@payloadcms/next/withPayload'
 import type { NextConfig } from 'next'
 import path from 'path'
+import { mediaRemotePatterns } from './src/utilities/media-origins'
 import { fileURLToPath } from 'url'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -10,7 +11,8 @@ const nextConfig: NextConfig = {
   // Dev-only indicator: bottom right, so it doesn't cover the admin sidebar's account controls.
   devIndicators: { position: 'bottom-right' },
   images: {
-    dangerouslyAllowLocalIP: true,
+    dangerouslyAllowLocalIP: false,
+    remotePatterns: mediaRemotePatterns(process.env.MEDIA_REMOTE_ORIGINS),
     localPatterns: [
       { pathname: '/placeholder.svg' },
       {
