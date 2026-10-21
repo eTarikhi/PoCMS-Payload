@@ -46,10 +46,10 @@ export const fetchRawPortfolioDocs = async (): Promise<RawPortfolioDocs> => {
       .find({ collection: 'skills', pagination: false, sort: '_order', depth: 0 })
       .then((res) => res.docs),
     payload
-      .find({ collection: 'experiences', pagination: false, sort: 'order', depth: 0 })
+      .find({ collection: 'experiences', pagination: false, sort: '_order', depth: 0 })
       .then((res) => res.docs),
     payload
-      .find({ collection: 'educations', pagination: false, sort: 'order', depth: 0 })
+      .find({ collection: 'educations', pagination: false, sort: '_order', depth: 0 })
       .then((res) => res.docs),
     // Ascending by issue date, which matches the original site.
     payload
@@ -68,10 +68,10 @@ export const fetchRawPortfolioDocs = async (): Promise<RawPortfolioDocs> => {
       })
       .then((res) => res.docs),
     payload
-      .find({ collection: 'services', pagination: false, sort: 'order', depth: 0 })
+      .find({ collection: 'services', pagination: false, sort: '_order', depth: 0 })
       .then((res) => res.docs),
     payload
-      .find({ collection: 'projects', pagination: false, sort: 'order', depth: 1 })
+      .find({ collection: 'projects', pagination: false, sort: '_order', depth: 1 })
       .then((res) => res.docs),
     // Errors propagate on purpose. A database failure must not render an empty footer silently.
     payload.findGlobal({ slug: 'footer', depth: 1 }),

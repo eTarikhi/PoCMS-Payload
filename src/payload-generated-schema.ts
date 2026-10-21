@@ -347,7 +347,7 @@ export const projects = pgTable(
   'projects',
   {
     id: serial('id').primaryKey(),
-    order: numeric('order', { mode: 'number' }).default(0),
+    _order: varchar('_order'),
     title: varchar('title').notNull(),
     slug: varchar('slug'),
     image: integer('image_id').references(() => media.id, {
@@ -366,7 +366,7 @@ export const projects = pgTable(
     deletedAt: timestamp('deleted_at', { mode: 'string', withTimezone: true, precision: 3 }),
   },
   (columns) => [
-    index('projects_order_idx').on(columns.order),
+    index('projects__order_idx').on(columns._order),
     uniqueIndex('projects_slug_idx').on(columns.slug),
     index('projects_image_idx').on(columns.image),
     index('projects_updated_at_idx').on(columns.updatedAt),
@@ -523,7 +523,7 @@ export const services = pgTable(
   'services',
   {
     id: serial('id').primaryKey(),
-    order: numeric('order', { mode: 'number' }).default(0),
+    _order: varchar('_order'),
     category: varchar('category').notNull(),
     iconFont: enum_services_icon_font('icon_font'),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
@@ -535,7 +535,7 @@ export const services = pgTable(
     deletedAt: timestamp('deleted_at', { mode: 'string', withTimezone: true, precision: 3 }),
   },
   (columns) => [
-    index('services_order_idx').on(columns.order),
+    index('services__order_idx').on(columns._order),
     index('services_updated_at_idx').on(columns.updatedAt),
     index('services_created_at_idx').on(columns.createdAt),
     index('services_deleted_at_idx').on(columns.deletedAt),
@@ -591,7 +591,7 @@ export const experiences = pgTable(
   'experiences',
   {
     id: serial('id').primaryKey(),
-    order: numeric('order', { mode: 'number' }).default(0),
+    _order: varchar('_order'),
     title: varchar('title').notNull(),
     company: varchar('company').notNull(),
     date: varchar('date').notNull(),
@@ -604,7 +604,7 @@ export const experiences = pgTable(
     deletedAt: timestamp('deleted_at', { mode: 'string', withTimezone: true, precision: 3 }),
   },
   (columns) => [
-    index('experiences_order_idx').on(columns.order),
+    index('experiences__order_idx').on(columns._order),
     index('experiences_updated_at_idx').on(columns.updatedAt),
     index('experiences_created_at_idx').on(columns.createdAt),
     index('experiences_deleted_at_idx').on(columns.deletedAt),
@@ -615,7 +615,7 @@ export const educations = pgTable(
   'educations',
   {
     id: serial('id').primaryKey(),
-    order: numeric('order', { mode: 'number' }).default(0),
+    _order: varchar('_order'),
     title: varchar('title').notNull(),
     institution: varchar('institution').notNull(),
     location: varchar('location'),
@@ -629,7 +629,7 @@ export const educations = pgTable(
     deletedAt: timestamp('deleted_at', { mode: 'string', withTimezone: true, precision: 3 }),
   },
   (columns) => [
-    index('educations_order_idx').on(columns.order),
+    index('educations__order_idx').on(columns._order),
     index('educations_updated_at_idx').on(columns.updatedAt),
     index('educations_created_at_idx').on(columns.createdAt),
     index('educations_deleted_at_idx').on(columns.deletedAt),

@@ -268,10 +268,7 @@ export interface Media {
  */
 export interface Project {
   id: number;
-  /**
-   * Lower numbers appear first.
-   */
-  order?: number | null;
+  _order?: string | null;
   title: string;
   /**
    * URL key for /projects/{slug}. Made from the title when left empty. Keep it stable once the project is shared.
@@ -337,10 +334,7 @@ export interface About {
  */
 export interface Service {
   id: number;
-  /**
-   * Lower numbers appear first.
-   */
-  order?: number | null;
+  _order?: string | null;
   category: string;
   /**
    * Icon shown next to the category. Only the icons the site has are listed.
@@ -378,17 +372,14 @@ export interface Skill {
   deletedAt?: string | null;
 }
 /**
- * Work history in the résumé section. Lower order shows first.
+ * Work history in the résumé section. Drag to reorder in the list.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "experiences".
  */
 export interface Experience {
   id: number;
-  /**
-   * Lower numbers appear first.
-   */
-  order?: number | null;
+  _order?: string | null;
   title: string;
   company: string;
   /**
@@ -400,17 +391,14 @@ export interface Experience {
   deletedAt?: string | null;
 }
 /**
- * Education history in the résumé section. Lower order shows first.
+ * Education history in the résumé section. Drag to reorder in the list.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "educations".
  */
 export interface Education {
   id: number;
-  /**
-   * Lower numbers appear first.
-   */
-  order?: number | null;
+  _order?: string | null;
   title: string;
   institution: string;
   location?: string | null;
@@ -875,7 +863,7 @@ export interface ArticlesSelect<T extends boolean = true> {
  * via the `definition` "projects_select".
  */
 export interface ProjectsSelect<T extends boolean = true> {
-  order?: T;
+  _order?: T;
   title?: T;
   slug?: T;
   image?: T;
@@ -983,7 +971,7 @@ export interface AboutSelect<T extends boolean = true> {
  * via the `definition` "services_select".
  */
 export interface ServicesSelect<T extends boolean = true> {
-  order?: T;
+  _order?: T;
   category?: T;
   iconFont?: T;
   descriptions?: T;
@@ -1010,7 +998,7 @@ export interface SkillsSelect<T extends boolean = true> {
  * via the `definition` "experiences_select".
  */
 export interface ExperiencesSelect<T extends boolean = true> {
-  order?: T;
+  _order?: T;
   title?: T;
   company?: T;
   date?: T;
@@ -1023,7 +1011,7 @@ export interface ExperiencesSelect<T extends boolean = true> {
  * via the `definition` "educations_select".
  */
 export interface EducationsSelect<T extends boolean = true> {
-  order?: T;
+  _order?: T;
   title?: T;
   institution?: T;
   location?: T;

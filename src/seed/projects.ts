@@ -7,7 +7,6 @@ export const projectsData = () => [
     url: 'https://www.linkedin.com/in/etarikhi/details/projects/',
     readMoreUrl: '',
     categories: ['front-end', 'back-end'],
-    order: 0,
   },
   {
     title: 'Egzador',
@@ -17,7 +16,6 @@ export const projectsData = () => [
     url: 'https://www.linkedin.com/in/etarikhi/details/projects/',
     readMoreUrl: '',
     categories: ['front-end', 'back-end'],
-    order: 1,
   },
   {
     title: 'DogalAsitane',
@@ -27,7 +25,6 @@ export const projectsData = () => [
     url: 'https://www.linkedin.com/in/etarikhi/details/projects/',
     readMoreUrl: '',
     categories: ['front-end'],
-    order: 2,
   },
   {
     title: 'UrumSorgu',
@@ -37,7 +34,6 @@ export const projectsData = () => [
     url: 'https://www.linkedin.com/in/etarikhi/details/projects/',
     readMoreUrl: '',
     categories: ['front-end', 'back-end'],
-    order: 3,
   },
   {
     title: 'IceTherapy',
@@ -47,7 +43,6 @@ export const projectsData = () => [
     url: 'https://www.linkedin.com/in/etarikhi/details/projects/',
     readMoreUrl: '',
     categories: ['front-end', 'back-end'],
-    order: 4,
   },
   {
     title: 'ColdLipolysis',
@@ -57,7 +52,6 @@ export const projectsData = () => [
     url: 'https://www.linkedin.com/in/etarikhi/details/projects/',
     readMoreUrl: '',
     categories: ['front-end', 'back-end'],
-    order: 5,
   },
   {
     title: 'AnemonTerapi',
@@ -67,7 +61,6 @@ export const projectsData = () => [
     url: 'https://www.linkedin.com/in/etarikhi/details/projects/',
     readMoreUrl: '',
     categories: ['front-end', 'back-end'],
-    order: 6,
   },
   {
     title: 'AlyaPanel',
@@ -77,7 +70,6 @@ export const projectsData = () => [
     url: 'https://www.linkedin.com/in/etarikhi/details/projects/',
     readMoreUrl: '',
     categories: ['front-end', 'back-end', 'cms-crm'],
-    order: 7,
   },
   {
     title: 'CaddePanel',
@@ -87,7 +79,6 @@ export const projectsData = () => [
     url: 'https://www.linkedin.com/in/etarikhi/details/projects/',
     readMoreUrl: '',
     categories: ['front-end', 'back-end', 'cms-crm'],
-    order: 8,
   },
   {
     title: 'ProximaAkademi',
@@ -97,7 +88,6 @@ export const projectsData = () => [
     url: 'https://www.linkedin.com/in/etarikhi/details/projects/',
     readMoreUrl: '',
     categories: ['front-end', 'back-end', 'cms-crm'],
-    order: 9,
   },
   {
     title: 'Evona-Kozmetik',
@@ -107,7 +97,6 @@ export const projectsData = () => [
     url: 'https://www.linkedin.com/in/etarikhi/details/projects/',
     readMoreUrl: '',
     categories: ['front-end', 'back-end'],
-    order: 10,
   },
   {
     title: 'WinterHoney',
@@ -117,7 +106,6 @@ export const projectsData = () => [
     url: 'https://www.linkedin.com/in/etarikhi/details/projects/',
     readMoreUrl: '',
     categories: ['front-end', 'back-end'],
-    order: 11,
   },
   {
     title: 'NatureGenome',
@@ -127,7 +115,6 @@ export const projectsData = () => [
     url: 'https://www.linkedin.com/in/etarikhi/details/projects/',
     readMoreUrl: '',
     categories: ['front-end', 'back-end'],
-    order: 12,
   },
   {
     title: 'ARKBlog',
@@ -137,6 +124,5 @@ export const projectsData = () => [
     url: 'https://www.linkedin.com/in/etarikhi/details/projects/',
     readMoreUrl: '',
     categories: ['front-end'],
-    order: 13,
   },
 ]

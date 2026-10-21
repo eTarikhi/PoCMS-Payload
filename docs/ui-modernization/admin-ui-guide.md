@@ -479,8 +479,10 @@ list view (`SingletonListView`) redirects to the document, or to the create form
 
 ### Orderable lists
 
-Opt a collection into Payload's drag-and-drop ordering with `orderable: true` (experimental in
-Payload 3.90, so the API may change in a minor release). Skills is the pilot:
+Every ordered collection opts into Payload's drag-and-drop ordering with `orderable: true`
+(experimental in Payload 3.90, so the API may change in a minor release): **Skills** (the pilot),
+**Educations, Experiences, Projects and Services**. The manual `order` number and `src/fields/order.ts`
+are gone:
 
 - Payload adds a hidden, read-only `_order` text field holding a fractional index, a `beforeChange`
   hook that appends each new document, and a `/api/<collection>/reorder` endpoint the list calls on
@@ -489,15 +491,20 @@ Payload 3.90, so the API may change in a minor release). Skills is the pilot:
   the drag handles, and `defaultSort` is not needed — the list sorts by `_order`.
 - Queries that feed the site sort by `_order` too (`src/app/(frontend)/lib/payload-source.ts`).
 - Seed data is created one document at a time; parallel creates would each read the same "last"
-  key and land in an arbitrary order.
-- Migration `20261021_001500_skills_orderable` backfills `_order` from the old numeric `order` and
-  `id` (`lpad((order * 100000 + id), 11, '0') || '1'`, a key that sorts like the numbers and does
-  not end in `0`), then drops the column. `tests/int/orderable.int.spec.ts` covers append, sort,
-  and the hidden field; `tests/e2e/orderable.e2e.spec.ts` drags a row with pointer events, because
-  dnd-kit ignores HTML5 drag events.
+  key and land in an arbitrary order. Projects prepares its images in parallel but creates the
+  documents sequentially for the same reason.
+- Migrations `20261021_001500_skills_orderable` and
+  `20261021_150000_orderable_profile_and_services` backfill `_order` from the old numeric `order`
+  and `id` (`lpad((order * 100000 + id), 11, '0') || '1'`, a key that sorts like the numbers and
+  does not end in `0`), then drop the column. Both are reversible.
+- `tests/int/orderable.int.spec.ts` runs append, sort, hidden-field and schema assertions for all
+  five collections and checks the frontend queries; `tests/e2e/orderable.e2e.spec.ts` drags a row
+  with pointer events (dnd-kit ignores HTML5 drag events) on Skills and Experiences, and checks the
+  handles and absence of the numeric column on all five.
 
-The other ordered collections (Projects, Experiences, Educations, Services) still use the manual
-`order` number, so an editor can compare both approaches before the rest is converted.
+To make a new collection orderable: add `orderable: true`, remove the `orderField`, `defaultSort`
+and the `order` column from `defaultColumns`, switch its frontend query to `sort: '_order'`, create
+its documents sequentially in the seed, and add a migration that backfills `_order` the same way.
 
 ### List summary
 

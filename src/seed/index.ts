@@ -121,17 +121,19 @@ export const seed = async ({
   payload.logger.info(`— Seeding experiences...`)
 
   try {
-    const experiencesResults = await Promise.all(
-      experiencesData().map((experience) =>
-        payload.create({
-          collection: 'experiences',
-          data: experience,
-          overrideAccess: true,
-          context: { skipAudit: true },
-        }),
-      ),
-    )
-    payload.logger.info(`  ✓ ${experiencesResults.length} experiences seeded`)
+    // One at a time: the collection is orderable, and Payload appends each new document by reading
+    // the highest `_order`, so parallel creates would give the list an arbitrary order.
+    let seededExperiences = 0
+    for (const experience of experiencesData()) {
+      await payload.create({
+        collection: 'experiences',
+        data: experience,
+        overrideAccess: true,
+        context: { skipAudit: true },
+      })
+      seededExperiences += 1
+    }
+    payload.logger.info(`  ✓ ${seededExperiences} experiences seeded`)
   } catch (error) {
     payload.logger.error(`  Failed to seed experiences: ${error instanceof Error ? error.message : String(error)}`)
   }
@@ -139,17 +141,18 @@ export const seed = async ({
   payload.logger.info(`— Seeding educations...`)
 
   try {
-    const educationsResults = await Promise.all(
-      educationsData().map((education) =>
-        payload.create({
-          collection: 'educations',
-          data: education,
-          overrideAccess: true,
-          context: { skipAudit: true },
-        }),
-      ),
-    )
-    payload.logger.info(`  ✓ ${educationsResults.length} educations seeded`)
+    // Sequential for the same reason as experiences: orderable collections append on create.
+    let seededEducations = 0
+    for (const education of educationsData()) {
+      await payload.create({
+        collection: 'educations',
+        data: education,
+        overrideAccess: true,
+        context: { skipAudit: true },
+      })
+      seededEducations += 1
+    }
+    payload.logger.info(`  ✓ ${seededEducations} educations seeded`)
   } catch (error) {
     payload.logger.error(`  Failed to seed educations: ${error instanceof Error ? error.message : String(error)}`)
   }
@@ -255,17 +258,18 @@ export const seed = async ({
   payload.logger.info(`— Seeding services...`)
 
   try {
-    const servicesResults = await Promise.all(
-      servicesData().map((service) =>
-        payload.create({
-          collection: 'services',
-          data: service,
-          overrideAccess: true,
-          context: { skipAudit: true },
-        }),
-      ),
-    )
-    payload.logger.info(`  ✓ ${servicesResults.length} services seeded`)
+    // Sequential for the same reason as experiences: orderable collections append on create.
+    let seededServices = 0
+    for (const service of servicesData()) {
+      await payload.create({
+        collection: 'services',
+        data: service,
+        overrideAccess: true,
+        context: { skipAudit: true },
+      })
+      seededServices += 1
+    }
+    payload.logger.info(`  ✓ ${seededServices} services seeded`)
   } catch (error) {
     payload.logger.error(`  Failed to seed services: ${error instanceof Error ? error.message : String(error)}`)
   }
@@ -273,49 +277,60 @@ export const seed = async ({
   payload.logger.info(`— Seeding projects...`)
 
   try {
-    const projectsResults = await Promise.allSettled(
-      projectsData().map(async (project) => {
-        try {
-          const image = await createMediaFromURL(payload, project.src, project.title)
-          return await payload.create({
-            collection: 'projects',
-            data: {
-              title: project.title,
-              url: project.url,
-              readMoreUrl: project.readMoreUrl,
-              categories: project.categories as ('front-end' | 'back-end' | 'cms-crm')[],
-              order: project.order,
-              placeHolder: project.placeHolder,
-              src: project.src,
-              image,
-            },
-            overrideAccess: true,
-            context: { skipAudit: true },
-          })
-        } catch (error) {
+    // Images in parallel, documents one at a time: Projects is orderable and Payload appends each
+    // new document by reading the highest `_order`.
+    const prepared = await Promise.all(
+      projectsData().map(async (project) => ({
+        project,
+        image: await createMediaFromURL(payload, project.src, project.title).catch(() => undefined),
+      })),
+    )
+
+    let seededProjects = 0
+    for (const { project, image } of prepared) {
+      const data = {
+        title: project.title,
+        url: project.url,
+        readMoreUrl: project.readMoreUrl,
+        categories: project.categories as ('front-end' | 'back-end' | 'cms-crm')[],
+        placeHolder: project.placeHolder,
+        src: project.src,
+      }
+      try {
+        await payload.create({
+          collection: 'projects',
+          data: image ? { ...data, image } : data,
+          overrideAccess: true,
+          context: { skipAudit: true },
+        })
+      } catch (error) {
+        if (!image) {
           payload.logger.warn(
             `  Could not seed project "${project.title}": ${error instanceof Error ? error.message : String(error)}`,
           )
-          // Create without image as fallback
-          return await payload.create({
+          continue
+        }
+        // The image is optional on the site: keep the project, drop the file that failed.
+        payload.logger.warn(
+          `  Could not seed project "${project.title}" with its image: ${error instanceof Error ? error.message : String(error)}`,
+        )
+        try {
+          await payload.create({
             collection: 'projects',
-            data: {
-              title: project.title,
-              url: project.url,
-              readMoreUrl: project.readMoreUrl,
-              categories: project.categories as ('front-end' | 'back-end' | 'cms-crm')[],
-              order: project.order,
-              placeHolder: project.placeHolder,
-              src: project.src,
-            },
+            data,
             overrideAccess: true,
             context: { skipAudit: true },
           })
+        } catch (fallbackError) {
+          payload.logger.warn(
+            `  Could not seed project "${project.title}": ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`,
+          )
+          continue
         }
-      }),
-    )
-    const successful = projectsResults.filter((r) => r.status === 'fulfilled').length
-    payload.logger.info(`  ✓ ${successful} projects seeded`)
+      }
+      seededProjects += 1
+    }
+    payload.logger.info(`  ✓ ${seededProjects} projects seeded`)
   } catch (error) {
     payload.logger.error(`  Failed to seed projects: ${error instanceof Error ? error.message : String(error)}`)
   }

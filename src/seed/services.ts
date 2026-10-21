@@ -1,6 +1,6 @@
 import type { Service } from '@/payload-types'
 
-export const servicesData = (): (Omit<Service, 'id' | 'createdAt' | 'updatedAt'> & { order?: number })[] => [
+export const servicesData = (): Omit<Service, 'id' | 'createdAt' | 'updatedAt'>[] => [
   {
     category: 'Back-End Development',
     iconFont: 'faCode',
@@ -12,7 +12,6 @@ export const servicesData = (): (Omit<Service, 'id' | 'createdAt' | 'updatedAt'>
       'CMS & CRM ( WordPress, Joomla, .. )',
       'Shopify, WooCommerce, OpenCart, Presta',
     ],
-    order: 0,
   },
   {
     category: 'Front-End Development',
@@ -25,7 +24,6 @@ export const servicesData = (): (Omit<Service, 'id' | 'createdAt' | 'updatedAt'>
       'Elementor & UI Kits',
       'Responsive Design',
     ],
-    order: 1,
   },
   {
     category: 'Data Analysis and SEO',
@@ -38,7 +36,6 @@ export const servicesData = (): (Omit<Service, 'id' | 'createdAt' | 'updatedAt'>
       'Google PageSpeed Optimization',
       'Database and Server Cache Optimization',
     ],
-    order: 2,
   },
   {
     category: 'Network, Server and WHM',
@@ -50,6 +47,5 @@ export const servicesData = (): (Omit<Service, 'id' | 'createdAt' | 'updatedAt'>
       'Web Server Security and Data Protection',
       'CloudFlare Load Balancing & Cloud Configuration',
     ],
-    order: 3,
   },
 ]

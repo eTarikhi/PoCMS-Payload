@@ -1,7 +1,6 @@
 import { contentAccess, hiddenWithout } from '@/access/roles'
 import type { CollectionConfig } from 'payload'
 import { portfolioAfterChange, portfolioAfterDelete } from '../app/(frontend)/lib/hooks'
-import { orderField } from '../fields/order'
 
 export const Services: CollectionConfig = {
   slug: 'services',
@@ -14,15 +13,17 @@ export const Services: CollectionConfig = {
     group: 'Profile',
     description: 'Service categories shown on the home page.',
     useAsTitle: 'category',
-    defaultColumns: ['category', 'iconFont', 'order'],
+    defaultColumns: ['category', 'iconFont'],
   },
-  defaultSort: 'order',
+  // Drag and drop ordering (P5.5): Payload keeps the position in a hidden `_order` fractional index
+  // and appends new documents, so the manual `order` number is gone. The list and the site read the
+  // same key.
+  orderable: true,
   // Deleting moves documents to the trash (restorable); deleting for good needs the Full level.
   trash: true,
   // Levels from the user's roles (ADR 0011): public read, edit and trash, full to delete for good.
   access: contentAccess('services'),
   fields: [
-    orderField,
     { name: 'category', type: 'text', required: true },
     {
       name: 'iconFont',

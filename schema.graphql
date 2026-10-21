@@ -1203,7 +1203,7 @@ input versionsArticle_where_or {
 
 type Project {
   id: Int!
-  order: Float
+  _order: String
   title: String!
   slug: String
   image: Media
@@ -1238,7 +1238,7 @@ type Projects {
 }
 
 input Project_where {
-  order: Project_order_operator
+  _order: Project__order_operator
   title: Project_title_operator
   slug: Project_slug_operator
   image: Project_image_operator
@@ -1255,13 +1255,14 @@ input Project_where {
   OR: [Project_where_or]
 }
 
-input Project_order_operator {
-  equals: Float
-  not_equals: Float
-  greater_than_equal: Float
-  greater_than: Float
-  less_than_equal: Float
-  less_than: Float
+input Project__order_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
   exists: Boolean
 }
 
@@ -1397,7 +1398,7 @@ input Project_id_operator {
 }
 
 input Project_where_and {
-  order: Project_order_operator
+  _order: Project__order_operator
   title: Project_title_operator
   slug: Project_slug_operator
   image: Project_image_operator
@@ -1415,7 +1416,7 @@ input Project_where_and {
 }
 
 input Project_where_or {
-  order: Project_order_operator
+  _order: Project__order_operator
   title: Project_title_operator
   slug: Project_slug_operator
   image: Project_image_operator
@@ -1445,7 +1446,7 @@ type projectsDocAccess {
 }
 
 type ProjectsDocAccessFields {
-  order: ProjectsDocAccessFields_order
+  _order: ProjectsDocAccessFields__order
   title: ProjectsDocAccessFields_title
   slug: ProjectsDocAccessFields_slug
   image: ProjectsDocAccessFields_image
@@ -1459,26 +1460,26 @@ type ProjectsDocAccessFields {
   deletedAt: ProjectsDocAccessFields_deletedAt
 }
 
-type ProjectsDocAccessFields_order {
-  create: ProjectsDocAccessFields_order_Create
-  read: ProjectsDocAccessFields_order_Read
-  update: ProjectsDocAccessFields_order_Update
-  delete: ProjectsDocAccessFields_order_Delete
+type ProjectsDocAccessFields__order {
+  create: ProjectsDocAccessFields__order_Create
+  read: ProjectsDocAccessFields__order_Read
+  update: ProjectsDocAccessFields__order_Update
+  delete: ProjectsDocAccessFields__order_Delete
 }
 
-type ProjectsDocAccessFields_order_Create {
+type ProjectsDocAccessFields__order_Create {
   permission: Boolean!
 }
 
-type ProjectsDocAccessFields_order_Read {
+type ProjectsDocAccessFields__order_Read {
   permission: Boolean!
 }
 
-type ProjectsDocAccessFields_order_Update {
+type ProjectsDocAccessFields__order_Update {
   permission: Boolean!
 }
 
-type ProjectsDocAccessFields_order_Delete {
+type ProjectsDocAccessFields__order_Delete {
   permission: Boolean!
 }
 
@@ -3881,7 +3882,7 @@ type AboutDeleteDocAccess {
 
 type Service {
   id: Int!
-  order: Float
+  _order: String
   category: String!
   iconFont: Service_iconFont
   descriptions: [String!]!
@@ -3912,7 +3913,7 @@ type Services {
 }
 
 input Service_where {
-  order: Service_order_operator
+  _order: Service__order_operator
   category: Service_category_operator
   iconFont: Service_iconFont_operator
   descriptions: Service_descriptions_operator
@@ -3924,13 +3925,14 @@ input Service_where {
   OR: [Service_where_or]
 }
 
-input Service_order_operator {
-  equals: Float
-  not_equals: Float
-  greater_than_equal: Float
-  greater_than: Float
-  less_than_equal: Float
-  less_than: Float
+input Service__order_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
   exists: Boolean
 }
 
@@ -4014,7 +4016,7 @@ input Service_id_operator {
 }
 
 input Service_where_and {
-  order: Service_order_operator
+  _order: Service__order_operator
   category: Service_category_operator
   iconFont: Service_iconFont_operator
   descriptions: Service_descriptions_operator
@@ -4027,7 +4029,7 @@ input Service_where_and {
 }
 
 input Service_where_or {
-  order: Service_order_operator
+  _order: Service__order_operator
   category: Service_category_operator
   iconFont: Service_iconFont_operator
   descriptions: Service_descriptions_operator
@@ -4052,7 +4054,7 @@ type servicesDocAccess {
 }
 
 type ServicesDocAccessFields {
-  order: ServicesDocAccessFields_order
+  _order: ServicesDocAccessFields__order
   category: ServicesDocAccessFields_category
   iconFont: ServicesDocAccessFields_iconFont
   descriptions: ServicesDocAccessFields_descriptions
@@ -4061,26 +4063,26 @@ type ServicesDocAccessFields {
   deletedAt: ServicesDocAccessFields_deletedAt
 }
 
-type ServicesDocAccessFields_order {
-  create: ServicesDocAccessFields_order_Create
-  read: ServicesDocAccessFields_order_Read
-  update: ServicesDocAccessFields_order_Update
-  delete: ServicesDocAccessFields_order_Delete
+type ServicesDocAccessFields__order {
+  create: ServicesDocAccessFields__order_Create
+  read: ServicesDocAccessFields__order_Read
+  update: ServicesDocAccessFields__order_Update
+  delete: ServicesDocAccessFields__order_Delete
 }
 
-type ServicesDocAccessFields_order_Create {
+type ServicesDocAccessFields__order_Create {
   permission: Boolean!
 }
 
-type ServicesDocAccessFields_order_Read {
+type ServicesDocAccessFields__order_Read {
   permission: Boolean!
 }
 
-type ServicesDocAccessFields_order_Update {
+type ServicesDocAccessFields__order_Update {
   permission: Boolean!
 }
 
-type ServicesDocAccessFields_order_Delete {
+type ServicesDocAccessFields__order_Delete {
   permission: Boolean!
 }
 
@@ -4656,7 +4658,7 @@ type SkillsDeleteDocAccess {
 
 type Experience {
   id: Int!
-  order: Float
+  _order: String
   title: String!
   company: String!
   date: String!
@@ -4680,7 +4682,7 @@ type Experiences {
 }
 
 input Experience_where {
-  order: Experience_order_operator
+  _order: Experience__order_operator
   title: Experience_title_operator
   company: Experience_company_operator
   date: Experience_date_operator
@@ -4692,13 +4694,14 @@ input Experience_where {
   OR: [Experience_where_or]
 }
 
-input Experience_order_operator {
-  equals: Float
-  not_equals: Float
-  greater_than_equal: Float
-  greater_than: Float
-  less_than_equal: Float
-  less_than: Float
+input Experience__order_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
   exists: Boolean
 }
 
@@ -4776,7 +4779,7 @@ input Experience_id_operator {
 }
 
 input Experience_where_and {
-  order: Experience_order_operator
+  _order: Experience__order_operator
   title: Experience_title_operator
   company: Experience_company_operator
   date: Experience_date_operator
@@ -4789,7 +4792,7 @@ input Experience_where_and {
 }
 
 input Experience_where_or {
-  order: Experience_order_operator
+  _order: Experience__order_operator
   title: Experience_title_operator
   company: Experience_company_operator
   date: Experience_date_operator
@@ -4814,7 +4817,7 @@ type experiencesDocAccess {
 }
 
 type ExperiencesDocAccessFields {
-  order: ExperiencesDocAccessFields_order
+  _order: ExperiencesDocAccessFields__order
   title: ExperiencesDocAccessFields_title
   company: ExperiencesDocAccessFields_company
   date: ExperiencesDocAccessFields_date
@@ -4823,26 +4826,26 @@ type ExperiencesDocAccessFields {
   deletedAt: ExperiencesDocAccessFields_deletedAt
 }
 
-type ExperiencesDocAccessFields_order {
-  create: ExperiencesDocAccessFields_order_Create
-  read: ExperiencesDocAccessFields_order_Read
-  update: ExperiencesDocAccessFields_order_Update
-  delete: ExperiencesDocAccessFields_order_Delete
+type ExperiencesDocAccessFields__order {
+  create: ExperiencesDocAccessFields__order_Create
+  read: ExperiencesDocAccessFields__order_Read
+  update: ExperiencesDocAccessFields__order_Update
+  delete: ExperiencesDocAccessFields__order_Delete
 }
 
-type ExperiencesDocAccessFields_order_Create {
+type ExperiencesDocAccessFields__order_Create {
   permission: Boolean!
 }
 
-type ExperiencesDocAccessFields_order_Read {
+type ExperiencesDocAccessFields__order_Read {
   permission: Boolean!
 }
 
-type ExperiencesDocAccessFields_order_Update {
+type ExperiencesDocAccessFields__order_Update {
   permission: Boolean!
 }
 
-type ExperiencesDocAccessFields_order_Delete {
+type ExperiencesDocAccessFields__order_Delete {
   permission: Boolean!
 }
 
@@ -5006,7 +5009,7 @@ type ExperiencesDeleteDocAccess {
 
 type Education {
   id: Int!
-  order: Float
+  _order: String
   title: String!
   institution: String!
   location: String
@@ -5031,7 +5034,7 @@ type Educations {
 }
 
 input Education_where {
-  order: Education_order_operator
+  _order: Education__order_operator
   title: Education_title_operator
   institution: Education_institution_operator
   location: Education_location_operator
@@ -5044,13 +5047,14 @@ input Education_where {
   OR: [Education_where_or]
 }
 
-input Education_order_operator {
-  equals: Float
-  not_equals: Float
-  greater_than_equal: Float
-  greater_than: Float
-  less_than_equal: Float
-  less_than: Float
+input Education__order_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
   exists: Boolean
 }
 
@@ -5139,7 +5143,7 @@ input Education_id_operator {
 }
 
 input Education_where_and {
-  order: Education_order_operator
+  _order: Education__order_operator
   title: Education_title_operator
   institution: Education_institution_operator
   location: Education_location_operator
@@ -5153,7 +5157,7 @@ input Education_where_and {
 }
 
 input Education_where_or {
-  order: Education_order_operator
+  _order: Education__order_operator
   title: Education_title_operator
   institution: Education_institution_operator
   location: Education_location_operator
@@ -5179,7 +5183,7 @@ type educationsDocAccess {
 }
 
 type EducationsDocAccessFields {
-  order: EducationsDocAccessFields_order
+  _order: EducationsDocAccessFields__order
   title: EducationsDocAccessFields_title
   institution: EducationsDocAccessFields_institution
   location: EducationsDocAccessFields_location
@@ -5189,26 +5193,26 @@ type EducationsDocAccessFields {
   deletedAt: EducationsDocAccessFields_deletedAt
 }
 
-type EducationsDocAccessFields_order {
-  create: EducationsDocAccessFields_order_Create
-  read: EducationsDocAccessFields_order_Read
-  update: EducationsDocAccessFields_order_Update
-  delete: EducationsDocAccessFields_order_Delete
+type EducationsDocAccessFields__order {
+  create: EducationsDocAccessFields__order_Create
+  read: EducationsDocAccessFields__order_Read
+  update: EducationsDocAccessFields__order_Update
+  delete: EducationsDocAccessFields__order_Delete
 }
 
-type EducationsDocAccessFields_order_Create {
+type EducationsDocAccessFields__order_Create {
   permission: Boolean!
 }
 
-type EducationsDocAccessFields_order_Read {
+type EducationsDocAccessFields__order_Read {
   permission: Boolean!
 }
 
-type EducationsDocAccessFields_order_Update {
+type EducationsDocAccessFields__order_Update {
   permission: Boolean!
 }
 
-type EducationsDocAccessFields_order_Delete {
+type EducationsDocAccessFields__order_Delete {
   permission: Boolean!
 }
 
@@ -12770,7 +12774,7 @@ type projectsAccess {
 }
 
 type ProjectsFields {
-  order: ProjectsFields_order
+  _order: ProjectsFields__order
   title: ProjectsFields_title
   slug: ProjectsFields_slug
   image: ProjectsFields_image
@@ -12784,26 +12788,26 @@ type ProjectsFields {
   deletedAt: ProjectsFields_deletedAt
 }
 
-type ProjectsFields_order {
-  create: ProjectsFields_order_Create
-  read: ProjectsFields_order_Read
-  update: ProjectsFields_order_Update
-  delete: ProjectsFields_order_Delete
+type ProjectsFields__order {
+  create: ProjectsFields__order_Create
+  read: ProjectsFields__order_Read
+  update: ProjectsFields__order_Update
+  delete: ProjectsFields__order_Delete
 }
 
-type ProjectsFields_order_Create {
+type ProjectsFields__order_Create {
   permission: Boolean!
 }
 
-type ProjectsFields_order_Read {
+type ProjectsFields__order_Read {
   permission: Boolean!
 }
 
-type ProjectsFields_order_Update {
+type ProjectsFields__order_Update {
   permission: Boolean!
 }
 
-type ProjectsFields_order_Delete {
+type ProjectsFields__order_Delete {
   permission: Boolean!
 }
 
@@ -14479,7 +14483,7 @@ type servicesAccess {
 }
 
 type ServicesFields {
-  order: ServicesFields_order
+  _order: ServicesFields__order
   category: ServicesFields_category
   iconFont: ServicesFields_iconFont
   descriptions: ServicesFields_descriptions
@@ -14488,26 +14492,26 @@ type ServicesFields {
   deletedAt: ServicesFields_deletedAt
 }
 
-type ServicesFields_order {
-  create: ServicesFields_order_Create
-  read: ServicesFields_order_Read
-  update: ServicesFields_order_Update
-  delete: ServicesFields_order_Delete
+type ServicesFields__order {
+  create: ServicesFields__order_Create
+  read: ServicesFields__order_Read
+  update: ServicesFields__order_Update
+  delete: ServicesFields__order_Delete
 }
 
-type ServicesFields_order_Create {
+type ServicesFields__order_Create {
   permission: Boolean!
 }
 
-type ServicesFields_order_Read {
+type ServicesFields__order_Read {
   permission: Boolean!
 }
 
-type ServicesFields_order_Update {
+type ServicesFields__order_Update {
   permission: Boolean!
 }
 
-type ServicesFields_order_Delete {
+type ServicesFields__order_Delete {
   permission: Boolean!
 }
 
@@ -14901,7 +14905,7 @@ type experiencesAccess {
 }
 
 type ExperiencesFields {
-  order: ExperiencesFields_order
+  _order: ExperiencesFields__order
   title: ExperiencesFields_title
   company: ExperiencesFields_company
   date: ExperiencesFields_date
@@ -14910,26 +14914,26 @@ type ExperiencesFields {
   deletedAt: ExperiencesFields_deletedAt
 }
 
-type ExperiencesFields_order {
-  create: ExperiencesFields_order_Create
-  read: ExperiencesFields_order_Read
-  update: ExperiencesFields_order_Update
-  delete: ExperiencesFields_order_Delete
+type ExperiencesFields__order {
+  create: ExperiencesFields__order_Create
+  read: ExperiencesFields__order_Read
+  update: ExperiencesFields__order_Update
+  delete: ExperiencesFields__order_Delete
 }
 
-type ExperiencesFields_order_Create {
+type ExperiencesFields__order_Create {
   permission: Boolean!
 }
 
-type ExperiencesFields_order_Read {
+type ExperiencesFields__order_Read {
   permission: Boolean!
 }
 
-type ExperiencesFields_order_Update {
+type ExperiencesFields__order_Update {
   permission: Boolean!
 }
 
-type ExperiencesFields_order_Delete {
+type ExperiencesFields__order_Delete {
   permission: Boolean!
 }
 
@@ -15100,7 +15104,7 @@ type educationsAccess {
 }
 
 type EducationsFields {
-  order: EducationsFields_order
+  _order: EducationsFields__order
   title: EducationsFields_title
   institution: EducationsFields_institution
   location: EducationsFields_location
@@ -15110,26 +15114,26 @@ type EducationsFields {
   deletedAt: EducationsFields_deletedAt
 }
 
-type EducationsFields_order {
-  create: EducationsFields_order_Create
-  read: EducationsFields_order_Read
-  update: EducationsFields_order_Update
-  delete: EducationsFields_order_Delete
+type EducationsFields__order {
+  create: EducationsFields__order_Create
+  read: EducationsFields__order_Read
+  update: EducationsFields__order_Update
+  delete: EducationsFields__order_Delete
 }
 
-type EducationsFields_order_Create {
+type EducationsFields__order_Create {
   permission: Boolean!
 }
 
-type EducationsFields_order_Read {
+type EducationsFields__order_Read {
   permission: Boolean!
 }
 
-type EducationsFields_order_Update {
+type EducationsFields__order_Update {
   permission: Boolean!
 }
 
-type EducationsFields_order_Delete {
+type EducationsFields__order_Delete {
   permission: Boolean!
 }
 
@@ -19871,7 +19875,7 @@ enum ArticleUpdate__status_MutationInput {
 }
 
 input mutationProjectInput {
-  order: Float
+  _order: String
   title: String!
   slug: String
   image: Int
@@ -19892,7 +19896,7 @@ enum Project_categories_MutationInput {
 }
 
 input mutationProjectUpdateInput {
-  order: Float
+  _order: String
   title: String
   slug: String
   image: Int
@@ -20081,7 +20085,7 @@ input mutationAboutUpdate_InterestsInput {
 }
 
 input mutationServiceInput {
-  order: Float
+  _order: String
   category: String!
   iconFont: Service_iconFont_MutationInput
   descriptions: [String]!
@@ -20098,7 +20102,7 @@ enum Service_iconFont_MutationInput {
 }
 
 input mutationServiceUpdateInput {
-  order: Float
+  _order: String
   category: String
   iconFont: ServiceUpdate_iconFont_MutationInput
   descriptions: [String]
@@ -20165,7 +20169,7 @@ enum SkillUpdate_color_MutationInput {
 }
 
 input mutationExperienceInput {
-  order: Float
+  _order: String
   title: String!
   company: String!
   date: String!
@@ -20175,7 +20179,7 @@ input mutationExperienceInput {
 }
 
 input mutationExperienceUpdateInput {
-  order: Float
+  _order: String
   title: String
   company: String
   date: String
@@ -20185,7 +20189,7 @@ input mutationExperienceUpdateInput {
 }
 
 input mutationEducationInput {
-  order: Float
+  _order: String
   title: String!
   institution: String!
   location: String
@@ -20196,7 +20200,7 @@ input mutationEducationInput {
 }
 
 input mutationEducationUpdateInput {
-  order: Float
+  _order: String
   title: String
   institution: String
   location: String

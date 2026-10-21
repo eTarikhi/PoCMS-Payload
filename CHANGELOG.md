@@ -46,10 +46,12 @@ modernisation programme; every entry links the roadmap item it closes
   Vitest run cover the element each primitive renders, the ARIA state of tabs, toggle groups and
   progress bars, a dialog's focus handling, the sparkline geometry and the status components'
   text. `pnpm test:unit` runs only these.
-- **Drag-and-drop ordering pilot on Skills (P5.5).** `orderable: true` replaces the manual `order`
-  number with Payload's hidden fractional-index `_order`: the list gets drag handles, the site
-  sorts by the same key, and the seed appends documents one at a time. Migration
-  `20261021_001500_skills_orderable` backfills the keys from the old numbers and drops the column.
+- **Drag-and-drop ordering on every ordered list (P5.5).** `orderable: true` replaces the manual
+  `order` number with Payload's hidden fractional-index `_order` on Skills (the pilot) and then on
+  Educations, Experiences, Projects and Services: each list gets drag handles, the site sorts by the
+  same key, and the seed appends documents one at a time. `src/fields/order.ts` is gone. Migrations
+  `20261021_001500_skills_orderable` and `20261021_150000_orderable_profile_and_services` backfill
+  the keys from the old numbers and drop the column.
 
 ### Fixed
 
