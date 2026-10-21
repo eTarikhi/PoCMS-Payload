@@ -22,6 +22,9 @@ A preinstalled Chromium executable can be passed through
 the production app. See [frontend roadmap](frontend-roadmap.md) for completed work
 and release gates.
 
+For repeatable full production builds, media/cache/admin/Live Preview checks, use
+[isolated integration testing](integration-testing.md).
+
 For the real app, configure `.env` first and run `pnpm dev`. The normal `test:int`
 and admin browser suites need an isolated database. Never point tests or seed scripts
 at production. Setting `PLAYWRIGHT_BASE_URL` for the normal Playwright config uses
@@ -53,7 +56,7 @@ Inspect server logs privately. There is no production fallback to sample data.
 ### Cache changes
 
 Content saves/deletes invalidate the shared `portfolio` tag. Homepage, archive,
-article and sitemap queries use that content cache. When changing cached view-model
+article, sitemap and RSS queries use that content cache. When changing cached view-model
 shapes or access semantics, version the cache keys to avoid incompatible old entries.
 Validate actual revalidation in the configured Next/Payload application.
 

@@ -87,6 +87,7 @@ cached objects do not hide featured-writing or project further-reading controls.
   boundaries; its error retry calls Next's `reset()`.
 - The article demo includes “More field notes”, excluding the current article and
   duplicate destinations. External publications are labeled as such.
-- Production `/robots.txt` and `/sitemap.xml` are Next metadata routes, not Vite
-  endpoints. They require app-level validation; the sitemap reads real CMS slugs.
+- Production `/robots.txt`, `/sitemap.xml` and `/feed.xml` are Next metadata routes, not Vite
+  endpoints. The sitemap reads real CMS slugs and RSS reads cached public content. These routes
+  have been verified in the real Next app; RSS is not simulated by this Vite preview.
 - See [frontend roadmap and research](../../docs/frontend-roadmap.md) for full release gates.

@@ -4,15 +4,18 @@
 src/
   app/
     (frontend)/
-      page.tsx                  # Studio homepage
-      projects/page.tsx         # searchable project archive
-      articles/page.tsx         # searchable writing archive
+      (studio)/
+        page.tsx                # Studio homepage
+        projects/page.tsx       # searchable project archive
+        articles/page.tsx       # searchable writing archive
+        loading.tsx             # scoped away from article HTTP 404s
       articles/[slug]/          # local article + missing-article view
       components/studio/        # shared public design system and archives
       components/article/       # reading layout and live preview
       lib/                      # view models, mappers, Payload reads, cache and SEO
       styles/                   # scoped Studio and reading styles
-      error.tsx, loading.tsx    # recovery/loading boundaries
+      error.tsx                 # shared recovery boundary
+      feed.xml/route.ts         # tag-aware writing RSS feed
       sitemap.ts                # public archives and readable local articles
     robots.ts                   # must be at App Router root
     (payload)/                  # Payload admin and API routes
@@ -22,7 +25,10 @@ src/
   payload.config.ts             # CMS, PostgreSQL, storage and editor configuration
   utilities/media-origins.ts     # Next image-origin validation
 previews/studio/                 # standalone Vite/sample-data preview and browser fixtures
-tests/int/                      # components, query contracts, mappers and config tests
+scripts/integration/            # guarded disposable-database fixture bootstrap
+tests/int/                      # components, query contracts, config and guarded DB test
+tests/live/                     # real Next/Payload integration browser tests
+tests/e2e/                      # public checks and guarded admin UI login smoke tests
 ```
 
 ## Content model boundaries

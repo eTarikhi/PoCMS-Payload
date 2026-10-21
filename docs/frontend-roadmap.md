@@ -14,22 +14,38 @@ Updated: 22 October 2026. Scope: public portfolio; the custom Payload admin is r
 | 6. Discovery              | Canonical archives, `/robots.txt`, `/sitemap.xml`, more-writing recommendations                                       | Pure-function tests and Next compile route manifest               |
 | 7. Public-query safety    | Anonymous access enforced on Local API reads, drafts/trash excluded, explicit unlimited-list limits, versioned caches | Mocked query-contract tests                                       |
 | 8. Media configuration    | Optional Blob adapter, strict HTTPS image-origin allowlist, local-network image optimization disabled                 | Config tests and Next compile                                     |
-| 9. Repeatable validation  | `test:frontend`, `test:preview`, TypeScript, clean lint, compile-only build                                           | Commands below                                                    |
+| 9. Repeatable validation  | `test:frontend`, `test:preview`, TypeScript, clean lint, full isolated production build                               | Commands below                                                    |
 
-## Remaining release gates — environment-dependent
+## Real-app release gates cleared in an isolated environment
 
-These are not complete and are not replaced by the standalone preview:
+A new, disposable loopback PostgreSQL 18.4 database now backs a complete Next
+production build. No existing database was reset and no deployment was triggered.
+See [integration instructions](integration-testing.md) for the guarded fixture setup.
 
-1. Configure a real development/staging database using `POSTGRES_URL`, plus a private `PAYLOAD_SECRET`.
-2. Run full `pnpm build` / production page generation against that environment. Compile-only mode is not a full deployable build.
-3. Verify real CMS reads, uploaded media, remote image optimization and storage behavior.
-4. Test save/delete cache revalidation on the homepage, archives, articles and sitemap.
-5. Test authenticated article Live Preview inside Payload, including image relations and empty-body fallback.
-6. Run the database integration/admin browser suites against an isolated test database.
-7. Confirm personal/contact/work-permit text is current; review keyboard/screen-reader behavior manually.
-8. Validate HTTP 404 behavior on Next itself. The Vite missing-page demonstration returns fallback HTML with HTTP 200.
+- **Passed:** full production page generation and real Payload reads.
+- **Passed:** actual local uploaded-media delivery and Next image optimization.
+- **Passed:** homepage save invalidation and article create/rename/trash/restore/delete
+  invalidation across article routes, writing archive, sitemap and RSS.
+- **Passed:** authenticated admin UI login/dashboard/list/create form and article editor.
+- **Passed:** actual unsaved article Live Preview, image relationships and empty-body fallback.
+- **Passed:** real Next HTTP 404. Fixed a streaming-response bug by moving Studio
+  pages/loading into `(studio)`; public URLs are unchanged.
+- **Delivered after the release-gate work:** schema-free `/feed.xml`, stable document
+  GUIDs, safe XML, bounded newest-first existing content, local/external destinations,
+  footer subscription link and metadata discovery. Reuses anonymous tag-aware caching.
 
-No schema migration, database reset, seed, deployment, or credential change was performed.
+## Remaining environment/content review gates
+
+1. Verify remote Vercel Blob upload/delete and remote HTTPS image optimization in
+   the intended hosted environment. Only local-disk media was exercised here.
+2. Verify email delivery and perform deployment/provider-specific smoke checks.
+3. Confirm personal/contact/work-permit text with the owner and review real content.
+4. Perform manual keyboard/screen-reader and cross-browser review. Automated Chromium
+   accessibility scans are useful, not an accessibility certification.
+
+No production data, secrets or content models were changed. Integration fixtures and
+random test secrets exist only in the disposable local environment. Deferred schema
+extensions remain proposals requiring a reviewed migration/content plan.
 
 ## Documentation research and decisions
 
@@ -45,6 +61,8 @@ Official documentation was checked **at the installed Payload v3.90.2 tag**, not
 - [Local API access control](https://github.com/payloadcms/payload/blob/v3.90.2/docs/local-api/access-control.mdx)
 - [Performance](https://github.com/payloadcms/payload/blob/v3.90.2/docs/performance/overview.mdx)
 - [Uploads](https://github.com/payloadcms/payload/blob/v3.90.2/docs/upload/overview.mdx)
+- [Trash](https://github.com/payloadcms/payload/blob/v3.90.2/docs/trash/overview.mdx)
+- [Client-side Live Preview](https://github.com/payloadcms/payload/blob/v3.90.2/docs/live-preview/client.mdx)
 
 Findings developed into code:
 
@@ -61,6 +79,19 @@ Findings developed into code:
   the current article/duplicate destinations, and labels local versus external reading.
 - Avoid new image-size fields or rich-text field migrations until a database-backed
   migration/content review can be tested. Safe image-host configuration needs no schema change.
+
+Additional pinned-documentation findings validated in the application:
+
+- `trash: true` includes trashed documents; it does not soft-delete by itself. Soft
+  deletion sets `deletedAt`; restoration clears it. Cleanup uses one permanent delete.
+- Live Preview sends form-state messages into its iframe. Existing client-side
+  preview remains intentional for unsaved fields; required-field clearing must not
+  crash the UI. Tests cover fallback and depth-one upload resolution, without adding
+  draft/version schema changes or persisting unsaved form values.
+- RSS reuses existing excerpts rather than inventing full bodies or parsing display
+  dates back into timestamps. Publication dates are optional in RSS and omitted until
+  a raw date is intentionally added to the view model. Unsafe outbound schemes and
+  credentialed URLs are excluded; XML text is escaped and invalid controls removed.
 
 ## Deliberately deferred content-model extensions
 
@@ -89,6 +120,7 @@ pnpm preview:studio
 PLAYWRIGHT_BASE_URL=http://localhost:4173 pnpm test:preview
 ```
 
-`test:frontend` is database-independent. `pnpm test` also runs the older database/admin
+`test:frontend` is database-independent. See [isolated integration testing](integration-testing.md)
+for full builds and real-app/browser commands. `pnpm test` also runs the older database/admin
 suites and requires a configured test environment. See the preview README for its
 browser executable override and sample-data limitations.

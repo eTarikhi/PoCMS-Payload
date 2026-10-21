@@ -63,11 +63,17 @@ homepage, searchable project/writing archives, screenshot viewer and article dem
 
 - [Preview instructions](previews/studio/README.md)
 - [Implementation roadmap and Payload research](docs/frontend-roadmap.md)
+- [Isolated integration testing](docs/integration-testing.md)
 - [Real CMS setup](docs/getting-started.md)
 
 For local checks: `pnpm test:frontend`, `pnpm exec tsc --noEmit`, `pnpm lint`, and
-`pnpm build:compile`. Production generation, database/admin tests, image optimization,
-cache revalidation and editor live preview require a configured staging environment.
+`pnpm build:compile`. Full production generation, local media optimization, cache
+revalidation and authenticated Live Preview have also been tested against a disposable
+PostgreSQL database. Follow the integration guide to reproduce; remote providers and
+real staging still require deployment-specific validation.
+
+Existing writing is available at `/feed.xml` as RSS, with local article links when
+available and original publication links otherwise. No schema migration is required.
 
 Projects currently have images/categories/outbound links, not rich case-study bodies.
 Article bodies are plain text. Rich case studies, testimonials, contact forms and
