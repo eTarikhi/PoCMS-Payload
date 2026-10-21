@@ -39,6 +39,7 @@ set -a
 set +a
 pnpm integration:bootstrap
 pnpm test:int
+pnpm test:integration:email  # captures provider boundary; sends no external email
 pnpm build
 pnpm start --hostname 0.0.0.0
 ```
@@ -99,3 +100,6 @@ Remote Vercel Blob, remote HTTPS image fetches, email delivery, hosted staging a
 real-person content review remain separate deployment checks. A successful local
 integration run does not certify those services. The legacy Mongo Compose template
 is unchanged and is not an integration setup for this adapter.
+
+See [transactional email](email.md) for the new guarded password-reset lifecycle
+check, trusted reset origins and the distinction between capture and real delivery.

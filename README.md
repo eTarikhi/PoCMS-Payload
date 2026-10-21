@@ -63,6 +63,7 @@ homepage, searchable project/writing archives, screenshot viewer and article dem
 
 - [Preview instructions](previews/studio/README.md)
 - [Implementation roadmap and Payload research](docs/frontend-roadmap.md)
+- [Transactional email and password resets](docs/email.md)
 - [Isolated integration testing](docs/integration-testing.md)
 - [Real CMS setup](docs/getting-started.md)
 

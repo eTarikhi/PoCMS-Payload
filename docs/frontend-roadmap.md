@@ -34,11 +34,22 @@ See [integration instructions](integration-testing.md) for the guarded fixture s
   GUIDs, safe XML, bounded newest-first existing content, local/external destinations,
   footer subscription link and metadata discovery. Reuses anonymous tag-aware caching.
 
+## Email reliability follow-up
+
+Researched the installed-version email adapter and authentication-email documentation.
+Implemented configurable sender settings, missing-key fail-closed behavior and trusted
+absolute password-reset links. A guarded real-Payload lifecycle check validates
+adapter serialization, reset/login, old-password rejection, single-use tokens and
+unknown accounts without sending any email externally. Sixteen pure tests cover
+configuration and unsafe origins. See [email operations](email.md). This does not
+clear the real-provider delivery gate below and requires no collection migration.
+
 ## Remaining environment/content review gates
 
 1. Verify remote Vercel Blob upload/delete and remote HTTPS image optimization in
    the intended hosted environment. Only local-disk media was exercised here.
-2. Verify email delivery and perform deployment/provider-specific smoke checks.
+2. Verify real email-provider delivery and perform deployment/provider-specific smoke checks.
+   Application reset/adapter behavior is now verified separately with in-process capture.
 3. Confirm personal/contact/work-permit text with the owner and review real content.
 4. Perform manual keyboard/screen-reader and cross-browser review. Automated Chromium
    accessibility scans are useful, not an accessibility certification.
@@ -61,6 +72,8 @@ Official documentation was checked **at the installed Payload v3.90.2 tag**, not
 - [Local API access control](https://github.com/payloadcms/payload/blob/v3.90.2/docs/local-api/access-control.mdx)
 - [Performance](https://github.com/payloadcms/payload/blob/v3.90.2/docs/performance/overview.mdx)
 - [Uploads](https://github.com/payloadcms/payload/blob/v3.90.2/docs/upload/overview.mdx)
+- [Email adapters](https://github.com/payloadcms/payload/blob/v3.90.2/docs/email/overview.mdx)
+- [Authentication email](https://github.com/payloadcms/payload/blob/v3.90.2/docs/authentication/email.mdx)
 - [Trash](https://github.com/payloadcms/payload/blob/v3.90.2/docs/trash/overview.mdx)
 - [Client-side Live Preview](https://github.com/payloadcms/payload/blob/v3.90.2/docs/live-preview/client.mdx)
 

@@ -16,6 +16,42 @@ All changes were committed and pushed directly to the designated branch. No pull
 request was created. No production deployment, production-data reset or content-model
 migration was performed. The earlier Studio redesign and hardening remain intact.
 
+## Latest autonomous pass: email recovery reliability
+
+Prioritized the remaining email gate. Actual provider/inbox validation is still
+blocked by missing deployment credentials and outbound provider access, so this
+pass developed and verified the application-owned portion without claiming delivery.
+Other outstanding gates still require hosted services or real human content/accessibility
+review; no substitute data or fabricated approval was used.
+
+Researched the pinned Payload 3.90.2 email adapter and authentication-email docs,
+then inspected the installed implementation. Findings developed into code:
+
+- The prior config always constructed Resend with an empty key when email was absent.
+  The new configured adapter fails locally and clearly without contacting the provider
+  or logging reset-message bodies.
+- Sender address/name are configurable with validation; the existing defaults remain
+  for backwards compatibility. Provider sender verification is still required.
+- Payload's default standalone request-origin fallback can produce a relative reset
+  URL. A custom template now uses a validated configured canonical origin and actual
+  admin/reset routes, not a request Host. HTTPS is required except HTTP loopback.
+- Added **16 tests** for missing credentials, provider serialization/failure, sender
+  injection, trusted origins, custom routes and tokenless links.
+- Added `pnpm test:integration:email`: a guarded real-PostgreSQL/Payload lifecycle test
+  with the actual configured Resend adapter captured at its fetch boundary. It verifies
+  recipient, sender, an absolute reset link, new-password login, old-password rejection,
+  single-use reset tokens and no email for an unknown account.
+- The harness uses a temporary user, private random passwords and an in-process
+  fixture key. It deletes the user, destroys Payload, then explicitly exits as a
+  one-shot CLI; imported framework handles had otherwise kept the CLI running.
+  No password, token, email body or real provider request is emitted.
+- Integration configuration now disables unrelated Payload telemetry. Normal
+  deployments retain the existing default telemetry behavior.
+
+A fresh full production build and the real-app/admin browser suites passed after
+these changes. No collection fields, public signup permissions or migrations changed.
+See [email operations](email.md) for configuration and what the tests do not prove.
+
 ## Work completed in this continuation
 
 ### 1. Safe real-database verification
@@ -91,18 +127,19 @@ RSS is served by the real app, not simulated by the standalone Vite design previ
 
 ## Final verification
 
-| Check                                             | Final result                                                                  |
-| ------------------------------------------------- | ----------------------------------------------------------------------------- |
-| Database-independent frontend tests               | **53 passed**, 10 files                                                       |
-| `pnpm test:int` against isolated PostgreSQL       | **54 passed**, 11 files; includes the 53 above plus the real Payload API test |
-| `pnpm test:integration:browser`                   | **10 passed** against the full production build                               |
-| Normal admin/public Playwright suite              | **6 passed** against the same production app                                  |
-| `pnpm test:preview`                               | **24 passed** against the separate sample-content preview                     |
-| `pnpm build`                                      | **Passed**, including real page-data collection and static generation         |
-| `pnpm exec tsc --noEmit`                          | **Passed**                                                                    |
-| `pnpm lint`                                       | **Passed**, zero errors/warnings                                              |
-| `git diff --check`                                | **Passed**                                                                    |
-| Production server with an e2b preview Host header | **HTTP 200**                                                                  |
+| Check                                             | Final result                                                                                           |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Database-independent frontend tests               | **69 passed**, 11 files                                                                                |
+| `pnpm test:int` against isolated PostgreSQL       | **70 passed**, 12 files; includes the 69 above plus the real Payload API test                          |
+| `pnpm test:integration:email`                     | **Passed**; real Payload reset/auth lifecycle with an in-process captured Resend boundary, no delivery |
+| `pnpm test:integration:browser`                   | **10 passed** against the full production build                                                        |
+| Normal admin/public Playwright suite              | **6 passed** against the same production app                                                           |
+| `pnpm test:preview`                               | **24 passed** against the separate sample-content preview                                              |
+| `pnpm build`                                      | **Passed**, including real page-data collection and static generation                                  |
+| `pnpm exec tsc --noEmit`                          | **Passed**                                                                                             |
+| `pnpm lint`                                       | **Passed**, zero errors/warnings                                                                       |
+| `git diff --check`                                | **Passed**                                                                                             |
+| Production server with an e2b preview Host header | **HTTP 200**                                                                                           |
 
 The full build registers `/`, `/projects`, `/articles`, the real fixture article,
 `/feed.xml`, `/robots.txt`, `/sitemap.xml`, admin and API routes. This is no longer
@@ -113,14 +150,17 @@ they should not be interpreted as independent cross-browser certification.
 Automated accessibility checks cover the sample-content design and actual fixture
 homepage. They do not substitute for manual screen-reader testing or owner review.
 
-## Direct-push history for this continuation
+## Direct-push history
 
 - `5960d70` — guarded disposable PostgreSQL fixture bootstrap and safety tests
 - `4a3fef6` — scope Studio loading to preserve article HTTP 404s
 - `b6d4ec2` — actual CMS media/lifecycle/cache/Live Preview tests and safer legacy suites
 - `de39a3e` — preview source-alias correction
 - `70a5512` — cache-aware RSS feature, unit/runtime coverage and discovery
-- This report, updated roadmap and integration guide follow as a documentation commit.
+- `14db12f` — prior integration/RSS report and documentation
+- `4e64d5f` — configurable fail-closed email adapter and guarded reset lifecycle check
+- `4941ccf` — canonical-origin password reset template and unsafe-origin coverage
+- Updated email operations/environment documentation and this report follow these commits.
 
 Earlier implementation commits through `a643696` remain on the same branch: Studio
 homepage/archives, recovery states, SEO routes, anonymous query hardening, article
@@ -134,7 +174,8 @@ These were not silently declared complete:
 1. **Hosted staging/deployment:** no release or hosted-provider smoke test was triggered.
 2. **Remote storage:** Vercel Blob upload/delete and remote HTTPS image optimization
    still need real provider credentials/configuration. Local-disk uploads were verified.
-3. **Email:** no real email-provider delivery test was performed.
+3. **Email:** application reset/auth behavior and adapter serialization passed with
+   capture; no real email-provider/inbox delivery test was performed.
 4. **Owner content:** personal details, contact/work-permit text and actual portfolio
    content require owner review. The integration portfolio is explicitly a fixture.
 5. **Manual accessibility/cross-browser review:** automated Chromium checks are not
@@ -149,6 +190,7 @@ These were not silently declared complete:
 
 - **Port 3000:** real production-mode Next/Payload app using disposable database fixtures.
 - **Port 4173:** sample-content Vite design preview, independent of the database.
+- [Email operations](email.md): configuration, trusted links, captured lifecycle and delivery limits.
 - [Integration guide](integration-testing.md): setup, guards, commands and cleanup limits.
 - [Frontend roadmap](frontend-roadmap.md): completed gates, research and deferred proposals.
 - [Preview guide](../previews/studio/README.md): demo routes and limitations.

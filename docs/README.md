@@ -15,6 +15,7 @@ This repository is organized into a small set of topic-based guides. Use the pag
 
 ## Reference and operations
 
+- [Transactional email](email.md) — sender configuration, trusted reset links and isolated lifecycle checks
 - [API reference](api.md) — REST and GraphQL usage
 - [Deployment](deployment.md) — Docker, Vercel, and production setup
 - [Development and troubleshooting](development.md) — common issues and workflows
