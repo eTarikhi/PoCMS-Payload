@@ -47,6 +47,9 @@ node_modules/
 /test-results/
 /playwright-report/
 /blob-report/
+/playwright-captures/
+# Pixel baselines are platform-specific and generated where they are asserted, never committed.
+/tests/visual/admin.visual.spec.ts-snapshots/
 /playwright/.cache/
 # Migrations are source: they deploy schema changes to databases without push.
 test.env
