@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import '@fontsource-variable/inter'
-import { preload } from 'react-dom'
 import { config } from '@fortawesome/fontawesome-svg-core'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
@@ -29,14 +28,10 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 10,
   userScalable: true,
-  themeColor: '#da9100',
+  themeColor: '#f5f3ee',
 }
 
 export default function FrontendLayout({ children }: { children: React.ReactNode }) {
-  // Background images used by main.css; preloaded as in vTarikhi/components/head.jsx.
-  preload('/images/bg-mobile.webp', { as: 'image' })
-  preload('/images/bg-desktop.webp', { as: 'image' })
-
   return (
     <html lang="en" style={{ fontFamily: "'Inter Variable', sans-serif" }}>
       <body>
