@@ -214,6 +214,9 @@ export const seed = async ({
               readTime: article.readTime,
               link: article.link,
               image,
+              // Drafts are on for Articles, so a document created without a status is a draft and
+              // would not appear on the site: the sample content has to be published.
+              _status: 'published' as const,
             },
             overrideAccess: true,
             context: { skipAudit: true },
@@ -233,6 +236,7 @@ export const seed = async ({
               readTime: article.readTime,
               link: article.link,
               imageUrl: article.imageUrl,
+              _status: 'published' as const,
             },
             overrideAccess: true,
             context: { skipAudit: true },
