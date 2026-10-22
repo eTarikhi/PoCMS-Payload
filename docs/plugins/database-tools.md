@@ -47,6 +47,7 @@ export default buildConfig({
 | `POST /api/database/repair` | On | `server/repair.ts` |
 | `POST /api/database/restore-inspect` and `…/restore` | On, `restore: false` removes both | `server/restore.ts` |
 | `GET /api/database/migration` and `…/seed` | On, `snapshots: false` removes both | `server/schemaMigration.ts`, `server/seedSnapshot.ts` |
+| `POST /api/database/diff` | On, `snapshots: false` removes it | `server/diff.ts` |
 | `POST /api/database/seed/apply` | On, `snapshots: false` or `snapshots.apply: false` removes it | `server/seedSnapshot.ts` |
 | `POST /api/database/neon/{backup,restore,delete}` | On, `neon: false` removes them; without `NEON_API_KEY` they answer `501` | `server/neon.ts` |
 
@@ -76,7 +77,7 @@ resolved object is what the components and the endpoints receive.
 | `restore` | `false \| { maxBytes? }` | `{ maxBytes: 25 MB }` | The restore card and its endpoints. `false` leaves inspection and maintenance. |
 | `sessions` | `boolean` | `true` | The live sessions card and its three endpoints: connections, long statements, idle-in-transaction sessions, who blocks whom, and the guarded `pg_cancel_backend` / `pg_terminate_backend` actions. |
 | `export` | `false \| { maxRows? }` | `{ maxRows: 10000 }` | The "Export CSV" button and `GET /table?format=csv`. `maxRows` is capped at 100,000 whatever it says. |
-| `snapshots` | `false \| { maxRowsPerTable?, apply? }` | `{ maxRowsPerTable: 5000, apply: true }` | The two generated files (a migration from the catalogs, a content seed) and the endpoint that loads a seed. `apply: false` keeps the downloads and removes the write. |
+| `snapshots` | `false \| { maxRowsPerTable?, apply? }` | `{ maxRowsPerTable: 5000, apply: true }` | The files this page writes and reads: the generated migration, the content seed, the schema comparison, and the endpoint that loads a seed. `apply: false` keeps the read-only three and removes the write. |
 | `components` | `{ view?, navigation? }` | this repo's `/components/admin/…` paths | Where the two components live — the first thing to change when the plugin is published as a package. |
 
 Options are read once, when the config is built: changing them needs a restart, like any other
@@ -151,6 +152,7 @@ All of them are mounted under `routes.api` + `apiBasePath` and gated by `access`
 | `POST /api/database/restore` | `{ sql, confirmation, force? }` | Runs the file. Refuses content unless `confirmation === 'restore'` (`400`), a file over `maxBytes` (`413`), a file with statements that escape the database (`RestoreRefused`, `403`). |
 | `GET /api/database/migration` | `?mode=guarded\|fresh`, `?tables=a,b` | A Payload migration file as a download (`text/typescript`, `no-store`), written from this database's catalogs. |
 | `GET /api/database/seed` | `?collections=a,b`, `?tables=a,b`, `?maxRows=` | A content seed as a download (`application/json`): the collections this config defines, parents first, with the sequence values to set afterwards. |
+| `POST /api/database/diff` | `{ json }` | `{ ok, diff }` — a JSON backup from another database compared with this one: missing tables and columns (with the `ALTER TABLE` that would add them), types, nullability and defaults that differ, what only exists here, and row counts. Read-only. |
 | `POST /api/database/seed/apply` | `{ json, confirmation: 'seed' }` | `{ ok, tables, rows, sequences, warnings }` — deletes the rows of the tables the file names, inserts its rows, sets the sequences. One transaction; the typed word is required (`400`), a file over the restore limit is `413`, a file that is not a seed or names a missing table is `400`. |
 | `POST /api/database/neon/backup` | `{ name?, withEndpoint? }` | `{ ok, branch }` — a branch pinned to now. `501` without a key, `502` on a Neon error. |
 | `POST /api/database/neon/restore` | `{ timestamp (ISO 8601), confirmation: 'restore', preserveUnderName? }` | `{ ok, branch, restoredTo }`; the current state is kept as `preserveUnderName` when given. |
@@ -292,6 +294,31 @@ Review the file before committing it: it holds whatever the source database hold
 that may not be public yet. Media *rows* are included and their `url` still points at the blob store,
 so images keep working locally without copying any file.
 
+### Comparing two databases
+
+`POST /diff` takes a **JSON backup** — the file the Backup card already writes — and compares its
+schema with the connected database. That is the whole trick: the JSON backup records every column as
+Postgres names it (`format_type`, `pg_get_expr`), so a file downloaded from the Neon branch's admin
+page compares against a local database with no second connection string and no second credential.
+
+The report is ordered by what it costs you: **missing here** (a table or column the other database
+has, which is what breaks a query), then **different here** (type, nullability, default), then **only
+here** (a column or table this database has and the file does not). Row counts come with it, because
+"same shape, no content" and "missing column" are different problems with different fixes.
+
+Two rules keep it honest:
+
+- it suggests, it never runs. A missing column comes with the `ALTER TABLE … ADD COLUMN` that would
+  add it and a caution when that is not enough (`NOT NULL` needs a default or an empty table; a type
+  change may need `USING` and always takes a lock). Nothing on the page can execute it.
+- it never proposes a `DROP`. A table or column that only exists here may be newer than the file, so
+  it is reported and left alone.
+
+A file that named tables (`?tables=…` when it was downloaded, recorded as `selection` in the JSON) is
+taken at its word: what it left out is a choice, not drift, so the "only here" findings are skipped
+and the card says why. A missing table is not offered as a statement at all — that is a migration's
+job, and `pnpm db:schema-from` writes one from the other database.
+
 ## Audit
 
 The plugin calls `audit({ payload, req, summary, changes })` after a restore, an applied seed, a
@@ -368,7 +395,8 @@ internal that is not exported from `payload` or `@payloadcms/ui`, so the move is
 | `tests/int/database-tools.int.spec.ts` | The SQL against this project's PostgreSQL: introspection, dumps, restore inspection and refusal, maintenance, repairs, and the Neon client against a fake `fetch`. |
 | `tests/int/database-tools-plugin.int.spec.ts` | The packaging: which view/nav/endpoints a config gets, option defaults and path normalisation, `restore: false` / `neon: false` / `sessions: false`, the export cap, the duplicate-view error, the capability descriptor, and `defaultAccess`. |
 | `tests/int/database-rows.int.spec.ts` | Filters and sorting (including the injection attempt, the type cast and a value that is not the column's type), CSV quoting and caps, the index advisor, the query plan, and the session list — against real backends for the blocker, the cancel and the terminate. |
-| `tests/int/database-snapshots.int.spec.ts` | The two generated files, against scratch tables: guarded statements that run twice and rebuild the same columns in an empty database, from-scratch mode's `down`, the parsed TypeScript being valid, foreign-key order, a broken cycle, exact enum/timestamp/`jsonb`/array/`bytea`/`numeric` values through the seed round trip, sequences left past the highest id, the row cap and its warning, and the refusals. |
+| `tests/int/database-snapshots.int.spec.ts` | The two generated files and the comparison, against scratch tables: guarded statements that run twice and rebuild the same columns in an empty database, from-scratch mode's `down`, the parsed TypeScript being valid, foreign-key order, a broken cycle, exact enum/timestamp/`jsonb`/array/`bytea`/`numeric` values through the seed round trip, sequences left past the highest id, the row cap and its warning, the refusals, and a diff that finds a dropped column, a widened type, a
+lost `NOT NULL`, a changed default and a new row while refusing to propose a `DROP`. |
 | `tests/e2e/database.e2e.spec.ts` | `/admin/database` in a browser: the cards, a backup download, and the `404`/hidden-link behaviour for a user without the capability. |
 
 See also [project structure](../project-structure.md) and the

@@ -361,6 +361,11 @@ export type JsonBackup = {
   version: 1
   generatedAt: string
   database: string
+  /**
+   * Present only when the request named tables: the file describes a subset, so a reader comparing
+   * it with a whole database knows that what is missing from the file is not drift.
+   */
+  selection?: string[]
   tables: {
     name: string
     columns: { name: string; type: string; nullable: boolean; default: string | null }[]
@@ -432,6 +437,7 @@ export const buildJsonBackup = async (
     version: 1,
     generatedAt,
     database: target.database,
+    ...(options.tables && options.tables.length > 0 ? { selection: options.tables } : {}),
     tables,
   }
   return {

@@ -2,6 +2,7 @@ import type { Endpoint, PayloadRequest } from 'payload'
 
 import { buildJsonBackup, buildSqlBackup, type BuildBackupOptions } from './server/backup'
 import { buildSchemaMigration, type SchemaMigrationMode } from './server/schemaMigration'
+import { diffSchema, parseJsonBackup } from './server/diff'
 import {
   applySeedSnapshot,
   buildSeedSnapshot,
@@ -43,6 +44,8 @@ import { MAX_RESTORE_BYTES, neonOptions, type ResolvedDatabaseToolsOptions } fro
  *                                        generated from this database's catalogs, ready to commit.
  *   GET  /api/database/seed              `?collections=a,b&tables=a,b&maxRows=` → a content seed,
  *                                        the file `pnpm db:seed-from` writes and applies locally.
+ *   POST /api/database/diff              `{ json }` — a JSON backup from another environment, and
+ *                                        what its schema has that this database does not. Read-only.
  *   POST /api/database/seed/apply        `{ json, confirmation }` — loads that file into the
  *                                        connected database, deleting the rows of the tables it
  *                                        names first.
@@ -575,6 +578,44 @@ export const databaseToolsEndpoints = (options: ResolvedDatabaseToolsOptions): E
         },
       },
     )
+
+    endpoints.push({
+      path: `${base}/diff`,
+      method: 'post',
+      handler: async (req) => {
+        if (!(await allowed(req))) return denied()
+        const data = await body(req)
+        const text = typeof data.json === 'string' ? data.json : ''
+        if (!text.trim()) return json({ error: 'Choose a JSON backup first.' }, 400)
+        if (Buffer.byteLength(text, 'utf8') > seedLimit) {
+          return json(
+            { error: `The file is larger than ${Math.round(seedLimit / 1024 / 1024)} MB.` },
+            413,
+          )
+        }
+
+        let backup
+        try {
+          backup = parseJsonBackup(text)
+        } catch (error) {
+          return json(readable(error), error instanceof DatabaseToolsError ? 400 : 500)
+        }
+
+        try {
+          // Read-only: the catalogs, and a count for the row comparison. Nothing is written.
+          const diff = await withDatabase((client) => diffSchema(client, backup))
+          req.payload.logger.info({
+            msg: `Schema compared with ${diff.source.database}`,
+            user: req.user?.email,
+            differences: diff.differences.length,
+          })
+          return json({ ok: true, diff })
+        } catch (error) {
+          req.payload.logger.error({ msg: 'Comparing schemas failed', err: error })
+          return json(readable(error), error instanceof DatabaseToolsError ? 400 : 500)
+        }
+      },
+    })
 
     if (snapshots.apply) {
       endpoints.push({

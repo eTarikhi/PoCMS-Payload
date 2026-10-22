@@ -3,6 +3,8 @@ import ts from 'typescript'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { pgClientOptions } from '@/lib/database-readiness'
+import { buildJsonBackup } from '@/plugins/databaseTools/server/backup'
+import { diffSchema, parseJsonBackup } from '@/plugins/databaseTools/server/diff'
 import { buildSchemaMigration } from '@/plugins/databaseTools/server/schemaMigration'
 import {
   applySeedSnapshot,
@@ -29,6 +31,7 @@ import { listTables } from '@/plugins/databaseTools/server/introspection'
  */
 
 const SCRATCH = ['snap_parent', 'snap_child', 'snap_values', 'snap_a', 'snap_b']
+const DRIFT = ['diff_b', 'diff_a']
 
 describe('which tables a seed carries', () => {
   const collections = [
@@ -461,5 +464,151 @@ describe('the generated files, live', () => {
         buildSeedSnapshot(client, { collections: [{ slug: 'no-such-collection' }], globals: [] }),
       ).rejects.toThrow(/No content table matched/)
     }, 30_000)
+  })
+})
+
+describe('comparing this database with another one’s backup', () => {
+  let client: pg.Client
+
+  /** A JSON backup of the two scratch tables, as the other environment's page would write it. */
+  const backupOf = async (tables?: string[]) => {
+    const backup = await buildJsonBackup(client, tables ? { tables } : {})
+    return parseJsonBackup(backup.json)
+  }
+
+  beforeAll(async () => {
+    client = new pg.Client(pgClientOptions(process.env.POSTGRES_URL as string))
+    await client.connect()
+    for (const table of DRIFT) await client.query(`drop table if exists ${table} cascade`)
+    await client.query(
+      `create table diff_a (id serial primary key, name text not null default 'x', kind integer)`,
+    )
+    await client.query(
+      `create table diff_b (id serial primary key, a_id integer references diff_a (id), note text)`,
+    )
+    await client.query(`insert into diff_a (name, kind) values ('a', 1), ('b', 2)`)
+    await client.query(`insert into diff_b (a_id, note) values (1, 'n')`)
+  }, 60_000)
+
+  afterAll(async () => {
+    for (const table of DRIFT) await client.query(`drop table if exists ${table} cascade`)
+    await client.end()
+  })
+
+  it('finds nothing when the file describes this database', async () => {
+    const scoped = await diffSchema(client, await backupOf(DRIFT.slice().reverse()))
+    expect(scoped.same).toBe(true)
+    expect(scoped.scoped).toBe(true)
+    expect(scoped.differences).toEqual([])
+    expect(scoped.tables.compared).toBe(2)
+
+    const whole = await diffSchema(client, await backupOf())
+    expect(whole.same).toBe(true)
+    expect(whole.scoped).toBe(false)
+    expect(whole.rows).toEqual([])
+  }, 60_000)
+
+  it('names what the file has and this database lacks, with the statement that would add it', async () => {
+    const before = await backupOf()
+
+    await client.query('alter table diff_a drop column kind')
+    await client.query('alter table diff_a add column extra text')
+    await client.query('alter table diff_b alter column a_id type bigint')
+    await client.query('alter table diff_a alter column name drop not null')
+    await client.query(`alter table diff_a alter column name set default 'y'`)
+    await client.query(`insert into diff_a (name) values ('c')`)
+
+    try {
+      const report = await diffSchema(client, before)
+      expect(report.same).toBe(false)
+      const of = (table: string, column?: string) =>
+        report.differences.find((entry) => entry.table === table && entry.column === column)
+
+      const missing = of('diff_a', 'kind')
+      expect(missing?.kind).toBe('missing-column')
+      expect(missing?.file).toBe('integer')
+      expect(missing?.statement).toBe('ALTER TABLE "public"."diff_a" ADD COLUMN "kind" integer;')
+
+      expect(of('diff_b', 'a_id')).toMatchObject({
+        kind: 'type',
+        file: 'integer',
+        database: 'bigint',
+      })
+      expect(of('diff_b', 'a_id')?.caution).toMatch(/USING/)
+      expect(of('diff_a', 'name')).toBeDefined()
+      const nullability = report.differences.filter(
+        (entry) => entry.table === 'diff_a' && entry.column === 'name',
+      )
+      expect(nullability.map((entry) => entry.kind).sort()).toEqual(['default', 'nullable'])
+      expect(nullability.find((entry) => entry.kind === 'nullable')?.statement).toContain(
+        'SET NOT NULL',
+      )
+      expect(nullability.find((entry) => entry.kind === 'default')?.statement).toContain(
+        `SET DEFAULT 'x'::text`,
+      )
+
+      // A column only this database has is reported, with no statement: a diff does not drop things.
+      const extra = of('diff_a', 'extra')
+      expect(extra?.kind).toBe('extra-column')
+      expect(extra?.statement).toBeUndefined()
+      expect(extra?.caution).toMatch(/Dropping a column is a migration/)
+
+      // Blocking findings come first, so the card reads as a list of things to fix.
+      expect(report.differences[0]?.kind).toMatch(/^missing-/)
+
+      // The row that appeared is reported as a count, not as a difference in shape.
+      expect(report.rows.find((entry) => entry.table === 'diff_a')).toMatchObject({
+        file: 2,
+        database: 3,
+        estimated: false,
+      })
+    } finally {
+      await client.query('alter table diff_a drop column if exists extra')
+      await client.query(`alter table diff_a add column kind integer`)
+      await client.query('alter table diff_b alter column a_id type integer')
+      await client.query(`alter table diff_a alter column name set default 'x'`)
+      await client.query('alter table diff_a alter column name set not null')
+      await client.query(`delete from diff_a where name = 'c'`)
+    }
+  }, 60_000)
+
+  it('takes a file that named tables at its word: what it left out is not drift', async () => {
+    const before = await backupOf(DRIFT.slice().reverse())
+    await client.query('alter table diff_a add column extra text')
+    try {
+      const report = await diffSchema(client, before)
+      expect(report.scoped).toBe(true)
+      expect(report.differences.map((entry) => entry.kind)).not.toContain('extra-column')
+      expect(report.differences.map((entry) => entry.kind)).not.toContain('extra-table')
+    } finally {
+      await client.query('alter table diff_a drop column extra')
+    }
+  }, 60_000)
+
+  it('reports a table this database does not have, and refuses to create it', async () => {
+    const before = await backupOf(DRIFT.slice().reverse())
+    await client.query('drop table diff_b cascade')
+    try {
+      const report = await diffSchema(client, before)
+      const missing = report.differences.find((entry) => entry.table === 'diff_b')
+      expect(missing?.kind).toBe('missing-table')
+      expect(missing?.statement).toBeUndefined()
+      expect(missing?.caution).toMatch(/pnpm db:schema-from/)
+      expect(report.tables.compared).toBe(1)
+    } finally {
+      await client.query(
+        `create table diff_b (id serial primary key, a_id integer references diff_a (id), note text)`,
+      )
+    }
+  }, 60_000)
+
+  it('refuses a file that is not a backup', () => {
+    expect(() => parseJsonBackup('nope')).toThrow(/not JSON/)
+    expect(() => parseJsonBackup('{"format":"pocms-seed","version":1}')).toThrow(
+      /not a PoCMS backup/,
+    )
+    expect(() => parseJsonBackup('{"format":"pocms-backup","version":2}')).toThrow(
+      /not a PoCMS backup/,
+    )
   })
 })

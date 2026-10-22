@@ -8,6 +8,22 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Added
 
+- **A schema comparison between two databases.** `/admin/database` → **Compare with another
+  database** takes the **JSON** backup the Backup card already writes — from the Neon branch's admin
+  page, normally — and says what that schema has which this one lacks. No second connection string
+  and no second credential: the JSON backup records every column the way Postgres names it
+  (`format_type`, `pg_get_expr`), so the file *is* the description of the other environment. The
+  report is ordered by what it costs: missing tables and columns first (with the `ALTER TABLE` that
+  would add each one, and a caution when that is not enough — a `NOT NULL` column needs a default or
+  an empty table, a type change may need `USING` and always takes a lock), then types, nullability
+  and defaults that differ, then what only exists here. Row counts come with it, because "same shape,
+  no content" and "missing column" are different problems. Two rules keep it honest: it suggests and
+  never runs, and it never proposes a `DROP` — a column that only exists here may simply be newer
+  than the file. A file that was downloaded for chosen tables records that (`selection` in the JSON),
+  and is then taken at its word: what it left out is a choice, not drift. New `POST
+  /api/database/diff`, `server/diff.ts`, five tests in `database-snapshots.int.spec.ts` (23 in the
+  file) covering a clean comparison, each kind of drift, the scoped case, a missing table and the
+  refusals.
 - **A migration and a seed generated from the database itself.** `/admin/database` → **From this
   database** downloads two files read out of whatever the app is connected to — the Neon branch, on a
   deployment. The first is a Payload migration written from the catalogs (`format_type`,

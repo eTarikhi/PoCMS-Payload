@@ -6,6 +6,7 @@ import {
   ArrowLeftIcon,
   DatabaseIcon,
   FileCode2Icon,
+  FileDiffIcon,
   GitBranchIcon,
   HardDriveDownloadIcon,
   InfoIcon,
@@ -73,6 +74,7 @@ import { formatBytes } from '@/system/status'
 
 import {
   DatabaseToolsApi,
+  DiffPanel,
   MaintenanceButtons,
   NeonBackupForm,
   NeonDeleteBranch,
@@ -1063,6 +1065,40 @@ export async function DatabaseView({
                     </CardHeader>
                     <CardContent>
                       <SeedPanel />
+                    </CardContent>
+                  </Card>
+                ) : null}
+
+                {options.snapshots !== false ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>
+                        <h2 className="acn:m-0 acn:flex acn:items-center acn:gap-2 acn:text-base">
+                          <FileDiffIcon
+                            aria-hidden
+                            className="acn:size-4 acn:text-muted-foreground"
+                          />
+                          Compare with another database
+                        </h2>
+                      </CardTitle>
+                      <CardDescription>
+                        Upload the <strong className="acn:font-medium">JSON</strong> backup from the
+                        other environment — the Neon branch’s admin page, normally — and this says
+                        what its schema has that this database does not: missing tables and columns
+                        first, then types, nullability and defaults that differ, then what only
+                        exists here. Row counts come with it, because “same shape, no content” is a
+                        different problem from “missing column”.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="acn:space-y-3">
+                      <DiffPanel />
+                      <p className="acn:m-0 acn:text-xs acn:text-muted-foreground">
+                        Read-only, and the statements it prints are text: nothing here runs them. A
+                        missing table is a migration’s job (<Code>pnpm db:schema-from</Code> writes
+                        one from the other database), a missing column is one{' '}
+                        <Code>ALTER TABLE</Code>, and a type change may need a <Code>USING</Code>{' '}
+                        cast and always takes a lock.
+                      </p>
                     </CardContent>
                   </Card>
                 ) : null}

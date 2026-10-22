@@ -62,8 +62,7 @@ describe('databaseTools plugin', () => {
     expect(component.exportName).toBe('DatabaseView')
 
     const serverProps = component.serverProps as
-      | { databaseTools?: ReturnType<typeof resolveOptions> }
-      | undefined
+      { databaseTools?: ReturnType<typeof resolveOptions> } | undefined
     const resolved = serverProps?.databaseTools as ReturnType<typeof resolveOptions>
     expect(resolved.access).toBe(access)
     expect(resolved.migrations).toEqual(['a', 'b'])
@@ -85,6 +84,7 @@ describe('databaseTools plugin', () => {
       '/database/restore',
       '/database/migration',
       '/database/seed',
+      '/database/diff',
       '/database/seed/apply',
       '/database/neon/backup',
       '/database/neon/restore',
@@ -104,15 +104,24 @@ describe('databaseTools plugin', () => {
       '/database/table',
       '/database/migration',
       '/database/seed',
+      '/database/diff',
       '/database/seed/apply',
     ])
 
-    // The generated files are read-only; turning them off removes all three endpoints.
-    expect(paths(await plugin({ snapshots: false }))).not.toContain('/database/migration')
-    expect(paths(await plugin({ snapshots: false }))).not.toContain('/database/seed')
+    // The generated files and the comparison are read-only apart from the apply; turning the family
+    // off removes all four endpoints.
+    const noSnapshots = paths(await plugin({ snapshots: false }))
+    for (const path of [
+      '/database/migration',
+      '/database/seed',
+      '/database/diff',
+      '/database/seed/apply',
+    ])
+      expect(noSnapshots).not.toContain(path)
     // A host that wants the downloads but not the write keeps the two GETs.
     const noApply = paths(await plugin({ snapshots: { apply: false } }))
     expect(noApply).toContain('/database/seed')
+    expect(noApply).toContain('/database/diff')
     expect(noApply).not.toContain('/database/seed/apply')
   })
 

@@ -95,6 +95,7 @@ test.describe('Database page', () => {
         'Neon branches and point-in-time restore',
         'Restore from a file',
         'Load a seed',
+        'Compare with another database',
         'What this page cannot do',
       ]) {
         await expect(view.getByRole('heading', { level: 2, name: title })).toBeVisible()
@@ -123,6 +124,7 @@ test.describe('Database page', () => {
         /\/api\/database\/seed$/,
       )
       await expect(view.getByRole('button', { name: 'Apply the seed' })).toBeDisabled()
+      await expect(view.getByRole('button', { name: 'Compare' })).toBeDisabled()
       await expect(view).toContainText('users')
       await expect(view.getByRole('button', { name: 'Vacuum + analyze' })).toBeEnabled()
       await expect(view).toContainText('Migration history')

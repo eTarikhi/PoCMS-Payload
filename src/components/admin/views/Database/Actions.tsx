@@ -609,6 +609,204 @@ export function SeedPanel() {
   )
 }
 
+type Difference = {
+  table: string
+  kind:
+    | 'missing-table'
+    | 'missing-column'
+    | 'type'
+    | 'nullable'
+    | 'default'
+    | 'extra-column'
+    | 'extra-table'
+  column?: string
+  file?: string
+  database?: string
+  statement?: string
+  caution?: string
+}
+
+type Diff = {
+  source: { database: string; generatedAt: string }
+  scoped: boolean
+  tables: { inFile: number; inDatabase: number; compared: number }
+  differences: Difference[]
+  omitted: number
+  rows: { table: string; file: number; database: number; estimated: boolean }[]
+  same: boolean
+}
+
+const KIND_LABEL: Record<Difference['kind'], string> = {
+  'missing-table': 'Table missing here',
+  'missing-column': 'Column missing here',
+  type: 'Type differs',
+  nullable: 'Nullability differs',
+  default: 'Default differs',
+  'extra-column': 'Column only here',
+  'extra-table': 'Table only here',
+}
+
+/**
+ * Compare this database with a JSON backup from another one — the Neon branch's admin, normally.
+ * Read-only: the server reads the catalogs and answers, and the statements it returns are text to
+ * read, never something this panel can run.
+ */
+export function DiffPanel() {
+  const apiBase = useApiBase()
+  const [file, setFile] = React.useState<File | null>(null)
+  const [json, setJson] = React.useState<string | null>(null)
+  const [diff, setDiff] = React.useState<Diff | null>(null)
+  const [busy, setBusy] = React.useState(false)
+  const [reply, setReply] = React.useState<Reply | null>(null)
+
+  const choose = async (chosen: File | null) => {
+    setFile(chosen)
+    setDiff(null)
+    setReply(null)
+    setJson(null)
+    if (!chosen) return
+    const text = await readFile(chosen).catch(() => null)
+    if (text === null) {
+      setReply({ ok: false, error: 'The file could not be read as text.' })
+      return
+    }
+    setJson(text)
+  }
+
+  const compare = async () => {
+    if (!json) return
+    setBusy(true)
+    setReply(null)
+    const result = await post(`${apiBase}/diff`, { json })
+    if (result.ok) setDiff(result.diff as Diff)
+    else setReply(result)
+    setBusy(false)
+  }
+
+  const blocking = (diff?.differences ?? []).filter(
+    (entry) => entry.kind === 'missing-table' || entry.kind === 'missing-column',
+  )
+  const differing = (diff?.differences ?? []).filter(
+    (entry) => entry.kind === 'type' || entry.kind === 'nullable' || entry.kind === 'default',
+  )
+  const onlyHere = (diff?.differences ?? []).filter(
+    (entry) => entry.kind === 'extra-column' || entry.kind === 'extra-table',
+  )
+
+  const group = (title: string, entries: Difference[]) =>
+    entries.length === 0 ? null : (
+      <div className="acn:space-y-1.5">
+        <p className="acn:m-0 acn:text-xs acn:font-medium">{title}</p>
+        <ul className="acn:m-0 acn:list-none acn:space-y-1.5 acn:p-0">
+          {entries.map((entry) => (
+            <li key={`${entry.kind}:${entry.table}.${entry.column ?? ''}`} className="acn:text-xs">
+              <p className="acn:m-0">
+                <span className="acn:text-muted-foreground">{KIND_LABEL[entry.kind]}: </span>
+                <code className="acn:font-mono">
+                  {entry.table}
+                  {entry.column ? `.${entry.column}` : ''}
+                </code>{' '}
+                <span className="acn:text-muted-foreground">
+                  {entry.file ? `file: ${entry.file}` : ''}
+                  {entry.file && entry.database ? ' · ' : ''}
+                  {entry.database ? `here: ${entry.database}` : ''}
+                </span>
+              </p>
+              {entry.statement ? (
+                <code className="acn:mt-0.5 acn:block acn:font-mono acn:break-words acn:text-muted-foreground">
+                  {entry.statement}
+                </code>
+              ) : null}
+              {entry.caution ? (
+                <p className="acn:m-0 acn:mt-0.5 acn:text-muted-foreground">{entry.caution}</p>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+
+  return (
+    <div className="acn:flex acn:flex-col acn:gap-4">
+      <label className="acn:flex acn:flex-col acn:gap-1.5 acn:text-sm">
+        <span className="acn:font-medium">JSON backup from the other database</span>
+        <input
+          type="file"
+          accept=".json,application/json"
+          className={cn(
+            'acn:block acn:w-full acn:cursor-pointer acn:rounded-md acn:border acn:border-input acn:bg-transparent acn:px-2.5 acn:py-1.5 acn:text-sm',
+            'acn:file:mr-2 acn:file:rounded-md acn:file:border-0 acn:file:bg-muted acn:file:px-2 acn:file:py-1 acn:file:text-xs',
+          )}
+          onChange={(event) => void choose(event.target.files?.[0] ?? null)}
+        />
+        <span className="acn:text-xs acn:text-muted-foreground">
+          Backup → <strong className="acn:font-medium">JSON</strong> on the other environment’s{' '}
+          <code className="acn:font-mono">/admin/database</code>.
+          {file ? ` · ${file.name}, ${Math.ceil(file.size / 1024).toLocaleString('en')} kB` : ''}
+        </span>
+      </label>
+
+      <div className="acn:flex acn:flex-wrap acn:items-center acn:gap-2">
+        <Button size="sm" variant="outline" disabled={!json || busy} onClick={() => void compare()}>
+          {busy ? (
+            <LoaderCircleIcon aria-hidden className="acn:motion-safe:animate-spin" />
+          ) : (
+            <CheckIcon aria-hidden />
+          )}
+          {busy ? 'Comparing…' : 'Compare'}
+        </Button>
+        {diff ? (
+          <span className="acn:text-xs acn:text-muted-foreground">
+            {diff.tables.compared} of {diff.tables.inFile} table(s) compared with{' '}
+            {diff.source.database}
+            {diff.source.generatedAt ? ` · ${diff.source.generatedAt.slice(0, 10)}` : ''}
+            {diff.scoped ? ' · the file named tables, so what it leaves out is not drift' : ''}
+          </span>
+        ) : null}
+      </div>
+
+      {diff ? (
+        diff.same ? (
+          <p className="acn:m-0 acn:flex acn:items-start acn:gap-1.5 acn:text-xs">
+            <CheckIcon aria-hidden className="acn:mt-0.5 acn:size-3.5 acn:shrink-0" />
+            The schema is the same: every table and column in the file is here, with the same type,
+            nullability and default.
+          </p>
+        ) : (
+          <div className="acn:flex acn:flex-col acn:gap-3 acn:rounded-lg acn:bg-muted acn:p-3">
+            {group(
+              `Missing here (${blocking.length}) — what stops this database working like the other one`,
+              blocking,
+            )}
+            {group(`Different here (${differing.length})`, differing)}
+            {group(`Only here (${onlyHere.length}) — reported, never dropped`, onlyHere)}
+            {diff.omitted > 0 ? (
+              <p className="acn:m-0 acn:text-xs acn:text-muted-foreground">
+                …and {diff.omitted} more difference(s). Drift this wide is a job for{' '}
+                <code className="acn:font-mono">pnpm db:schema-from</code>, not a card.
+              </p>
+            ) : null}
+          </div>
+        )
+      ) : null}
+
+      {diff && diff.rows.length > 0 ? (
+        <div className="acn:flex acn:flex-wrap acn:gap-1.5">
+          {diff.rows.slice(0, 12).map((entry) => (
+            <Badge key={entry.table} variant="secondary">
+              {entry.table} {entry.file.toLocaleString('en')} →{' '}
+              {entry.database.toLocaleString('en')}
+              {entry.estimated ? '~' : ''}
+            </Badge>
+          ))}
+        </div>
+      ) : null}
+
+      <Outcome reply={reply} />
+    </div>
+  )
+}
+
 /** Create a Neon branch pinned to now: the cheap, provider-level backup. */
 export function NeonBackupForm({ defaultName }: { defaultName: string }) {
   const router = useRouter()

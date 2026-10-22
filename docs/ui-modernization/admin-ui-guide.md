@@ -902,6 +902,7 @@ how the capability is granted.
 | From this database | Two downloads read out of the connected database (the Neon branch, on a deployment): a Payload **migration (.ts)** written from the catalogs — guarded by default so running it twice changes nothing, or from-scratch mode with a `down` that drops what it created — and a content **seed (.json)** for a local database. | `server/schemaMigration.ts`, `server/seedSnapshot.ts` |
 | Restore | Choose a `.sql` file, **Check the file** (statements, tables, existing content, whether it is transactional), then type `restore` to run it. | `server/restore.ts` |
 | Load a seed | Choose a seed `.json`, read what it holds (rows, tables, where it came from), then type `seed` to replace those tables' rows. One transaction; users, roles, jobs and the audit log are never in a seed. | `server/seedSnapshot.ts` |
+| Compare with another database | Upload the JSON backup from another environment (the Neon branch, normally) and read what its schema has that this one lacks: missing tables and columns first, with the `ALTER TABLE` that would add them, then types, nullability and defaults, then what only exists here — plus row counts. Read-only; it never proposes a `DROP`. | `server/diff.ts` |
 
 Decisions worth knowing:
 
