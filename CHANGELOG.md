@@ -88,6 +88,11 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Fixed
 
+- **CI's visual-invariants gate actually runs.** The step called `playwright test visual/invariants`
+  directly, without the `tsx` loader the other Playwright scripts set. Playwright could not resolve
+  `next/cache` through the Payload config, reported “No tests found”, and failed the build — the gate
+  had never run in CI. The step now uses `pnpm test:invariants`, which sets the loader and names the
+  spec file.
 - **An unmigrated database no longer fails with a raw SQL error.** With schema push off, a database
   without the schema answered the first request with Drizzle's `Failed query: select "users" …` and
   left the cause (`relation "users" does not exist`) in the server log. `onInit` now reads the

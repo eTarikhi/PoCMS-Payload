@@ -964,7 +964,8 @@ pnpm check:contrast     # token pairs meet WCAG AA in both themes
 pnpm test:int           # Vitest: Local API integration + admin component tests (jsdom)
 pnpm test:unit          # only the component tests, for a focused loop
 pnpm test:e2e           # Playwright: admin, navigation, dashboard, lists, gallery (axe), editor tasks
-pnpm test:visual        # screenshot comparisons + platform-independent invariants
+pnpm test:invariants    # the platform-independent half of the visual gate (runs in CI)
+pnpm test:visual        # screenshot comparisons + the invariants, on the machine with the baselines
 ```
 
 `tests/visual/invariants.visual.spec.ts` is the half of the visual check that is the same on every

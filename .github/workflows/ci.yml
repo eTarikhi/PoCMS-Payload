@@ -126,8 +126,11 @@ jobs:
       # Visual regression, platform-independent half: tokens loaded, no sideways scroll at any of
       # the three live-preview widths in both themes, no broken images, dark mode still dark. This
       # gates the build. The numbers land in test-results/visual-invariants.json.
+      # Through the package script, not a bare `playwright test`: the spec's import chain reaches
+      # `next/cache` through the Payload config, which only resolves under the tsx loader the script
+      # sets. Without it Playwright reports "No tests found" in CI.
       - name: Visual invariants (layout, tokens, themes)
-        run: pnpm exec playwright test --config=playwright.config.ts visual/invariants
+        run: pnpm test:invariants
 
       # Visual review: capture every baseline screen (light/dark, 1440/768/375) against the same
       # production build. Pixel comparisons are platform-specific (font rasterisation), so CI does
