@@ -182,6 +182,21 @@ but not created, and ownership, grants and the referencing table's foreign keys 
 The header also splits the table's size into heap and indexes (`pg_table_size` and
 `pg_indexes_size`), which is the number to look at before choosing between `VACUUM` and `REINDEX`.
 
+### Indexes
+
+The page counts every user index and ranks them by size, then asks three questions of the catalog:
+an index that has **never been scanned** (zero scans since the counters last started, on a table that
+has been read, and not backing a constraint — a unique index earns its space by refusing duplicates),
+two indexes with the **same definition** (same key columns, operator classes and options, neither
+partial nor expression-based), and an index left **invalid** by a failed `CREATE INDEX
+CONCURRENTLY`.
+
+Everything is read-only. Dropping an index is a schema change with a migration behind it, so the
+card names the index and its size and stops there; invalid indexes point at the maintenance card,
+which rebuilds them. "Never scanned" is presented as a hint rather than a verdict, with the moment
+the counters started, because a small site scans little and an index that serves one admin query a
+week still earns its space.
+
 ### The query plan
 
 The table card opens **Query plan**: `EXPLAIN (FORMAT JSON)` of the page's own query — the same

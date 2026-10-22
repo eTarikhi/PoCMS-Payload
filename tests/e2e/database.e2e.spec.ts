@@ -88,6 +88,7 @@ test.describe('Database page', () => {
         'Connection',
         'Backup',
         'Tables',
+        'Indexes',
         'Maintenance',
         'Health and repair',
         'Neon branches and point-in-time restore',

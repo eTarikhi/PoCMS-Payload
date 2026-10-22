@@ -8,6 +8,7 @@ import {
   GitBranchIcon,
   HardDriveDownloadIcon,
   InfoIcon,
+  LayersIcon,
   ShieldCheckIcon,
   TriangleAlertIcon,
   WrenchIcon,
@@ -53,6 +54,7 @@ import {
   tableDdl,
 } from '@/plugins/databaseTools/server/introspection'
 import { explainRows } from '@/plugins/databaseTools/server/plans'
+import { indexReport } from '@/plugins/databaseTools/server/advisors'
 import { NeonClient, neonConsoleUrl } from '@/plugins/databaseTools/server/neon'
 import { runRepairChecks } from '@/plugins/databaseTools/server/repair'
 import {
@@ -162,8 +164,9 @@ async function readDatabase(request: {
       }
     }
     const repairs = await runRepairChecks(client, request.migrationNames)
+    const indexes = await indexReport(client)
     const sessions = request.sessions ? await listSessions(client) : null
-    return { summary, detail, ddl, page, plan, tableError, repairs, sessions }
+    return { summary, detail, ddl, page, plan, tableError, repairs, sessions, indexes }
   })
 }
 
@@ -517,6 +520,124 @@ export async function DatabaseView({
                         </TableBody>
                       </Table>
                     )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>
+                      <h2 className="acn:m-0 acn:flex acn:items-center acn:gap-2 acn:text-base">
+                        <LayersIcon aria-hidden className="acn:size-4 acn:text-muted-foreground" />
+                        Indexes
+                      </h2>
+                    </CardTitle>
+                    <CardDescription>
+                      {data.indexes.total} indexes across {data.indexes.tables} tables ·{' '}
+                      {data.indexes.unused.length} never scanned, {data.indexes.duplicates.length}{' '}
+                      duplicated, {data.indexes.invalid.length} invalid
+                      {data.indexes.since
+                        ? ` · counting since ${new Date(data.indexes.since).toLocaleString('en')}`
+                        : ''}
+                      . Nothing is dropped from here: removing an index is a schema change.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="acn:space-y-3">
+                    {data.indexes.invalid.length > 0 ? (
+                      <div>
+                        <p className="acn:m-0 acn:text-sm acn:font-medium">Invalid: rebuild them</p>
+                        <p className="acn:m-0 acn:text-xs acn:text-muted-foreground">
+                          A failed <Code>CREATE INDEX CONCURRENTLY</Code> leaves an index the
+                          planner cannot use. <strong>Reindex invalid indexes</strong> in
+                          Maintenance rebuilds them.
+                        </p>
+                        <ul className="acn:m-0 acn:mt-1 acn:space-y-0.5 acn:text-xs">
+                          {data.indexes.invalid.map((index) => (
+                            <li key={index.index} className="acn:flex acn:items-center acn:gap-2">
+                              <TriangleAlertIcon
+                                aria-hidden
+                                className="acn:size-3.5 acn:text-destructive"
+                              />
+                              <span className="acn:font-mono">
+                                {index.table}.{index.index}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+
+                    {data.indexes.duplicates.length > 0 ? (
+                      <div>
+                        <p className="acn:m-0 acn:text-sm acn:font-medium">Duplicated</p>
+                        <ul className="acn:m-0 acn:mt-1 acn:space-y-0.5 acn:text-xs">
+                          {data.indexes.duplicates.map((duplicate) => (
+                            <li key={`${duplicate.table}-${duplicate.kept}`}>
+                              <span className="acn:font-mono">{duplicate.table}</span>: keep{' '}
+                              <span className="acn:font-mono">{duplicate.kept}</span>, drop{' '}
+                              <span className="acn:font-mono">
+                                {duplicate.redundant.join(', ')}
+                              </span>{' '}
+                              <span className="acn:text-muted-foreground">
+                                ({formatBytes(duplicate.bytes)} each)
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+
+                    {data.indexes.unused.length > 0 ? (
+                      <div>
+                        <p className="acn:m-0 acn:text-sm acn:font-medium">Never scanned</p>
+                        <p className="acn:m-0 acn:text-xs acn:text-muted-foreground">
+                          Zero scans since the counters last started, on tables that have been read.
+                          A hint, not a verdict: a small site scans little, and an index that serves
+                          one admin query a week still earns its space.
+                        </p>
+                        <ul className="acn:m-0 acn:mt-1 acn:space-y-0.5 acn:text-xs">
+                          {data.indexes.unused.slice(0, 8).map((index) => (
+                            <li key={index.index} className="acn:flex acn:flex-wrap acn:gap-2">
+                              <span className="acn:font-mono">
+                                {index.table}.{index.index}
+                              </span>
+                              <span className="acn:text-muted-foreground">
+                                {formatBytes(index.bytes)} · {index.scans} scans
+                              </span>
+                            </li>
+                          ))}
+                          {data.indexes.unused.length > 8 ? (
+                            <li className="acn:text-muted-foreground">
+                              and {data.indexes.unused.length - 8} more…
+                            </li>
+                          ) : null}
+                        </ul>
+                      </div>
+                    ) : null}
+
+                    {data.indexes.unused.length === 0 &&
+                    data.indexes.duplicates.length === 0 &&
+                    data.indexes.invalid.length === 0 ? (
+                      <p className="acn:m-0 acn:text-xs acn:text-muted-foreground">
+                        Nothing stands out: every index has been scanned, none is duplicated and
+                        none is invalid.
+                      </p>
+                    ) : null}
+
+                    <div>
+                      <p className="acn:m-0 acn:text-sm acn:font-medium">Largest</p>
+                      <ul className="acn:m-0 acn:mt-1 acn:space-y-0.5 acn:text-xs">
+                        {data.indexes.largest.map((index) => (
+                          <li key={index.index} className="acn:flex acn:flex-wrap acn:gap-2">
+                            <span className="acn:font-mono">
+                              {index.table}.{index.index}
+                            </span>
+                            <span className="acn:text-muted-foreground">
+                              {formatBytes(index.bytes)} · {index.scans.toLocaleString('en')} scans
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </CardContent>
                 </Card>
 

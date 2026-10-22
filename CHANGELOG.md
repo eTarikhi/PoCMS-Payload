@@ -131,6 +131,11 @@ modernisation programme; every entry links the roadmap item it closes
   sequences that fell behind their highest id — the failure that shows up as a duplicate key on the
   next insert. Orphaned rows and invalid indexes are reported, never applied, because both need a
   decision; tables over 200 MB are left to autovacuum so the run fits in one serverless request.
+- **Index advisor.** A card counts every user index, lists the ones never scanned (with the moment
+  the counters started, and never a constraint-backed index, which earns its space by refusing
+  duplicates), the ones duplicated by definition, and any left invalid by a failed build. It also
+  ranks the largest indexes. Read-only: dropping an index is a schema change, so the card names it
+  and stops there; invalid ones point at the maintenance card that rebuilds them.
 - **Query plans.** The table card opens **Query plan**: `EXPLAIN (FORMAT JSON)` of exactly the query
   the page runs (filters, sort and page size included), with the plan's nodes, estimated rows and
   cost, plain sentences about what it does, and `format=plan` for the same JSON. `EXPLAIN` without

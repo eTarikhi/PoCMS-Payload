@@ -17,6 +17,7 @@ import {
   tableColumns,
   tableDdl,
 } from '@/plugins/databaseTools/server/introspection'
+import { indexReport } from '@/plugins/databaseTools/server/advisors'
 import { explainRows } from '@/plugins/databaseTools/server/plans'
 import {
   cancelQuery,
@@ -203,18 +204,69 @@ describe('readRows with filters and sort', () => {
   })
 
   it('lists the columns a filter may name', async () => {
-    const columns = await withDb(async (client) => tableColumns(client, await oidOf(client, 'articles')))
+    const columns = await withDb(async (client) =>
+      tableColumns(client, await oidOf(client, 'articles')),
+    )
     expect(columns.map((column) => column.name)).toContain('title')
     expect(columns.find((column) => column.name === 'id')?.type).toBe('integer')
   })
 })
 
+describe('indexReport', () => {
+  it('counts the user indexes and ranks them by size', async () => {
+    const report = await withDb((client) => indexReport(client))
+    expect(report.total).toBeGreaterThan(50)
+    expect(report.tables).toBeGreaterThan(10)
+    expect(report.largest.length).toBeGreaterThan(3)
+    // The catalog's own indexes are not the admin's to weigh.
+    expect(report.largest.every((index) => !index.index.startsWith('pg_'))).toBe(true)
+    const sizes = report.largest.map((index) => index.bytes)
+    expect([...sizes].sort((a, b) => b - a)).toEqual(sizes)
+    expect(report.since).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+  })
+
+  it('finds an index that was never scanned and two that are duplicated', async () => {
+    await withDb(async (client) => {
+      await client.query('drop table if exists public._advisor_probe cascade')
+      await client.query('create table public._advisor_probe (id serial primary key, slug text)')
+      await client.query('create index _advisor_probe_slug_a on public._advisor_probe (slug)')
+      await client.query('create index _advisor_probe_slug_b on public._advisor_probe (slug)')
+      // The table has to be read for "never scanned" to mean anything. A backend only publishes
+      // its own counters when it disconnects, which is why the report runs on a second connection.
+      await client.query('select count(*) from public._advisor_probe')
+    })
+
+    try {
+      const report = await withDb((client) => indexReport(client))
+
+      const probeUnused = report.unused.filter((index) => index.table === '_advisor_probe')
+      expect(probeUnused.map((index) => index.index).sort()).toEqual([
+        '_advisor_probe_slug_a',
+        '_advisor_probe_slug_b',
+      ])
+      expect(probeUnused.every((index) => index.scans === 0)).toBe(true)
+
+      const duplicate = report.duplicates.find((entry) => entry.table === '_advisor_probe')
+      expect(duplicate?.kept).toBe('_advisor_probe_slug_a')
+      expect(duplicate?.redundant).toEqual(['_advisor_probe_slug_b'])
+
+      // A primary key is never reported as unused: it is the row's identity.
+      expect(probeUnused.map((index) => index.index)).not.toContain('_advisor_probe_pkey')
+    } finally {
+      await withDb((client) => client.query('drop table if exists public._advisor_probe cascade'))
+    }
+  })
+
+  it('has no invalid indexes in a healthy database', async () => {
+    const report = await withDb((client) => indexReport(client))
+    expect(report.invalid).toEqual([])
+  })
+})
+
 describe('explainRows', () => {
-  it('plans the page\'s own query, without running it', async () => {
+  it("plans the page's own query, without running it", async () => {
     const plan = await withDb((client) => explainRows(client, 'articles', { limit: 25 }))
-    expect(plan.sql).toBe(
-      'select * from "public"."articles"  order by ctid limit 25 offset 0',
-    )
+    expect(plan.sql).toBe('select * from "public"."articles"  order by ctid limit 25 offset 0')
     expect(plan.nodes[0].type).toBe('Limit')
     expect(plan.nodes.map((node) => node.type)).toContain('Seq Scan')
     expect(plan.nodes.find((node) => node.type === 'Seq Scan')?.relation).toBe('articles')
@@ -447,7 +499,9 @@ describe('listSessions', () => {
       await withDb((client) =>
         terminateSession(client, (victim as unknown as { processID: number }).processID),
       )
-      await expect(victim.query('select 1')).rejects.toThrow(/terminating|terminated|not queryable/i)
+      await expect(victim.query('select 1')).rejects.toThrow(
+        /terminating|terminated|not queryable/i,
+      )
 
       const overview = await withDb((client) => listSessions(client))
       expect(overview.sessions.map((session) => session.pid)).not.toContain(
