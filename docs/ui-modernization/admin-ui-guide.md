@@ -891,7 +891,8 @@ how the capability is granted.
 | --- | --- | --- |
 | Connection | Server version, size, connections, cache-hit ratio, uptime, and whether the URL is a pooled serverless endpoint. | `server/introspection.ts` |
 | Backup | Download a `.sql` dump (whole database, the browsed table, or schema only) or a `.json` description. | `server/backup.ts` |
-| Tables | Every `public` table with row estimate, size, dead rows and last vacuum; **Browse** opens columns, primary key, indexes, constraints and a page of 25 rows. Read-only. | `introspection.ts` |
+| Tables | Every `public` table with row estimate, size, dead rows and last vacuum; **Browse** opens columns, primary key, indexes, constraints and a page of 25 rows, with a filter bar (`f=column:operator:value` in the URL, so a filtered view is a link), sortable column headers, and **Export CSV** of exactly what is on screen. Read-only. | `server/introspection.ts`, `server/filters.ts` |
+| Sessions and locks | Live `pg_stat_activity`: active/idle/idle-in-transaction counts, statements running longer than 30 s, and `pg_blocking_pids` for who waits on whom. **Cancel query** (`pg_cancel_backend`) keeps the connection; **End session** (`pg_terminate_backend`) rolls the transaction back and needs the pid typed. The page's own connection is labelled and cannot be targeted. | `server/sessions.ts` |
 | Maintenance | `ANALYZE`, `VACUUM`, `VACUUM ANALYZE`, and `REINDEX CONCURRENTLY` of every invalid index — on the whole database or the browsed table. | `server/maintenance.ts` |
 | Health and repair | Seven checks (migrations, sequences, relation rows, indexes, statistics, dead rows, primary keys) and the four that are safely fixable: `setval`, `DELETE` orphans, `REINDEX`, `ANALYZE`. | `server/repair.ts` |
 | Neon branches | With `NEON_API_KEY`: create a branch at this moment, list branches, delete a backup branch, and restore the branch to a timestamp with the current state kept under a name. | `server/neon.ts` |
@@ -912,6 +913,9 @@ Decisions worth knowing:
   content tables hold rows unless the request carries the typed confirmation; the CLI asks for
   `--yes` the same way. `RestoreRefused` carries the status, so the page gets 400/409 rather than a
   500 for something the admin can fix.
+- **Cancel before terminate.** A cancel stops one statement and the client can retry; terminating
+  ends the session and rolls back its transaction, so it is the right tool only for an
+  `idle in transaction` session (which has no statement to cancel) and it needs the pid typed.
 - **No row editing.** A cell editor here would bypass validation, the audit log and cache
   revalidation, so the browser is read-only and links the collection instead.
 - **Not offered:** `VACUUM FULL` (locks the table for the whole rewrite), `CREATE`/`DROP DATABASE`

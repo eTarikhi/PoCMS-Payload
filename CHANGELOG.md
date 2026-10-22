@@ -115,10 +115,31 @@ modernisation programme; every entry links the roadmap item it closes
   `20261021_001500_skills_orderable` and `20261021_150000_orderable_profile_and_services` backfill
   the keys from the old numbers and drop the column.
 
+### Added
+
+- **Live sessions and locks on the database page.** A new card reads `pg_stat_activity` and
+  `pg_blocking_pids`: the active, idle and idle-in-transaction counts; the statements running longer
+  than 30 s; every session with its role, application, wait event, age and blocked-by list; and a
+  note when the role cannot see other roles' query text. **Cancel query** calls
+  `pg_cancel_backend` (stops the statement, keeps the connection); **End session** calls
+  `pg_terminate_backend` and requires the pid to be typed, because it rolls the transaction back.
+  Both refuse the page's own connection and background processes, and are audited.
+  `GET /api/database/sessions`, `POST …/sessions/cancel`, `POST …/sessions/terminate`; a
+  `sessions: false` option removes the card and the three endpoints.
+- **Filters, sorting and CSV export in the table browser.** A filter bar writes
+  `f=column:operator:value` into the URL (bookmarkable, shareable, and the same parameter the API
+  takes) across ten operators; the column must exist in the catalog and every value is a parameter
+  cast to the column's own type, so dates and numbers compare as themselves and an injection attempt
+  is ignored rather than interpolated. Column headers sort (with `ctid` as the tie-break so paging
+  cannot skip a row), chips remove one filter at a time, and **Export CSV** downloads the filtered
+  table through `GET /api/database/table?format=csv`, capped by `export.maxRows` (10,000 by
+  default, 100,000 at most) with RFC 4180 quoting. Tests: `tests/int/database-rows.int.spec.ts`
+  (25, including a live cancel and terminate against real backends).
+
 ### Changed
 
-- **The database tools are a Payload plugin.** The page, its eight endpoints and its sidebar link
-  now come from one `databaseTools({ … })` call in `plugins:`, the layout Payload documents in
+- **The database tools are a Payload plugin.** The page, its endpoints and its sidebar link now come
+  from one `databaseTools({ … })` call in `plugins:`, the layout Payload documents in
   *Build your own plugin*: a typed factory `(options) => (config) => config` in
   `src/plugins/databaseTools` that appends the view to `admin.components.views`, the link to
   `afterNavLinks` and the endpoints to `config.endpoints`. The host supplies what only it knows —

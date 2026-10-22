@@ -77,6 +77,10 @@ describe('databaseTools plugin', () => {
       '/database/backup',
       '/database/maintenance',
       '/database/repair',
+      '/database/table',
+      '/database/sessions',
+      '/database/sessions/cancel',
+      '/database/sessions/terminate',
       '/database/restore-inspect',
       '/database/restore',
       '/database/neon/backup',
@@ -88,8 +92,14 @@ describe('databaseTools plugin', () => {
   it('honours apiBasePath, restore: false and neon: false', async () => {
     expect(paths(await plugin({ apiBasePath: '/ops/db' }))).toContain('/ops/db/maintenance')
 
-    const readOnly = paths(await plugin({ restore: false, neon: false }))
-    expect(readOnly).toEqual(['/ping', '/database/backup', '/database/maintenance', '/database/repair'])
+    const readOnly = paths(await plugin({ restore: false, neon: false, sessions: false }))
+    expect(readOnly).toEqual([
+      '/ping',
+      '/database/backup',
+      '/database/maintenance',
+      '/database/repair',
+      '/database/table',
+    ])
   })
 
   it('adds the sidebar link after the nav links already registered', async () => {
@@ -124,8 +134,17 @@ describe('databaseTools plugin', () => {
     expect(resolved.apiBasePath).toBe('/database')
     expect(resolved.navigation).not.toBe(false)
     expect(resolved.restore).toEqual({ maxBytes: 25 * 1024 * 1024 })
+    expect(resolved.sessions).toBe(true)
+    expect(resolved.export).toEqual({ maxRows: 10_000 })
     expect(resolved.backup.maxRowsPerTable).toBe(100_000)
     expect(resolved.neon).toEqual({})
+  })
+
+  it('caps the CSV and restore limits whatever the host passes', () => {
+    expect(resolveOptions({ export: { maxRows: 10_000_000 } }).export).toEqual({ maxRows: 100_000 })
+    expect(resolveOptions({ export: { maxRows: 0 } }).export).toEqual({ maxRows: 1 })
+    expect(resolveOptions({ export: false }).export).toBe(false)
+    expect(resolveOptions({ restore: { maxBytes: 1024 } }).restore).toEqual({ maxBytes: 1024 })
   })
 
   it('normalises paths so a host can write "database" or "/database/"', async () => {

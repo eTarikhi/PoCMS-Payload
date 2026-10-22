@@ -35,6 +35,9 @@ export default buildConfig({
 | Admin view | `pagePath: '/database'` (the admin shows it at `/admin/database`) | `options.components.view` |
 | Sidebar link | On, after the app's own `afterNavLinks` | `options.components.navigation` |
 | `GET /api/database/backup` | On | `endpoints.ts` → `server/backup.ts` |
+| `GET /api/database/table` | On (filtered rows as JSON, or CSV) | `server/introspection.ts` |
+| `GET /api/database/sessions` | On, `sessions: false` removes it with its two actions | `server/sessions.ts` |
+| `POST /api/database/sessions/cancel` and `…/terminate` | On, `sessions: false` removes both | `server/sessions.ts` |
 | `POST /api/database/maintenance` | On | `server/maintenance.ts` |
 | `POST /api/database/repair` | On | `server/repair.ts` |
 | `POST /api/database/restore-inspect` and `…/restore` | On, `restore: false` removes both | `server/restore.ts` |
@@ -64,6 +67,8 @@ resolved object is what the components and the endpoints receive.
 | `neon` | `false \| { apiKey?, projectId?, branchId? }` | `{}` → `NEON_API_KEY`, `NEON_PROJECT_ID`, `NEON_BRANCH_ID` | Neon control-plane features. `false` removes the card and the three endpoints. Blank environment values count as unset. |
 | `backup` | `{ excludeTables?, maxRowsPerTable?, includeInternal? }` | `{ maxRowsPerTable: 100000 }` | What a dump contains. `excludeTables` is a name list, never a pattern. `includeInternal` also copies the rows of Payload's locks/preferences/kv tables (normally their tables are kept but their rows are not). |
 | `restore` | `false \| { maxBytes? }` | `{ maxBytes: 25 MB }` | The restore card and its endpoints. `false` leaves inspection and maintenance. |
+| `sessions` | `boolean` | `true` | The live sessions card and its three endpoints: connections, long statements, idle-in-transaction sessions, who blocks whom, and the guarded `pg_cancel_backend` / `pg_terminate_backend` actions. |
+| `export` | `false \| { maxRows? }` | `{ maxRows: 10000 }` | The "Export CSV" button and `GET /table?format=csv`. `maxRows` is capped at 100,000 whatever it says. |
 | `components` | `{ view?, navigation? }` | this repo's `/components/admin/…` paths | Where the two components live — the first thing to change when the plugin is published as a package. |
 
 Options are read once, when the config is built: changing them needs a restart, like any other
@@ -128,6 +133,10 @@ All of them are mounted under `routes.api` + `apiBasePath` and gated by `access`
 | Method and path | Body / query | Answers |
 | --- | --- | --- |
 | `GET /api/database/backup` | `?format=sql\|json`, `?tables=a,b`, `?schemaOnly=1` | The dump as a download (`Content-Disposition`, `no-store`). `403` without access. |
+| `GET /api/database/table` | `?table=…&format=json\|csv`, `?limit=&offset=&sort=&dir=asc\|desc`, and `f=column:operator:value` repeated | JSON: `{ ok, page: { rows, total, filters, sort, direction, ignoredFilters } }`. CSV: a download, with `X-Rows-Exported` and `X-Rows-Truncated` headers. Operators: `eq`, `neq`, `contains`, `starts`, `gt`, `gte`, `lt`, `lte`, `isnull`, `notnull`. |
+| `GET /api/database/sessions` | — | `{ ok, sessions: { role, isSuperuser, canSeeAllQueries, sessions: [{ pid, user, state, query, seconds, blockedBy, own }], active, idle, idleInTransaction, blocked, longest } }`. |
+| `POST /api/database/sessions/cancel` | `{ pid }` | `{ ok, pid }` — `pg_cancel_backend`: stops the running statement, keeps the connection. Refused for its own session, for a background process, and for a session that is not running a statement (`400`). |
+| `POST /api/database/sessions/terminate` | `{ pid, confirmation: pid }` | `{ ok, pid }` — `pg_terminate_backend`: ends the session and rolls its transaction back. The typed id is required. |
 | `POST /api/database/maintenance` | `{ action: 'analyze' \| 'vacuum' \| 'vacuum-analyze' \| 'reindex', table?: string }` | `{ ok, statements, durationMs, deadRows? }`. `reindex` rebuilds invalid indexes only. |
 | `POST /api/database/repair` | `{ check: 'sequences' \| 'orphans' \| 'indexes' \| 'statistics' \| 'all' }` | `{ ok, fixed, results }`; each result lists the statements it ran. |
 | `POST /api/database/restore-inspect` | `{ sql }` | `{ ok, inspection }`: statements, tables, whether it is transactional, whether it would overwrite content. Runs in a rolled-back transaction. |
@@ -138,6 +147,30 @@ All of them are mounted under `routes.api` + `apiBasePath` and gated by `access`
 
 Every error is one readable sentence (optionally with a `hint`) — never a stack trace, a query or a
 connection string. Refusals the admin can fix are `4xx`; database failures are `500`.
+
+### Filters and sorting
+
+The table browser's filter bar writes `f=column:operator:value` into the URL, so a filtered view is
+a link that can be bookmarked, shared or opened from the API. `server/filters.ts` parses the value
+(the first two colons separate; the rest belong to the value) and builds a parameterised `where`:
+
+- the column must exist in the catalog — anything else is reported as ignored, never interpolated;
+- every value is a parameter, cast to the column's own type (`$1::integer`), so numbers, dates,
+  uuids and enums compare as their type instead of as strings;
+- `contains`/`starts` compare the column's text form case-insensitively, which is the only reading
+  that works for `jsonb` and enums;
+- a value that does not parse as the column's type is a Postgres error the page shows as a sentence.
+
+Sorting is the same idea: the column must exist, and `ctid` breaks ties so paging never repeats or
+skips a row when the sort key is not unique.
+
+### Exporting a table
+
+`GET /table?format=csv` writes the filtered table as CSV, capped by `export.maxRows`; the page's
+"Export CSV" button points at the same URL, so what downloads is exactly what is on screen. Values
+are Postgres's own text form, objects are JSON, null is an empty cell, and a value containing a
+comma, a quote or a newline is quoted by RFC 4180 rules. This is for reading — the `.sql` backup
+remains the thing that restores.
 
 ## Audit
 
@@ -207,7 +240,8 @@ internal that is not exported from `payload` or `@payloadcms/ui`, so the move is
 | File | Covers |
 | --- | --- |
 | `tests/int/database-tools.int.spec.ts` | The SQL against this project's PostgreSQL: introspection, dumps, restore inspection and refusal, maintenance, repairs, and the Neon client against a fake `fetch`. |
-| `tests/int/database-tools-plugin.int.spec.ts` | The packaging: which view/nav/endpoints a config gets, option defaults and path normalisation, `restore: false` / `neon: false`, the duplicate-view error, the capability descriptor, and `defaultAccess`. |
+| `tests/int/database-tools-plugin.int.spec.ts` | The packaging: which view/nav/endpoints a config gets, option defaults and path normalisation, `restore: false` / `neon: false` / `sessions: false`, the export cap, the duplicate-view error, the capability descriptor, and `defaultAccess`. |
+| `tests/int/database-rows.int.spec.ts` | Filters and sorting (including the injection attempt, the type cast and a value that is not the column's type), CSV quoting and caps, and the session list — against real backends for the blocker, the cancel and the terminate. |
 | `tests/e2e/database.e2e.spec.ts` | `/admin/database` in a browser: the cards, a backup download, and the `404`/hidden-link behaviour for a user without the capability. |
 
 See also [project structure](../project-structure.md) and the

@@ -1,6 +1,7 @@
 import type pg from 'pg'
 
 import { DatabaseToolsError, number, quoteTable } from './connection'
+import { buildWhere, type RowFilter, type SortDirection } from './filters'
 
 /**
  * What is in the database, read from the catalogs.
@@ -194,31 +195,73 @@ export type RowPage = {
   total: number
   limit: number
   offset: number
+  sort: string | null
+  direction: SortDirection
+  filters: RowFilter[]
+  /** Filters that named a column this table does not have (a stale or hand-edited link). */
+  ignoredFilters: string[]
 }
 
 /** Page size for the read-only browser. Deliberately small: this is for looking, not exporting. */
 export const ROW_PAGE_SIZE = 25
 
+export const ROW_LIMIT_MAX = 200
+
+/** The hard cap on a CSV download, whatever the option says. */
+export const MAX_CSV_ROWS = 100_000
+
+const sortClause = (
+  sort: string | null | undefined,
+  direction: SortDirection,
+  columns: { name: string }[],
+): string => {
+  if (!sort || !columns.some((column) => column.name === sort)) {
+    // ctid is a stable physical order and needs no primary key; every table has one.
+    return 'order by ctid'
+  }
+  const ident = `"${sort.replace(/"/g, '""')}"`
+  // ctid breaks ties so paging cannot repeat or skip a row when the sort key is not unique.
+  return `order by ${ident} ${direction === 'desc' ? 'desc' : 'asc'} nulls last, ctid`
+}
+
 /**
  * A page of rows as JSON. `row_to_json` keeps the column order of the table and turns every value
- * into something a table cell can show; `ctid` gives a stable order without needing a primary key.
+ * into something a table cell can show.
+ *
+ * `filters` and `sort` are read-only conveniences for the browser: the column names are checked
+ * against the catalog (never interpolated from the request) and values are parameters. The `total`
+ * is the count *after* filtering, so the pager counts the rows the admin can actually page through.
  */
 export const readRows = async (
   client: pg.Client,
   name: string,
-  options: { limit?: number; offset?: number } = {},
+  options: {
+    limit?: number
+    offset?: number
+    sort?: string | null
+    direction?: SortDirection
+    filters?: RowFilter[]
+  } = {},
 ): Promise<RowPage> => {
   const table = await requireTable(client, name)
-  const limit = Math.min(Math.max(1, options.limit ?? ROW_PAGE_SIZE), 200)
+  const limit = Math.min(Math.max(1, options.limit ?? ROW_PAGE_SIZE), ROW_LIMIT_MAX)
   const offset = Math.max(0, options.offset ?? 0)
+  const direction = options.direction ?? 'asc'
+  const columns = await tableColumns(client, table.oid)
+  const where = buildWhere(options.filters ?? [], columns)
 
-  const counted = await client.query(`select count(*)::int as n from ${quoteTable(table.name)}`)
+  const counted = await client.query(
+    `select count(*)::int as n from ${quoteTable(table.name)} ${where.clause}`,
+    where.params,
+  )
   const total = number((counted.rows[0] as { n: unknown }).n)
 
   const { rows } = await client.query(
     `select row_to_json(t) as row
-       from (select * from ${quoteTable(table.name)} order by ctid limit $1 offset $2) t`,
-    [limit, offset],
+       from (select * from ${quoteTable(table.name)} ${where.clause}
+             ${sortClause(options.sort, direction, columns)}
+             limit $${where.params.length + 1} offset $${where.params.length + 2}) t`,
+    [...where.params, limit, offset],
   )
 
   return {
@@ -227,8 +270,93 @@ export const readRows = async (
     total,
     limit,
     offset,
+    sort: options.sort && columns.some((column) => column.name === options.sort) ? options.sort : null,
+    direction,
+    filters: (options.filters ?? []).filter((filter) =>
+      columns.some((column) => column.name === filter.column),
+    ),
+    ignoredFilters: where.ignored,
   }
 }
+
+/** The columns of a table, in table order: what a filter or a sort may name. */
+export const tableColumns = async (
+  client: pg.Client,
+  oid: number,
+): Promise<{ name: string; type: string }[]> => {
+  const { rows } = await client.query(
+    `select a.attname as name, format_type(a.atttypid, a.atttypmod) as type
+       from pg_attribute a
+      where a.attrelid = $1 and a.attnum > 0 and not a.attisdropped
+      order by a.attnum`,
+    [oid],
+  )
+  return (rows as Record<string, unknown>[]).map((row) => ({
+    name: String(row.name),
+    type: String(row.type),
+  }))
+}
+
+/**
+ * A whole table as CSV, for the "Export CSV" button: the same filters as the browser, capped at
+ * `maxRows` so a link cannot pull a gigabyte through a serverless function. Values are written as
+ * their Postgres text form; objects become JSON and null becomes an empty cell, which is what a
+ * spreadsheet expects. Unlike the `.sql` dump this is for reading, not for restoring.
+ */
+export const exportCsv = async (
+  client: pg.Client,
+  name: string,
+  options: {
+    maxRows?: number
+    sort?: string | null
+    direction?: SortDirection
+    filters?: RowFilter[]
+  } = {},
+): Promise<{ filename: string; csv: string; rows: number; truncated: boolean }> => {
+  const table = await requireTable(client, name)
+  const maxRows = Math.min(Math.max(1, options.maxRows ?? 10_000), MAX_CSV_ROWS)
+  const columns = await tableColumns(client, table.oid)
+  const where = buildWhere(options.filters ?? [], columns)
+
+  const counted = await client.query(
+    `select count(*)::int as n from ${quoteTable(table.name)} ${where.clause}`,
+    where.params,
+  )
+  const total = number((counted.rows[0] as { n: unknown }).n)
+
+  // One row over the cap, so the file's last line can say the table was cut.
+  const take = Math.min(total, maxRows)
+  const { rows } = await client.query(
+    `select row_to_json(t) as row
+       from (select * from ${quoteTable(table.name)} ${where.clause}
+             ${sortClause(options.sort, options.direction ?? 'asc', columns)}
+             limit $${where.params.length + 1}) t`,
+    [...where.params, take],
+  )
+  const records = (rows as { row: Record<string, unknown> }[]).map((row) => row.row)
+
+  const cell = (value: unknown): string => {
+    if (value === null || value === undefined) return ''
+    if (typeof value === 'object') return JSON.stringify(value)
+    return String(value)
+  }
+  const escape = (value: string): string =>
+    /[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value
+
+  const lines = [columns.map((column) => escape(column.name)).join(',')]
+  for (const record of records) {
+    lines.push(columns.map((column) => escape(cell(record[column.name]))).join(','))
+  }
+
+  const stamp = new Date().toISOString().slice(0, 10)
+  return {
+    filename: `pocms-${table.name}-${stamp}.csv`,
+    csv: `${lines.join('\r\n')}\r\n`,
+    rows: records.length,
+    truncated: total > records.length,
+  }
+}
+
 
 /** Everything the overview card needs, in as few round trips as possible. */
 export const overview = async (client: pg.Client): Promise<Overview> => {

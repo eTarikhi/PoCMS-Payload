@@ -113,6 +113,18 @@ export type DatabaseToolsOptions = {
   /** What a backup includes. */
   backup?: DatabaseToolsBackupOptions
   /**
+   * The live sessions card: connections, long-running statements, idle-in-transaction sessions and
+   * who blocks whom, plus the two guarded actions (`pg_cancel_backend`,
+   * `pg_terminate_backend`). `false` removes the card and those three endpoints.
+   * @default true
+   */
+  sessions?: boolean
+  /**
+   * The CSV export button and its endpoint. `false` removes both; `maxRows` caps one download.
+   * @default { maxRows: 10000 } (never more than 100000, whatever this says)
+   */
+  export?: false | { maxRows?: number }
+  /**
    * The restore card and its two endpoints. `false` leaves the page as read-only inspection plus
    * maintenance; `maxBytes` caps the file the browser may upload. @default { maxBytes: 25 MB }
    */
@@ -140,6 +152,8 @@ export type ResolvedDatabaseToolsOptions = {
   neon: DatabaseToolsNeonOptions | false
   backup: Required<Pick<DatabaseToolsBackupOptions, 'maxRowsPerTable'>> &
     Omit<DatabaseToolsBackupOptions, 'maxRowsPerTable'>
+  sessions: boolean
+  export: false | { maxRows: number }
   restore: false | { maxBytes: number }
   components: { view: DatabaseToolsComponent; navigation: DatabaseToolsComponent }
 }
@@ -196,6 +210,11 @@ export const resolveOptions = (
     ...options.backup,
     maxRowsPerTable: options.backup?.maxRowsPerTable ?? 100_000,
   },
+  sessions: options.sessions !== false,
+  export:
+    options.export === false
+      ? false
+      : { maxRows: Math.min(Math.max(1, options.export?.maxRows ?? 10_000), 100_000) },
   restore:
     options.restore === false
       ? false

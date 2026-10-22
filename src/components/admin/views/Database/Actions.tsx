@@ -43,7 +43,7 @@ export function DatabaseToolsApi({
   return <ApiBase.Provider value={apiBase}>{children}</ApiBase.Provider>
 }
 
-const useApiBase = () => React.useContext(ApiBase)
+export const useApiBase = () => React.useContext(ApiBase)
 
 async function post(path: string, body: unknown): Promise<Reply> {
   try {

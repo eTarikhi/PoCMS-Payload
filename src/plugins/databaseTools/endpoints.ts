@@ -2,11 +2,14 @@ import type { Endpoint, PayloadRequest } from 'payload'
 
 import { buildJsonBackup, buildSqlBackup, type BuildBackupOptions } from './server/backup'
 import { DatabaseToolsError, withDatabase } from './server/connection'
+import { parseDirection, parseFilters } from './server/filters'
+import { exportCsv, readRows } from './server/introspection'
 import { isMaintenanceAction, runMaintenance } from './server/maintenance'
 import { NeonClient, NeonError } from './server/neon'
 import { applyRepair, type RepairCheckId } from './server/repair'
 import { inspectRestore, RestoreRefused, restoreSql } from './server/restore'
 import { validateTableSelection } from './server/selection'
+import { cancelQuery, listSessions, terminateSession } from './server/sessions'
 import { neonOptions, type ResolvedDatabaseToolsOptions } from './options'
 
 /**
@@ -18,6 +21,12 @@ import { neonOptions, type ResolvedDatabaseToolsOptions } from './options'
  *   POST /api/database/maintenance       `{ action: analyze|vacuum|vacuum-analyze|reindex, table? }`
  *   POST /api/database/repair            `{ check: sequences|orphans|indexes|statistics|all }`
  *   POST /api/database/restore-inspect   `{ sql }` — what a restore file would do, without running it.
+ *   GET  /api/database/table             `?table=…&format=csv|json&limit=&offset=&sort=&dir=&f=`
+ *                                        A filtered page of rows, or the table as a CSV download.
+ *   GET  /api/database/sessions          What Postgres is doing now: connections, long statements,
+ *                                        idle transactions and who blocks whom.
+ *   POST /api/database/sessions/cancel   `{ pid }` — stop the statement, keep the connection.
+ *   POST /api/database/sessions/terminate `{ pid }` — end the session and roll back its transaction.
  *   POST /api/database/restore           `{ sql, confirmation }` — runs it, and only into a database
  *                                        the admin has explicitly confirmed.
  *   POST /api/database/neon/backup       `{ name, withEndpoint? }` → a branch pinned to now.
@@ -221,6 +230,137 @@ export const databaseToolsEndpoints = (options: ResolvedDatabaseToolsOptions): E
       },
     },
   ]
+
+  endpoints.push(
+    {
+      path: `${base}/table`,
+      method: 'get',
+      handler: async (req) => {
+        if (!(await allowed(req))) return denied()
+
+        const table = req.searchParams.get('table')
+        if (!table || !/^[a-zA-Z0-9_-]{1,63}$/.test(table)) {
+          return json({ error: 'Choose a table first.' }, 400)
+        }
+        const filters = parseFilters(req.searchParams.getAll('f'))
+        const sort = req.searchParams.get('sort')
+        const direction = parseDirection(req.searchParams.get('dir'))
+        const format = req.searchParams.get('format') === 'csv' ? 'csv' : 'json'
+
+        try {
+          if (format === 'csv') {
+            const exportLimit = options.export === false ? 0 : options.export.maxRows
+            if (exportLimit === 0) return json({ error: 'CSV export is turned off.' }, 403)
+            const result = await withDatabase((client) =>
+              exportCsv(client, table, { maxRows: exportLimit, sort, direction, filters }),
+            )
+            req.payload.logger.info({
+              msg: `Table exported as CSV: ${table}`,
+              user: req.user?.email,
+              rows: result.rows,
+              truncated: result.truncated,
+            })
+            return new Response(result.csv, {
+              status: 200,
+              headers: {
+                'Content-Type': 'text/csv; charset=utf-8',
+                'Content-Disposition': `attachment; filename="${result.filename}"`,
+                'Cache-Control': 'no-store',
+                // Silence the "the export was cut" fact for a programmatic caller.
+                'X-Rows-Exported': String(result.rows),
+                'X-Rows-Truncated': result.truncated ? '1' : '0',
+              },
+            })
+          }
+
+          const limit = Number(req.searchParams.get('limit') ?? '') || undefined
+          const offset = Number(req.searchParams.get('offset') ?? '') || 0
+          const page = await withDatabase((client) =>
+            readRows(client, table, {
+              limit,
+              offset,
+              sort,
+              direction,
+              filters,
+            }),
+          )
+          return json({ ok: true, page })
+        } catch (error) {
+          req.payload.logger.error({ msg: 'Reading a table failed', err: error, table })
+          return json(readable(error), 500)
+        }
+      },
+    },
+  )
+
+  if (options.sessions !== false) {
+    endpoints.push(
+    {
+      path: `${base}/sessions`,
+      method: 'get',
+      handler: async (req) => {
+        if (!(await allowed(req))) return denied()
+        try {
+          const sessions = await withDatabase((client) => listSessions(client))
+          return json({ ok: true, sessions })
+        } catch (error) {
+          req.payload.logger.error({ msg: 'Reading sessions failed', err: error })
+          return json(readable(error), 500)
+        }
+      },
+    },
+      {
+        path: `${base}/sessions/cancel`,
+        method: 'post',
+        handler: async (req) => {
+          if (!(await allowed(req))) return denied()
+          const data = await body(req)
+          const pid = Number(data.pid)
+          try {
+            await withDatabase(async (client) => {
+              await cancelQuery(client, pid)
+            })
+            req.payload.logger.warn({
+              msg: `Cancelled the query in session ${pid}`,
+              user: req.user?.email,
+            })
+            await audit(req, `Cancelled the running query in session ${pid}`, [
+              { field: 'pid', to: pid },
+            ])
+            return json({ ok: true, pid })
+          } catch (error) {
+            return json(readable(error), error instanceof DatabaseToolsError ? 400 : 500)
+          }
+        },
+      },
+      {
+        path: `${base}/sessions/terminate`,
+        method: 'post',
+        handler: async (req) => {
+          if (!(await allowed(req))) return denied()
+          const data = await body(req)
+          const pid = Number(data.pid)
+          // Typing the pid is the confirmation: ending a session rolls its transaction back.
+          if (String(data.confirmation ?? '').trim() !== String(pid)) {
+            return json({ error: 'Type the session id to confirm ending it.' }, 400)
+          }
+          try {
+            await withDatabase(async (client) => {
+              await terminateSession(client, pid)
+            })
+            req.payload.logger.warn({
+              msg: `Terminated session ${pid}`,
+              user: req.user?.email,
+            })
+            await audit(req, `Terminated database session ${pid}`, [{ field: 'pid', to: pid }])
+            return json({ ok: true, pid })
+          } catch (error) {
+            return json(readable(error), error instanceof DatabaseToolsError ? 400 : 500)
+          }
+        },
+      },
+    )
+  }
 
   if (options.restore !== false) {
     endpoints.push(

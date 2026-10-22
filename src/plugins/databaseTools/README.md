@@ -1,10 +1,11 @@
 # databaseTools
 
-A Payload 3 plugin that adds a database page to the admin: tables and a read-only row browser, a
-logical SQL/JSON backup, a guarded restore, `VACUUM`/`ANALYZE`/`REINDEX`, narrow repairs (sequences,
-orphan relation rows, invalid indexes, missing statistics) and — on Neon — branch backup,
-point-in-time restore and branch deletion. The page, its eight endpoints and its sidebar link are
-registered by one call; the host keeps the decisions that are its own.
+A Payload 3 plugin that adds a database page to the admin: a filtered, sortable, read-only row
+browser with CSV export; a logical SQL/JSON backup; live sessions and locks with guarded
+cancel/terminate; a guarded restore; `VACUUM`/`ANALYZE`/`REINDEX`; narrow repairs (sequences, orphan
+relation rows, invalid indexes, missing statistics) and — on Neon — branch backup, point-in-time
+restore and branch deletion. The page, its eleven endpoints and its sidebar link are registered by
+one call; the host keeps the decisions that are its own.
 
 ```ts
 import { databaseTools } from '@/plugins/databaseTools'
@@ -30,7 +31,9 @@ buildConfig({
 | `options.ts` | Option types with JSDoc, `DEFAULTS`, `resolveOptions`, `defaultAccess`, the capability descriptor |
 | `endpoints.ts` | The endpoints, one per action, all behind `access`, all with readable errors |
 | `server/connection.ts` | The `pg` client, the connection string and its failure messages |
-| `server/introspection.ts` | Tables, columns, indexes, constraints, rows |
+| `server/introspection.ts` | Tables, columns, indexes, constraints, rows, CSV export |
+| `server/filters.ts` | `f=column:operator:value` parsing and the parameterised `where` it builds |
+| `server/sessions.ts` | `pg_stat_activity`, `pg_blocking_pids`, and the guarded cancel/terminate |
 | `server/backup.ts` | SQL and JSON dumps rendered by Postgres |
 | `server/restore.ts` | Inspection, refusals and the runner |
 | `server/maintenance.ts` | `ANALYZE`, `VACUUM`, `VACUUM ANALYZE`, `REINDEX` |

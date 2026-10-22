@@ -11,9 +11,16 @@ import {
   TableRow,
 } from '@/components/admin/elements/Table'
 import { formatBytes } from '@/system/status'
-import { ROW_PAGE_SIZE, type TableDetail } from '@/plugins/databaseTools/server/introspection'
+import type { SortDirection } from '@/plugins/databaseTools/server/filters'
+import {
+  ROW_PAGE_SIZE,
+  type RowPage,
+  type TableDetail,
+} from '@/plugins/databaseTools/server/introspection'
 
 import { MaintenanceButtons } from './Actions'
+import { ActiveFilters, TableFilters } from './Filters'
+import { apiQuery, tableHref } from './tableHref'
 
 /**
  * One table: its columns, indexes and constraints, then a read-only page of rows.
@@ -44,16 +51,23 @@ export function TableBrowser({
   detail,
   page,
   adminRoute,
+  apiBase,
 }: {
   detail: TableDetail
-  page: { rows: Record<string, unknown>[]; total: number; offset: number }
+  page: RowPage
   adminRoute: string
+  apiBase: string
 }) {
   const { table, columns, indexes, constraints } = detail
   const from = page.total === 0 ? 0 : page.offset + 1
   const to = Math.min(page.offset + page.rows.length, page.total)
   const rowColumns =
     page.rows.length > 0 ? Object.keys(page.rows[0]) : columns.map((column) => column.name)
+  const pageBase = `${adminRoute}/database`
+  const filtered = page.filters.length > 0
+  const sortedBy = (name: string) => (page.sort === name ? page.direction : null)
+  const toggleSort = (name: string): SortDirection =>
+    page.sort === name && page.direction === 'asc' ? 'desc' : 'asc'
 
   return (
     <div className="acn:flex acn:flex-col acn:gap-5">
@@ -65,6 +79,25 @@ export function TableBrowser({
           {table.rows.toLocaleString('en')} rows (estimate) · {formatBytes(table.bytes)} ·{' '}
           {columns.length} columns · {indexes.length} indexes
         </span>
+        <a
+          className={buttonVariants({ size: 'xs', variant: 'outline' })}
+          href={`${apiBase}/table?${apiQuery(page, { table: table.name, format: 'csv' })}`}
+        >
+          Export CSV
+        </a>
+        {filtered ? (
+          <Badge variant="secondary">
+            {page.total.toLocaleString('en')} matching
+          </Badge>
+        ) : null}
+        {filtered || page.sort ? (
+          <Link
+            className="acn:text-xs acn:text-primary acn:hover:underline"
+            href={tableHref(pageBase, table.name)}
+          >
+            Clear filters{page.sort ? ' and sort' : ''}
+          </Link>
+        ) : null}
         {table.deadRows > 0 ? (
           <Badge variant="outline">{table.deadRows.toLocaleString('en')} dead rows</Badge>
         ) : null}
@@ -155,6 +188,7 @@ export function TableBrowser({
             <span className="acn:font-normal acn:text-muted-foreground">
               {from.toLocaleString('en')}–{to.toLocaleString('en')} of{' '}
               {page.total.toLocaleString('en')}
+              {filtered ? ' matching' : ''}
             </span>
           </h3>
           <div className="acn:flex acn:gap-1">
@@ -171,10 +205,12 @@ export function TableBrowser({
             ) : (
               <Link
                 className={buttonVariants({ size: 'xs', variant: 'outline' })}
-                href={`${adminRoute}/database?table=${encodeURIComponent(table.name)}&offset=${Math.max(
-                  0,
-                  page.offset - ROW_PAGE_SIZE,
-                )}`}
+                href={tableHref(pageBase, table.name, {
+                  offset: Math.max(0, page.offset - ROW_PAGE_SIZE),
+                  sort: page.sort,
+                  direction: page.direction,
+                  filters: page.filters,
+                })}
               >
                 Previous
               </Link>
@@ -192,9 +228,12 @@ export function TableBrowser({
             ) : (
               <Link
                 className={buttonVariants({ size: 'xs', variant: 'outline' })}
-                href={`${adminRoute}/database?table=${encodeURIComponent(table.name)}&offset=${
-                  page.offset + ROW_PAGE_SIZE
-                }`}
+                href={tableHref(pageBase, table.name, {
+                  offset: page.offset + ROW_PAGE_SIZE,
+                  sort: page.sort,
+                  direction: page.direction,
+                  filters: page.filters,
+                })}
               >
                 Next
               </Link>
@@ -202,17 +241,60 @@ export function TableBrowser({
           </div>
         </div>
 
+        <TableFilters
+          pageBase={pageBase}
+          table={table.name}
+          columns={columns}
+          current={page.filters}
+          sort={page.sort}
+          direction={page.direction}
+        />
+        <ActiveFilters
+          pageBase={pageBase}
+          table={table.name}
+          filters={page.filters}
+          sort={page.sort}
+          direction={page.direction}
+        />
+        {page.ignoredFilters.length > 0 ? (
+          <p className="acn:m-0 acn:text-xs acn:text-destructive">
+            No column called {page.ignoredFilters.join(', ')}; that filter was ignored.
+          </p>
+        ) : null}
+
         {page.rows.length === 0 ? (
-          <p className="acn:m-0 acn:text-xs acn:text-muted-foreground">The table is empty.</p>
+          <p className="acn:m-0 acn:text-xs acn:text-muted-foreground">
+            {filtered ? 'No row matches these filters.' : 'The table is empty.'}
+          </p>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                {rowColumns.map((column) => (
-                  <TableHead key={column} className="acn:font-mono acn:text-xs">
-                    {column}
-                  </TableHead>
-                ))}
+                {rowColumns.map((column) => {
+                  const direction = sortedBy(column)
+                  return (
+                    <TableHead key={column} className="acn:font-mono acn:text-xs">
+                      <Link
+                        className="acn:inline-flex acn:items-center acn:gap-1 acn:hover:underline"
+                        href={tableHref(pageBase, table.name, {
+                          sort: column,
+                          direction: toggleSort(column),
+                          filters: page.filters,
+                        })}
+                        title={
+                          direction
+                            ? `Sorted ${direction === 'asc' ? 'ascending' : 'descending'}; click for the other`
+                            : 'Sort by this column'
+                        }
+                      >
+                        {column}
+                        <span aria-hidden className="acn:text-muted-foreground">
+                          {direction === 'asc' ? '↑' : direction === 'desc' ? '↓' : '↕'}
+                        </span>
+                      </Link>
+                    </TableHead>
+                  )
+                })}
               </TableRow>
             </TableHeader>
             <TableBody>

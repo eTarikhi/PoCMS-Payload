@@ -2,6 +2,7 @@ import type { AdminViewServerProps } from 'payload'
 import { DefaultTemplate } from '@payloadcms/next/templates'
 import { Gutter, SetStepNav } from '@payloadcms/ui'
 import {
+  ActivityIcon,
   ArrowLeftIcon,
   DatabaseIcon,
   GitBranchIcon,
@@ -33,9 +34,11 @@ import {
   TableRow,
 } from '@/components/admin/elements/Table'
 import { databaseTarget, isServerless, withDatabase } from '@/plugins/databaseTools/server/connection'
+import { parseDirection, parseFilters, type RowFilter, type SortDirection } from '@/plugins/databaseTools/server/filters'
 import { overview, readRows, ROW_PAGE_SIZE, resolveTable, tableDetail } from '@/plugins/databaseTools/server/introspection'
 import { NeonClient, neonConsoleUrl } from '@/plugins/databaseTools/server/neon'
 import { runRepairChecks } from '@/plugins/databaseTools/server/repair'
+import { listSessions, LONG_RUNNING_SECONDS, type SessionOverview } from '@/plugins/databaseTools/server/sessions'
 import {
   neonOptions,
   resolveOptions,
@@ -53,6 +56,7 @@ import {
   RepairButton,
   RestorePanel,
 } from './Actions'
+import { SessionsPanel } from './Sessions'
 import { TableBrowser } from './TableBrowser'
 
 /**
@@ -96,27 +100,38 @@ const nowForInput = (): string => new Date().toISOString().slice(0, 19)
  * does not exist shows the list with a notice instead of failing the whole page, and the repair
  * checks run whether or not a table was selected.
  */
-async function readDatabase(
-  table: string | null,
-  offset: number,
-  migrationNames: string[],
-) {
+async function readDatabase(request: {
+  table: string | null
+  offset: number
+  sort: string | null
+  direction: SortDirection
+  filters: RowFilter[]
+  migrationNames: string[]
+  sessions: boolean
+}) {
   return withDatabase(async (client) => {
     const summary = await overview(client)
     let detail = null
     let page = null
     let tableError: string | null = null
-    if (table) {
-      const found = await resolveTable(client, table)
+    if (request.table) {
+      const found = await resolveTable(client, request.table)
       if (found) {
         detail = await tableDetail(client, found.name)
-        page = await readRows(client, found.name, { limit: ROW_PAGE_SIZE, offset })
+        page = await readRows(client, found.name, {
+          limit: ROW_PAGE_SIZE,
+          offset: request.offset,
+          sort: request.sort,
+          direction: request.direction,
+          filters: request.filters,
+        })
       } else {
-        tableError = `There is no table called “${table}” in the public schema.`
+        tableError = `There is no table called “${request.table}” in the public schema.`
       }
     }
-    const repairs = await runRepairChecks(client, migrationNames)
-    return { summary, detail, page, tableError, repairs }
+    const repairs = await runRepairChecks(client, request.migrationNames)
+    const sessions = request.sessions ? await listSessions(client) : null
+    return { summary, detail, page, tableError, repairs, sessions }
   })
 }
 
@@ -187,12 +202,27 @@ export async function DatabaseView({
   const rawTable = typeof searchParams?.table === 'string' ? searchParams.table : null
   const table = rawTable && /^[a-zA-Z0-9_-]{1,63}$/.test(rawTable) ? rawTable : null
   const offset = Math.max(0, Number(searchParams?.offset ?? 0) || 0)
+  // One filter (`f=`) is repeated for each condition; a hand-edited value that does not parse is
+  // dropped here and reported by the table when it turns out to name no column.
+  const rawFilters = searchParams?.f
+  const filters = parseFilters(Array.isArray(rawFilters) ? rawFilters : rawFilters ? [rawFilters] : [])
+  const rawSort = typeof searchParams?.sort === 'string' ? searchParams.sort : null
+  const sort = rawSort && /^[a-zA-Z0-9_]{1,63}$/.test(rawSort) ? rawSort : null
+  const direction = parseDirection(searchParams?.dir)
   const target = databaseTarget()
 
   let data: Awaited<ReturnType<typeof readDatabase>> | null = null
   let databaseError: string | null = null
   try {
-    data = await readDatabase(table, offset, options.migrations)
+    data = await readDatabase({
+      table,
+      offset,
+      sort,
+      direction,
+      filters,
+      migrationNames: options.migrations,
+      sessions: options.sessions,
+    })
   } catch (error) {
     databaseError = error instanceof Error ? error.message : String(error)
   }
@@ -396,7 +426,12 @@ export async function DatabaseView({
                         <ArrowLeftIcon aria-hidden className="acn:size-3.5" />
                         All tables
                       </Link>
-                      <TableBrowser detail={data.detail} page={data.page} adminRoute={adminRoute} />
+                      <TableBrowser
+                        detail={data.detail}
+                        page={data.page}
+                        adminRoute={adminRoute}
+                        apiBase={apiBase}
+                      />
                     </div>
                   ) : (
                     <Table>
@@ -548,6 +583,34 @@ export async function DatabaseView({
                   </CardContent>
                 </Card>
               </div>
+
+              {options.sessions && data.sessions ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>
+                      <h2 className="acn:m-0 acn:flex acn:items-center acn:gap-2 acn:text-base">
+                        <ActivityIcon
+                          aria-hidden
+                          className="acn:size-4 acn:text-muted-foreground"
+                        />
+                        Sessions and locks
+                      </h2>
+                    </CardTitle>
+                    <CardDescription>
+                      What is connected right now, what has been running for longer than{' '}
+                      {LONG_RUNNING_SECONDS} s, and who is waiting for whom. Cancel stops one
+                      statement and keeps the connection; ending a session rolls its transaction
+                      back.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <SessionsPanel
+                      overview={data.sessions as SessionOverview}
+                      longRunningSeconds={LONG_RUNNING_SECONDS}
+                    />
+                  </CardContent>
+                </Card>
+              ) : null}
 
               {options.neon !== false ? (
               <Card>
