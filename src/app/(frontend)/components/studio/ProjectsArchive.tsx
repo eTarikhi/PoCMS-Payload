@@ -11,11 +11,17 @@ export function ProjectsArchive({ content }: { content: PortfolioContent }) {
       profile={content.header}
     >
       <main tabIndex={-1} id="main-content" className="studio-container studio-writing-page">
-        <p className="studio-eyebrow">Portfolio</p>
-        <h1>Project archive</h1>
-        <p className="studio-lead">
-          Selected work across interfaces, back-end systems, and content platforms.
-        </p>
+        <header className="journal-page-heading">
+          <p className="studio-eyebrow">The workshop / Selected projects</p>
+          <h1>
+            Built with purpose.
+            <br />
+            <em>Made to work.</em>
+          </h1>
+          <p className="studio-lead">
+            Selected work across interfaces, back-end systems, and content platforms.
+          </p>
+        </header>
         <ProjectsIndex projects={content.projects} />
       </main>
     </StudioChrome>

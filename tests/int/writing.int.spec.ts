@@ -79,8 +79,10 @@ describe('Studio writing', () => {
       ),
     )
     expect(screen.getByRole('link', { name: 'Projects' }).getAttribute('href')).toBe('/projects')
-    expect(screen.getByRole('link', { name: 'Writing' }).getAttribute('href')).toBe('/articles')
-    expect(screen.getByRole('link', { name: 'Portfolio' }).getAttribute('href')).toBe('/')
+    expect(screen.getByRole('link', { name: 'Articles' }).getAttribute('href')).toBe('/articles')
+    expect(screen.getByRole('link', { name: /^Portfolio.*Journal$/ }).getAttribute('href')).toBe(
+      '/',
+    )
   })
 
   it('keeps markup in the plain-text body escaped', () => {

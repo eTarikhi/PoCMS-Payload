@@ -1,69 +1,59 @@
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-
 const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000'
 
-test.describe('Engineer’s Studio frontend', () => {
-  test('has no automatically detectable WCAG A/AA violations', async ({ page }) => {
-    await page.goto(baseURL)
-    const results = await new AxeBuilder({ page })
+test('restores the owner’s original homepage composition rather than a replacement theme', async ({
+  page,
+}) => {
+  await page.goto(baseURL)
+  await expect(page.locator('.original-portfolio')).toBeVisible()
+  await expect(page.locator('.studio')).toHaveCount(0)
+  await expect(page.locator('#home .typed-text-output')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'My Services' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'My Projects' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Latest Articles' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'All Articles >' })).toHaveAttribute(
+    'href',
+    '/articles',
+  )
+})
+
+test('opens the redesigned project archive and filters projects', async ({ page }) => {
+  await page.goto(baseURL)
+  await page.getByRole('link', { name: 'Explore all projects ↗' }).click()
+  await expect(page).toHaveURL(/\/projects$/)
+  const filter = page.getByRole('group', { name: 'Filter projects' }).getByRole('button').first()
+  await filter.click()
+  await expect(filter).toHaveAttribute('aria-pressed', 'true')
+})
+
+test('fits the restored homepage in a narrow viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto(baseURL)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await page.evaluate(() => window.scrollTo(0, 500))
+  await expect(page.getByRole('button', { name: 'Toggle navigation' })).toBeVisible()
+  await page.getByRole('button', { name: 'Toggle navigation' }).click()
+  await expect(
+    page
+      .getByRole('navigation', { name: 'Portfolio navigation' })
+      .getByRole('link', { name: 'Blog', exact: true }),
+  ).toBeVisible()
+})
+
+for (const path of ['/blog', '/articles', '/projects']) {
+  test(`${path} extends the original charcoal/amber theme and has no automated accessibility violations`, async ({
+    page,
+  }) => {
+    await page.goto(`${baseURL}${path}`)
+    await expect(page.locator('.amber-journal')).toHaveCSS('color-scheme', 'dark')
+    await expect(page.locator('.amber-journal')).toHaveCSS('--accent', '#ffc448')
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+    const scan = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
       .analyze()
-    expect(results.violations).toEqual([])
-  })
-
-  test('shows compact portfolio navigation and accessible project filters', async ({ page }) => {
-    await page.goto(baseURL)
-    await expect(page.locator('main h1')).toBeVisible()
-    await expect(page.locator('#home')).toHaveCSS('background-image', 'none')
-    await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible()
-    await page.getByRole('link', { name: 'Projects', exact: true }).click()
-    await expect(page).toHaveURL(/\/projects$/)
-    const filters = page.getByRole('group', { name: 'Filter projects' })
-    const firstFilter = filters.getByRole('button').first()
-    await expect(firstFilter).toHaveAttribute('aria-pressed', 'true')
-    const secondFilter = filters.getByRole('button').nth(1)
-    await secondFilter.click()
-    await expect(secondFilter).toHaveAttribute('aria-pressed', 'true')
-    await expect(firstFilter).toHaveAttribute('aria-pressed', 'false')
-  })
-
-  test('fits a narrow mobile viewport', async ({ page }) => {
+    expect(scan.violations).toEqual([])
     await page.setViewportSize({ width: 390, height: 844 })
-    await page.goto(baseURL)
-    await expect(page.getByRole('link', { name: 'Let’s talk' })).toBeVisible()
-    const overflows = await page.evaluate(
-      () => document.documentElement.scrollWidth > window.innerWidth,
-    )
-    expect(overflows).toBe(false)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   })
-})
-
-test('uses a consistent bento portfolio shell on home and archives', async ({ page }) => {
-  for (const path of ['/', '/projects', '/articles']) {
-    await page.goto(`${baseURL}${path}`)
-    await expect(page.locator('.studio').first()).toHaveCSS('color-scheme', 'light')
-    await expect(page.locator('.studio').first()).toHaveCSS(
-      'background-color',
-      'rgb(243, 242, 239)',
-    )
-    await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Let’s talk' })).toHaveCSS(
-      'color',
-      'rgb(255, 255, 255)',
-    )
-  }
-})
-
-test('uses an asymmetric bento board rather than a sidebar on desktop', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 1000 })
-  await page.goto(baseURL)
-  const intro = await page.locator('#home').boundingBox()
-  const portrait = await page.locator('.bento-portrait').boundingBox()
-  expect(intro).not.toBeNull()
-  expect(portrait).not.toBeNull()
-  expect(portrait!.x).toBeGreaterThan(intro!.x + intro!.width)
-  expect(intro!.width).toBeGreaterThan(portrait!.width)
-  expect(Math.abs(intro!.y - portrait!.y)).toBeLessThan(2)
-  await expect(page.locator('.bento-board')).toHaveCSS('display', 'grid')
-})
+}

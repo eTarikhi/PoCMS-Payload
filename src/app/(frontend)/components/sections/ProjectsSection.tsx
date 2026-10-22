@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import type { ProjectsContent } from '@/app/(frontend)/lib/types'
 import { ProjectsGrid } from './ProjectsGrid'
 
@@ -13,6 +14,11 @@ export function ProjectsSection({ projects }: ProjectsSectionProps) {
       <div className="container-fluid py-5">
         <div className="container">
           <ProjectsGrid filters={projects.filters} items={projects.items} />
+          <div className="text-end mt-4">
+            <Link className="btn btn-primary py-3 px-4" href="/projects">
+              Explore all projects ↗
+            </Link>
+          </div>
         </div>
       </div>
     </section>

@@ -1,16 +1,18 @@
+import { BlogArchive } from '../../src/app/(frontend)/components/studio/BlogArchive'
 import { StudioFailure } from '../../src/app/(frontend)/components/studio/StudioFailure'
 import FrontendLoading from '../../src/app/(frontend)/(studio)/loading'
 import { MoreWriting } from '../../src/app/(frontend)/components/article/MoreWriting'
 import { ProjectsArchive } from '../../src/app/(frontend)/components/studio/ProjectsArchive'
 import { createRoot } from 'react-dom/client'
-import '@fontsource-variable/inter'
+import '@fontsource/open-sans/400.css'
+import '@fontsource/open-sans/600.css'
 import { ArticleLayout } from '../../src/app/(frontend)/components/article/ArticleLayout'
 import type { ArticleDetail } from '../../src/app/(frontend)/lib/article-mappers'
 import { StudioChrome } from '../../src/app/(frontend)/components/studio/StudioChrome'
 import { WritingArchive } from '../../src/app/(frontend)/components/studio/WritingArchive'
 import { ArticleNotFoundContent } from '../../src/app/(frontend)/components/article/ArticleNotFoundContent'
 import '../../src/app/(frontend)/styles/article.css'
-import { StudioHome } from '../../src/app/(frontend)/components/studio/StudioHome'
+import { PortfolioHome } from '../../src/app/(frontend)/components/layout/PortfolioHome'
 import type { PortfolioContent } from '../../src/app/(frontend)/lib/types'
 import sample from '../../src/app/(frontend)/data/database.json'
 import '../../src/app/(frontend)/styles/bootstrap.min.css'
@@ -134,6 +136,8 @@ createRoot(document.getElementById('root')!).render(
           <MoreWriting articles={content.articles} current={demoArticle} />
         </main>
       </StudioChrome>
+    ) : location.pathname === '/blog' ? (
+      <BlogArchive content={content} />
     ) : archiveRoute ? (
       <WritingArchive content={content} />
     ) : projectsRoute ? (
@@ -148,7 +152,7 @@ createRoot(document.getElementById('root')!).render(
         <ArticleNotFoundContent />
       </StudioChrome>
     ) : (
-      <StudioHome content={content} />
+      <PortfolioHome content={content} />
     )}
   </>,
 )

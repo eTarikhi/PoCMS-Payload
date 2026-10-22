@@ -55,6 +55,15 @@ export function ProjectsGrid({ filters, items }: ProjectsGridProps) {
               <motion.li
                 key={filter.value}
                 className={`m-3 ${activeFilter === filter.value ? 'active' : ''}`}
+                role="button"
+                tabIndex={0}
+                aria-pressed={activeFilter === filter.value}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    handleFilterChange(filter.value)
+                  }
+                }}
                 onClick={() => handleFilterChange(filter.value)}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}

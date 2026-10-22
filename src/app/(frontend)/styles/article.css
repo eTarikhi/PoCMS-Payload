@@ -26,7 +26,9 @@
   margin-bottom: 24px;
 }
 .studio .article-title {
-  font-size: clamp(28px, 3.3vw, 42px);
+  font-size: clamp(34px, 4.8vw, 64px);
+  font-family: Georgia, serif;
+  font-weight: 400;
   margin: 0 0 24px;
   line-height: 1.12;
   overflow-wrap: anywhere;
@@ -50,7 +52,7 @@
   position: relative;
   width: 100%;
   margin: 0 0 48px;
-  background: #e8edf5;
+  background: #24252b;
 }
 .studio .article-cover img {
   display: block;
@@ -109,14 +111,14 @@
   display: inline-block;
   margin-top: 20px;
   background: var(--accent);
-  color: #fff;
+  color: #14161d;
   font-size: 14px;
   padding: 15px 25px;
   border-radius: 5px;
 }
 .studio .article-cta:hover {
-  background: #18458e;
-  color: #fff;
+  background: #ffcf6c;
+  color: #14161d;
 }
 @media (max-width: 600px) {
   .studio .article-page {
@@ -162,4 +164,36 @@
     grid-template-columns: 1fr;
     gap: 30px;
   }
+}
+
+/* A reading-room layout: warm editorial type, amber rules, the original dark palette. */
+.studio .article-page {
+  max-width: 1000px;
+  margin-inline: auto;
+  padding-top: 54px;
+}
+.studio .article-layout {
+  max-width: 70ch;
+}
+.studio .article-body {
+  color: #d6d1c7;
+  font-size: 16px;
+  line-height: 2;
+}
+.studio .article-title {
+  line-height: 1.18;
+  letter-spacing: -0.035em;
+}
+.studio .article-cover {
+  border: 1px solid var(--line);
+  padding: 12px;
+}
+.studio .article-body p:first-child::first-letter {
+  color: #ffc448;
+}
+.studio .article-meta {
+  border-color: #9f752c;
+}
+.studio .studio-more-writing {
+  padding-bottom: 45px;
 }

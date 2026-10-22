@@ -31,6 +31,7 @@ describe('Public app reliability', () => {
     const entries = publicSitemapEntries('https://example.com/', ['hello', 'hello', '', 'a/b'])
     expect(entries.map((entry) => entry.url)).toEqual([
       'https://example.com/',
+      'https://example.com/blog',
       'https://example.com/projects',
       'https://example.com/articles',
       'https://example.com/articles/hello',

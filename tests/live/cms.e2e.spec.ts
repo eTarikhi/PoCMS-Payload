@@ -1,3 +1,4 @@
+import { siteUrl } from '../../src/app/(frontend)/lib/seo'
 import { test, expect, type APIRequestContext } from '@playwright/test'
 import { assertIntegrationEnvironment } from '../../scripts/integration/safety'
 
@@ -255,5 +256,22 @@ test('serves a discoverable, well-formed RSS feed from actual CMS records', asyn
   }, text)
   expect(parsed.error).toBe(false)
   expect(parsed.title).toBe('Integration field note')
-  expect(parsed.link).toBe('http://localhost:3000/articles/integration-field-note')
+  expect(parsed.link).toBe(`${siteUrl()}/articles/integration-field-note`)
+})
+
+test('serves the new blog from CMS content and advertises its discovery route', async ({
+  page,
+  request,
+}) => {
+  const response = await page.goto('/blog')
+  expect(response?.status()).toBe(200)
+  await expect(page.locator('.journal-feature h2')).toContainText('Integration field note')
+  await expect(page.getByRole('link', { name: 'Read the story ↗' })).toHaveAttribute(
+    'href',
+    '/articles/integration-field-note',
+  )
+  const sitemap = await request.get('/sitemap.xml')
+  expect(await sitemap.text()).toContain('/blog')
+  await page.getByRole('link', { name: 'Read the story ↗' }).click()
+  await expect(page.locator('.article-body')).toContainText('isolated integration database')
 })

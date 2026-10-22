@@ -22,8 +22,7 @@ export function ArticlesSection({ articles }: ArticlesSectionProps) {
               <div className="col-lg-6 text-lg-end">
                 <Link
                   className="btn btn-primary py-3 px-5"
-                  target="_blank"
-                  href="https://www.linkedin.com/in/etarikhi/recent-activity/articles/"
+                  href="/articles"
                 >
                   All Articles &gt;
                 </Link>

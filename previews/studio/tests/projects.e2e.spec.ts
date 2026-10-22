@@ -6,7 +6,7 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:4173'
 test.describe('Studio projects', () => {
   test('opens the archive from the homepage and searches by project title', async ({ page }) => {
     await page.goto(baseURL)
-    await page.getByRole('link', { name: 'Browse project archive' }).click()
+    await page.getByRole('link', { name: 'Explore all projects' }).click()
     await expect(page).toHaveURL(/\/projects$/)
     const title = await page
       .locator('.studio-project h3 a')

@@ -8,8 +8,9 @@ import type { PortfolioContent, ProjectsContent } from '@/app/(frontend)/lib/typ
 vi.mock('next/image', () => ({
   default: ({
     priority: _priority,
+    unoptimized: _unoptimized,
     ...props
-  }: React.ImgHTMLAttributes<HTMLImageElement> & { priority?: boolean }) =>
+  }: React.ImgHTMLAttributes<HTMLImageElement> & { priority?: boolean; unoptimized?: boolean }) =>
     React.createElement('img', props),
 }))
 
@@ -26,7 +27,7 @@ const projects: ProjectsContent = {
       id: '1',
       title: 'Interface project',
       categories: ['front-end'],
-      thumbnailUrl: '',
+      thumbnailUrl: '/placeholder.svg',
       imageUrl: '',
       url: 'https://example.com',
       readMoreUrl: 'https://example.com/story',
@@ -35,7 +36,7 @@ const projects: ProjectsContent = {
       id: '2',
       title: 'API project',
       categories: ['back-end'],
-      thumbnailUrl: '',
+      thumbnailUrl: '/placeholder.svg',
       imageUrl: '',
       url: '#',
     },
@@ -55,7 +56,7 @@ const content: PortfolioContent = {
   services: { items: [], hiring: null },
 }
 
-describe('Engineer’s Studio homepage', () => {
+describe('Original portfolio and shared project interactions', () => {
   it('filters work with accessible pressed states and announces result counts', () => {
     render(React.createElement(WorkGrid, { projects }))
     fireEvent.click(screen.getByRole('button', { name: 'Front-End' }))
@@ -69,12 +70,12 @@ describe('Engineer’s Studio homepage', () => {
     expect(screen.getByText('API project')).toBeDefined()
   })
 
-  it('handles missing profile singletons and uses a skills-and-projects bento order', () => {
+  it('handles missing profile singletons and preserves the original section order', () => {
     render(React.createElement(StudioHome, { content }))
     expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('Portfolio')
     const main = screen.getByRole('main')
     expect(
-      main.querySelector('#skill')!.compareDocumentPosition(main.querySelector('#project')!) &
+      main.querySelector('#service')!.compareDocumentPosition(main.querySelector('#project')!) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Skip to content' }).getAttribute('href')).toBe(
@@ -82,7 +83,7 @@ describe('Engineer’s Studio homepage', () => {
     )
   })
 
-  it('prioritizes featured writing and links to the local article when available', () => {
+  it('preserves CMS article order and offers a local reading link when available', () => {
     const article = {
       id: 'a',
       title: 'External post',
@@ -111,7 +112,12 @@ describe('Engineer’s Studio homepage', () => {
       }),
     )
     const writing = document.querySelector('#article')!
-    expect(writing.querySelector('article a')!.getAttribute('href')).toBe('/articles/local-post')
+    expect(writing.querySelector('article a')!.getAttribute('href')).toBe(
+      'https://example.com/post',
+    )
+    expect(screen.getByRole('link', { name: 'Read on this site' }).getAttribute('href')).toBe(
+      '/articles/local-post',
+    )
     expect(screen.getByText('Featured local post')).toBeDefined()
   })
 

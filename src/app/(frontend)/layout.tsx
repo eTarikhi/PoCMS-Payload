@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from 'next'
-import '@fontsource-variable/inter'
+import '@fontsource/open-sans/400.css'
+import '@fontsource/open-sans/500.css'
+import '@fontsource/open-sans/600.css'
+import '@fontsource/open-sans/700.css'
 import { config } from '@fortawesome/fontawesome-svg-core'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
@@ -28,13 +31,13 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 10,
   userScalable: true,
-  themeColor: '#f3f2ef',
+  themeColor: '#da9100',
 }
 
 export default function FrontendLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" style={{ fontFamily: "'Inter Variable', sans-serif" }}>
-      <body>
+    <html lang="en" style={{ fontFamily: "'Open Sans', sans-serif" }}>
+      <body style={{ fontFamily: "'Open Sans', sans-serif" }}>
         {children}
         <Analytics />
         <SpeedInsights />

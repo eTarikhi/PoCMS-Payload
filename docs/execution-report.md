@@ -16,7 +16,48 @@ All changes were committed and pushed directly to the designated branch. No pull
 request was created. No production deployment, production-data reset or content-model
 migration was performed. The earlier Studio redesign and hardening remain intact.
 
-## Latest requested change: modern bento portfolio
+## Latest requested change: restore the owner’s design, extend it for journal and work
+
+The owner requested their own original homepage back, with a creative new treatment
+for blog, articles, and projects based on that original theme—not another replacement
+homepage. Restored the composition from baseline `e25350d`: original portrait hero,
+geometric background, typing effect, Bootstrap sections/order, scroll-revealed navigation,
+CV action, and original footer. `PortfolioHome` and `PortfolioChrome` keep this original
+composition separate from the supporting-page styles. `StudioHome` is now only a
+compatibility export; the bento homepage implementation was removed.
+
+The original dark charcoal, amber `#da9100`, gold `#ffc448`, and Open Sans typography
+inform the new **amber journal** extension:
+
+- `/blog`: a distinct editorial landing page, featured CMS article, numbered recent
+  notes, and a route to the full article library.
+- `/articles`: searchable article library with image-led editorial cards.
+- `/articles/[slug]`: a focused reading layout with serif titles, amber rules, existing
+  reading progress, original-publication links, and related writing.
+- `/projects`: workshop-style project archive, category/search controls, screenshots,
+  and the accessible full-size viewer.
+
+Scoped archive styles do not override the homepage or Payload admin. Homepage links
+connect the original design to the new archives. Original project filters now support
+keyboard activation; the mobile navigation uses React state and initializes its
+scroll position reliably without depending on Bootstrap's async import. Open Sans is
+bundled locally (no Google Fonts request at build/runtime). Added `/blog` metadata and
+sitemap discovery; no CMS schema migration or invented project/article content.
+
+Validation: **82 frontend tests, 27 preview browser tests, 9 application browser tests,
+and 11 live-CMS browser tests passed**; TypeScript, ESLint, frozen dependency install,
+and production build passed. Reviewed original-home and new archive screenshots.
+New-page accessibility checks, original-home/mobile-menu regressions, search/history,
+viewer/focus handling, CMS article publishing/cache invalidation, Live Preview, RSS,
+and the new blog-to-local-article path are covered. The RSS integration assertion now
+checks the configured canonical site instead of assuming a localhost canonical URL.
+
+Port 3000 runs the CMS-backed built app using isolated integration fixtures; port 4173
+is the clearly labeled checked-in sample-content preview. No production data reset,
+production deployment, or admin redesign was performed. Local environment-generated
+schema changes are intentionally outside this UI commit.
+
+## Historical, superseded direction: modern bento portfolio
 
 The owner rejected the résumé/sidebar design and selected **Modern bento**. Replaced
 that layout with an asymmetric twelve-column board: a wide introduction tile next

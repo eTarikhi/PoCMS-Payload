@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { FooterContent, HeaderContent } from '../../lib/types'
 import { StudioChrome } from '../studio/StudioChrome'
 
-/** Shared article shell; homepage and writing pages use the same Studio design system. */
+/** Article shell for the charcoal-and-amber journal; the original homepage has its own shell. */
 export function SiteChrome({
   footer,
   children,

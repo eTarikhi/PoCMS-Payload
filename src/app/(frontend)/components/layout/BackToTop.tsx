@@ -48,6 +48,7 @@ export function BackToTop() {
   return (
     <motion.button
       className="btn btn-lg btn-primary btn-lg-square back-to-top wow fadeInUp"
+      aria-label="Back to top"
       onClick={scrollToTop}
       initial={{ scale: 0 }}
       animate={{ scale: 1 }}

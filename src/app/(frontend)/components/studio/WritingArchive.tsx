@@ -12,9 +12,15 @@ export function WritingArchive({ content }: { content: PortfolioContent }) {
       profile={content.header}
     >
       <main tabIndex={-1} id="main-content" className="studio-container studio-writing-page">
-        <p className="studio-eyebrow">Articles & insights</p>
-        <h1>Writing</h1>
-        <p className="studio-lead">Technical notes, discoveries, and lessons from practice.</p>
+        <header className="journal-page-heading">
+          <p className="studio-eyebrow">The library / Collected writing</p>
+          <h1>
+            Notes, ideas <em>& discoveries.</em>
+          </h1>
+          <p className="studio-lead">
+            Explore the archive. Find a topic, follow an idea, discover something new.
+          </p>
+        </header>
         <WritingIndex articles={content.articles} />
       </main>
     </StudioChrome>

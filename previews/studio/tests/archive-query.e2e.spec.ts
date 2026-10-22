@@ -59,8 +59,8 @@ test.describe('Shareable archive views', () => {
       'aria-current',
       'page',
     )
-    await page.getByRole('link', { name: 'Writing', exact: true }).click()
-    await expect(page.getByRole('link', { name: 'Writing', exact: true })).toHaveAttribute(
+    await page.getByRole('link', { name: 'Articles', exact: true }).click()
+    await expect(page.getByRole('link', { name: 'Articles', exact: true })).toHaveAttribute(
       'aria-current',
       'page',
     )
