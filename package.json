@@ -9,7 +9,7 @@
     "build:compile": "cross-env next build --experimental-build-mode compile",
     "build:generate": "cross-env next build --experimental-build-mode generate",
     "build:all": "cross-env next build --experimental-build-mode compile && cross-env next build --experimental-build-mode generate",
-    "dev": "pnpm preflight && cross-env NODE_OPTIONS=--no-deprecation next dev",
+    "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
     "preflight": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/preflight.ts",
     "devsafe": "rm -rf .next && cross-env NODE_OPTIONS=--no-deprecation next dev",
     "generate:graphQLSchema": "node scripts/generate.mjs graphql",
