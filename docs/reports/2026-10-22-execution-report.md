@@ -108,7 +108,7 @@ regenerated (`pnpm generate:all` does not touch it; `payload migrate:create` doe
 | `pnpm test:e2e a11y` | **4/4** (light + dark, axe + skip link) |
 | `next build` | OK |
 | Route smoke test | `/`, `/admin`, `/sitemap.xml`, `/robots.txt` all 200 |
-| CI run [39704391765](https://github.com/eTarikhi/PoCMS-Payload/actions/runs/39704391765) | **success** — both jobs, first green run since 19 October |
+| CI run [39708768767](https://github.com/eTarikhi/PoCMS-Payload/actions/runs/39708768767) | **success** — both jobs, on the final commit (`dc9023f`) |
 
 New tests: `tests/int/seo.int.spec.ts` (8), `tests/int/sitemap.int.spec.ts` (5),
 `tests/int/database-readiness.int.spec.ts` (18), `tests/e2e/seo.e2e.spec.ts` (3),
