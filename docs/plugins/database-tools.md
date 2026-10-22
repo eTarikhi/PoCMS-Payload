@@ -10,6 +10,11 @@ and was packaged the way Payload documents plugins so another Payload project ca
 tools. Everything except the components is framework-free TypeScript; the components use Payload's
 admin slots and the project's `acn:`-prefixed Tailwind classes.
 
+In one line per card: the database’s size and connection state; a logical SQL/JSON backup and a
+guarded restore; a read-only table browser with filters, sorting and CSV export; the maintenance
+Postgres can do itself; the repairs that are safe to automate; the live sessions and locks, with
+cancel/terminate for a runaway query; and, on Neon, branches and point-in-time restore.
+
 ```ts
 // src/payload.config.ts
 import { databaseTools } from '@/plugins/databaseTools'
