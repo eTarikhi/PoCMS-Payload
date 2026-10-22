@@ -17,6 +17,7 @@ import {
   type RowPage,
   type TableDetail,
 } from '@/plugins/databaseTools/server/introspection'
+import type { QueryPlan } from '@/plugins/databaseTools/server/plans'
 
 import { MaintenanceButtons } from './Actions'
 import { ActiveFilters, TableFilters } from './Filters'
@@ -50,12 +51,14 @@ export function cellText(value: unknown): { text: string; muted: boolean } {
 export function TableBrowser({
   detail,
   ddl,
+  plan,
   page,
   adminRoute,
   apiBase,
 }: {
   detail: TableDetail
   ddl?: { sql: string; unsignedTypes: string[] } | null
+  plan?: QueryPlan | null
   page: RowPage
   adminRoute: string
   apiBase: string
@@ -94,9 +97,7 @@ export function TableBrowser({
           Export CSV
         </a>
         {filtered ? (
-          <Badge variant="secondary">
-            {page.total.toLocaleString('en')} matching
-          </Badge>
+          <Badge variant="secondary">{page.total.toLocaleString('en')} matching</Badge>
         ) : null}
         {filtered || page.sort ? (
           <Link
@@ -342,7 +343,7 @@ export function TableBrowser({
 
       {ddl ? (
         <details className="acn:rounded-lg acn:border acn:border-border">
-          <summary className="acn:cursor-pointer acn:select-none acn:p-3 acn:text-sm acn:font-medium">
+          <summary className="acn:cursor-pointer acn:p-3 acn:text-sm acn:font-medium acn:select-none">
             Schema (DDL)
             <span className="acn:ml-2 acn:text-xs acn:font-normal acn:text-muted-foreground">
               the table as Postgres describes it — columns, constraints, indexes
@@ -357,12 +358,66 @@ export function TableBrowser({
                 Download .sql
               </a>
               <span className="acn:text-xs acn:text-muted-foreground">
-                A description, not a migration: no <code className="acn:font-mono">CREATE TYPE</code>{' '}
-                for enums, no ownership or grants.
+                A description, not a migration: no{' '}
+                <code className="acn:font-mono">CREATE TYPE</code> for enums, no ownership or
+                grants.
               </span>
             </div>
             <pre className="acn:m-0 acn:max-h-96 acn:overflow-auto acn:rounded-md acn:bg-muted acn:p-3 acn:font-mono acn:text-xs">
               {ddl.sql}
+            </pre>
+          </div>
+        </details>
+      ) : null}
+
+      {plan ? (
+        <details className="acn:rounded-lg acn:border acn:border-border">
+          <summary className="acn:cursor-pointer acn:p-3 acn:text-sm acn:font-medium acn:select-none">
+            Query plan
+            <span className="acn:ml-2 acn:text-xs acn:font-normal acn:text-muted-foreground">
+              what Postgres will do for this page — filter, order, limit
+            </span>
+          </summary>
+          <div className="acn:space-y-2 acn:border-t acn:border-border acn:p-3">
+            <div className="acn:flex acn:flex-wrap acn:items-center acn:gap-2">
+              <a
+                className={buttonVariants({ size: 'xs', variant: 'outline' })}
+                href={`${apiBase}/table?table=${encodeURIComponent(table.name)}&format=plan`}
+              >
+                Open as JSON
+              </a>
+              <span className="acn:text-xs acn:text-muted-foreground">
+                <code className="acn:font-mono">EXPLAIN</code> without{' '}
+                <code className="acn:font-mono">ANALYZE</code>: the planner&rsquo;s estimate,
+                nothing is executed.
+              </span>
+            </div>
+            {plan.notes.length > 0 ? (
+              <ul className="acn:m-0 acn:list-disc acn:space-y-1 acn:pl-4 acn:text-xs">
+                {plan.notes.map((note) => (
+                  <li key={note}>{note}</li>
+                ))}
+              </ul>
+            ) : null}
+            <ul className="acn:m-0 acn:list-none acn:space-y-0.5 acn:rounded-md acn:bg-muted acn:p-3 acn:font-mono acn:text-xs">
+              {plan.nodes.map((node, index) => (
+                <li key={`${node.type}-${index}`} style={{ paddingLeft: `${node.depth * 14}px` }}>
+                  <span className="acn:font-medium">{node.type}</span>
+                  {node.relation ? ` on ${node.relation}` : ''}
+                  {node.index ? ` using ${node.index}` : ''}{' '}
+                  <span className="acn:text-muted-foreground">
+                    ≈{node.rows.toLocaleString('en')} rows · cost {node.cost}
+                  </span>
+                  {node.detail ? (
+                    <div className="acn:truncate acn:text-muted-foreground" title={node.detail}>
+                      {node.detail}
+                    </div>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+            <pre className="acn:m-0 acn:max-h-40 acn:overflow-auto acn:rounded-md acn:border acn:border-border acn:p-3 acn:font-mono acn:text-xs">
+              {plan.sql}
             </pre>
           </div>
         </details>

@@ -138,7 +138,7 @@ All of them are mounted under `routes.api` + `apiBasePath` and gated by `access`
 | Method and path | Body / query | Answers |
 | --- | --- | --- |
 | `GET /api/database/backup` | `?format=sql\|json`, `?tables=a,b`, `?schemaOnly=1` | The dump as a download (`Content-Disposition`, `no-store`). `403` without access. |
-| `GET /api/database/table` | `?table=…&format=json\|csv\|ddl`, `?limit=&offset=&sort=&dir=asc\|desc`, and `f=column:operator:value` repeated | JSON: `{ ok, page: { rows, total, filters, sort, direction, ignoredFilters } }`. CSV: a download, with `X-Rows-Exported` and `X-Rows-Truncated` headers. DDL: the table's `CREATE TABLE`, constraints and indexes as `application/sql`. Operators: `eq`, `neq`, `contains`, `starts`, `gt`, `gte`, `lt`, `lte`, `isnull`, `notnull`. |
+| `GET /api/database/table` | `?table=…&format=json\|csv\|ddl\|plan`, `?limit=&offset=&sort=&dir=asc\|desc`, and `f=column:operator:value` repeated | JSON: `{ ok, page: { rows, total, filters, sort, direction, ignoredFilters } }`. CSV: a download, with `X-Rows-Exported` and `X-Rows-Truncated` headers. DDL: the table's `CREATE TABLE`, constraints and indexes as `application/sql`. Operators: `eq`, `neq`, `contains`, `starts`, `gt`, `gte`, `lt`, `lte`, `isnull`, `notnull`. |
 | `GET /api/database/sessions` | — | `{ ok, sessions: { role, isSuperuser, canSeeAllQueries, sessions: [{ pid, user, state, query, seconds, blockedBy, own }], active, idle, idleInTransaction, blocked, longest } }`. |
 | `POST /api/database/sessions/cancel` | `{ pid }` | `{ ok, pid }` — `pg_cancel_backend`: stops the running statement, keeps the connection. Refused for its own session, for a background process, and for a session that is not running a statement (`400`). |
 | `POST /api/database/sessions/terminate` | `{ pid, confirmation: pid }` | `{ ok, pid }` — `pg_terminate_backend`: ends the session and rolls its transaction back. The typed id is required. |
@@ -181,6 +181,19 @@ but not created, and ownership, grants and the referencing table's foreign keys 
 
 The header also splits the table's size into heap and indexes (`pg_table_size` and
 `pg_indexes_size`), which is the number to look at before choosing between `VACUUM` and `REINDEX`.
+
+### The query plan
+
+The table card opens **Query plan**: `EXPLAIN (FORMAT JSON)` of the page's own query — the same
+`where`, the same `order by … , ctid`, the same `limit`/`offset` — with the nodes flattened, each
+node's estimated rows and total cost, and a few sentences saying what the plan does ("Seq Scan on
+articles: the whole table is read and the condition applied to every row, so the filter has no index
+it can use"). `format=plan` returns the same as JSON.
+
+It is `EXPLAIN` **without** `ANALYZE`: the statement is planned, never executed, so opening the panel
+cannot load the database or hold a lock. The numbers are the planner's estimates, and the panel says
+so — a sequential scan of a 40-row table is the correct plan, and the notes describe it instead of
+calling it a problem.
 
 ### Exporting a table
 

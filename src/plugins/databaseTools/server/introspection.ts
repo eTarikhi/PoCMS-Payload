@@ -124,7 +124,10 @@ export const resolveTable = async (
   return row ? toSummary(row) : null
 }
 
-const requireTable = async (client: pg.Client, name: string): Promise<TableSummary> => {
+export const requireTable = async (
+  client: pg.Client,
+  name: string,
+): Promise<TableSummary> => {
   const table = await resolveTable(client, name)
   if (!table)
     throw new DatabaseToolsError(`There is no table called “${name}” in the public schema.`)
@@ -296,7 +299,7 @@ export const ROW_LIMIT_MAX = 200
 /** The hard cap on a CSV download, whatever the option says. */
 export const MAX_CSV_ROWS = 100_000
 
-const sortClause = (
+export const sortClause = (
   sort: string | null | undefined,
   direction: SortDirection,
   columns: { name: string }[],

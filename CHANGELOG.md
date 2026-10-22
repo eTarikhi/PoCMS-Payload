@@ -131,6 +131,11 @@ modernisation programme; every entry links the roadmap item it closes
   sequences that fell behind their highest id — the failure that shows up as a duplicate key on the
   next insert. Orphaned rows and invalid indexes are reported, never applied, because both need a
   decision; tables over 200 MB are left to autovacuum so the run fits in one serverless request.
+- **Query plans.** The table card opens **Query plan**: `EXPLAIN (FORMAT JSON)` of exactly the query
+  the page runs (filters, sort and page size included), with the plan's nodes, estimated rows and
+  cost, plain sentences about what it does, and `format=plan` for the same JSON. `EXPLAIN` without
+  `ANALYZE`, so nothing is executed — the panel is safe to open on a production database and says
+  the numbers are estimates.
 - **Table DDL and a size breakdown.** The table card opens a **Schema (DDL)** panel with the
   `CREATE TABLE`, the constraints and the index definitions, all from Postgres's own deparsing, and
   downloads the same text from `GET /api/database/table?format=ddl`. The header splits the size into

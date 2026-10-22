@@ -17,6 +17,7 @@ import {
   tableColumns,
   tableDdl,
 } from '@/plugins/databaseTools/server/introspection'
+import { explainRows } from '@/plugins/databaseTools/server/plans'
 import {
   cancelQuery,
   listSessions,
@@ -205,6 +206,53 @@ describe('readRows with filters and sort', () => {
     const columns = await withDb(async (client) => tableColumns(client, await oidOf(client, 'articles')))
     expect(columns.map((column) => column.name)).toContain('title')
     expect(columns.find((column) => column.name === 'id')?.type).toBe('integer')
+  })
+})
+
+describe('explainRows', () => {
+  it('plans the page\'s own query, without running it', async () => {
+    const plan = await withDb((client) => explainRows(client, 'articles', { limit: 25 }))
+    expect(plan.sql).toBe(
+      'select * from "public"."articles"  order by ctid limit 25 offset 0',
+    )
+    expect(plan.nodes[0].type).toBe('Limit')
+    expect(plan.nodes.map((node) => node.type)).toContain('Seq Scan')
+    expect(plan.nodes.find((node) => node.type === 'Seq Scan')?.relation).toBe('articles')
+    expect(plan.totalCost).toBeGreaterThan(0)
+    expect(plan.headline).toContain('Limit')
+    // A sequential scan with no condition is described as ordinary, not as a fault.
+    expect(plan.notes.join(' ')).toMatch(/Seq Scan on articles/)
+    expect(plan.notes.join(' ')).not.toContain('no index provides this order')
+  })
+
+  it('plans a filtered, sorted page with the value as a parameter', async () => {
+    const plan = await withDb((client) =>
+      explainRows(client, 'articles', {
+        limit: 10,
+        sort: 'title',
+        direction: 'desc',
+        filters: [{ column: '_status', operator: 'eq', value: 'published' }],
+      }),
+    )
+    expect(plan.sql).toContain('where "_status" = $1::enum_articles_status')
+    expect(plan.sql).toContain('order by "title" desc nulls last, ctid')
+    expect(plan.sql).toContain('limit 10 offset 0')
+    expect(plan.notes.join(' ')).toContain('the filter has no index it can use')
+  })
+
+  it('drops a filter on a column that does not exist, as the browser does', async () => {
+    const plan = await withDb((client) =>
+      explainRows(client, 'articles', {
+        filters: [{ column: 'nope_not_here', operator: 'eq', value: 'x' }],
+      }),
+    )
+    expect(plan.sql).not.toContain('where')
+  })
+
+  it('refuses a table that does not exist', async () => {
+    await expect(withDb((client) => explainRows(client, 'nope_not_here'))).rejects.toThrow(
+      /no table called/i,
+    )
   })
 })
 

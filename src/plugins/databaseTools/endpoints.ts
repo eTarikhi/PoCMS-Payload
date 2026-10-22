@@ -6,6 +6,7 @@ import { parseDirection, parseFilters } from './server/filters'
 import { exportCsv, readRows, tableDdl } from './server/introspection'
 import { isMaintenanceAction, runMaintenance } from './server/maintenance'
 import { NeonClient, NeonError } from './server/neon'
+import { explainRows } from './server/plans'
 import { applyRepair, type RepairCheckId } from './server/repair'
 import { inspectRestore, RestoreRefused, restoreSql } from './server/restore'
 import { validateTableSelection } from './server/selection'
@@ -21,7 +22,7 @@ import { neonOptions, type ResolvedDatabaseToolsOptions } from './options'
  *   POST /api/database/maintenance       `{ action: analyze|vacuum|vacuum-analyze|reindex, table? }`
  *   POST /api/database/repair            `{ check: sequences|orphans|indexes|statistics|all }`
  *   POST /api/database/restore-inspect   `{ sql }` — what a restore file would do, without running it.
- *   GET  /api/database/table             `?table=…&format=csv|json|ddl&limit=&offset=&sort=&dir=&f=`
+ *   GET  /api/database/table             `?table=…&format=csv|json|ddl|plan&limit=&offset=&sort=&dir=&f=`
  *                                        A filtered page of rows, the table as CSV, or its DDL.
  *   GET  /api/database/sessions          What Postgres is doing now: connections, long statements,
  *                                        idle transactions and who blocks whom.
@@ -98,10 +99,7 @@ export const databaseToolsEndpoints = (options: ResolvedDatabaseToolsOptions): E
 
   const restoreLimit = options.restore === false ? 0 : options.restore.maxBytes
   const tooLarge = () =>
-    json(
-      { error: `The file is larger than ${Math.round(restoreLimit / 1024 / 1024)} MB.` },
-      413,
-    )
+    json({ error: `The file is larger than ${Math.round(restoreLimit / 1024 / 1024)} MB.` }, 413)
 
   const endpoints: Endpoint[] = [
     {
@@ -231,97 +229,105 @@ export const databaseToolsEndpoints = (options: ResolvedDatabaseToolsOptions): E
     },
   ]
 
-  endpoints.push(
-    {
-      path: `${base}/table`,
-      method: 'get',
-      handler: async (req) => {
-        if (!(await allowed(req))) return denied()
+  endpoints.push({
+    path: `${base}/table`,
+    method: 'get',
+    handler: async (req) => {
+      if (!(await allowed(req))) return denied()
 
-        const table = req.searchParams.get('table')
-        if (!table || !/^[a-zA-Z0-9_-]{1,63}$/.test(table)) {
-          return json({ error: 'Choose a table first.' }, 400)
+      const table = req.searchParams.get('table')
+      if (!table || !/^[a-zA-Z0-9_-]{1,63}$/.test(table)) {
+        return json({ error: 'Choose a table first.' }, 400)
+      }
+      const filters = parseFilters(req.searchParams.getAll('f'))
+      const sort = req.searchParams.get('sort')
+      const direction = parseDirection(req.searchParams.get('dir'))
+      const requested = req.searchParams.get('format')
+      const format =
+        requested === 'csv' || requested === 'ddl' || requested === 'plan' ? requested : 'json'
+
+      try {
+        if (format === 'ddl') {
+          const ddl = await withDatabase((client) => tableDdl(client, table))
+          return new Response(ddl.sql, {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/sql; charset=utf-8',
+              'Content-Disposition': `attachment; filename="pocms-${table}-schema.sql"`,
+              'Cache-Control': 'no-store',
+            },
+          })
         }
-        const filters = parseFilters(req.searchParams.getAll('f'))
-        const sort = req.searchParams.get('sort')
-        const direction = parseDirection(req.searchParams.get('dir'))
-        const requested = req.searchParams.get('format')
-        const format = requested === 'csv' || requested === 'ddl' ? requested : 'json'
 
-        try {
-          if (format === 'ddl') {
-            const ddl = await withDatabase((client) => tableDdl(client, table))
-            return new Response(ddl.sql, {
-              status: 200,
-              headers: {
-                'Content-Type': 'application/sql; charset=utf-8',
-                'Content-Disposition': `attachment; filename="pocms-${table}-schema.sql"`,
-                'Cache-Control': 'no-store',
-              },
-            })
-          }
-
-          if (format === 'csv') {
-            const exportLimit = options.export === false ? 0 : options.export.maxRows
-            if (exportLimit === 0) return json({ error: 'CSV export is turned off.' }, 403)
-            const result = await withDatabase((client) =>
-              exportCsv(client, table, { maxRows: exportLimit, sort, direction, filters }),
-            )
-            req.payload.logger.info({
-              msg: `Table exported as CSV: ${table}`,
-              user: req.user?.email,
-              rows: result.rows,
-              truncated: result.truncated,
-            })
-            return new Response(result.csv, {
-              status: 200,
-              headers: {
-                'Content-Type': 'text/csv; charset=utf-8',
-                'Content-Disposition': `attachment; filename="${result.filename}"`,
-                'Cache-Control': 'no-store',
-                // Silence the "the export was cut" fact for a programmatic caller.
-                'X-Rows-Exported': String(result.rows),
-                'X-Rows-Truncated': result.truncated ? '1' : '0',
-              },
-            })
-          }
-
+        if (format === 'plan') {
           const limit = Number(req.searchParams.get('limit') ?? '') || undefined
           const offset = Number(req.searchParams.get('offset') ?? '') || 0
-          const page = await withDatabase((client) =>
-            readRows(client, table, {
-              limit,
-              offset,
-              sort,
-              direction,
-              filters,
-            }),
+          const plan = await withDatabase((client) =>
+            explainRows(client, table, { limit, offset, sort, direction, filters }),
           )
-          return json({ ok: true, page })
-        } catch (error) {
-          req.payload.logger.error({ msg: 'Reading a table failed', err: error, table })
-          return json(readable(error), 500)
+          return json({ ok: true, plan })
         }
-      },
+
+        if (format === 'csv') {
+          const exportLimit = options.export === false ? 0 : options.export.maxRows
+          if (exportLimit === 0) return json({ error: 'CSV export is turned off.' }, 403)
+          const result = await withDatabase((client) =>
+            exportCsv(client, table, { maxRows: exportLimit, sort, direction, filters }),
+          )
+          req.payload.logger.info({
+            msg: `Table exported as CSV: ${table}`,
+            user: req.user?.email,
+            rows: result.rows,
+            truncated: result.truncated,
+          })
+          return new Response(result.csv, {
+            status: 200,
+            headers: {
+              'Content-Type': 'text/csv; charset=utf-8',
+              'Content-Disposition': `attachment; filename="${result.filename}"`,
+              'Cache-Control': 'no-store',
+              // Silence the "the export was cut" fact for a programmatic caller.
+              'X-Rows-Exported': String(result.rows),
+              'X-Rows-Truncated': result.truncated ? '1' : '0',
+            },
+          })
+        }
+
+        const limit = Number(req.searchParams.get('limit') ?? '') || undefined
+        const offset = Number(req.searchParams.get('offset') ?? '') || 0
+        const page = await withDatabase((client) =>
+          readRows(client, table, {
+            limit,
+            offset,
+            sort,
+            direction,
+            filters,
+          }),
+        )
+        return json({ ok: true, page })
+      } catch (error) {
+        req.payload.logger.error({ msg: 'Reading a table failed', err: error, table })
+        return json(readable(error), 500)
+      }
     },
-  )
+  })
 
   if (options.sessions !== false) {
     endpoints.push(
-    {
-      path: `${base}/sessions`,
-      method: 'get',
-      handler: async (req) => {
-        if (!(await allowed(req))) return denied()
-        try {
-          const sessions = await withDatabase((client) => listSessions(client))
-          return json({ ok: true, sessions })
-        } catch (error) {
-          req.payload.logger.error({ msg: 'Reading sessions failed', err: error })
-          return json(readable(error), 500)
-        }
+      {
+        path: `${base}/sessions`,
+        method: 'get',
+        handler: async (req) => {
+          if (!(await allowed(req))) return denied()
+          try {
+            const sessions = await withDatabase((client) => listSessions(client))
+            return json({ ok: true, sessions })
+          } catch (error) {
+            req.payload.logger.error({ msg: 'Reading sessions failed', err: error })
+            return json(readable(error), 500)
+          }
+        },
       },
-    },
       {
         path: `${base}/sessions/cancel`,
         method: 'post',

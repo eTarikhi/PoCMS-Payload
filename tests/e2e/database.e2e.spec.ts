@@ -131,6 +131,8 @@ test.describe('Database page', () => {
       await expect(page.getByRole('heading', { level: 3, name: 'Columns' })).toBeVisible()
       await expect(page.getByRole('heading', { level: 3, name: 'Indexes' })).toBeVisible()
       await expect(page.getByRole('heading', { level: 3, name: /^Rows/ })).toBeVisible()
+      await expect(view.getByText('Schema (DDL)')).toBeVisible()
+      await expect(view.getByText('Query plan')).toBeVisible()
       await expect(page.getByText('public.articles')).toBeVisible()
       await expect(page.getByRole('link', { name: 'This table only' })).toHaveAttribute(
         'href',
@@ -146,6 +148,23 @@ test.describe('Database page', () => {
       const sql = await backup.text()
       expect(sql).toContain('CREATE TABLE "public"."articles"')
       expect(sql).toContain('COMMIT;')
+
+      // The table's schema and its query plan come from the same endpoint.
+      const ddl = await page.request.get(
+        'http://localhost:3000/api/database/table?table=articles&format=ddl',
+      )
+      expect(ddl.status()).toBe(200)
+      expect(ddl.headers()['content-type']).toContain('application/sql')
+      expect(await ddl.text()).toContain('create table "public"."articles"')
+
+      const planResponse = await page.request.get(
+        'http://localhost:3000/api/database/table?table=articles&format=plan&limit=25',
+      )
+      expect(planResponse.status()).toBe(200)
+      const plan = (await planResponse.json()).plan
+      expect(plan.sql).toContain('limit 25')
+      expect(plan.nodes[0].type).toBe('Limit')
+      expect(plan.totalCost).toBeGreaterThan(0)
     })
   }
 
