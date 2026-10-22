@@ -46,6 +46,8 @@ export default buildConfig({
 | `POST /api/database/maintenance` | On | `server/maintenance.ts` |
 | `POST /api/database/repair` | On | `server/repair.ts` |
 | `POST /api/database/restore-inspect` and `…/restore` | On, `restore: false` removes both | `server/restore.ts` |
+| `GET /api/database/migration` and `…/seed` | On, `snapshots: false` removes both | `server/schemaMigration.ts`, `server/seedSnapshot.ts` |
+| `POST /api/database/seed/apply` | On, `snapshots: false` or `snapshots.apply: false` removes it | `server/seedSnapshot.ts` |
 | `POST /api/database/neon/{backup,restore,delete}` | On, `neon: false` removes them; without `NEON_API_KEY` they answer `501` | `server/neon.ts` |
 
 A plugin is `(options) => (incomingConfig) => Config`: it is applied while the config is built, after
@@ -74,6 +76,7 @@ resolved object is what the components and the endpoints receive.
 | `restore` | `false \| { maxBytes? }` | `{ maxBytes: 25 MB }` | The restore card and its endpoints. `false` leaves inspection and maintenance. |
 | `sessions` | `boolean` | `true` | The live sessions card and its three endpoints: connections, long statements, idle-in-transaction sessions, who blocks whom, and the guarded `pg_cancel_backend` / `pg_terminate_backend` actions. |
 | `export` | `false \| { maxRows? }` | `{ maxRows: 10000 }` | The "Export CSV" button and `GET /table?format=csv`. `maxRows` is capped at 100,000 whatever it says. |
+| `snapshots` | `false \| { maxRowsPerTable?, apply? }` | `{ maxRowsPerTable: 5000, apply: true }` | The two generated files (a migration from the catalogs, a content seed) and the endpoint that loads a seed. `apply: false` keeps the downloads and removes the write. |
 | `components` | `{ view?, navigation? }` | this repo's `/components/admin/…` paths | Where the two components live — the first thing to change when the plugin is published as a package. |
 
 Options are read once, when the config is built: changing them needs a restart, like any other
@@ -146,6 +149,9 @@ All of them are mounted under `routes.api` + `apiBasePath` and gated by `access`
 | `POST /api/database/repair` | `{ check: 'sequences' \| 'orphans' \| 'indexes' \| 'statistics' \| 'all' }` | `{ ok, fixed, results }`; each result lists the statements it ran. |
 | `POST /api/database/restore-inspect` | `{ sql }` | `{ ok, inspection }`: statements, tables, whether it is transactional, whether it would overwrite content. Runs in a rolled-back transaction. |
 | `POST /api/database/restore` | `{ sql, confirmation, force? }` | Runs the file. Refuses content unless `confirmation === 'restore'` (`400`), a file over `maxBytes` (`413`), a file with statements that escape the database (`RestoreRefused`, `403`). |
+| `GET /api/database/migration` | `?mode=guarded\|fresh`, `?tables=a,b` | A Payload migration file as a download (`text/typescript`, `no-store`), written from this database's catalogs. |
+| `GET /api/database/seed` | `?collections=a,b`, `?tables=a,b`, `?maxRows=` | A content seed as a download (`application/json`): the collections this config defines, parents first, with the sequence values to set afterwards. |
+| `POST /api/database/seed/apply` | `{ json, confirmation: 'seed' }` | `{ ok, tables, rows, sequences, warnings }` — deletes the rows of the tables the file names, inserts its rows, sets the sequences. One transaction; the typed word is required (`400`), a file over the restore limit is `413`, a file that is not a seed or names a missing table is `400`. |
 | `POST /api/database/neon/backup` | `{ name?, withEndpoint? }` | `{ ok, branch }` — a branch pinned to now. `501` without a key, `502` on a Neon error. |
 | `POST /api/database/neon/restore` | `{ timestamp (ISO 8601), confirmation: 'restore', preserveUnderName? }` | `{ ok, branch, restoredTo }`; the current state is kept as `preserveUnderName` when given. |
 | `POST /api/database/neon/delete` | `{ branchId, confirmation: branchId }` | `{ ok, deleted }`. The default and protected branches are refused. |
@@ -218,12 +224,80 @@ are Postgres's own text form, objects are JSON, null is an empty cell, and a val
 comma, a quote or a newline is quoted by RFC 4180 rules. This is for reading — the `.sql` backup
 remains the thing that restores.
 
+### The generated migration
+
+`GET /migration` writes a Payload migration file from the connected database — on a deployment that
+is the Neon branch, so this is how a branch that drifted ahead of the repository gets a migration
+again. Every statement is Postgres's own deparsing (`format_type`, `pg_get_expr`,
+`pg_get_constraintdef`, `pg_get_indexdef`), grouped in the order a restore needs: types, sequences,
+tables, keys, indexes, foreign keys.
+
+Two modes, and the difference is whether the file may be run against a database that already has the
+schema:
+
+- **`guarded`** (the default, and the one to commit): `CREATE TABLE IF NOT EXISTS`,
+  `CREATE INDEX IF NOT EXISTS`, and — because neither `CREATE TYPE` nor `ADD CONSTRAINT` has an
+  `IF NOT EXISTS` — a `DO $do$ … END $do$;` block that checks `pg_type`/`pg_constraint` first. Run
+  against the database it came from it changes nothing; run against an empty database it builds the
+  schema. Its `down` is a documented no-op: a snapshot never drops anything.
+- **`fresh`**: plain `CREATE` statements with a `down` that drops the tables (children first) and the
+  types. For a file that defines a database on its own; committing it beside the baseline would put
+  two migrations in charge of the same tables.
+
+Enum types are always the database's whole set, not only the ones the selected tables use, because a
+column's type is not visible in the table's own definition. Rows, ownership, grants, extensions and
+the `payload_migrations` history are not included — `pnpm migrate:adopt` is the command that records
+an existing schema as migrated, and the two are meant to be used together.
+
+The CLI writes the same file into the checkout and registers it:
+
+```bash
+pnpm db:schema-from --from neon                     # src/migrations/<stamp>_schema_snapshot.ts
+pnpm db:schema-from --from neon --mode fresh --out /tmp
+pnpm db:schema-from --tables articles,_articles_v --no-register
+```
+
+### The content seed
+
+`GET /seed` writes the content of the connected database as one JSON file that a *local* database can
+load — the way development gets the real articles instead of fixtures. It is not a dump:
+
+- only the collections this config defines, plus the globals, and their `_rels`, array and `_…_v`
+  version tables; never `users`, `roles`, `job_runs`, `pagespeed_reports`, `audit_logs` or Payload's
+  own tables (`seedableCollections` in `server/seedSnapshot.ts` is the list, and a host's
+  `excludeTables`-style narrowing is the `?collections=` parameter);
+- rows are read by Postgres (`row_to_json`) and written back with `jsonb_populate_recordset`, so
+  enums, `timestamptz`, `jsonb`, arrays, `bytea` and `numeric` keep their own textual form instead of
+  JavaScript's idea of them;
+- tables are ordered by their foreign keys (parents first) from `pg_constraint`, because Payload's
+  keys are not deferrable; a cycle is broken where it closes and named in `warnings`;
+- each table's sequence value is recorded, and `apply` sets it past the highest id, so the next
+  insert does not collide with a seeded row.
+
+`POST /seed/apply` (and `pnpm db:seed-apply <file> --yes`) deletes the rows of the tables the file
+names, inserts the file's rows and sets the sequences, in one transaction — a seed replaces, it does
+not merge, and a failure leaves the database as it was. It refuses a file that is not a seed (a
+backup is not a seed) and one that names a table this database does not have.
+
+```bash
+pnpm db:seed-from --from neon                          # write src/seed/snapshot.json
+pnpm db:seed-from --from neon --apply --yes            # …and load it into the local database
+pnpm db:seed-from --collections articles,projects --max-rows 200
+pnpm db:seed-apply src/seed/snapshot.json --yes        # a file that is already on disk
+```
+
+`--from neon` uses `DATABASE_DIRECT_URL`, then `POSTGRES_URL`; `--from local` always uses
+`POSTGRES_URL`; `--from <url>` connects wherever the URL points. Credentials are never printed.
+Review the file before committing it: it holds whatever the source database holds, including content
+that may not be public yet. Media *rows* are included and their `url` still points at the blob store,
+so images keep working locally without copying any file.
+
 ## Audit
 
-The plugin calls `audit({ payload, req, summary, changes })` after a restore, a maintenance run, a
-repair and each Neon change, with a sentence an admin can read in the audit log
-("Restored the database from a .sql file (44 tables)", "Ran ANALYZE on articles", "Created Neon
-backup branch backup-2026-10-22-09-30"). `changes` is `{ field, to }[]`; the host's writer decides
+The plugin calls `audit({ payload, req, summary, changes })` after a restore, an applied seed, a
+maintenance run, a repair and each Neon change, with a sentence an admin can read in the audit log
+("Restored the database from a .sql file (44 tables)", "Applied a seed file (26 tables, 139 rows)",
+"Ran ANALYZE on articles", "Created Neon backup branch backup-2026-10-22-09-30"). `changes` is `{ field, to }[]`; the host's writer decides
 the action, the entity and whether to keep it. This project writes an `update` on the `database`
 entity through `src/audit/record.ts`.
 
@@ -260,6 +334,12 @@ either default with a `'use client'` component.
 - **Run `VACUUM FULL`, create or drop databases, or need `psql`/`pg_dump`.** The dump is generated
   by Postgres itself; `VACUUM FULL` locks the table for the whole rewrite.
 - **Do point-in-time restore without Neon.** Branch history is project storage, not SQL.
+- **Apply a generated migration.** The file is written to `src/migrations` and registered in
+  `src/migrations/index.ts`; running it is `pnpm migrate`, after a human has read it. Generating
+  schema and applying schema stay two steps, because the second one is a deploy.
+- **Copy media files, secrets or accounts into a seed.** A seed carries content rows only: the
+  `media` rows keep their blob URLs, and `users`, `roles`, sessions and the audit log are never in
+  one, so a seed from production cannot hand a local database a production password hash.
 
 ## Extracting it to a package
 
@@ -287,7 +367,8 @@ internal that is not exported from `payload` or `@payloadcms/ui`, so the move is
 | --- | --- |
 | `tests/int/database-tools.int.spec.ts` | The SQL against this project's PostgreSQL: introspection, dumps, restore inspection and refusal, maintenance, repairs, and the Neon client against a fake `fetch`. |
 | `tests/int/database-tools-plugin.int.spec.ts` | The packaging: which view/nav/endpoints a config gets, option defaults and path normalisation, `restore: false` / `neon: false` / `sessions: false`, the export cap, the duplicate-view error, the capability descriptor, and `defaultAccess`. |
-| `tests/int/database-rows.int.spec.ts` | Filters and sorting (including the injection attempt, the type cast and a value that is not the column's type), CSV quoting and caps, and the session list — against real backends for the blocker, the cancel and the terminate. |
+| `tests/int/database-rows.int.spec.ts` | Filters and sorting (including the injection attempt, the type cast and a value that is not the column's type), CSV quoting and caps, the index advisor, the query plan, and the session list — against real backends for the blocker, the cancel and the terminate. |
+| `tests/int/database-snapshots.int.spec.ts` | The two generated files, against scratch tables: guarded statements that run twice and rebuild the same columns in an empty database, from-scratch mode's `down`, the parsed TypeScript being valid, foreign-key order, a broken cycle, exact enum/timestamp/`jsonb`/array/`bytea`/`numeric` values through the seed round trip, sequences left past the highest id, the row cap and its warning, and the refusals. |
 | `tests/e2e/database.e2e.spec.ts` | `/admin/database` in a browser: the cards, a backup download, and the `404`/hidden-link behaviour for a user without the capability. |
 
 See also [project structure](../project-structure.md) and the

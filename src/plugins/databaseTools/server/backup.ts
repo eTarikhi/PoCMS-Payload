@@ -76,7 +76,7 @@ const header = (lines: string[]): string => lines.map((line) => `-- ${line}`).jo
 
 const statement = (sql: string): string => `${sql.trim().replace(/;?$/, ';')}\n`
 
-const listEnums = async (client: pg.Client): Promise<string[]> => {
+export const listEnums = async (client: pg.Client): Promise<string[]> => {
   const { rows } = await client.query<{ stmt: string }>(`
     select format('CREATE TYPE %I.%I AS ENUM (%s);',
                   n.nspname, t.typname,
@@ -90,7 +90,7 @@ const listEnums = async (client: pg.Client): Promise<string[]> => {
   return rows.map((row) => row.stmt)
 }
 
-const listSequences = async (
+export const listSequences = async (
   client: pg.Client,
 ): Promise<{ create: string[]; setval: string[] }> => {
   const { rows } = await client.query<{
@@ -114,7 +114,11 @@ const listSequences = async (
   }
 }
 
-const createTable = async (client: pg.Client, oid: number, name: string): Promise<string> => {
+export const createTable = async (
+  client: pg.Client,
+  oid: number,
+  name: string,
+): Promise<string> => {
   const { rows } = await client.query<{
     column: string
     definition: string
@@ -142,7 +146,7 @@ const createTable = async (client: pg.Client, oid: number, name: string): Promis
 }
 
 /** Primary keys and unique constraints, added after every table exists. */
-const listKeys = async (client: pg.Client, oid: number): Promise<string[]> => {
+export const listKeys = async (client: pg.Client, oid: number): Promise<string[]> => {
   const { rows } = await client.query<{ stmt: string }>(
     `select format('ALTER TABLE %I.%I ADD CONSTRAINT %I %s;',
                    n.nspname, c.relname, con.conname, pg_get_constraintdef(con.oid)) as stmt
@@ -157,7 +161,7 @@ const listKeys = async (client: pg.Client, oid: number): Promise<string[]> => {
 }
 
 /** Indexes that do not back a constraint: those are created by `listKeys` already. */
-const listIndexes = async (client: pg.Client, oid: number): Promise<string[]> => {
+export const listIndexes = async (client: pg.Client, oid: number): Promise<string[]> => {
   const { rows } = await client.query<{ stmt: string }>(
     `select pg_get_indexdef(i.indexrelid) || ';' as stmt
        from pg_index i
@@ -170,7 +174,7 @@ const listIndexes = async (client: pg.Client, oid: number): Promise<string[]> =>
 }
 
 /** Foreign keys and checks, added after the data. */
-const listForeignKeys = async (client: pg.Client, oid: number): Promise<string[]> => {
+export const listForeignKeys = async (client: pg.Client, oid: number): Promise<string[]> => {
   const { rows } = await client.query<{ stmt: string }>(
     `select format('ALTER TABLE %I.%I ADD CONSTRAINT %I %s;',
                    n.nspname, c.relname, con.conname, pg_get_constraintdef(con.oid)) as stmt
@@ -399,7 +403,11 @@ export const buildJsonBackup = async (
         order by a.attnum`,
       [table.oid],
     )
-    const keepRows = rowsWanted(table.name, options.includeData !== false, options.includeInternal === true)
+    const keepRows = rowsWanted(
+      table.name,
+      options.includeData !== false,
+      options.includeInternal === true,
+    )
     const { rows } = keepRows
       ? await client.query<{ row: Record<string, unknown> }>(
           `select row_to_json(t) as row from (select * from ${quoteTable(table.name)} order by ctid limit $1) t`,

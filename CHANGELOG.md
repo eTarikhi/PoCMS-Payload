@@ -8,6 +8,32 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Added
 
+- **A migration and a seed generated from the database itself.** `/admin/database` → **From this
+  database** downloads two files read out of whatever the app is connected to — the Neon branch, on a
+  deployment. The first is a Payload migration written from the catalogs (`format_type`,
+  `pg_get_constraintdef`, `pg_get_indexdef`): types, sequences, tables, keys, indexes, foreign keys,
+  in the order a restore needs, and **guarded** by default so every statement is safe to run twice
+  (`CREATE TABLE IF NOT EXISTS`, and `CREATE TYPE`/`ADD CONSTRAINT` inside a `DO` block that checks
+  the catalog first) — which is what makes it committable next to the migrations that already exist.
+  A from-scratch mode emits plain `CREATE`s with a `down` that drops them. The second is a **content
+  seed**: the collections this config defines and their `_rels`, array and version tables, never
+  users, roles, jobs, page-speed reports, the audit log or Payload's own tables, ordered parents
+  before children by their foreign keys, with each sequence's value so the next insert does not
+  collide with a seeded row. Rows are read by Postgres (`row_to_json`) and written back with
+  `jsonb_populate_recordset`, so enums, `timestamptz`, `jsonb`, arrays, `bytea` and `numeric` keep
+  their own textual form. A seed loads through the new **Load a seed** card (type `seed`; one
+  transaction, so a failure changes nothing) or from a terminal: `pnpm db:seed-from --from neon
+  --apply --yes` gives local development the real content instead of fixtures, `pnpm db:seed-apply
+  <file> --yes` loads a file already on disk, and `pnpm db:schema-from --from neon` writes the
+  migration into `src/migrations` and registers it in `index.ts` (`pnpm migrate:adopt --name …`
+  records it as applied on a database that already has the schema). Verified end to end: an empty
+  database rebuilt from a generated file alone has the same 44 tables, 710 columns, 204 indexes, 95
+  constraints, 36 enum types and 35 sequences as the source, survives a second run unchanged, and
+  takes the seed to the same row counts. New `snapshots` plugin option (`maxRowsPerTable`, `apply`),
+  three endpoints (`GET /migration`, `GET /seed`, `POST /seed/apply`), and
+  `tests/int/database-snapshots.int.spec.ts` (18 tests, including the generated file being valid
+  TypeScript, a broken foreign-key cycle, and the `maxRows` parameter — `Number(null)` is `0`, which
+  would otherwise seed one row per table).
 - **A database tools page at `/admin/database`.** A new `manageDatabase` capability (a checkbox on
   the role, migration `20261022_140000_database_tools_capability`) unlocks a page that shows every
   table in the public schema with rows, size, dead rows and last vacuum; a table browser with

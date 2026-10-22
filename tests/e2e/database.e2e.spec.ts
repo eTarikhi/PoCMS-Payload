@@ -87,12 +87,14 @@ test.describe('Database page', () => {
       for (const title of [
         'Connection',
         'Backup',
+        'From this database',
         'Tables',
         'Indexes',
         'Maintenance',
         'Health and repair',
         'Neon branches and point-in-time restore',
         'Restore from a file',
+        'Load a seed',
         'What this page cannot do',
       ]) {
         await expect(view.getByRole('heading', { level: 2, name: title })).toBeVisible()
@@ -107,6 +109,20 @@ test.describe('Database page', () => {
         'href',
         /schemaOnly=1$/,
       )
+      // The two generated files: a migration from the catalogs, and a content seed.
+      await expect(view.getByRole('link', { name: /Migration \(.ts\)/ })).toHaveAttribute(
+        'href',
+        /\/api\/database\/migration\?mode=guarded$/,
+      )
+      await expect(view.getByRole('link', { name: 'From-scratch mode' })).toHaveAttribute(
+        'href',
+        /\/api\/database\/migration\?mode=fresh$/,
+      )
+      await expect(view.getByRole('link', { name: /Seed \(.json\)/ })).toHaveAttribute(
+        'href',
+        /\/api\/database\/seed$/,
+      )
+      await expect(view.getByRole('button', { name: 'Apply the seed' })).toBeDisabled()
       await expect(view).toContainText('users')
       await expect(view.getByRole('button', { name: 'Vacuum + analyze' })).toBeEnabled()
       await expect(view).toContainText('Migration history')

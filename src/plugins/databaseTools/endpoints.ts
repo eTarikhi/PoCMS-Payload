@@ -1,7 +1,16 @@
 import type { Endpoint, PayloadRequest } from 'payload'
 
 import { buildJsonBackup, buildSqlBackup, type BuildBackupOptions } from './server/backup'
-import { DatabaseToolsError, withDatabase } from './server/connection'
+import { buildSchemaMigration, type SchemaMigrationMode } from './server/schemaMigration'
+import {
+  applySeedSnapshot,
+  buildSeedSnapshot,
+  clampSeedRows,
+  parseSeedSnapshot,
+  seedableCollections,
+  type SeedCollection,
+} from './server/seedSnapshot'
+import { DatabaseToolsError, databaseTarget, withDatabase } from './server/connection'
 import { parseDirection, parseFilters } from './server/filters'
 import { exportCsv, readRows, tableDdl } from './server/introspection'
 import { isMaintenanceAction, runMaintenance } from './server/maintenance'
@@ -11,7 +20,7 @@ import { applyRepair, type RepairCheckId } from './server/repair'
 import { inspectRestore, RestoreRefused, restoreSql } from './server/restore'
 import { validateTableSelection } from './server/selection'
 import { cancelQuery, listSessions, terminateSession } from './server/sessions'
-import { neonOptions, type ResolvedDatabaseToolsOptions } from './options'
+import { MAX_RESTORE_BYTES, neonOptions, type ResolvedDatabaseToolsOptions } from './options'
 
 /**
  * The plugin's endpoints. Payload mounts them under `/api`:
@@ -30,6 +39,13 @@ import { neonOptions, type ResolvedDatabaseToolsOptions } from './options'
  *   POST /api/database/sessions/terminate `{ pid }` — end the session and roll back its transaction.
  *   POST /api/database/restore           `{ sql, confirmation }` — runs it, and only into a database
  *                                        the admin has explicitly confirmed.
+ *   GET  /api/database/migration         `?mode=guarded|fresh&tables=a,b` → a Payload migration
+ *                                        generated from this database's catalogs, ready to commit.
+ *   GET  /api/database/seed              `?collections=a,b&tables=a,b&maxRows=` → a content seed,
+ *                                        the file `pnpm db:seed-from` writes and applies locally.
+ *   POST /api/database/seed/apply        `{ json, confirmation }` — loads that file into the
+ *                                        connected database, deleting the rows of the tables it
+ *                                        names first.
  *   POST /api/database/neon/backup       `{ name, withEndpoint? }` → a branch pinned to now.
  *   POST /api/database/neon/restore      `{ timestamp, confirmation, preserveUnderName? }`
  *   POST /api/database/neon/delete       `{ branchId, confirmation }`
@@ -444,6 +460,175 @@ export const databaseToolsEndpoints = (options: ResolvedDatabaseToolsOptions): E
         },
       },
     )
+  }
+
+  if (options.snapshots !== false) {
+    const snapshots = options.snapshots
+    /** The collections a seed may carry, from the live config, and the globals that go with them. */
+    const seedSubjects = (req: PayloadRequest) => {
+      const collections: SeedCollection[] = req.payload.config.collections.map((collection) => ({
+        slug: collection.slug,
+        // A collection may name its table with a function; Payload calls it with the slug.
+        dbName:
+          typeof collection.dbName === 'function'
+            ? collection.dbName({ tableName: collection.slug })
+            : (collection.dbName ?? null),
+        auth: Boolean(collection.auth),
+      }))
+      const globals = req.payload.config.globals.map((global) => global.slug)
+      const seedable = seedableCollections(collections)
+      // A `collections=` list narrows the seed; anything it names that is not seedable is ignored
+      // (an auth collection or Payload's own table is never content).
+      const requested = (req.searchParams.get('collections') ?? '')
+        .split(',')
+        .map((slug) => slug.trim())
+        .filter(Boolean)
+      const chosen =
+        requested.length > 0 ? seedable.filter((slug) => requested.includes(slug)) : seedable
+      return {
+        collections: collections.filter((collection) => chosen.includes(collection.slug)),
+        globals: requested.length > 0 ? [] : globals,
+      }
+    }
+
+    // Applying a seed replaces rows, so it borrows the restore card's size limit — or the default
+    // one when a host has switched the restore endpoints off entirely.
+    const seedLimit = options.restore === false ? MAX_RESTORE_BYTES : options.restore.maxBytes
+
+    endpoints.push(
+      {
+        path: `${base}/migration`,
+        method: 'get',
+        handler: async (req) => {
+          if (!(await allowed(req))) return denied()
+          const mode: SchemaMigrationMode =
+            req.searchParams.get('mode') === 'fresh' ? 'fresh' : 'guarded'
+          const selection = validateTableSelection(req.searchParams.get('tables'))
+          if (!selection.ok) return json({ error: selection.error }, 400)
+
+          try {
+            const file = await withDatabase((client) =>
+              buildSchemaMigration(client, { mode, tables: selection.tables }),
+            )
+            req.payload.logger.info({
+              msg: `Schema migration generated (${mode})`,
+              user: req.user?.email,
+              tables: file.tables,
+              statements: file.statements,
+            })
+            return new Response(file.content, {
+              status: 200,
+              headers: {
+                'Content-Type': 'text/typescript; charset=utf-8',
+                'Content-Disposition': `attachment; filename="${file.filename}"`,
+                'Cache-Control': 'no-store',
+              },
+            })
+          } catch (error) {
+            req.payload.logger.error({ msg: 'Generating a schema migration failed', err: error })
+            return json(readable(error), 500)
+          }
+        },
+      },
+      {
+        path: `${base}/seed`,
+        method: 'get',
+        handler: async (req) => {
+          if (!(await allowed(req))) return denied()
+          const selection = validateTableSelection(req.searchParams.get('tables'))
+          if (!selection.ok) return json({ error: selection.error }, 400)
+          const maxRowsPerTable = clampSeedRows(
+            req.searchParams.get('maxRows'),
+            snapshots.maxRowsPerTable,
+          )
+          const subjects = seedSubjects(req)
+
+          try {
+            const target = databaseTarget()
+            const result = await withDatabase((client) =>
+              buildSeedSnapshot(client, {
+                collections: subjects.collections,
+                globals: subjects.globals,
+                maxRowsPerTable,
+                tables: selection.tables,
+                target: { host: target.host, database: target.database },
+              }),
+            )
+            req.payload.logger.info({
+              msg: `Seed generated from ${target.host || 'the database'}`,
+              user: req.user?.email,
+              tables: result.snapshot.counts.tables,
+              rows: result.snapshot.counts.rows,
+            })
+            return new Response(result.json, {
+              status: 200,
+              headers: {
+                'Content-Type': 'application/json; charset=utf-8',
+                'Content-Disposition': `attachment; filename="${result.filename}"`,
+                'Cache-Control': 'no-store',
+              },
+            })
+          } catch (error) {
+            req.payload.logger.error({ msg: 'Generating a seed failed', err: error })
+            return json(readable(error), error instanceof DatabaseToolsError ? 400 : 500)
+          }
+        },
+      },
+    )
+
+    if (snapshots.apply) {
+      endpoints.push({
+        path: `${base}/seed/apply`,
+        method: 'post',
+        handler: async (req) => {
+          if (!(await allowed(req))) return denied()
+          const data = await body(req)
+          const text = typeof data.json === 'string' ? data.json : ''
+          if (!text.trim()) return json({ error: 'Choose a seed file first.' }, 400)
+          if (Buffer.byteLength(text, 'utf8') > seedLimit) {
+            return json(
+              { error: `The file is larger than ${Math.round(seedLimit / 1024 / 1024)} MB.` },
+              413,
+            )
+          }
+          // Typing the word is the confirmation: this deletes the rows the file names.
+          if (
+            String(data.confirmation ?? '')
+              .trim()
+              .toLowerCase() !== 'seed'
+          ) {
+            return json(
+              { error: 'Type “seed” in the confirmation box to replace these tables’ rows.' },
+              400,
+            )
+          }
+
+          let snapshot
+          try {
+            snapshot = parseSeedSnapshot(text)
+          } catch (error) {
+            return json(readable(error), error instanceof DatabaseToolsError ? 400 : 500)
+          }
+
+          try {
+            const result = await withDatabase((client) => applySeedSnapshot(client, snapshot))
+            req.payload.logger.warn({
+              msg: `Seed applied: ${result.tables.length} tables, ${result.rows} rows`,
+              user: req.user?.email,
+            })
+            await audit(
+              req,
+              `Applied a seed file (${result.tables.length} tables, ${result.rows} rows)`,
+              [{ field: 'rows', to: result.rows }],
+            )
+            return json({ ok: true, ...result })
+          } catch (error) {
+            req.payload.logger.error({ msg: 'Applying a seed failed', err: error })
+            return json(readable(error), error instanceof DatabaseToolsError ? 400 : 500)
+          }
+        },
+      })
+    }
   }
 
   if (options.neon !== false) endpoints.push(...neonEndpoints(options))

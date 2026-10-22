@@ -130,6 +130,15 @@ export type DatabaseToolsOptions = {
    */
   restore?: false | { maxBytes?: number }
   /**
+   * The two generated files: a Payload migration written from the connected database's catalogs
+   * (the Neon branch, when that is what the app points at), and a content seed for a local
+   * database. Generating either only reads. `false` removes the card and the endpoints;
+   * `maxRowsPerTable` caps one seed table; `apply` keeps the endpoint that loads a seed file into
+   * the connected database (it deletes the rows of the tables the file names first).
+   * @default { maxRowsPerTable: 5000, apply: true }
+   */
+  snapshots?: false | { maxRowsPerTable?: number; apply?: boolean }
+  /**
    * Where the admin components live. Override these when the plugin is packaged and its components
    * are imported from a package specifier rather than this app's `/components` alias.
    */
@@ -155,10 +164,14 @@ export type ResolvedDatabaseToolsOptions = {
   sessions: boolean
   export: false | { maxRows: number }
   restore: false | { maxBytes: number }
+  snapshots: false | { maxRowsPerTable: number; apply: boolean }
   components: { view: DatabaseToolsComponent; navigation: DatabaseToolsComponent }
 }
 
 export const MAX_RESTORE_BYTES = 25 * 1024 * 1024
+
+/** A seed is content, not a dump: 5 000 rows per table is a portfolio's whole life, several times over. */
+export const MAX_SEED_ROWS = 5_000
 
 /**
  * Deny by default. Payload only lets a user into `/admin` if the `users` collection allows it, but
@@ -215,6 +228,13 @@ export const resolveOptions = (
     options.export === false
       ? false
       : { maxRows: Math.min(Math.max(1, options.export?.maxRows ?? 10_000), 100_000) },
+  snapshots:
+    options.snapshots === false
+      ? false
+      : {
+          maxRowsPerTable: Math.max(1, options.snapshots?.maxRowsPerTable ?? MAX_SEED_ROWS),
+          apply: options.snapshots?.apply !== false,
+        },
   restore:
     options.restore === false
       ? false

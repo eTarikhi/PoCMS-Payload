@@ -427,6 +427,188 @@ export function RestorePanel() {
   )
 }
 
+type SeedPreview = {
+  generatedAt: string
+  source: { host: string; database: string }
+  tables: number
+  rows: number
+  names: string[]
+  warnings: string[]
+}
+
+/** What a chosen seed file says about itself, read in the browser before anything is sent. */
+function previewSeed(text: string): SeedPreview | { error: string } {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text)
+  } catch {
+    return { error: 'That file is not JSON.' }
+  }
+  const seed = parsed as {
+    format?: string
+    version?: number
+    generatedAt?: string
+    source?: { host?: string; database?: string }
+    tables?: { name: string; data: unknown[] }[]
+    counts?: { tables?: number; rows?: number }
+    warnings?: string[]
+  }
+  if (seed?.format !== 'pocms-seed' || seed.version !== 1) {
+    return { error: 'That JSON is not a PoCMS seed (a backup is not a seed).' }
+  }
+  const tables = Array.isArray(seed.tables) ? seed.tables : []
+  return {
+    generatedAt: seed.generatedAt ?? '',
+    source: { host: seed.source?.host ?? '', database: seed.source?.database ?? '' },
+    tables: seed.counts?.tables ?? tables.length,
+    rows: seed.counts?.rows ?? tables.reduce((sum, table) => sum + (table.data?.length ?? 0), 0),
+    names: tables.map((table) => table.name),
+    warnings: seed.warnings ?? [],
+  }
+}
+
+/**
+ * Load a seed file into this database: the rows of the tables it names are deleted first, then the
+ * file's rows are inserted and the sequences are moved past the highest id. One transaction, so a
+ * failure leaves the database as it was. Typing `seed` is the confirmation; the server asks for it
+ * too.
+ */
+export function SeedPanel() {
+  const router = useRouter()
+  const apiBase = useApiBase()
+  const [file, setFile] = React.useState<File | null>(null)
+  const [json, setJson] = React.useState<string | null>(null)
+  const [preview, setPreview] = React.useState<SeedPreview | { error: string } | null>(null)
+  const [confirmation, setConfirmation] = React.useState('')
+  const [busy, setBusy] = React.useState(false)
+  const [reply, setReply] = React.useState<Reply | null>(null)
+
+  const choose = async (chosen: File | null) => {
+    setFile(chosen)
+    setPreview(null)
+    setReply(null)
+    setConfirmation('')
+    setJson(null)
+    if (!chosen) return
+    const text = await readFile(chosen).catch(() => null)
+    if (text === null) {
+      setPreview({ error: 'The file could not be read as text.' })
+      return
+    }
+    setJson(text)
+    setPreview(previewSeed(text))
+  }
+
+  const ready =
+    Boolean(json) &&
+    preview !== null &&
+    !('error' in preview) &&
+    confirmation.trim().toLowerCase() === 'seed'
+
+  const apply = async () => {
+    if (!json) return
+    setBusy(true)
+    setReply(null)
+    const result = await post(`${apiBase}/seed/apply`, { json, confirmation })
+    setReply(result)
+    if (result.ok) router.refresh()
+    setBusy(false)
+  }
+
+  return (
+    <div className="acn:flex acn:flex-col acn:gap-4">
+      <label className="acn:flex acn:flex-col acn:gap-1.5 acn:text-sm">
+        <span className="acn:font-medium">Seed file</span>
+        <input
+          type="file"
+          accept=".json,application/json"
+          className={cn(
+            'acn:block acn:w-full acn:cursor-pointer acn:rounded-md acn:border acn:border-input acn:bg-transparent acn:px-2.5 acn:py-1.5 acn:text-sm',
+            'acn:file:mr-2 acn:file:rounded-md acn:file:border-0 acn:file:bg-muted acn:file:px-2 acn:file:py-1 acn:file:text-xs',
+          )}
+          onChange={(event) => void choose(event.target.files?.[0] ?? null)}
+        />
+        <span className="acn:text-xs acn:text-muted-foreground">
+          The <code className="acn:font-mono">.json</code> this page downloads, or one written by{' '}
+          <code className="acn:font-mono">pnpm db:seed-from</code>.
+          {file ? ` · ${file.name}, ${Math.ceil(file.size / 1024).toLocaleString('en')} kB` : ''}
+        </span>
+      </label>
+
+      {preview && 'error' in preview ? (
+        <p className="acn:m-0 acn:flex acn:items-start acn:gap-1.5 acn:text-xs acn:text-destructive">
+          <TriangleAlertIcon aria-hidden className="acn:mt-0.5 acn:size-3.5 acn:shrink-0" />
+          {preview.error}
+        </p>
+      ) : null}
+
+      {preview && !('error' in preview) ? (
+        <div className="acn:rounded-lg acn:bg-muted acn:p-3 acn:text-xs">
+          <p className="acn:m-0 acn:font-medium">
+            {preview.rows.toLocaleString('en')} rows in {preview.tables.toLocaleString('en')} tables
+            {preview.source.database
+              ? ` · from ${preview.source.database}${preview.source.host ? ` on ${preview.source.host}` : ''}`
+              : ''}
+            {preview.generatedAt ? ` · ${preview.generatedAt.slice(0, 10)}` : ''}
+          </p>
+          <p className="acn:m-0 acn:mt-1 acn:font-mono acn:break-words acn:text-muted-foreground">
+            {preview.names.slice(0, 12).join(', ')}
+            {preview.names.length > 12 ? `, +${preview.names.length - 12} more` : ''}
+          </p>
+          <p className="acn:m-0 acn:mt-2 acn:text-foreground">
+            The rows those tables hold now are deleted first. Users, roles, jobs and the audit log
+            are not in a seed, so they are not touched.
+          </p>
+          {preview.warnings.length > 0 ? (
+            <ul className="acn:m-0 acn:mt-2 acn:list-disc acn:space-y-0.5 acn:pl-4 acn:text-muted-foreground">
+              {preview.warnings.slice(0, 4).map((warning) => (
+                <li key={warning}>{warning}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="acn:flex acn:flex-col acn:gap-2 acn:sm:flex-row acn:sm:items-end">
+        <label className="acn:flex acn:flex-1 acn:flex-col acn:gap-1.5 acn:text-sm">
+          <span className="acn:font-medium">
+            Type <code className="acn:font-mono">seed</code> to confirm
+          </span>
+          <Input
+            value={confirmation}
+            onChange={(event) => setConfirmation(event.target.value)}
+            placeholder="seed"
+            autoComplete="off"
+            spellCheck={false}
+          />
+        </label>
+        <Button variant="destructive" disabled={!ready || busy} onClick={() => void apply()}>
+          {busy ? (
+            <LoaderCircleIcon aria-hidden className="acn:motion-safe:animate-spin" />
+          ) : (
+            <DatabaseBackupIcon aria-hidden />
+          )}
+          {busy ? 'Applying…' : 'Apply the seed'}
+        </Button>
+      </div>
+
+      <Outcome reply={reply} />
+      {reply?.ok && Array.isArray(reply.tables) ? (
+        <div className="acn:flex acn:flex-wrap acn:gap-1.5">
+          {(reply.tables as { name: string; inserted: number }[])
+            .filter((table) => table.inserted > 0)
+            .slice(0, 12)
+            .map((table) => (
+              <Badge key={table.name} variant="secondary">
+                {table.name} {table.inserted.toLocaleString('en')}
+              </Badge>
+            ))}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 /** Create a Neon branch pinned to now: the cheap, provider-level backup. */
 export function NeonBackupForm({ defaultName }: { defaultName: string }) {
   const router = useRouter()

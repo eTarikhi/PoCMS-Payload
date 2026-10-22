@@ -189,6 +189,44 @@ pnpm db:restore ./pocms-2026-10-22.sql --yes
   (needed when the key sees several projects); `DATABASE_DIRECT_URL` sends backups and maintenance
   to the endpoint without `-pooler`.
 
+### Real content in local development, and a migration from a database
+
+Two commands read a *source* database — the Neon branch, normally — and write into this checkout.
+They are the answer to "my local site is empty" and to "the branch has a column nobody migrated".
+
+```bash
+# A seed of the real content, and load it into the local database (it replaces those tables' rows).
+pnpm db:seed-from --from neon --apply --yes
+
+# Just the file, to read or to commit after review:
+pnpm db:seed-from --from neon                       # → src/seed/snapshot.json
+pnpm db:seed-from --collections articles,projects --max-rows 200
+
+# A Payload migration written from the database's catalogs, registered in src/migrations/index.ts:
+pnpm db:schema-from --from neon
+pnpm db:schema-from --from neon --mode fresh --out /tmp    # plain CREATEs, with a down that drops
+```
+
+- `--from neon` uses `DATABASE_DIRECT_URL`, then `POSTGRES_URL`; `--from local` always uses
+  `POSTGRES_URL`; `--from <url>` connects wherever the URL points. Nothing prints a credential.
+- A seed holds the collections this config defines — never `users`, `roles`, `job_runs`,
+  `pagespeed_reports`, `audit_logs` or Payload's own tables — so a production password hash cannot
+  arrive in a development database. Media rows keep their blob URLs: images still render locally
+  without copying a file. `--apply` deletes the rows of the tables the file names first, in one
+  transaction, and sets each sequence past the highest id so the next insert does not collide.
+  A file already on disk is applied with `pnpm db:seed-apply <file> --yes`.
+- The generated migration is **guarded** by default: `CREATE TABLE IF NOT EXISTS`, and
+  `CREATE TYPE`/`ADD CONSTRAINT` inside a `DO` block that checks the catalog, so running it against
+  the database it came from changes nothing and running it against an empty one builds the schema.
+  Its `down` is a no-op — a snapshot never drops anything. `--mode fresh` emits plain `CREATE`s with
+  a `down` that drops them, for a file that defines a database on its own; do not commit that beside
+  the baseline. Read the file before `pnpm migrate`: it describes what the database has, including
+  anything added by hand.
+- On a database that already has the schema, record the file as applied instead of running it:
+  `pnpm migrate:adopt --name <the file's name>`.
+- The same two files download from `/admin/database` → **From this database**, and a seed can be
+  loaded from the **Load a seed** card (type `seed` to confirm).
+
 ### Build failures
 
 ```bash

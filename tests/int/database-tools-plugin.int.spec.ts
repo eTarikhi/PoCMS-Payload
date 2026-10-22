@@ -83,6 +83,9 @@ describe('databaseTools plugin', () => {
       '/database/sessions/terminate',
       '/database/restore-inspect',
       '/database/restore',
+      '/database/migration',
+      '/database/seed',
+      '/database/seed/apply',
       '/database/neon/backup',
       '/database/neon/restore',
       '/database/neon/delete',
@@ -99,7 +102,18 @@ describe('databaseTools plugin', () => {
       '/database/maintenance',
       '/database/repair',
       '/database/table',
+      '/database/migration',
+      '/database/seed',
+      '/database/seed/apply',
     ])
+
+    // The generated files are read-only; turning them off removes all three endpoints.
+    expect(paths(await plugin({ snapshots: false }))).not.toContain('/database/migration')
+    expect(paths(await plugin({ snapshots: false }))).not.toContain('/database/seed')
+    // A host that wants the downloads but not the write keeps the two GETs.
+    const noApply = paths(await plugin({ snapshots: { apply: false } }))
+    expect(noApply).toContain('/database/seed')
+    expect(noApply).not.toContain('/database/seed/apply')
   })
 
   it('adds the sidebar link after the nav links already registered', async () => {
@@ -137,6 +151,7 @@ describe('databaseTools plugin', () => {
     expect(resolved.sessions).toBe(true)
     expect(resolved.export).toEqual({ maxRows: 10_000 })
     expect(resolved.backup.maxRowsPerTable).toBe(100_000)
+    expect(resolved.snapshots).toEqual({ maxRowsPerTable: 5_000, apply: true })
     expect(resolved.neon).toEqual({})
   })
 
@@ -145,6 +160,14 @@ describe('databaseTools plugin', () => {
     expect(resolveOptions({ export: { maxRows: 0 } }).export).toEqual({ maxRows: 1 })
     expect(resolveOptions({ export: false }).export).toBe(false)
     expect(resolveOptions({ restore: { maxBytes: 1024 } }).restore).toEqual({ maxBytes: 1024 })
+    expect(resolveOptions({ snapshots: { maxRowsPerTable: 0 } }).snapshots).toEqual({
+      maxRowsPerTable: 1,
+      apply: true,
+    })
+    expect(resolveOptions({ snapshots: { maxRowsPerTable: 250 } }).snapshots).toEqual({
+      maxRowsPerTable: 250,
+      apply: true,
+    })
   })
 
   it('normalises paths so a host can write "database" or "/database/"', async () => {

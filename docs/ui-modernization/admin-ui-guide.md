@@ -899,7 +899,9 @@ how the capability is granted.
 | Maintenance | `ANALYZE`, `VACUUM`, `VACUUM ANALYZE`, and `REINDEX CONCURRENTLY` of every invalid index — on the whole database or the browsed table. | `server/maintenance.ts` |
 | Health and repair | Seven checks (migrations, sequences, relation rows, indexes, statistics, dead rows, primary keys) and the four that are safely fixable: `setval`, `DELETE` orphans, `REINDEX`, `ANALYZE`. | `server/repair.ts` |
 | Neon branches | With `NEON_API_KEY`: create a branch at this moment, list branches, delete a backup branch, and restore the branch to a timestamp with the current state kept under a name. | `server/neon.ts` |
+| From this database | Two downloads read out of the connected database (the Neon branch, on a deployment): a Payload **migration (.ts)** written from the catalogs — guarded by default so running it twice changes nothing, or from-scratch mode with a `down` that drops what it created — and a content **seed (.json)** for a local database. | `server/schemaMigration.ts`, `server/seedSnapshot.ts` |
 | Restore | Choose a `.sql` file, **Check the file** (statements, tables, existing content, whether it is transactional), then type `restore` to run it. | `server/restore.ts` |
+| Load a seed | Choose a seed `.json`, read what it holds (rows, tables, where it came from), then type `seed` to replace those tables' rows. One transaction; users, roles, jobs and the audit log are never in a seed. | `server/seedSnapshot.ts` |
 
 Decisions worth knowing:
 

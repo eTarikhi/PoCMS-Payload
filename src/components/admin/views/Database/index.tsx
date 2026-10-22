@@ -5,11 +5,13 @@ import {
   ActivityIcon,
   ArrowLeftIcon,
   DatabaseIcon,
+  FileCode2Icon,
   GitBranchIcon,
   HardDriveDownloadIcon,
   InfoIcon,
   LayersIcon,
   ShieldCheckIcon,
+  SproutIcon,
   TriangleAlertIcon,
   WrenchIcon,
 } from 'lucide-react'
@@ -78,6 +80,7 @@ import {
   RepairAllButton,
   RepairButton,
   RestorePanel,
+  SeedPanel,
 } from './Actions'
 import { SessionsPanel } from './Sessions'
 import { TableBrowser } from './TableBrowser'
@@ -431,6 +434,87 @@ export async function DatabaseView({
                       </p>
                     </CardContent>
                   </Card>
+
+                  {options.snapshots !== false ? (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>
+                          <h2 className="acn:m-0 acn:flex acn:items-center acn:gap-2 acn:text-base">
+                            <FileCode2Icon
+                              aria-hidden
+                              className="acn:size-4 acn:text-muted-foreground"
+                            />
+                            From this database
+                          </h2>
+                        </CardTitle>
+                        <CardDescription>
+                          Two files read out of{' '}
+                          {target.host ? (
+                            <Code>
+                              {target.database ? `${target.host}/${target.database}` : target.host}
+                            </Code>
+                          ) : (
+                            'this database'
+                          )}
+                          : a Payload migration written from the catalogs, and a content seed for a
+                          local database.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="acn:space-y-3">
+                        <div className="acn:flex acn:flex-wrap acn:gap-2">
+                          <a
+                            className={buttonVariants({ size: 'sm' })}
+                            href={`${apiBase}/migration?mode=guarded`}
+                          >
+                            <FileCode2Icon aria-hidden />
+                            Migration (.ts)
+                          </a>
+                          <a
+                            className={buttonVariants({ size: 'sm', variant: 'outline' })}
+                            href={`${apiBase}/migration?mode=fresh`}
+                          >
+                            From-scratch mode
+                          </a>
+                          <a
+                            className={buttonVariants({ size: 'sm', variant: 'outline' })}
+                            href={`${apiBase}/seed`}
+                          >
+                            <SproutIcon aria-hidden />
+                            Seed (.json)
+                          </a>
+                          {table ? (
+                            <a
+                              className={buttonVariants({ size: 'sm', variant: 'outline' })}
+                              href={`${apiBase}/seed?tables=${encodeURIComponent(table)}`}
+                            >
+                              This table only
+                            </a>
+                          ) : null}
+                        </div>
+                        <p className="acn:m-0 acn:text-xs acn:text-muted-foreground">
+                          <strong className="acn:font-medium acn:text-foreground">
+                            The migration
+                          </strong>{' '}
+                          is every statement Postgres itself deparses for the tables here — types,
+                          sequences, columns, keys, indexes, foreign keys. Guarded mode (the
+                          default) wraps each one so running it twice changes nothing, which is what
+                          makes it safe to commit next to the migrations you have. From-scratch mode
+                          emits plain <Code>CREATE</Code>s with a <Code>down</Code> that drops them,
+                          for a file that defines a database on its own. Neither carries rows,
+                          ownership, grants or extensions.
+                        </p>
+                        <p className="acn:m-0 acn:text-xs acn:text-muted-foreground">
+                          <strong className="acn:font-medium acn:text-foreground">The seed</strong>{' '}
+                          holds the collections this config defines — never users, roles, jobs, the
+                          audit log or Payload’s own tables — parents before children, capped at{' '}
+                          {options.snapshots.maxRowsPerTable.toLocaleString('en')} rows per table,
+                          with the sequence values to set afterwards so the next insert does not
+                          collide. <Code>pnpm db:seed-from --from neon</Code> writes the same file
+                          into the checkout; <Code>--apply</Code> loads it into the local database.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ) : null}
                 </div>
 
                 <Card>
@@ -954,6 +1038,31 @@ export async function DatabaseView({
                     </CardHeader>
                     <CardContent>
                       <RestorePanel />
+                    </CardContent>
+                  </Card>
+                ) : null}
+
+                {options.snapshots !== false && options.snapshots.apply ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>
+                        <h2 className="acn:m-0 acn:flex acn:items-center acn:gap-2 acn:text-base">
+                          <SproutIcon
+                            aria-hidden
+                            className="acn:size-4 acn:text-muted-foreground"
+                          />
+                          Load a seed
+                        </h2>
+                      </CardTitle>
+                      <CardDescription>
+                        A seed file replaces the rows of the tables it names — the way a local
+                        database takes on the content of a Neon branch. It runs in one transaction,
+                        so a failure changes nothing, and it never touches users, roles, jobs or the
+                        audit log because a seed does not carry them.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <SeedPanel />
                     </CardContent>
                   </Card>
                 ) : null}
