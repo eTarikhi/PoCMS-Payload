@@ -88,6 +88,12 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Fixed
 
+- **CI is green again.** The `Build and end-to-end tests` job had failed on every run since 19
+  October. Two causes: the visual-invariants step called Playwright without the `tsx` loader (below),
+  and, on 22 October, a migration registry that imported files the repository did not contain
+  (fixed by `ec58cd6`, which also stops ignoring `src/migrations`). Run
+  [39704391765](https://github.com/eTarikhi/PoCMS-Payload/actions/runs/39704391765) is the first
+  green run.
 - **CI's visual-invariants gate actually runs.** The step called `playwright test visual/invariants`
   directly, without the `tsx` loader the other Playwright scripts set. Playwright could not resolve
   `next/cache` through the Payload config, reported “No tests found”, and failed the build — the gate

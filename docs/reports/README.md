@@ -6,7 +6,11 @@ and a JSON file with the data behind every number.
 
 | Date       | Report                                                                          | Data                                  |
 | ---------- | ------------------------------------------------------------------------------- | ------------------------------------- |
+| 2026-10-22 | [Execution report](2026-10-22-execution-report.md) — SEO, sitemap, database readiness, CI | — |
 | 2026-10-20 | [PDF](2026-10-20-progress-report.pdf) · [HTML](2026-10-20-progress-report.html) | [JSON](2026-10-20-progress-data.json) |
+
+The 20 October report is the programme view (plan against actual, forecasts); the 22 October
+report records what one session delivered and how it was verified.
 
 ## 2026-10-20 at a glance
 
