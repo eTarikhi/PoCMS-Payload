@@ -12,7 +12,7 @@ test.describe('Engineer’s Studio frontend', () => {
     expect(results.violations).toEqual([])
   })
 
-  test('shows résumé sidebar navigation and accessible project filters', async ({ page }) => {
+  test('shows compact portfolio navigation and accessible project filters', async ({ page }) => {
     await page.goto(baseURL)
     await expect(page.locator('main h1')).toBeVisible()
     await expect(page.locator('#home')).toHaveCSS('background-image', 'none')
@@ -39,35 +39,31 @@ test.describe('Engineer’s Studio frontend', () => {
   })
 })
 
-test('uses a consistent professional résumé shell on home and archives', async ({ page }) => {
+test('uses a consistent bento portfolio shell on home and archives', async ({ page }) => {
   for (const path of ['/', '/projects', '/articles']) {
     await page.goto(`${baseURL}${path}`)
     await expect(page.locator('.studio').first()).toHaveCSS('color-scheme', 'light')
     await expect(page.locator('.studio').first()).toHaveCSS(
       'background-color',
-      'rgb(245, 247, 250)',
+      'rgb(243, 242, 239)',
     )
     await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Let’s talk' })).toHaveCSS(
       'color',
-      'rgb(32, 59, 98)',
+      'rgb(255, 255, 255)',
     )
   }
 })
 
-test('places a compact sidebar beside résumé content on desktop', async ({ page }) => {
+test('uses an asymmetric bento board rather than a sidebar on desktop', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 })
   await page.goto(baseURL)
-  const sidebar = await page.locator('.studio-nav').boundingBox()
-  const main = await page.getByRole('main').boundingBox()
-  expect(sidebar).not.toBeNull()
-  expect(main).not.toBeNull()
-  expect(sidebar!.width).toBeLessThan(300)
-  expect(main!.x).toBeGreaterThanOrEqual(sidebar!.x + sidebar!.width)
-  const order = await page.getByRole('main').evaluate((main) => {
-    const experience = main.querySelector('#experience')!
-    const projects = main.querySelector('#project')!
-    return !!(experience.compareDocumentPosition(projects) & Node.DOCUMENT_POSITION_FOLLOWING)
-  })
-  expect(order).toBe(true)
+  const intro = await page.locator('#home').boundingBox()
+  const portrait = await page.locator('.bento-portrait').boundingBox()
+  expect(intro).not.toBeNull()
+  expect(portrait).not.toBeNull()
+  expect(portrait!.x).toBeGreaterThan(intro!.x + intro!.width)
+  expect(intro!.width).toBeGreaterThan(portrait!.width)
+  expect(Math.abs(intro!.y - portrait!.y)).toBeLessThan(2)
+  await expect(page.locator('.bento-board')).toHaveCSS('display', 'grid')
 })

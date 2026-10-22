@@ -1,13 +1,11 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import type { FooterContent, HeaderContent } from '../../lib/types'
-import { CoverImage } from '../ui/CoverImage'
 
-/** A résumé-style sidebar shared by the public site only. */
+/** Compact public navigation for the bento portfolio. */
 export function StudioChrome({
   name,
   footer,
-  profile,
   children,
   active,
 }: {
@@ -24,75 +22,29 @@ export function StudioChrome({
     .map((part) => part[0])
     .join('')
   return (
-    <div className="studio resume" id="page-top">
+    <div className="studio bento" id="page-top">
       <a className="studio-skip" href="#main-content">
         Skip to content
       </a>
       <header className="studio-nav">
-        <div className="resume-identity">
-          {profile?.imageUrl ? (
-            <CoverImage
-              src={profile.imageUrl}
-              fallbackSrc="/placeholder.svg"
-              alt={displayName}
-              width={96}
-              height={96}
-              priority
-              sizes="96px"
-            />
-          ) : (
-            <span className="resume-initials" aria-hidden="true">
-              {initials}
-            </span>
-          )}
-          <Link className="studio-brand" href="/">
-            {displayName}
-          </Link>
-          <p>{profile?.professionTexts[0] || footer?.roles[0] || 'Professional portfolio'}</p>
-        </div>
-        <p className="resume-nav-label">Résumé & portfolio</p>
+        <Link className="studio-brand" href="/">
+          <span className="bento-monogram" aria-hidden="true">
+            {initials}
+          </span>
+          {displayName}
+        </Link>
         <nav aria-label="Main navigation">
-          <Link href="/#home">
-            <span aria-hidden="true">01</span> Overview
-          </Link>
-          <Link href="/#experience">
-            <span aria-hidden="true">02</span> Experience
-          </Link>
-          <Link href="/#skill">
-            <span aria-hidden="true">03</span> Skills
-          </Link>
+          <Link href="/#home">Overview</Link>
           <Link href="/projects" aria-current={active === 'work' ? 'page' : undefined}>
-            <span aria-hidden="true">04</span> Projects
-          </Link>
-          <Link href="/#education">
-            <span aria-hidden="true">05</span> Education
+            Projects
           </Link>
           <Link href="/articles" aria-current={active === 'writing' ? 'page' : undefined}>
-            <span aria-hidden="true">06</span> Writing
+            Writing
           </Link>
         </nav>
-        <div className="resume-sidebar-contact">
-          {profile?.requestCV ? (
-            <a className="resume-cv" href={profile.requestCV}>
-              Request CV <span aria-hidden="true">↗</span>
-            </a>
-          ) : null}
-          <Link className="studio-nav-cta" href="/#contact">
-            Let’s talk <span aria-hidden="true">↗</span>
-          </Link>
-          <div className="resume-socials">
-            {footer?.socialLinks.map((link, index) => (
-              <a key={index} href={link.url} target="_blank" rel="noopener noreferrer">
-                {link.ariaLabel} <span aria-hidden="true">↗</span>
-              </a>
-            ))}
-            {footer?.profiles.map((link, index) => (
-              <a key={`profile-${index}`} href={link.url} target="_blank" rel="noopener noreferrer">
-                {link.name} <span aria-hidden="true">↗</span>
-              </a>
-            ))}
-          </div>
-        </div>
+        <Link className="studio-nav-cta" href="/#contact">
+          Let’s talk <span aria-hidden="true">↗</span>
+        </Link>
       </header>
       {children}
       <footer className="studio-footer studio-container">
@@ -101,6 +53,16 @@ export function StudioChrome({
         </p>
         <div>
           <a href="/feed.xml">RSS feed</a>
+          {footer?.socialLinks.map((link, i) => (
+            <a key={`social-${i}`} href={link.url} target="_blank" rel="noopener noreferrer">
+              {link.ariaLabel} ↗
+            </a>
+          ))}
+          {footer?.profiles.map((link, i) => (
+            <a key={`profile-${i}`} href={link.url} target="_blank" rel="noopener noreferrer">
+              {link.name} ↗
+            </a>
+          ))}
           <a href="#page-top">Back to top ↑</a>
         </div>
       </footer>

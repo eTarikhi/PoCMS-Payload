@@ -1,4 +1,4 @@
-/* Professional résumé: a persistent profile rail and a readable, document-like content column.
+/* Shared public portfolio elements.
    All rules are scoped to the public shell; Payload admin is not restyled. */
 body:has(.studio) {
   background: #edf1f5 !important;
@@ -71,54 +71,10 @@ body:has(.studio) {
   outline: 3px solid #5988d9;
   outline-offset: 4px;
 }
-.studio > main,
-.studio > .resume-content {
-  grid-column: 2;
-  min-width: 0;
-}
 .studio-container {
   width: calc(100% - 80px);
   max-width: 1000px;
   margin-inline: auto;
-}
-.studio-nav {
-  grid-column: 1;
-  grid-row: 1 / span 2;
-  position: sticky;
-  top: 0;
-  height: 100dvh;
-  overflow-y: auto;
-  padding: 38px 24px 28px;
-  background: #1d2b3e;
-  color: #e9eef6;
-  display: flex;
-  flex-direction: column;
-}
-.resume-identity {
-  border-bottom: 1px solid #3b485b;
-  padding-bottom: 25px;
-}
-.resume-identity > img {
-  width: 88px;
-  height: 88px;
-  object-fit: cover;
-  object-position: top;
-  border-radius: 8px;
-  background: #334257;
-  display: block;
-  margin-bottom: 19px;
-}
-.resume-initials {
-  display: grid;
-  place-items: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 8px;
-  background: #354761;
-  color: #fff;
-  font-size: 24px;
-  font-weight: 600;
-  margin-bottom: 18px;
 }
 .studio-brand {
   display: block;
@@ -126,82 +82,6 @@ body:has(.studio) {
   font-weight: 600;
   letter-spacing: -0.025em;
   line-height: 1.4;
-}
-.resume-identity p {
-  color: #b8c6d9;
-  font-size: 13px;
-  line-height: 1.65;
-  margin: 10px 0 0;
-}
-.resume-nav-label {
-  color: #b8c6d9;
-  text-transform: uppercase;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.13em;
-  margin: 28px 10px 12px !important;
-}
-.studio-nav nav {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.studio-nav nav a {
-  display: flex;
-  gap: 17px;
-  padding: 10px 12px;
-  border-radius: 6px;
-  font-size: 14px;
-  color: #d7e0ed;
-}
-.studio-nav nav a span {
-  font-size: 10px;
-  color: #b8c6d9;
-  min-width: 15px;
-  padding-top: 4px;
-}
-.studio-nav a:hover,
-.studio-nav a:focus-visible {
-  color: #fff;
-}
-.studio-nav nav a:hover,
-.studio-nav nav a[aria-current] {
-  background: #354761;
-  color: #fff;
-  text-decoration: none;
-}
-.resume-sidebar-contact {
-  margin-top: auto;
-  padding-top: 35px;
-}
-.studio-nav-cta,
-.resume-cv {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 14px;
-  font-size: 13px;
-  border-radius: 6px;
-}
-.studio-nav-cta {
-  background: #f2f6fc;
-  color: #203b62 !important;
-  font-weight: 600;
-}
-.resume-cv {
-  border: 1px solid #667a97;
-  margin-bottom: 10px;
-}
-.resume-socials {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 15px;
-  margin-top: 21px;
-  font-size: 11px;
-  color: #b8c6d9;
-}
-.resume-content {
-  padding-top: 36px;
 }
 .studio #home {
   background: #fff;
@@ -758,9 +638,6 @@ body:has(.studio) {
   .studio-container {
     width: calc(100% - 48px);
   }
-  .studio-nav {
-    padding: 28px 20px;
-  }
   .studio-section,
   .studio #home {
     padding: 24px;
@@ -777,71 +654,12 @@ body:has(.studio) {
   .studio {
     display: block;
   }
-  .studio-nav {
-    position: static;
-    height: auto;
-    overflow: visible;
-    padding: 22px 20px;
-  }
-  .resume-identity {
-    display: grid;
-    grid-template-columns: 56px minmax(0, 1fr);
-    column-gap: 14px;
-    padding-bottom: 18px;
-  }
-  .resume-identity > img,
-  .resume-initials {
-    width: 56px;
-    height: 56px;
-    margin: 0;
-    grid-row: 1 / span 2;
-  }
   .studio-brand {
     font-size: 20px;
     align-self: end;
   }
-  .resume-identity p {
-    grid-column: 2;
-    margin-top: 4px;
-    font-size: 11px;
-  }
-  .resume-nav-label {
-    display: none;
-  }
-  .studio-nav nav {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 4px;
-    margin-top: 14px;
-  }
-  .studio-nav nav a {
-    padding: 8px;
-    font-size: 12px;
-    gap: 8px;
-  }
-  .studio-nav nav a span {
-    font-size: 9px;
-    padding-top: 3px;
-  }
-  .resume-sidebar-contact {
-    margin: 14px 0 0;
-    padding: 0;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 12px;
-  }
-  .resume-cv {
-    margin-bottom: 0;
-  }
-  .resume-socials {
-    margin-top: 0;
-  }
   .studio-container {
     width: calc(100% - 32px);
-  }
-  .resume-content {
-    padding-top: 20px;
   }
   .studio #home,
   .studio-section {
@@ -900,5 +718,440 @@ body:has(.studio) {
   .studio *::after {
     transition: none !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Bento portfolio: an asymmetric, image-led board replaces the résumé rail. */
+body:has(.bento) {
+  background: #f3f2ef !important;
+}
+.studio.bento {
+  --ink: #252927;
+  --muted: #535d55;
+  --accent: #28604f;
+  --line: #dfe3dc;
+  display: block;
+  max-width: 1320px;
+  padding: 0 40px;
+  background: #f3f2ef;
+}
+.bento .studio-nav {
+  position: static;
+  height: auto;
+  overflow: visible;
+  background: transparent;
+  color: var(--ink);
+  padding: 30px 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.bento .studio-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+  letter-spacing: -0.02em;
+}
+.bento-monogram {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  background: #282e29;
+  color: #fff;
+  border-radius: 12px;
+  font-size: 13px;
+}
+.bento .studio-nav nav {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  margin: 0;
+}
+.bento .studio-nav nav a {
+  color: #545e55;
+  padding: 9px 15px;
+  font-size: 12px;
+}
+.bento .studio-nav nav a:hover,
+.bento .studio-nav nav a[aria-current] {
+  background: #e3e8df;
+  color: #244b36;
+}
+.bento .studio-nav-cta {
+  background: #292f2a;
+  color: #fff !important;
+  padding: 10px 17px;
+  border-radius: 30px;
+  font-size: 12px;
+  gap: 16px;
+}
+.bento .studio-nav .studio-brand:hover {
+  color: var(--accent);
+}
+.bento .studio-container {
+  width: 100%;
+  max-width: none;
+}
+.bento-board {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 20px;
+  padding-bottom: 30px;
+}
+.bento-board > section {
+  min-width: 0;
+}
+.bento .studio-section,
+.bento #home {
+  border: 1px solid #e3e5df;
+  border-radius: 24px;
+  padding: 30px;
+  margin: 0;
+  background: #fff;
+}
+.bento #home {
+  grid-column: span 8;
+  background: #e9eddf;
+  border: none;
+  padding: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.bento .resume-page-heading {
+  width: 100%;
+  margin-bottom: 26px;
+}
+.bento #home h1 {
+  font-size: clamp(34px, 4.2vw, 58px);
+  line-height: 1.1;
+  max-width: 12ch;
+  margin-bottom: 16px;
+  letter-spacing: -0.055em;
+}
+.bento .resume-role {
+  font-size: 18px;
+  font-weight: 500;
+  color: #3b5946;
+  margin-bottom: 16px;
+}
+.bento .resume-specialties {
+  font-size: 11px;
+  color: #4f6151;
+  max-width: 66ch;
+  margin-bottom: 18px;
+}
+.bento .resume-summary-bottom {
+  width: 100%;
+  margin-top: auto;
+  padding-top: 20px;
+  border-color: #c7d0bd;
+  gap: 12px;
+}
+.bento .studio-button {
+  border-radius: 30px;
+  padding: 10px 18px;
+  background: #2b4934;
+  border-color: #2b4934;
+}
+.bento .studio-button:hover {
+  background: #1b3524;
+}
+.bento-bio {
+  font-size: 13px;
+  margin-bottom: 14px;
+  width: 100%;
+}
+.bento-bio summary,
+.bento-services summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: #365940;
+}
+.bento-bio summary span,
+.bento-services summary span {
+  float: right;
+}
+.bento-bio p {
+  margin: 14px 0 0;
+  line-height: 1.8;
+  color: #4f6151;
+}
+.bento-portrait {
+  grid-column: span 4;
+  border-radius: 24px;
+  background: #d4e9df;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 360px;
+}
+.bento-portrait > .studio-eyebrow {
+  padding: 26px 26px 0;
+  position: relative;
+  z-index: 1;
+  color: #365749;
+}
+.bento-portrait::before {
+  content: '';
+  position: absolute;
+  width: 330px;
+  height: 330px;
+  border-radius: 50%;
+  background: #bedccf;
+  left: 25%;
+  top: 15%;
+}
+.bento-portrait > img {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 280px;
+  object-fit: contain;
+  object-position: bottom;
+  margin-top: auto;
+  mix-blend-mode: multiply;
+}
+.bento-portrait-initials {
+  display: grid;
+  place-items: center;
+  flex: 1;
+  font-size: 100px;
+  font-weight: 500;
+  color: #476452;
+  z-index: 1;
+}
+.bento .bento-portrait-caption {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 26px;
+  background: #c4ded1;
+  color: #314e3e;
+  font-size: 11px;
+}
+.bento-portrait a {
+  font-weight: 600;
+}
+.bento-board #skill {
+  grid-column: span 4;
+}
+.bento-board #project {
+  grid-column: span 8;
+}
+.bento-board #experience,
+.bento-board #article,
+.bento-board #education,
+.bento-board #about {
+  grid-column: span 6;
+}
+.bento-board #contact {
+  grid-column: span 12;
+  background: #edddd2;
+  border-color: #edddd2;
+}
+.bento .studio-section-heading {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 24px;
+}
+.bento .studio-eyebrow {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+}
+.bento h2 {
+  font-size: 24px;
+  letter-spacing: -0.04em;
+}
+.bento .studio-skills {
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+.bento .studio-skills h3 {
+  font-size: 12px;
+  color: #5d685e;
+}
+.bento .studio-tags span {
+  background: #f0f2ec;
+  color: #4a594a;
+  border-color: #e1e6da;
+  border-radius: 8px;
+  padding: 5px 10px;
+}
+.bento-services {
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.bento .studio-services {
+  display: block;
+  padding-top: 18px;
+  margin-top: 0;
+  border: 0;
+}
+.bento .studio-services article + article {
+  margin-top: 20px;
+}
+.bento .studio-project-image {
+  border: none;
+  border-radius: 15px;
+  background: #eef0eb;
+  aspect-ratio: 1.5;
+  padding: 14px;
+}
+.bento .studio-project-meta {
+  font-size: 9px;
+}
+.bento .studio-project h3 {
+  font-size: 15px;
+}
+.bento .studio-preview-hint {
+  border-radius: 30px;
+  color: #3e5845;
+  border-color: #d4ddcd;
+}
+.bento .studio-filters button {
+  border-radius: 30px;
+  font-size: 10px;
+}
+.bento .studio-filters button[aria-pressed='true'] {
+  background: #e4ebdc;
+  color: #385432;
+  border-color: #9db18b;
+}
+.bento .resume-timeline > article {
+  grid-template-columns: 105px minmax(0, 1fr);
+  gap: 14px;
+}
+.bento .resume-timeline article > div {
+  border-color: #d6dfcf;
+  padding-left: 16px;
+}
+.bento .resume-timeline h3 {
+  font-size: 14px;
+}
+.bento .resume-timeline p {
+  font-size: 11px;
+}
+.bento .resume-certificates {
+  grid-template-columns: 1fr;
+}
+.bento .resume-certificate-mark {
+  color: #3e5845;
+  background: #eef2e9;
+}
+.bento .resume-writing-list h3 {
+  font-size: 18px;
+}
+.bento .resume-additional {
+  grid-template-columns: 1fr;
+}
+.bento .studio-contact .studio-section-heading {
+  margin-bottom: 25px;
+}
+.bento .studio-contact-links {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+.bento .studio-footer {
+  display: flex;
+  padding: 15px 0 35px;
+  border-top: 1px solid var(--line);
+  margin-top: 10px;
+}
+.bento .studio-footer div {
+  flex-wrap: wrap;
+}
+.bento .studio-writing-page {
+  padding-top: 30px;
+}
+.bento .article-page {
+  background: #fff;
+  border-radius: 24px;
+}
+@media (max-width: 1000px) {
+  .studio.bento {
+    padding-inline: 24px;
+  }
+  .bento .studio-section {
+    padding: 24px;
+  }
+  .bento-board #skill,
+  .bento-board #project {
+    grid-column: span 6;
+  }
+  .bento .studio-work-grid {
+    grid-template-columns: 1fr;
+  }
+  .bento .studio-writing-page .studio-work-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 760px) {
+  .studio.bento {
+    padding-inline: 16px;
+  }
+  .bento .studio-nav {
+    flex-wrap: wrap;
+    gap: 15px;
+    padding: 20px 0;
+  }
+  .bento .studio-brand {
+    font-size: 13px;
+  }
+  .bento .studio-nav nav {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+  .bento .studio-nav nav a {
+    padding: 8px 18px;
+  }
+  .bento-board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .bento-board > section,
+  .bento-board #home,
+  .bento-board #skill,
+  .bento-board #project,
+  .bento-board #experience,
+  .bento-board #article,
+  .bento-board #education,
+  .bento-board #about,
+  .bento-board #contact {
+    grid-column: 1 / -1;
+  }
+  .bento .studio-section,
+  .bento #home {
+    padding: 24px;
+    border-radius: 20px;
+  }
+  .bento .resume-page-heading {
+    flex-direction: row;
+  }
+  .bento #home h1 {
+    font-size: 42px;
+  }
+  .bento .resume-role {
+    font-size: 16px;
+  }
+  .bento-portrait {
+    min-height: 300px;
+    border-radius: 20px;
+  }
+  .bento-portrait > img {
+    height: 260px;
+  }
+  .bento .studio-contact-links,
+  .bento .studio-writing-page .studio-work-grid {
+    grid-template-columns: 1fr;
   }
 }

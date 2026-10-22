@@ -69,12 +69,12 @@ describe('Engineer’s Studio homepage', () => {
     expect(screen.getByText('API project')).toBeDefined()
   })
 
-  it('handles missing profile singletons and uses a résumé-first section order', () => {
+  it('handles missing profile singletons and uses a skills-and-projects bento order', () => {
     render(React.createElement(StudioHome, { content }))
     expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('Portfolio')
     const main = screen.getByRole('main')
     expect(
-      main.querySelector('#experience')!.compareDocumentPosition(main.querySelector('#project')!) &
+      main.querySelector('#skill')!.compareDocumentPosition(main.querySelector('#project')!) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Skip to content' }).getAttribute('href')).toBe(

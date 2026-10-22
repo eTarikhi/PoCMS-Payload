@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { PortfolioContent } from '../../lib/types'
+import { CoverImage } from '../ui/CoverImage'
 import { WorkGrid } from './WorkGrid'
 import { StudioChrome } from './StudioChrome'
 
@@ -19,18 +20,23 @@ export function StudioHome({ content: c }: { content: PortfolioContent }) {
     .slice(0, 3)
   return (
     <StudioChrome name={name} footer={c.footer} profile={c.header}>
-      <main tabIndex={-1} id="main-content" className="resume-content">
+      <main tabIndex={-1} id="main-content" className="bento-board">
         <section className="resume-summary studio-container" id="home">
           <div className="resume-page-heading">
-            <span className="studio-eyebrow">Professional profile</span>
+            <span className="studio-eyebrow">Independent portfolio</span>
             <a className="studio-text-link" href="#contact">
-              Contact details ↗
+              Say hello ↗
             </a>
           </div>
           <h1>{name}</h1>
           <p className="resume-role">{c.header?.professionTexts[0] || 'Professional portfolio'}</p>
           {c.about?.experience.description ? (
-            <p className="resume-bio">{c.about.experience.description}</p>
+            <details className="bento-bio">
+              <summary>
+                About my work <span aria-hidden="true">+</span>
+              </summary>
+              <p>{c.about.experience.description}</p>
+            </details>
           ) : null}
           {c.header?.professionTexts.slice(1).length ? (
             <p className="resume-specialties">{c.header.professionTexts.slice(1).join(' · ')}</p>
@@ -43,10 +49,87 @@ export function StudioHome({ content: c }: { content: PortfolioContent }) {
             ) : (
               <span>Experience, skills & selected work</span>
             )}
-            <a className="studio-button" href="#experience">
-              View experience <span aria-hidden="true">↓</span>
+            <a className="studio-button" href="#project">
+              Explore my work <span aria-hidden="true">↓</span>
             </a>
           </div>
+        </section>
+
+        <section className="bento-portrait" aria-label="Profile portrait">
+          <span className="studio-eyebrow">The person behind the work</span>
+          {c.header?.imageUrl ? (
+            <CoverImage
+              src={c.header.imageUrl}
+              fallbackSrc="/placeholder.svg"
+              alt={name}
+              width={420}
+              height={420}
+              priority
+              sizes="(max-width: 760px) 100vw, 33vw"
+            />
+          ) : (
+            <span className="bento-portrait-initials" aria-hidden="true">
+              {name
+                .split(/\s+/)
+                .slice(0, 2)
+                .map((part) => part[0])
+                .join('')}
+            </span>
+          )}
+          <footer className="bento-portrait-caption">
+            <span>{name}</span>
+            {c.header?.requestCV ? (
+              <a href={c.header.requestCV}>Request CV ↗</a>
+            ) : (
+              <a href="#contact">Contact ↗</a>
+            )}
+          </footer>
+        </section>
+
+        <section className="studio-section studio-container" id="skill">
+          <SectionHeading label="Technical profile" title="Skills & expertise" />
+          <div className="studio-skills">
+            {Object.entries(c.skills).map(([group, skills]) => (
+              <div key={group}>
+                <h3>{group === 'frontend' ? 'Front-end development' : 'Back-end development'}</h3>
+                <div className="studio-tags">
+                  {skills.map((skill) => (
+                    <span key={skill.id}>{skill.label}</span>
+                  ))}
+                </div>
+                {!skills.length ? <p className="studio-empty">No skills listed yet.</p> : null}
+              </div>
+            ))}
+          </div>
+          {c.services.items.length ? (
+            <details className="bento-services" id="service">
+              <summary>
+                How I can help <span aria-hidden="true">+</span>
+              </summary>
+              <div className="studio-services">
+                {c.services.items.map((service) => (
+                  <article key={service.id}>
+                    <h3>{service.category}</h3>
+                    <ul>
+                      {service.descriptions.map((description, index) => (
+                        <li key={index}>{description}</li>
+                      ))}
+                    </ul>
+                  </article>
+                ))}
+              </div>
+            </details>
+          ) : (
+            <div id="service" />
+          )}
+        </section>
+
+        <section className="studio-section studio-container" id="project">
+          <SectionHeading label="Portfolio" title="Selected projects" />
+          <WorkGrid projects={c.projects} initialLimit={4} />
+          <Link className="studio-text-link studio-archive-link" href="/projects">
+            Browse project archive ↗
+          </Link>
         </section>
 
         <section className="studio-section studio-container studio-career" id="experience">
@@ -67,44 +150,29 @@ export function StudioHome({ content: c }: { content: PortfolioContent }) {
           ) : null}
         </section>
 
-        <section className="studio-section studio-container" id="skill">
-          <SectionHeading label="Technical profile" title="Skills & expertise" />
-          <div className="studio-skills">
-            {Object.entries(c.skills).map(([group, skills]) => (
-              <div key={group}>
-                <h3>{group === 'frontend' ? 'Front-end development' : 'Back-end development'}</h3>
-                <div className="studio-tags">
-                  {skills.map((skill) => (
-                    <span key={skill.id}>{skill.label}</span>
-                  ))}
+        <section className="studio-section studio-container" id="article">
+          <SectionHeading label="Articles & insights" title="Recent writing" />
+          <div className="resume-writing-list">
+            {writing.map((article) => (
+              <article key={article.id}>
+                <div>
+                  <p className="studio-eyebrow">
+                    {article.featured ? 'Featured · ' : ''}
+                    {article.author} · {article.readTime}
+                  </p>
+                  <h3>
+                    <Link href={article.pagePath || article.link}>
+                      {article.title} <span aria-hidden="true">↗</span>
+                    </Link>
+                  </h3>
+                  <p>{article.excerpt}</p>
                 </div>
-                {!skills.length ? <p className="studio-empty">No skills listed yet.</p> : null}
-              </div>
+              </article>
             ))}
           </div>
-          {c.services.items.length ? (
-            <div className="studio-services" id="service">
-              {c.services.items.map((service) => (
-                <article key={service.id}>
-                  <h3>{service.category}</h3>
-                  <ul>
-                    {service.descriptions.map((description, index) => (
-                      <li key={index}>{description}</li>
-                    ))}
-                  </ul>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div id="service" />
-          )}
-        </section>
-
-        <section className="studio-section studio-container" id="project">
-          <SectionHeading label="Portfolio" title="Selected projects" />
-          <WorkGrid projects={c.projects} initialLimit={4} />
-          <Link className="studio-text-link studio-archive-link" href="/projects">
-            Browse project archive ↗
+          {!writing.length ? <p className="studio-empty">No articles published yet.</p> : null}
+          <Link className="studio-text-link studio-archive-link" href="/articles">
+            Browse all writing ↗
           </Link>
         </section>
 
@@ -168,32 +236,6 @@ export function StudioHome({ content: c }: { content: PortfolioContent }) {
             </div>
           </section>
         ) : null}
-
-        <section className="studio-section studio-container" id="article">
-          <SectionHeading label="Articles & insights" title="Recent writing" />
-          <div className="resume-writing-list">
-            {writing.map((article) => (
-              <article key={article.id}>
-                <div>
-                  <p className="studio-eyebrow">
-                    {article.featured ? 'Featured · ' : ''}
-                    {article.author} · {article.readTime}
-                  </p>
-                  <h3>
-                    <Link href={article.pagePath || article.link}>
-                      {article.title} <span aria-hidden="true">↗</span>
-                    </Link>
-                  </h3>
-                  <p>{article.excerpt}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-          {!writing.length ? <p className="studio-empty">No articles published yet.</p> : null}
-          <Link className="studio-text-link studio-archive-link" href="/articles">
-            Browse all writing ↗
-          </Link>
-        </section>
 
         <section className="studio-section studio-container studio-contact" id="contact">
           <SectionHeading label="Get in touch" title="Contact" />

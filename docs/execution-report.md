@@ -16,7 +16,32 @@ All changes were committed and pushed directly to the designated branch. No pull
 request was created. No production deployment, production-data reset or content-model
 migration was performed. The earlier Studio redesign and hardening remain intact.
 
-## Latest requested change: professional résumé redesign
+## Latest requested change: modern bento portfolio
+
+The owner rejected the résumé/sidebar design and selected **Modern bento**. Replaced
+that layout with an asymmetric twelve-column board: a wide introduction tile next
+to a mint portrait/CV tile, a compact skills tile beside image-led projects, paired
+experience/writing and qualification/about tiles, and a full-width peach contact tile.
+The former fixed sidebar is gone; compact horizontal navigation serves all public
+pages. The palette is warm neutral, sage, mint, and peach rather than the rejected
+navy résumé or midnight/lime design.
+
+Long biography and service content remain accessible in native expandable panels;
+project filters, screenshot viewing, archives, search/history, article reading, CMS
+content, CV, external profile links, and RSS remain intact. Mobile tiles stack with
+no horizontal overflow. No new content schema, fabricated professional claims, or
+Payload admin styling was introduced. Removed obsolete sidebar-only CSS rules and
+replaced résumé-geometry tests with bento-grid geometry checks.
+
+Validation: **79 frontend tests, 26 preview browser tests, 8 application browser tests,
+and 10 live-CMS browser tests passed**. Lint, TypeScript, and the production build
+passed. Desktop/mobile screenshots were visually reviewed. Automated accessibility
+checks include the homepage, archives, article, screenshot viewer, and recovery views.
+Port 3000 is running the rebuilt app with isolated integration content; port 4173
+shows the labeled checked-in sample-content design preview. No production deployment
+was performed. Local environment-generated schema files remain outside this UI commit.
+
+## Historical, superseded direction: professional résumé redesign
 
 The owner rejected the modern-dark presentation and explicitly selected **Professional
 résumé**: a practical sidebar with profile, experience, skills, and projects clearly
