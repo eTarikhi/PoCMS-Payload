@@ -126,6 +126,11 @@ modernisation programme; every entry links the roadmap item it closes
   Both refuse the page's own connection and background processes, and are audited.
   `GET /api/database/sessions`, `POST …/sessions/cancel`, `POST …/sessions/terminate`; a
   `sessions: false` option removes the card and the three endpoints.
+- **Weekly database upkeep job.** A new `database-upkeep` task (Sundays) `ANALYZE`s tables that have
+  rows but no statistics, `VACUUM ANALYZE`s those with more than 1 000 dead rows, and moves ID
+  sequences that fell behind their highest id — the failure that shows up as a duplicate key on the
+  next insert. Orphaned rows and invalid indexes are reported, never applied, because both need a
+  decision; tables over 200 MB are left to autovacuum so the run fits in one serverless request.
 - **Table DDL and a size breakdown.** The table card opens a **Schema (DDL)** panel with the
   `CREATE TABLE`, the constraints and the index definitions, all from Postgres's own deparsing, and
   downloads the same text from `GET /api/database/table?format=ddl`. The header splits the size into

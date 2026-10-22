@@ -10,6 +10,7 @@ import * as migration_20261021_163000_media_folders from './20261021_163000_medi
 import * as migration_20261022_045702_admin_changes from './20261022_045702_admin_changes';
 import * as migration_20261022_090000_seo_meta from './20261022_090000_seo_meta';
 import * as migration_20261022_140000_database_tools_capability from './20261022_140000_database_tools_capability';
+import * as migration_20261022_160000_database_upkeep_job from './20261022_160000_database_upkeep_job';
 
 export const migrations = [
   {
@@ -71,5 +72,10 @@ export const migrations = [
     up: migration_20261022_140000_database_tools_capability.up,
     down: migration_20261022_140000_database_tools_capability.down,
     name: '20261022_140000_database_tools_capability'
+  },
+  {
+    up: migration_20261022_160000_database_upkeep_job.up,
+    down: migration_20261022_160000_database_upkeep_job.down,
+    name: '20261022_160000_database_upkeep_job'
   },
 ];

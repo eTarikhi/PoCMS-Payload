@@ -22,6 +22,7 @@ describe('JobRun registry', () => {
       'pagespeed-report',
       'publish-scheduled',
       'broken-links',
+      'database-upkeep',
     ])
     for (const task of TASKS) {
       expect(task.label.length).toBeGreaterThan(0)
@@ -167,6 +168,70 @@ describe('Jobs', () => {
     track(again.job)
     const { ran } = await runQueue(payload, { only: 'trash-cleanup' })
     expect(ran.map((job) => job.id)).toContain(again.job.id)
+  })
+
+  it('runs database upkeep: analyzes, moves sequences and leaves decisions alone', async () => {
+    const queued = await queueJob(payload, { task: 'database-upkeep', trigger: 'manual' })
+    expect(queued.status).toBe('queued')
+    if (queued.status !== 'queued') return
+    track(queued.job)
+
+    const { ran } = await runQueue(payload, { only: 'database-upkeep' })
+    expect(ran.map((job) => job.id)).toContain(queued.job.id)
+
+    const run = await payload.findByID({
+      collection: 'job-runs',
+      id: queued.job.id,
+      overrideAccess: true,
+    })
+    expect(run.status).toBe('done')
+    // Either it found work (tables analyzed / sequences moved) or said so plainly.
+    expect(run.summary).toMatch(/tables analyzed|Nothing to (do|analyze)/)
+    const details = run.details as {
+      tables: number
+      analyzed: number
+      sequencesRepaired: number
+      checks: { id: string; status: string }[]
+    }
+    expect(details.tables).toBeGreaterThan(10)
+    expect(details.analyzed).toBeLessThanOrEqual(20)
+    // Only the checks the page also runs; a job never invents a status.
+    for (const check of details.checks) {
+      expect(['migrations', 'sequences', 'orphans', 'indexes', 'statistics', 'bloat', 'primary-keys'])
+        .toContain(check.id)
+    }
+  })
+
+  it('moves a sequence that fell behind, so the next insert succeeds', async () => {
+    const { withDatabase } = await import('@/plugins/databaseTools/server/connection')
+    const label = `Sequence drift ${stamp}`
+    await withDatabase(async (client) => {
+      const { rows } = await client.query<{ seq: string }>(
+        `select pg_get_serial_sequence('skills', 'id') as seq`,
+      )
+      // Behind the highest id: the next insert would reuse a primary key.
+      await client.query(`select setval($1, 1, true)`, [rows[0].seq])
+    })
+
+    const queued = await queueJob(payload, { task: 'database-upkeep', trigger: 'manual' })
+    if (queued.status !== 'queued') throw new Error('expected a queued run')
+    track(queued.job)
+    await runQueue(payload, { only: 'database-upkeep' })
+
+    const run = await payload.findByID({
+      collection: 'job-runs',
+      id: queued.job.id,
+      overrideAccess: true,
+    })
+    expect((run.details as { sequencesRepaired: number }).sequencesRepaired).toBeGreaterThan(0)
+
+    // The fix is what it claims: an ordinary insert now gets a free id.
+    const created = await payload.create({
+      collection: 'skills',
+      data: { label, value: 1, group: 'frontend', color: 'primary' },
+    })
+    expect(created.id).toBeGreaterThan(0)
+    await payload.delete({ collection: 'skills', id: created.id })
   })
 
   it('deletes trash older than the retention window, permanently', async () => {

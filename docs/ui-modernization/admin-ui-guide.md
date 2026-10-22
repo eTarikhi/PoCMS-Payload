@@ -746,7 +746,9 @@ maintenance tasks the CMS needs and shows when each one ran and what it found. T
 | --- | --- | --- |
 | `trash-cleanup` | daily | Permanently deletes documents that have been in the trash longer than `TRASH_RETENTION_DAYS` (30), on every `trash: true` collection. Media files go with their documents. |
 | `pagespeed-report` | daily | Runs Lighthouse for phones and desktops through PageSpeed Insights (in parallel) and stores both runs in `pagespeed-reports`. Needs `GOOGLE_API_KEY` and a public site address. Keeps 90 days. |
+| `publish-scheduled` | daily | Publishes draft articles whose *Publish at* has passed, so a scheduled article goes live within a day (one cron call per day on Hobby). Running it by hand publishes immediately. |
 | `broken-links` | Mondays | Crawls the home page and every article page, collects their links and requests each one (HEAD, then GET when a server refuses HEAD). Reports the broken ones with the page they were found on. Up to 60 links per run. |
+| `database-upkeep` | Sundays | `ANALYZE`s the tables that have rows but no statistics, `VACUUM ANALYZE`s those with more than 1 000 dead rows, and moves any ID sequence that fell behind its highest id. Leaves orphaned rows and invalid indexes to the database page, where they are reported but not applied, and skips tables over 200 MB so a run fits in one request. |
 
 How a run happens:
 

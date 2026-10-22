@@ -130,6 +130,7 @@ export const enum_job_runs_task = pgEnum('enum_job_runs_task', [
   'pagespeed-report',
   'publish-scheduled',
   'broken-links',
+  'database-upkeep',
 ])
 export const enum_job_runs_status = pgEnum('enum_job_runs_status', [
   'queued',

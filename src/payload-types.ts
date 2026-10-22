@@ -633,7 +633,7 @@ export interface Role {
  */
 export interface JobRun {
   id: number;
-  task: 'trash-cleanup' | 'pagespeed-report' | 'publish-scheduled' | 'broken-links';
+  task: 'trash-cleanup' | 'pagespeed-report' | 'publish-scheduled' | 'broken-links' | 'database-upkeep';
   status: 'queued' | 'running' | 'done' | 'failed' | 'cancelled';
   trigger: 'manual' | 'cron';
   /**
