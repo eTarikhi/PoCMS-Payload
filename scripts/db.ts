@@ -35,7 +35,7 @@ import {
   type CoreTable,
   type SchemaFacts,
 } from '../src/lib/database-readiness'
-import { inspectRestore, restoreSql } from '../src/database/restore'
+import { inspectRestore, restoreSql } from '../src/plugins/databaseTools/server/restore'
 import { migrations } from '../src/migrations'
 
 const args = process.argv.slice(2)

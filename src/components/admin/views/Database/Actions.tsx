@@ -26,6 +26,25 @@ import { cn } from '@/components/admin/utilities/cn'
 
 type Reply = { ok: boolean; error?: string; hint?: string; [key: string]: unknown }
 
+/**
+ * The plugin's endpoint prefix (`options.apiBasePath` under the API route). The server component
+ * passes it once, so no action hard-codes `/api/database`: a host that mounts the plugin at another
+ * path gets working buttons without touching this file.
+ */
+const ApiBase = React.createContext('/api/database')
+
+export function DatabaseToolsApi({
+  apiBase,
+  children,
+}: {
+  apiBase: string
+  children: React.ReactNode
+}) {
+  return <ApiBase.Provider value={apiBase}>{children}</ApiBase.Provider>
+}
+
+const useApiBase = () => React.useContext(ApiBase)
+
 async function post(path: string, body: unknown): Promise<Reply> {
   try {
     const response = await fetch(path, {
@@ -91,13 +110,14 @@ const ACTIONS: { action: Action; label: string }[] = [
 /** One button per maintenance action, optionally limited to the table being browsed. */
 export function MaintenanceButtons({ table }: { table?: string }) {
   const router = useRouter()
+  const apiBase = useApiBase()
   const [busy, setBusy] = React.useState<Action | null>(null)
   const [reply, setReply] = React.useState<Reply | null>(null)
 
   const run = async (action: Action) => {
     setBusy(action)
     setReply(null)
-    const result = await post('/api/database/maintenance', { action, table: table ?? null })
+    const result = await post(`${apiBase}/maintenance`, { action, table: table ?? null })
     setReply(result)
     if (result.ok) router.refresh()
     setBusy(null)
@@ -140,6 +160,7 @@ export function MaintenanceButtons({ table }: { table?: string }) {
 /** The Fix button next to a repair check that has one. */
 export function RepairButton({ check, label }: { check: string; label: string }) {
   const router = useRouter()
+  const apiBase = useApiBase()
   const [busy, setBusy] = React.useState(false)
   const [reply, setReply] = React.useState<Reply | null>(null)
 
@@ -152,7 +173,7 @@ export function RepairButton({ check, label }: { check: string; label: string })
         onClick={async () => {
           setBusy(true)
           setReply(null)
-          const result = await post('/api/database/repair', { check })
+          const result = await post(`${apiBase}/repair`, { check })
           setReply(result)
           if (result.ok) router.refresh()
           setBusy(false)
@@ -173,6 +194,7 @@ export function RepairButton({ check, label }: { check: string; label: string })
 /** Run every repair that has one, in one request. */
 export function RepairAllButton({ count }: { count: number }) {
   const router = useRouter()
+  const apiBase = useApiBase()
   const [busy, setBusy] = React.useState(false)
   const [reply, setReply] = React.useState<Reply | null>(null)
 
@@ -184,7 +206,7 @@ export function RepairAllButton({ count }: { count: number }) {
         onClick={async () => {
           setBusy(true)
           setReply(null)
-          const result = await post('/api/database/repair', { check: 'all' })
+          const result = await post(`${apiBase}/repair`, { check: 'all' })
           setReply(result)
           if (result.ok) router.refresh()
           setBusy(false)
@@ -226,6 +248,7 @@ type Inspection = {
  */
 export function RestorePanel() {
   const router = useRouter()
+  const apiBase = useApiBase()
   const [file, setFile] = React.useState<File | null>(null)
   const [sql, setSql] = React.useState<string | null>(null)
   const [inspection, setInspection] = React.useState<Inspection | null>(null)
@@ -254,7 +277,7 @@ export function RestorePanel() {
     if (!sql) return
     setBusy('inspect')
     setReply(null)
-    const result = await post('/api/database/restore-inspect', { sql })
+    const result = await post(`${apiBase}/restore-inspect`, { sql })
     if (result.ok) setInspection(result.inspection as Inspection)
     else setReply(result)
     setBusy(null)
@@ -264,7 +287,7 @@ export function RestorePanel() {
     if (!sql) return
     setBusy('restore')
     setReply(null)
-    const result = await post('/api/database/restore', {
+    const result = await post(`${apiBase}/restore`, {
       sql,
       confirmation,
       force: confirmation.trim().toLowerCase() === 'restore',
@@ -407,6 +430,7 @@ export function RestorePanel() {
 /** Create a Neon branch pinned to now: the cheap, provider-level backup. */
 export function NeonBackupForm({ defaultName }: { defaultName: string }) {
   const router = useRouter()
+  const apiBase = useApiBase()
   const [name, setName] = React.useState(defaultName)
   const [withEndpoint, setWithEndpoint] = React.useState(false)
   const [busy, setBusy] = React.useState(false)
@@ -427,7 +451,7 @@ export function NeonBackupForm({ defaultName }: { defaultName: string }) {
           onClick={async () => {
             setBusy(true)
             setReply(null)
-            const result = await post('/api/database/neon/backup', { name, withEndpoint })
+            const result = await post(`${apiBase}/neon/backup`, { name, withEndpoint })
             setReply(result)
             if (result.ok) router.refresh()
             setBusy(false)
@@ -458,6 +482,7 @@ export function NeonBackupForm({ defaultName }: { defaultName: string }) {
 /** Point-in-time restore of the whole branch — the one operation that replaces every table. */
 export function NeonRestoreForm({ latest }: { latest: string }) {
   const router = useRouter()
+  const apiBase = useApiBase()
   const [timestamp, setTimestamp] = React.useState(latest)
   const [preserve, setPreserve] = React.useState('before-restore')
   const [confirmation, setConfirmation] = React.useState('')
@@ -510,7 +535,7 @@ export function NeonRestoreForm({ latest }: { latest: string }) {
           onClick={async () => {
             setBusy(true)
             setReply(null)
-            const result = await post('/api/database/neon/restore', {
+            const result = await post(`${apiBase}/neon/restore`, {
               // The input is the browser's local time; send the instant, not the wall clock.
               timestamp: new Date(timestamp).toISOString(),
               confirmation,
@@ -537,6 +562,7 @@ export function NeonRestoreForm({ latest }: { latest: string }) {
 /** Delete a branch (a backup, normally). Typing the id is the confirmation. */
 export function NeonDeleteBranch({ branchId, name }: { branchId: string; name: string }) {
   const router = useRouter()
+  const apiBase = useApiBase()
   const [open, setOpen] = React.useState(false)
   const [confirmation, setConfirmation] = React.useState('')
   const [busy, setBusy] = React.useState(false)
@@ -572,7 +598,7 @@ export function NeonDeleteBranch({ branchId, name }: { branchId: string; name: s
           onClick={async () => {
             setBusy(true)
             setReply(null)
-            const result = await post('/api/database/neon/delete', { branchId, confirmation })
+            const result = await post(`${apiBase}/neon/delete`, { branchId, confirmation })
             setReply(result)
             if (result.ok) {
               setOpen(false)

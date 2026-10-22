@@ -108,9 +108,11 @@ export class NeonClient {
   }
 
   constructor(options: NeonOptions = {}) {
-    this.apiKey = options.apiKey ?? process.env.NEON_API_KEY ?? ''
-    this.projectId = options.projectId ?? process.env.NEON_PROJECT_ID ?? undefined
-    this.branchId = options.branchId ?? process.env.NEON_BRANCH_ID ?? undefined
+    // `||`, not `??`: an empty line in `.env` (`NEON_BRANCH_ID=`) is not a configured value. With
+    // `??` it would become the branch id `''` and a restore would POST to `/branches//restore`.
+    this.apiKey = options.apiKey || process.env.NEON_API_KEY || ''
+    this.projectId = options.projectId || process.env.NEON_PROJECT_ID || undefined
+    this.branchId = options.branchId || process.env.NEON_BRANCH_ID || undefined
     this.fetchImpl = options.fetch ?? fetch
     this.timeoutMs = options.timeoutMs ?? 20_000
   }

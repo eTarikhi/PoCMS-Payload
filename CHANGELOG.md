@@ -24,7 +24,8 @@ modernisation programme; every entry links the roadmap item it closes
   destructive action is written to the audit log, and no message is a raw query or a connection
   string. Backups restore with `psql -f` or the new `pnpm db:restore <file> --yes`, which was
   verified round-trip into a fresh database (44 tables, 186 rows, migration history intact). Tests:
-  `tests/int/database-tools.int.spec.ts` (32, live SQL + the Neon client against a fake `fetch`).
+  `tests/int/database-tools.int.spec.ts` (live SQL + the Neon client against a fake `fetch`);
+  see the plugin entry under Changed for the packaging and its tests.
 - **`pnpm admin:create` and `pnpm admin:status`.** The first account normally comes from the
   admin's "Create first user" screen, but that cannot help when a database already has a user row
   whose password is unknown, or an account with no role (the admin refuses those at
@@ -113,6 +114,24 @@ modernisation programme; every entry links the roadmap item it closes
   same key, and the seed appends documents one at a time. `src/fields/order.ts` is gone. Migrations
   `20261021_001500_skills_orderable` and `20261021_150000_orderable_profile_and_services` backfill
   the keys from the old numbers and drop the column.
+
+### Changed
+
+- **The database tools are a Payload plugin.** The page, its eight endpoints and its sidebar link
+  now come from one `databaseTools({ … })` call in `plugins:`, the layout Payload documents in
+  *Build your own plugin*: a typed factory `(options) => (config) => config` in
+  `src/plugins/databaseTools` that appends the view to `admin.components.views`, the link to
+  `afterNavLinks` and the endpoints to `config.endpoints`. The host supplies what only it knows —
+  `access` (the `manageDatabase` capability), `audit` (the audit log), `migrations` (what the
+  migration check should expect) and an optional `navigation.visible` for the link, which renders
+  without a request — and everything else has defaults: paths, titles, the 25 MB restore limit, the
+  100,000-row dump cap, `NEON_*` from the environment, and `restore: false` / `neon: false` to drop
+  whole cards. The resolved options reach the server components as `serverProps`, so the page and the
+  link use the same rule as the endpoints. `src/database` and `src/endpoints/database*.ts` moved into
+  the plugin; `DATABASE_TOOLS_CAPABILITY` is now the single definition of the capability the Roles
+  screen shows. The components and the endpoint URLs are unchanged, as is what the page does. Tests:
+  `tests/int/database-tools-plugin.int.spec.ts` covers the packaging (12), `tests/int/database-tools`
+  the SQL (36). Docs: `docs/plugins/database-tools.md`.
 
 ### Added
 

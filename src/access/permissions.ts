@@ -1,3 +1,5 @@
+import { DATABASE_TOOLS_CAPABILITY } from '@/plugins/databaseTools/options'
+
 /**
  * Roles, permissions and access levels (ADR 0011). Isomorphic: no Payload runtime imports, so
  * client components (command menu, header actions) can read the signed-in user's permissions too.
@@ -59,12 +61,8 @@ export const CAPABILITIES = [
     label: 'System information',
     description: 'Versions, environment, database and configured integrations.',
   },
-  {
-    name: 'manageDatabase',
-    label: 'Database tools',
-    description:
-      'Inspect tables, back up and restore, run VACUUM/ANALYZE/REINDEX, repair sequences and orphans, and manage Neon branches.',
-  },
+  // The database-tools plugin exports the descriptor it documents; the app is the one that grants it.
+  DATABASE_TOOLS_CAPABILITY,
   {
     name: 'useDeveloperTools',
     label: 'Developer tools',

@@ -8,6 +8,10 @@ This repository is organized into a small set of topic-based guides. Use the pag
 - [Getting started](getting-started.md) — install, configure, and run locally
 - [Project structure](project-structure.md) — code layout and content collections
 
+## Plugins
+
+- [Database tools](plugins/database-tools.md) — the `/admin/database` page as a Payload plugin: options, endpoints, the capability and what it leaves to the host
+
 ## Reference and operations
 
 - [API reference](api.md) — REST and GraphQL usage

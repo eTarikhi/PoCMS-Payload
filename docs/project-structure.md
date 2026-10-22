@@ -19,10 +19,10 @@ PoCMS-Payload/
 │   │   ├── widgets/          #   dashboard widgets and their config
 │   │   └── hooks/, utilities/
 │   ├── styles/admin/         # Admin design tokens, Tailwind entry, Payload overrides
-│   ├── plugins/              # Config plugins (adminUI: list view, list summary, cells)
+│   ├── plugins/              # Payload plugins: adminUI (list view, cells), auditLog, seo,
+│   │                         #   databaseTools (page at /admin/database, its endpoints and link)
 │   ├── access/               # Roles and permissions (ADR 0011), singleton create access
-│   ├── database/             # Database tools: introspection, backup, restore, maintenance, repair, Neon
-│   ├── endpoints/            # Custom API endpoints
+│   ├── endpoints/            # Custom API endpoints (the database tools' live in the plugin)
 │   ├── fields/               # Shared field definitions
 │   ├── seed/                 # Seed script and data
 │   ├── payload-types.ts      # Generated types (pnpm generate:all)
@@ -81,6 +81,16 @@ The main Payload setup is usually found in the `src` directory, most notably the
 - admin UI behavior
 - API endpoints and hooks
 - database and media integrations
+
+## Plugins
+
+`src/plugins` holds the extensions to Payload's config rather than to its components. `adminUI`
+registers the list view, list summary and cells; `auditLog` records every change; `seo` adds the
+metadata group; `databaseTools` is a self-contained plugin — the database page, its endpoints and
+its sidebar link — with the access rule, audit sink and migration list supplied by the host. It is
+laid out like a package (`options.ts`, `endpoints.ts`, `server/*`, the components under
+`src/components/admin`) so it can be published on its own; see
+[docs/plugins/database-tools.md](./plugins/database-tools.md).
 
 ## Admin UI
 

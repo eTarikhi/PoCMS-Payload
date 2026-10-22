@@ -67,6 +67,8 @@ export type BackupOptions = {
   includeData?: boolean
   /** Also copy locks and preferences (normally left out). */
   includeInternal?: boolean
+  /** Tables that must never be in the dump, whatever else is selected. */
+  exclude?: string[]
   maxRowsPerTable?: number
 }
 
@@ -238,8 +240,11 @@ export const buildSqlBackup = async (
   const target = databaseTarget()
 
   const all = await listTables(client)
+  const excluded = new Set(options.exclude ?? [])
   const wanted = options.tables && options.tables.length > 0 ? new Set(options.tables) : null
-  const chosen = all.filter((table) => (wanted ? wanted.has(table.name) : true))
+  const chosen = all.filter(
+    (table) => !excluded.has(table.name) && (wanted ? wanted.has(table.name) : true),
+  )
   const skipped = all.filter((table) => !chosen.includes(table)).map((table) => table.name)
   const noRows = chosen
     .filter((table) => !rowsWanted(table.name, includeData, includeInternal))
@@ -372,8 +377,11 @@ export const buildJsonBackup = async (
   const maxRows = options.maxRowsPerTable ?? MAX_ROWS_PER_TABLE
   const target = databaseTarget()
   const all = await listTables(client)
+  const excluded = new Set(options.exclude ?? [])
   const wanted = options.tables && options.tables.length > 0 ? new Set(options.tables) : null
-  const chosen = all.filter((table) => (wanted ? wanted.has(table.name) : true))
+  const chosen = all.filter(
+    (table) => !excluded.has(table.name) && (wanted ? wanted.has(table.name) : true),
+  )
 
   const tables: JsonBackup['tables'] = []
   for (const table of chosen) {

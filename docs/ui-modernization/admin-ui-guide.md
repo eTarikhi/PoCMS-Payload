@@ -175,7 +175,9 @@ checkbox is a `span[role=checkbox]`, so name it with `aria-labelledby` or `aria-
 - `beforeNavLinks`: the **Create** control lists only collections the user may create. It is a
   native disclosure (`details`/`summary`) holding links, closed by Escape or an outside click.
 - `afterNavLinks` (`nav/NavExtraLinks`): **View site** (`NEXT_PUBLIC_SITE_URL`, or the same
-  origin) and, with the Developer tools capability, the **Component gallery**.
+  origin) and, with the Developer tools capability, the **Component gallery**. The **Database**
+  link follows it, registered by the database tools plugin (`nav/DatabaseNavLink`) rather than by
+  `NavExtraLinks`, so the plugin stays portable.
 - No `settingsMenu` (gear) and no sidebar log out (`logout.Button` is `nav/HiddenLogout`): the
   site cache refresh is in the developer tools menu and log out in the account menu, both in the
   header. `POST /api/revalidate-site` (`src/endpoints/revalidateSite.ts`) expires the `portfolio`
@@ -849,7 +851,10 @@ The dashboard's **Audit log** widget shows the same entries, newest first.
 Adding a capability-guarded tool: add its name to `CAPABILITIES` (`src/access/permissions.ts`), use
 `hasCapability(req.user, '…')` in the view and `capabilityAccess('…')` in a collection's access, add
 the link to `NavExtraLinks` when it has a page of its own, and add it to the role form — the form is
-generated from `CAPABILITIES`.
+generated from `CAPABILITIES`. A tool that should be reusable elsewhere is a plugin instead:
+`manageDatabase` comes from `DATABASE_TOOLS_CAPABILITY` (re-exported by the database tools plugin),
+which the Roles form lists like any other entry, and the plugin registers its own view, link and
+endpoints; see [docs/plugins/database-tools.md](../plugins/database-tools.md).
 
 ## System page
 
@@ -873,18 +878,24 @@ capability gets a 404 and that no secret value reaches the page.
 Admin › **Database** (`/admin/database`, `views/Database`, the `manageDatabase` capability) is the
 operational view of the tables. It is separate from **System** on purpose: System reads a snapshot
 with the Payload adapter (`viewSystem`), while this page opens its own `pg` connection
-(`src/database/connection.ts`, `DATABASE_DIRECT_URL` or `POSTGRES_URL`) because maintenance cannot
-run through a single-query adapter.
+(`src/plugins/databaseTools/server/connection.ts`, `DATABASE_DIRECT_URL` or `POSTGRES_URL`) because
+maintenance cannot run through a single-query adapter.
+
+The page, its endpoints and its sidebar link come from one plugin call,
+`databaseTools({ access, audit, migrations })` in `src/payload.config.ts`; the plugin packages the
+tools so another Payload project can mount them. See
+[docs/plugins/database-tools.md](../plugins/database-tools.md) for the options, the endpoints and
+how the capability is granted.
 
 | Card | What it does | Where the SQL lives |
 | --- | --- | --- |
-| Connection | Server version, size, connections, cache-hit ratio, uptime, and whether the URL is a pooled serverless endpoint. | `src/database/introspection.ts` |
-| Backup | Download a `.sql` dump (whole database, the browsed table, or schema only) or a `.json` description. | `src/database/backup.ts` |
+| Connection | Server version, size, connections, cache-hit ratio, uptime, and whether the URL is a pooled serverless endpoint. | `server/introspection.ts` |
+| Backup | Download a `.sql` dump (whole database, the browsed table, or schema only) or a `.json` description. | `server/backup.ts` |
 | Tables | Every `public` table with row estimate, size, dead rows and last vacuum; **Browse** opens columns, primary key, indexes, constraints and a page of 25 rows. Read-only. | `introspection.ts` |
-| Maintenance | `ANALYZE`, `VACUUM`, `VACUUM ANALYZE`, and `REINDEX CONCURRENTLY` of every invalid index — on the whole database or the browsed table. | `maintenance.ts` |
-| Health and repair | Seven checks (migrations, sequences, relation rows, indexes, statistics, dead rows, primary keys) and the four that are safely fixable: `setval`, `DELETE` orphans, `REINDEX`, `ANALYZE`. | `repair.ts` |
-| Neon branches | With `NEON_API_KEY`: create a branch at this moment, list branches, delete a backup branch, and restore the branch to a timestamp with the current state kept under a name. | `neon.ts` |
-| Restore | Choose a `.sql` file, **Check the file** (statements, tables, existing content, whether it is transactional), then type `restore` to run it. | `restore.ts` |
+| Maintenance | `ANALYZE`, `VACUUM`, `VACUUM ANALYZE`, and `REINDEX CONCURRENTLY` of every invalid index — on the whole database or the browsed table. | `server/maintenance.ts` |
+| Health and repair | Seven checks (migrations, sequences, relation rows, indexes, statistics, dead rows, primary keys) and the four that are safely fixable: `setval`, `DELETE` orphans, `REINDEX`, `ANALYZE`. | `server/repair.ts` |
+| Neon branches | With `NEON_API_KEY`: create a branch at this moment, list branches, delete a backup branch, and restore the branch to a timestamp with the current state kept under a name. | `server/neon.ts` |
+| Restore | Choose a `.sql` file, **Check the file** (statements, tables, existing content, whether it is transactional), then type `restore` to run it. | `server/restore.ts` |
 
 Decisions worth knowing:
 
@@ -913,11 +924,13 @@ Decisions worth knowing:
   Without a key the card explains the two variables and links the console; the endpoints answer
   `501`, not a permission error.
 
-Every endpoint (`src/endpoints/database.ts`, `databaseNeon.ts`) answers `403` without the capability,
-logs through Payload's logger, writes restores, maintenance and branch changes to the audit log, and
-returns a one-line explanation — never a stack trace, a query, or a connection string. The page's
-data functions are covered live in `tests/int/database-tools.int.spec.ts`; the Neon client is tested
-against a fake `fetch` that asserts paths and bodies.
+Every endpoint (`src/plugins/databaseTools/endpoints.ts`) answers `403` without the capability,
+logs through Payload's logger, writes restores, maintenance and branch changes through the plugin's
+`audit` sink (the app's audit log), and returns a one-line explanation — never a stack trace, a
+query, or a connection string. The page's data functions are covered live in
+`tests/int/database-tools.int.spec.ts`; the Neon client is tested against a fake `fetch` that
+asserts paths and bodies, and the plugin's contract (options, defaults, what it registers) in
+`tests/int/database-tools-plugin.int.spec.ts`.
 
 ## Terminal (development only)
 

@@ -1,6 +1,6 @@
 import pg from 'pg'
 
-import { pgClientOptions } from '../lib/database-readiness'
+import { pgClientOptions } from '@/lib/database-readiness'
 
 /**
  * A direct Postgres connection for the admin's database tools.
@@ -78,7 +78,7 @@ export async function withDatabase<T>(fn: (client: pg.Client) => Promise<T>): Pr
     await client.connect()
   } catch (error) {
     const { connectionFailureOf, describeConnectionError } =
-      await import('../lib/database-readiness')
+      await import('@/lib/database-readiness')
     throw new DatabaseToolsError(describeConnectionError(connectionFailureOf(error)))
   }
 

@@ -6,9 +6,13 @@ import { hasCapability } from '@/access/permissions'
 import { isTerminalEnabled } from '@/terminal/scripts'
 
 /**
- * `admin.components.afterNavLinks`: "View site" for everyone and the component gallery for admins, styled with
+ * `admin.components.afterNavLinks`: "View site" for everyone and the tools for admins, styled with
  * Payload's own nav-link classes (icons come from nav-icons.css). The site URL is
  * NEXT_PUBLIC_SITE_URL when set, otherwise the same origin.
+ *
+ * The Database link is not here: it comes from the database-tools plugin
+ * (`src/components/admin/nav/DatabaseNavLink`), which is registered after this component and
+ * continues the same list.
  */
 export function NavExtraLinks({ payload, user }: ServerProps) {
   const siteURL = process.env.NEXT_PUBLIC_SITE_URL || '/'
@@ -33,11 +37,6 @@ export function NavExtraLinks({ payload, user }: ServerProps) {
       {hasCapability(user, 'viewSystem') ? (
         <Link className="nav__link" href={`${payload.config.routes.admin}/system`} id="nav-system">
           <span className="nav__link-label">System</span>
-        </Link>
-      ) : null}
-      {hasCapability(user, 'manageDatabase') ? (
-        <Link className="nav__link" href={`${payload.config.routes.admin}/database`} id="nav-database">
-          <span className="nav__link-label">Database</span>
         </Link>
       ) : null}
       {hasCapability(user, 'useTerminal') && isTerminalEnabled() ? (

@@ -3,15 +3,15 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import config from '@/payload.config'
 import { CAPABILITIES, hasCapability } from '@/access/permissions'
-import { buildJsonBackup, buildSqlBackup, NO_ROWS_BY_DEFAULT } from '@/database/backup'
-import { databaseTarget, quoteIdent, quoteTable } from '@/database/connection'
+import { buildJsonBackup, buildSqlBackup, NO_ROWS_BY_DEFAULT } from '@/plugins/databaseTools/server/backup'
+import { databaseTarget, quoteIdent, quoteTable } from '@/plugins/databaseTools/server/connection'
 import { pgClientOptions } from '@/lib/database-readiness'
-import { listTables, overview, readRows, resolveTable, tableDetail } from '@/database/introspection'
-import { runMaintenance } from '@/database/maintenance'
-import { NeonClient, NeonError, neonConsoleUrl } from '@/database/neon'
-import { applyRepair, runRepairChecks } from '@/database/repair'
-import { inspectRestore, RestoreRefused, restoreSql } from '@/database/restore'
-import { validateTableSelection } from '@/database/selection'
+import { listTables, overview, readRows, resolveTable, tableDetail } from '@/plugins/databaseTools/server/introspection'
+import { runMaintenance } from '@/plugins/databaseTools/server/maintenance'
+import { NeonClient, NeonError, neonConsoleUrl } from '@/plugins/databaseTools/server/neon'
+import { applyRepair, runRepairChecks } from '@/plugins/databaseTools/server/repair'
+import { inspectRestore, RestoreRefused, restoreSql } from '@/plugins/databaseTools/server/restore'
+import { validateTableSelection } from '@/plugins/databaseTools/server/selection'
 import { migrations } from '@/migrations'
 
 /**
@@ -455,6 +455,15 @@ describe('the Neon client', () => {
     const client = new NeonClient({ apiKey: '', fetch: fakeFetch })
     expect(client.configured).toBe(false)
     await expect(client.branches()).rejects.toBeInstanceOf(NeonError)
+  })
+
+  it('treats a blank environment value as unset, not as a branch id', () => {
+    // `.env.example` ships `NEON_BRANCH_ID=` — an empty string is not an id.
+    vi.stubEnv('NEON_BRANCH_ID', '')
+    vi.stubEnv('NEON_PROJECT_ID', '')
+    const client = new NeonClient({ apiKey: 'key' })
+    expect(client.branchId).toBeUndefined()
+    expect(client.projectId).toBeUndefined()
   })
 
   it('finds the project by matching this database’s endpoint host', async () => {

@@ -15,7 +15,6 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import React from 'react'
 
-import { hasCapability } from '@/access/permissions'
 import { Badge } from '@/components/admin/elements/Badge'
 import { buttonVariants } from '@/components/admin/elements/Button'
 import {
@@ -33,14 +32,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/admin/elements/Table'
-import { databaseTarget, isServerless, withDatabase } from '@/database/connection'
-import { overview, readRows, ROW_PAGE_SIZE, resolveTable, tableDetail } from '@/database/introspection'
-import { NeonClient, neonConsoleUrl } from '@/database/neon'
-import { runRepairChecks } from '@/database/repair'
-import { migrations } from '@/migrations'
+import { databaseTarget, isServerless, withDatabase } from '@/plugins/databaseTools/server/connection'
+import { overview, readRows, ROW_PAGE_SIZE, resolveTable, tableDetail } from '@/plugins/databaseTools/server/introspection'
+import { NeonClient, neonConsoleUrl } from '@/plugins/databaseTools/server/neon'
+import { runRepairChecks } from '@/plugins/databaseTools/server/repair'
+import {
+  neonOptions,
+  resolveOptions,
+  type ResolvedDatabaseToolsOptions,
+} from '@/plugins/databaseTools/options'
 import { formatBytes } from '@/system/status'
 
 import {
+  DatabaseToolsApi,
   MaintenanceButtons,
   NeonBackupForm,
   NeonDeleteBranch,
@@ -52,14 +56,19 @@ import {
 import { TableBrowser } from './TableBrowser'
 
 /**
- * /admin/database (`manageDatabase` capability): the tables, a logical backup and restore, the
- * maintenance Postgres can do itself, the repairs that are safe to automate, and the Neon branch
- * operations that SQL cannot express.
+ * `/admin/database` (the database-tools plugin's view): the tables, a logical backup and restore,
+ * the maintenance Postgres can do itself, the repairs that are safe to automate, and the Neon
+ * branch operations that SQL cannot express.
+ *
+ * The component is a server component and the plugin passes it the resolved options as
+ * `serverProps.databaseTools` — the same object the endpoints closed over, so the access rule, the
+ * paths, the migration list and the Neon settings cannot drift apart between the page, the link and
+ * the API. Everything it hands to the client components is serialisable; the functions stay here.
  *
  * The page states its own limits instead of hiding them: a read-only table browser (content goes
  * through the collections, so hooks and access rules still apply), a `.sql`/`.json` backup that is
  * logical rather than a byte-for-byte copy, maintenance that is not `VACUUM FULL`, and a Neon card
- * that is either live or explains the two environment variables that make it live.
+ * that is either live or explains the settings that make it live.
  */
 
 const Code = ({ children }: { children: React.ReactNode }) => (
@@ -87,7 +96,11 @@ const nowForInput = (): string => new Date().toISOString().slice(0, 19)
  * does not exist shows the list with a notice instead of failing the whole page, and the repair
  * checks run whether or not a table was selected.
  */
-async function readDatabase(table: string | null, offset: number) {
+async function readDatabase(
+  table: string | null,
+  offset: number,
+  migrationNames: string[],
+) {
   return withDatabase(async (client) => {
     const summary = await overview(client)
     let detail = null
@@ -102,10 +115,7 @@ async function readDatabase(table: string | null, offset: number) {
         tableError = `There is no table called “${table}” in the public schema.`
       }
     }
-    const repairs = await runRepairChecks(
-      client,
-      migrations.map((migration) => migration.name),
-    )
+    const repairs = await runRepairChecks(client, migrationNames)
     return { summary, detail, page, tableError, repairs }
   })
 }
@@ -122,9 +132,10 @@ type NeonState =
       branches: Awaited<ReturnType<NeonClient['branches']>>
     }
 
-async function readNeon(): Promise<NeonState> {
-  if (!process.env.NEON_API_KEY) return { configured: false }
-  const client = new NeonClient()
+async function readNeon(options: ResolvedDatabaseToolsOptions): Promise<NeonState> {
+  if (options.neon === false) return { configured: false }
+  const client = new NeonClient(neonOptions(options))
+  if (!client.configured) return { configured: false }
   try {
     const resolved = await client.resolve()
     return {
@@ -145,6 +156,7 @@ async function readNeon(): Promise<NeonState> {
 }
 
 export async function DatabaseView({
+  databaseTools,
   i18n,
   initPageResult,
   params,
@@ -152,14 +164,25 @@ export async function DatabaseView({
   searchParams,
   user,
   viewActions,
-}: AdminViewServerProps) {
+}: AdminViewServerProps & { databaseTools?: ResolvedDatabaseToolsOptions }) {
   const { locale, permissions, req, visibleEntities } = initPageResult
   const adminRoute = payload.config.routes.admin
+  // Registered by the plugin with the resolved options; the fallback (defaults, this checkout's
+  // migrations) keeps the component usable if it is ever mounted by hand.
+  const options = databaseTools ?? resolveOptions()
+  const pageHref = `${adminRoute}${options.pagePath}`
 
   if (!req.user) {
-    redirect(`${adminRoute}/login?redirect=${encodeURIComponent(`${adminRoute}/database`)}`)
+    redirect(`${adminRoute}/login?redirect=${encodeURIComponent(pageHref)}`)
   }
-  if (!hasCapability(req.user, 'manageDatabase')) notFound()
+  // The same function the endpoints call, with the same request. A throw or a rejection means no.
+  let allowed = false
+  try {
+    allowed = Boolean(await options.access({ req }))
+  } catch (error) {
+    payload.logger.error({ msg: 'Database tools access check failed', err: error })
+  }
+  if (!allowed) notFound()
 
   const rawTable = typeof searchParams?.table === 'string' ? searchParams.table : null
   const table = rawTable && /^[a-zA-Z0-9_-]{1,63}$/.test(rawTable) ? rawTable : null
@@ -169,14 +192,16 @@ export async function DatabaseView({
   let data: Awaited<ReturnType<typeof readDatabase>> | null = null
   let databaseError: string | null = null
   try {
-    data = await readDatabase(table, offset)
+    data = await readDatabase(table, offset, options.migrations)
   } catch (error) {
     databaseError = error instanceof Error ? error.message : String(error)
   }
 
-  const neon = await readNeon()
+  const neon = await readNeon(options)
   const fixable = data?.repairs.checks.filter((check) => check.fixable) ?? []
-  const backupQuery = (extra: string) => `/api/database/backup?${extra}`
+  // Payload mounts the plugin's endpoints under the API route (`/api` by default).
+  const apiBase = `${payload.config.routes.api}${options.apiBasePath}`
+  const backupQuery = (extra: string) => `${apiBase}/backup?${extra}`
 
   return (
     <DefaultTemplate
@@ -195,15 +220,18 @@ export async function DatabaseView({
       }}
     >
       <Gutter>
-        <SetStepNav nav={[{ label: 'Database' }]} />
+        <SetStepNav nav={[{ label: options.title }]} />
+        <DatabaseToolsApi apiBase={apiBase}>
         <div data-testid="database" className="acn:space-y-6 acn:pt-6 acn:pb-16">
           <header className="acn:space-y-1">
-            <h1 className="acn:m-0 acn:text-3xl acn:font-semibold acn:tracking-tight">Database</h1>
+            <h1 className="acn:m-0 acn:text-3xl acn:font-semibold acn:tracking-tight">
+              {options.title}
+            </h1>
             <p className="acn:m-0 acn:max-w-3xl acn:text-sm acn:text-muted-foreground">
               The tables behind the content, a logical backup you can restore into an empty
               database, the maintenance Postgres can run on itself, the repairs that are safe to
-              automate, and — on Neon — branches and point-in-time restore. Every action needs the
-              Database tools permission and is written to the audit log.
+              automate, and — on Neon — branches and point-in-time restore. Every action passes the
+              plugin’s access rule and is written to the audit log.
             </p>
           </header>
 
@@ -330,8 +358,9 @@ export async function DatabaseView({
                       Includes every <Code>public</Code> table except Payload’s internal bookkeeping
                       (migrations, locks, preferences, jobs). Row values are rendered by Postgres
                       with <Code>format(’%L’, …)</Code>, so enums, timestamps, <Code>jsonb</Code>{' '}
-                      and <Code>bytea</Code> round-trip exactly. Capped at 100,000 rows per table;
-                      for a byte-exact copy use a Neon branch.
+                      and <Code>bytea</Code> round-trip exactly. Capped at{' '}
+                      {options.backup.maxRowsPerTable.toLocaleString('en')} rows per table; for a
+                      byte-exact copy use a Neon branch.
                     </p>
                   </CardContent>
                 </Card>
@@ -362,7 +391,7 @@ export async function DatabaseView({
                     <div className="acn:space-y-4">
                       <Link
                         className="acn:inline-flex acn:items-center acn:gap-1 acn:text-xs acn:text-primary acn:hover:underline"
-                        href={`${adminRoute}/database`}
+                        href={pageHref}
                       >
                         <ArrowLeftIcon aria-hidden className="acn:size-3.5" />
                         All tables
@@ -404,7 +433,7 @@ export async function DatabaseView({
                             <TableCell className="acn:text-right">
                               <Link
                                 className={buttonVariants({ size: 'xs', variant: 'outline' })}
-                                href={`${adminRoute}/database?table=${encodeURIComponent(entry.name)}`}
+                                href={`${pageHref}?table=${encodeURIComponent(entry.name)}`}
                               >
                                 Browse
                               </Link>
@@ -520,6 +549,7 @@ export async function DatabaseView({
                 </Card>
               </div>
 
+              {options.neon !== false ? (
               <Card>
                 <CardHeader>
                   <CardTitle>
@@ -670,7 +700,9 @@ export async function DatabaseView({
                   )}
                 </CardContent>
               </Card>
+              ) : null}
 
+              {options.restore !== false ? (
               <Card>
                 <CardHeader>
                   <CardTitle>
@@ -684,13 +716,15 @@ export async function DatabaseView({
                   </CardTitle>
                   <CardDescription>
                     Check the file first, then confirm. The database must be empty unless you type
-                    the confirmation — and the server checks that again.
+                    the confirmation — and the server checks that again. Up to{' '}
+                    {Math.round(options.restore.maxBytes / 1024 / 1024)} MB.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <RestorePanel />
                 </CardContent>
               </Card>
+              ) : null}
             </>
           ) : null}
 
@@ -716,8 +750,15 @@ export async function DatabaseView({
                 </li>
                 <li>
                   <strong>Point-in-time restore without the Neon API.</strong> History is project
-                  storage, not SQL. With <Code>NEON_API_KEY</Code> the card above does it; otherwise
-                  the console does.
+                  storage, not SQL.{' '}
+                  {options.neon !== false ? (
+                    <>
+                      With <Code>NEON_API_KEY</Code> the card above does it; otherwise the console
+                      does.
+                    </>
+                  ) : (
+                    <>The plugin is configured without Neon, so the console does it.</>
+                  )}
                 </li>
                 <li>
                   <strong>
@@ -734,6 +775,7 @@ export async function DatabaseView({
             </CardContent>
           </Card>
         </div>
+        </DatabaseToolsApi>
       </Gutter>
     </DefaultTemplate>
   )

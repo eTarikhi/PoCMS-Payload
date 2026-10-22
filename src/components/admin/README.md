@@ -45,6 +45,7 @@ src/components/admin/
 ├── graphics/               AccountAvatar/, Icon/, Logo/
 ├── hooks/                  useDismissable.ts
 ├── nav/
+│   ├── DatabaseNavLink/    afterNavLinks, registered by the databaseTools plugin: /admin/database
 │   ├── HiddenLogout/       logout.Button (log out lives in the account menu)
 │   ├── NavExtraLinks/      afterNavLinks: View site, Component gallery
 │   ├── QuickCreate/        beforeNavLinks: index.tsx (server, permissions) → Menu.tsx (client)
@@ -53,6 +54,8 @@ src/components/admin/
 │   └── AdminUIProvider/    loads the admin stylesheet and Inter
 ├── utilities/              cn.ts, collections.ts, dates.ts, themeTransition.ts
 ├── views/
+│   ├── Database/           /admin/database: index.tsx (server, options from the plugin's serverProps),
+│   │                       TableBrowser.tsx, Actions.tsx (client: maintenance, repair, restore, Neon)
 │   ├── Gallery/            /admin/gallery: index.tsx (server), registry.ts, Registry.tsx, Section.tsx,
 │   │                       previews.tsx, Elements.tsx via ElementsLazy.tsx
 │   ├── Jobs/               /admin/jobs: index.tsx (server, Scheduled jobs capability),

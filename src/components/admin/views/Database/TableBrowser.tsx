@@ -11,7 +11,7 @@ import {
   TableRow,
 } from '@/components/admin/elements/Table'
 import { formatBytes } from '@/system/status'
-import { ROW_PAGE_SIZE, type TableDetail } from '@/database/introspection'
+import { ROW_PAGE_SIZE, type TableDetail } from '@/plugins/databaseTools/server/introspection'
 
 import { MaintenanceButtons } from './Actions'
 

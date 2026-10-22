@@ -12,7 +12,8 @@ import { buildConfig, type Field } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
-import { governedEntities } from './access/permissions'
+import { governedEntities, hasCapability } from './access/permissions'
+import { recordAudit } from './audit/record'
 import { checkSchema } from './lib/database-readiness'
 import { migrations } from './migrations'
 import { ensureRoles } from './access/roles'
@@ -24,18 +25,6 @@ import { NavigationGlobal } from './globals/Navigation'
 import { SiteSettings } from './globals/SiteSettings'
 
 import { Users } from './collections/Users'
-import {
-  databaseBackupEndpoint,
-  databaseMaintenanceEndpoint,
-  databaseRepairEndpoint,
-  databaseRestoreEndpoint,
-  databaseRestoreInspectEndpoint,
-} from './endpoints/database'
-import {
-  neonBackupEndpoint,
-  neonDeleteEndpoint,
-  neonRestoreEndpoint,
-} from './endpoints/databaseNeon'
 import { devGenerateEndpoint } from './endpoints/devGenerate'
 import { jobsCancelEndpoint, jobsCronEndpoint, jobsRunEndpoint } from './endpoints/jobs'
 import { devMigrateEndpoint } from './endpoints/devMigrate'
@@ -58,6 +47,7 @@ import { Services } from './collections/Services'
 import { Skills } from './collections/Skills'
 import { Media } from './collections/Media'
 import { dashboard } from './components/admin/widgets/config'
+import { databaseTools } from './plugins/databaseTools'
 import { adminUIPlugin } from './plugins/adminUI'
 import { auditLogPlugin } from './plugins/auditLog'
 import { seo } from './plugins/seo'
@@ -151,12 +141,6 @@ export default buildConfig({
           Component: '/components/admin/views/Terminal#TerminalView',
           path: '/terminal',
           meta: { title: 'Terminal' },
-        },
-        // Tables, backups, restore, maintenance and Neon branches (manageDatabase).
-        database: {
-          Component: '/components/admin/views/Database#DatabaseView',
-          path: '/database',
-          meta: { title: 'Database' },
         },
         // Scheduled maintenance (manageJobs): tasks, Run now, the runs and their outcomes.
         jobs: {
@@ -266,15 +250,6 @@ export default buildConfig({
     jobsRunEndpoint,
     jobsCancelEndpoint,
     jobsCronEndpoint,
-    // The database tools behind /admin/database (manageDatabase capability).
-    databaseBackupEndpoint,
-    databaseMaintenanceEndpoint,
-    databaseRepairEndpoint,
-    databaseRestoreInspectEndpoint,
-    databaseRestoreEndpoint,
-    neonBackupEndpoint,
-    neonRestoreEndpoint,
-    neonDeleteEndpoint,
     // Development only (they return 404 in production).
     devTerminalEndpoint,
     resetBundlerCacheEndpoint,
@@ -319,6 +294,28 @@ export default buildConfig({
     seo,
     // Records changes to every collection and global (E5), before the admin UI plugin maps them.
     auditLogPlugin(),
+    // Tables, backup, restore, maintenance and Neon branches at /admin/database, with its own
+    // endpoints and sidebar link. The plugin brings the mechanics; this app supplies what only it
+    // knows: which capability gates it, where the audit log is, and which migrations to expect.
+    databaseTools({
+      access: ({ req }) => hasCapability(req.user, 'manageDatabase'),
+      // The sidebar has the user but no request, so the link repeats the same rule against the user.
+      navigation: { visible: ({ user }) => hasCapability(user, 'manageDatabase') },
+      audit: ({ payload, req, summary, changes }) =>
+        recordAudit(
+          payload,
+          {
+            action: 'update',
+            summary,
+            entity: 'database',
+            entityLabel: 'Database',
+            entityKind: 'global',
+            changes,
+          },
+          req,
+        ),
+      migrations: migrations.map((migration) => migration.name),
+    }),
     // Last, so it sees every field other plugins add: TanStack list views, boolean cells (ADR 0007).
     adminUIPlugin(),
   ],

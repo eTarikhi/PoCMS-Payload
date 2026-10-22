@@ -28,6 +28,7 @@ import { ThemeToggle as ThemeToggle_8f4f323d2faa282a07e047b6492d04e9 } from '../
 import { DevTools as DevTools_642b9bb6ee8a5d9c2ec1196f2890112f } from '../../../components/admin/actions/DevTools'
 import { CommandMenuTrigger as CommandMenuTrigger_f0e5accbcce6a7c4bf75f7d0d264d5ec } from '../../../components/admin/actions/CommandMenu'
 import { NavExtraLinks as NavExtraLinks_700740d072e8454ecc3891cae76c4088 } from '../../../components/admin/nav/NavExtraLinks'
+import { DatabaseNavLink as DatabaseNavLink_c8f961ee142c7d651a6d29a6bcc8ba06 } from '../../../components/admin/nav/DatabaseNavLink'
 import { DashboardTitle as DashboardTitle_03a67529de9cc3a3fa892f1aeeb67e01 } from '../../../components/admin/views/PageTitle'
 import { LoginTitle as LoginTitle_03a67529de9cc3a3fa892f1aeeb67e01 } from '../../../components/admin/views/PageTitle'
 import { SidebarToggle as SidebarToggle_a76174464917710a175c5cd60d5d20c2 } from '../../../components/admin/nav/SidebarToggle'
@@ -36,8 +37,8 @@ import { AdminUIProvider as AdminUIProvider_2e693efb1c8fbc92da8884e85d9ef9cf } f
 import { GalleryView as GalleryView_4404d364f755885e3fcc8503bf41dc3b } from '../../../components/admin/views/Gallery'
 import { SystemView as SystemView_bb8d72b574a820115ca0f849b574bb2b } from '../../../components/admin/views/System'
 import { TerminalView as TerminalView_bafd7d8849a39078d40d75a87494ef59 } from '../../../components/admin/views/Terminal'
-import { DatabaseView as DatabaseView_b7e855913fe341d2d89b9d7dd5dad3cb } from '../../../components/admin/views/Database'
 import { JobsView as JobsView_5b2bdd179a2c50766c2487ad8b5952c3 } from '../../../components/admin/views/Jobs'
+import { DatabaseView as DatabaseView_b7e855913fe341d2d89b9d7dd5dad3cb } from '../../../components/admin/views/Database'
 import { WelcomeWidget as WelcomeWidget_97011d44accdd31a4a78f8cffb67c4e5 } from '../../../components/admin/widgets/Welcome'
 import { ContentHealthWidget as ContentHealthWidget_92780968cad9d22c51a64124ca7af0c0 } from '../../../components/admin/widgets/ContentHealth'
 import { ContentCountWidget as ContentCountWidget_0f60f33e106bbdc01e5390e7f570ae3c } from '../../../components/admin/widgets/ContentCount'
@@ -83,6 +84,7 @@ export const importMap = {
   "/components/admin/actions/DevTools#DevTools": DevTools_642b9bb6ee8a5d9c2ec1196f2890112f,
   "/components/admin/actions/CommandMenu#CommandMenuTrigger": CommandMenuTrigger_f0e5accbcce6a7c4bf75f7d0d264d5ec,
   "/components/admin/nav/NavExtraLinks#NavExtraLinks": NavExtraLinks_700740d072e8454ecc3891cae76c4088,
+  "/components/admin/nav/DatabaseNavLink#DatabaseNavLink": DatabaseNavLink_c8f961ee142c7d651a6d29a6bcc8ba06,
   "/components/admin/views/PageTitle#DashboardTitle": DashboardTitle_03a67529de9cc3a3fa892f1aeeb67e01,
   "/components/admin/views/PageTitle#LoginTitle": LoginTitle_03a67529de9cc3a3fa892f1aeeb67e01,
   "/components/admin/nav/SidebarToggle#SidebarToggle": SidebarToggle_a76174464917710a175c5cd60d5d20c2,
@@ -91,8 +93,8 @@ export const importMap = {
   "/components/admin/views/Gallery#GalleryView": GalleryView_4404d364f755885e3fcc8503bf41dc3b,
   "/components/admin/views/System#SystemView": SystemView_bb8d72b574a820115ca0f849b574bb2b,
   "/components/admin/views/Terminal#TerminalView": TerminalView_bafd7d8849a39078d40d75a87494ef59,
-  "/components/admin/views/Database#DatabaseView": DatabaseView_b7e855913fe341d2d89b9d7dd5dad3cb,
   "/components/admin/views/Jobs#JobsView": JobsView_5b2bdd179a2c50766c2487ad8b5952c3,
+  "/components/admin/views/Database#DatabaseView": DatabaseView_b7e855913fe341d2d89b9d7dd5dad3cb,
   "/components/admin/widgets/Welcome#WelcomeWidget": WelcomeWidget_97011d44accdd31a4a78f8cffb67c4e5,
   "/components/admin/widgets/ContentHealth#ContentHealthWidget": ContentHealthWidget_92780968cad9d22c51a64124ca7af0c0,
   "/components/admin/widgets/ContentCount#ContentCountWidget": ContentCountWidget_0f60f33e106bbdc01e5390e7f570ae3c,
