@@ -72,6 +72,12 @@ dump), so this was a trap rather than an edge case.
   `pnpm migrate:adopt` for a database created by the old schema push.
 - `pnpm dev` now runs `pnpm preflight` first, so the failure happens in the shell, before Next
   starts, instead of in the browser where only "This page couldn't load" is visible.
+- Connection failures are classified rather than lumped together: `ECONNREFUSED` (nothing
+  listening), `ECONNRESET` / `Connection terminated unexpectedly` (accepted, then closed — a
+  stopped container, a server still starting, a proxy, or TLS), `ENOTFOUND`, `ETIMEDOUT`, `28P01`
+  and `3D000` each get their own advice. Preflight retries a transient failure four times before
+  giving up, and `onInit` stops on an unreachable database instead of serving pages that can only
+  fail.
 
 ## 4. CI that actually runs its gate
 
@@ -96,7 +102,7 @@ regenerated (`pnpm generate:all` does not touch it; `payload migrate:create` doe
 | --- | --- |
 | `pnpm typecheck` | clean |
 | `pnpm lint` | clean (ESLint) |
-| `pnpm test:int` | 22 files, **202 passed** |
+| `pnpm test:int` | 22 files, **210 passed** |
 | `pnpm test:e2e` (production build) | **83 passed, 3 skipped** (8.3 min) |
 | `pnpm test:invariants` | **7/7** |
 | `pnpm test:e2e a11y` | **4/4** (light + dark, axe + skip link) |
@@ -105,7 +111,7 @@ regenerated (`pnpm generate:all` does not touch it; `payload migrate:create` doe
 | CI run [39704391765](https://github.com/eTarikhi/PoCMS-Payload/actions/runs/39704391765) | **success** — both jobs, first green run since 19 October |
 
 New tests: `tests/int/seo.int.spec.ts` (8), `tests/int/sitemap.int.spec.ts` (5),
-`tests/int/database-readiness.int.spec.ts` (10), `tests/e2e/seo.e2e.spec.ts` (3),
+`tests/int/database-readiness.int.spec.ts` (18), `tests/e2e/seo.e2e.spec.ts` (3),
 `tests/e2e/sitemap.e2e.spec.ts` (3), plus four SEO cases in
 `tests/int/admin-dom-fixes.int.spec.ts`.
 
