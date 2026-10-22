@@ -88,6 +88,13 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Fixed
 
+- **An unmigrated database no longer fails with a raw SQL error.** With schema push off, a database
+  without the schema answered the first request with Drizzle's `Failed query: select "users" …` and
+  left the cause (`relation "users" does not exist`) in the server log. `onInit` now reads the
+  tables and the migration history (`src/lib/database-readiness.ts`) and stops with a message naming
+  the case and the command: `pnpm migrate`, `pnpm migrate:adopt` for a database from the old push,
+  or the connection error and what to check. Pending migrations are a warning with the list, not a
+  failure. Documented under Troubleshooting in `docs/development.md`.
 - **The SEO plugin's fields, from the accessibility gate.** Its instruction lines are inline
   `#9A9A9A` (2.6:1), its length pills white on the CSS keywords red/orange/green (1.9–4:1), and its
   search-result preview is a mock (`pointer-events: none`) whose links are still focusable — one

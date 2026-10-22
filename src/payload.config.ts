@@ -13,6 +13,8 @@ import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
 import { governedEntities } from './access/permissions'
+import { checkSchema } from './lib/database-readiness'
+import { migrations } from './migrations'
 import { ensureRoles } from './access/roles'
 import { createRoles } from './collections/Roles'
 import { AuditLogs } from './collections/AuditLogs'
@@ -253,8 +255,23 @@ export default buildConfig({
     devMigrateEndpoint,
     devRestartEndpoint,
   ],
-  // Roles (ADR 0011): built-in roles, the one-time move from the old select, never no admin.
   onInit: async (payload) => {
+    // Say what is wrong before the first query does. With push off, an unmigrated database answers
+    // every request with Drizzle's raw "Failed query: select … from users" and the real cause
+    // (`relation "users" does not exist`) only appears in the log; the message below names the
+    // command to run instead. A schema that is merely behind only gets a warning, so a stale column
+    // does not take the whole site down.
+    const schema = await checkSchema(
+      payload,
+      migrations.map((migration) => migration.name),
+    )
+    if (schema.state === 'missing') {
+      payload.logger.error(schema.message)
+      throw new Error(schema.message)
+    }
+    if (schema.state !== 'ready') payload.logger.warn(schema.message)
+
+    // Roles (ADR 0011): built-in roles, the one-time move from the old select, never no admin.
     await ensureRoles(payload)
   },
   plugins: [

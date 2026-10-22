@@ -60,6 +60,35 @@ git push origin feature/your-feature
 psql $POSTGRES_URL -c "SELECT 1"
 ```
 
+### `Failed query: select "users" …` on every page
+
+The database has no schema to query. Schema changes are applied by migrations only (`push: false`),
+so a fresh database — a new one, a reset container, a restored backup, or a database behind the
+current `src/migrations` — answers the first request with Drizzle's raw SQL and the real cause
+(`error: relation "users" does not exist`) only in the server log. Payload's `onInit` now checks the
+database before serving and stops with a message that says which case it is
+(`src/lib/database-readiness.ts`):
+
+```text
+This database has no schema (missing tables: users, articles).
+  It has never been migrated, so every query fails with a “relation does not exist” error.
+  Schema changes are only applied by migrations (push is off).
+  pnpm migrate        apply them
+  pnpm seed           demo content, on an empty database
+```
+
+- **No schema** → `pnpm migrate` (then `pnpm seed` for demo content). CI does the same, in that
+  order, before it builds.
+- **Tables but no history** (a database from the old development push) → `pnpm migrate:adopt` once,
+  then `pnpm migrate`.
+- **Migrations pending** → `pnpm migrate`; the log lists them by name. This one is a warning rather
+  than an error, so a stale column does not take the site down.
+- **The database could not be reached** → the message names the connection error; check
+  `POSTGRES_URL` and that Postgres is running (`docker compose up -d db`).
+
+The same rules are unit-tested in `tests/int/database-readiness.int.spec.ts`, and the live check runs
+on every Payload start, so the message cannot drift from the migrations.
+
 ### Build failures
 
 ```bash
