@@ -88,6 +88,21 @@ Run `pnpm migrate` first. The Postgres adapter runs with `push: false`, so a new
 gets its schema from `src/migrations` — the same files production runs — and `pnpm dev` or
 `pnpm seed` on an unmigrated database fails instead of silently creating a schema of its own.
 
+### Create the first admin
+
+Open `http://localhost:3000/admin` — a database with no users shows **Create first user**, and the
+account it creates is an Administrator. From the terminal, or when an account already exists and
+the password is unknown:
+
+```bash
+pnpm admin:create --email you@example.com    # asks for the password
+pnpm admin:status                            # who exists, what they may do
+```
+
+`admin:create` is idempotent: a new address creates an Administrator, an existing one gets the new
+password and, if it had no role, the Administrator role (an account without a role is refused by
+the admin).
+
 ### Create a custom migration
 
 ```bash

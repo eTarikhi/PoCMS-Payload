@@ -113,12 +113,36 @@ This database has no schema (missing tables: users, articles).
   | `3D000` | The server was reached but the database does not exist. | Create it, or point the URL at the right one. |
 
   `pnpm preflight` retries a transient failure four times (400 ms, 800 ms, 1.6 s) before it gives
-  up — a database that is still starting usually succeeds on the second attempt. If it is still
-  unreachable, `pnpm dev` stops instead of starting a server that can only render errors; run
-  `pnpm exec next dev` to start it anyway.
+  up — a database that is still starting usually succeeds on the second attempt. Run it before
+  `pnpm dev` (or in a script) when you want that check: `pnpm dev` itself starts Next directly, so
+  a missing database surfaces in the browser.
 
 The same rules are unit-tested in `tests/int/database-readiness.int.spec.ts`, and the live check runs
 on every Payload start, so the message cannot drift from the migrations.
+
+### The admin asks me to sign in (or refuses me) and I have no account
+
+A brand-new database shows **Create first user** on `/admin`; the account it creates is an
+Administrator (`assignRolesOnCreate`), which is what opens the panel. The two ways to get stuck are
+a database where something already counts as a user, and an account without a role. Both are
+visible and fixable from the terminal, without the browser:
+
+```bash
+pnpm admin:status                       # who exists, with which roles; flags what cannot sign in
+pnpm admin:create --email you@example.com   # creates it, or resets the password and adds a role
+```
+
+- **`Sign in` instead of `Create first user`** → a user row already exists (an earlier attempt, a
+  restored dump, a colleague's account). `pnpm admin:status` lists the address;
+  `pnpm admin:create --email <that address>` sets a password you know.
+- **Signed in, then sent back to `/admin/unauthorized`** → the account has no role, and
+  `access.admin` (`hasAnyRole`) refuses it. Same command adds the built-in Administrator role.
+- **`No accounts yet`** → `pnpm admin:create --email …`; the password can come from
+  `ADMIN_PASSWORD`, so it stays out of the shell history.
+- **The database has no tables at all** → `pnpm migrate` first; `admin:create` reports the same
+  "no schema" message shown above.
+
+`admin:status` exits non-zero when nobody can open the admin, so it is usable as a deploy check.
 
 ### Build failures
 

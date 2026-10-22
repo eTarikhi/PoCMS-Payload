@@ -8,6 +8,14 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Added
 
+- **`pnpm admin:create` and `pnpm admin:status`.** The first account normally comes from the
+  admin's "Create first user" screen, but that cannot help when a database already has a user row
+  whose password is unknown, or an account with no role (the admin refuses those at
+  `/admin/unauthorized`). `admin:create` is idempotent — it creates an Administrator for a new
+  address, or sets the password and adds the role to an existing one — and takes the password from
+  a hidden prompt, `--password`, or `ADMIN_PASSWORD`. `admin:status` lists the accounts and their
+  roles and exits non-zero when nobody can open the admin. Tested against the real database in
+  `tests/int/admin-accounts.int.spec.ts`.
 - **Per-document SEO metadata (Payload's SEO plugin).** Articles and the Site settings global get a
   `meta` group — title, description and an image — with a character counter, a search-result
   preview and an *Auto-generate* button per field. The generators fill in what the site would use

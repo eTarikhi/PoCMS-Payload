@@ -11,6 +11,8 @@
     "build:all": "cross-env next build --experimental-build-mode compile && cross-env next build --experimental-build-mode generate",
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
     "preflight": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/preflight.ts",
+    "admin:create": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/admin.ts create",
+    "admin:status": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/admin.ts status",
     "devsafe": "rm -rf .next && cross-env NODE_OPTIONS=--no-deprecation next dev",
     "generate:graphQLSchema": "node scripts/generate.mjs graphql",
     "generate:importmap": "node scripts/generate.mjs importmap",
