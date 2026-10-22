@@ -64,7 +64,8 @@ CI runs all of the above, regenerates the generated files and fails if they diff
   database with no schema: `src/lib/database-readiness.ts` reads `to_regclass` for the core tables
   and the history in `payload_migrations`, then throws a message naming `pnpm migrate`. Code that
   adds a migration keeps its name in `src/migrations/index.ts`; that list is what the check compares
-  against. A new core table belongs in `CORE_TABLES` there.
+  against. A new core table belongs in `CORE_TABLES` there. `pnpm dev` runs the same check first
+  (`pnpm preflight`, `scripts/preflight.ts`) and exits before Next starts when there is no schema.
 - Media uses Payload's beta folders (`folders: true` on the collection). The folder collection is
   hidden, so its schema changes appear in generated files and migrations like any collection; the
   seed files images into folders after clearing `media`. The folder drawer's `<div type="button">`

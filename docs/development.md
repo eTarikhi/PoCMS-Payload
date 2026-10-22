@@ -21,6 +21,15 @@ pnpm dev
    migration means running `pnpm migrate` before the app can use the new columns; a fresh database
    needs `pnpm migrate` before `pnpm seed` or `pnpm dev`.
 
+   `pnpm dev` runs `pnpm preflight` first (`scripts/preflight.ts`): it reads the core tables and the
+   migration history and stops before Next starts if the database has no schema, printing the
+   command to run. Run it on its own — for example in CI, or when a preview build looks empty — to
+   get the same answer:
+
+```bash
+pnpm preflight           # ✔ Database ready (10 migrations applied).
+```
+
 3. Make changes and test locally.
 
 4. Add a migration when the schema changes.
