@@ -1,108 +1,91 @@
 import Link from 'next/link'
 import type { PortfolioContent } from '../../lib/types'
-import { CoverImage } from '../ui/CoverImage'
 import { WorkGrid } from './WorkGrid'
 import { StudioChrome } from './StudioChrome'
 
-function SectionHeading({
-  number,
-  label,
-  title,
-}: {
-  number: string
-  label: string
-  title: string
-}) {
+function SectionHeading({ label, title }: { label: string; title: string }) {
   return (
     <div className="studio-section-heading">
-      <p className="studio-eyebrow">
-        {number} / {label}
-      </p>
+      <p className="studio-eyebrow">{label}</p>
       <h2>{title}</h2>
     </div>
   )
 }
 
 export function StudioHome({ content: c }: { content: PortfolioContent }) {
+  const name = c.header?.sureName || c.footer?.fullName || 'Portfolio'
   const writing = [...c.articles]
     .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)))
     .slice(0, 3)
-  const name = c.header?.sureName || c.footer?.fullName || 'Portfolio'
   return (
-    <StudioChrome name={name} footer={c.footer}>
-      <main tabIndex={-1} id="main-content">
-        <section className="studio-hero studio-container" id="home">
-          <div>
-            <p className="studio-eyebrow">
-              <span className="studio-dot" /> Design-minded development
-            </p>
-            <p className="studio-hero-intro">
-              Hello, I’m <strong>{name}</strong>
-            </p>
-            <h1>
-              {c.header?.professionTexts[0] || 'Engineering with purpose'}
-              <span className="studio-accent">.</span>
-            </h1>
-            <p className="studio-hero-description">
-              {c.header?.professionTexts.slice(1).join(' / ') || c.about?.experience.title}
-            </p>
-            <div className="studio-actions">
-              <a className="studio-button" href="#project">
-                Explore my work <span aria-hidden="true">↘</span>
-              </a>
-              {c.header?.requestCV ? (
-                <a className="studio-text-link" href={c.header.requestCV}>
-                  Request CV ↗
-                </a>
-              ) : null}
-            </div>
-            <div className="studio-hero-note">
-              <span>Interfaces. Systems. Possibilities.</span>
-              <a href="#project" aria-label="Scroll to selected work">
-                ↓
-              </a>
-            </div>
+    <StudioChrome name={name} footer={c.footer} profile={c.header}>
+      <main tabIndex={-1} id="main-content" className="resume-content">
+        <section className="resume-summary studio-container" id="home">
+          <div className="resume-page-heading">
+            <span className="studio-eyebrow">Professional profile</span>
+            <a className="studio-text-link" href="#contact">
+              Contact details ↗
+            </a>
           </div>
-          <div className="studio-portrait">
-            <CoverImage
-              src={c.header?.imageUrl || ''}
-              fallbackSrc="/placeholder.svg"
-              alt={name}
-              priority
-              width={700}
-              height={800}
-              sizes="(max-width: 800px) 100vw, 42vw"
-            />
-            <div className="studio-portrait-caption">
-              <span>{name}</span>
-              <span>Engineer & builder</span>
-            </div>
+          <h1>{name}</h1>
+          <p className="resume-role">{c.header?.professionTexts[0] || 'Professional portfolio'}</p>
+          {c.about?.experience.description ? (
+            <p className="resume-bio">{c.about.experience.description}</p>
+          ) : null}
+          {c.header?.professionTexts.slice(1).length ? (
+            <p className="resume-specialties">{c.header.professionTexts.slice(1).join(' · ')}</p>
+          ) : null}
+          <div className="resume-summary-bottom">
             {c.about ? (
-              <div className="studio-experience">
-                <strong>{c.about.experience.years}+</strong>
-                <span>years of experience</span>
-              </div>
-            ) : null}
+              <span>
+                <strong>{c.about.experience.years}+ years</strong> of experience
+              </span>
+            ) : (
+              <span>Experience, skills & selected work</span>
+            )}
+            <a className="studio-button" href="#experience">
+              View experience <span aria-hidden="true">↓</span>
+            </a>
           </div>
         </section>
-        <section className="studio-section studio-container" id="project">
-          <SectionHeading number="01" label="Selected work" title="Ideas made tangible." />
-          <WorkGrid projects={c.projects} />
-          <Link className="studio-text-link studio-archive-link" href="/projects">
-            Browse project archive ↗
-          </Link>
+
+        <section className="studio-section studio-container studio-career" id="experience">
+          <SectionHeading label="Career history" title="Professional experience" />
+          <div className="resume-timeline">
+            {c.experiences.map((item) => (
+              <article key={item.id}>
+                <p className="resume-date">{item.date}</p>
+                <div>
+                  <h3>{item.title}</h3>
+                  <p>{item.company}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+          {!c.experiences.length ? (
+            <p className="studio-empty">Experience details have not been added yet.</p>
+          ) : null}
         </section>
-        <section className="studio-expertise" id="service">
-          <div className="studio-container studio-section">
-            <SectionHeading
-              number="02"
-              label="Expertise"
-              title="From interface to infrastructure."
-            />
-            <div className="studio-services">
-              {c.services.items.map((service, i) => (
+
+        <section className="studio-section studio-container" id="skill">
+          <SectionHeading label="Technical profile" title="Skills & expertise" />
+          <div className="studio-skills">
+            {Object.entries(c.skills).map(([group, skills]) => (
+              <div key={group}>
+                <h3>{group === 'frontend' ? 'Front-end development' : 'Back-end development'}</h3>
+                <div className="studio-tags">
+                  {skills.map((skill) => (
+                    <span key={skill.id}>{skill.label}</span>
+                  ))}
+                </div>
+                {!skills.length ? <p className="studio-empty">No skills listed yet.</p> : null}
+              </div>
+            ))}
+          </div>
+          {c.services.items.length ? (
+            <div className="studio-services" id="service">
+              {c.services.items.map((service) => (
                 <article key={service.id}>
-                  <span className="studio-eyebrow">0{i + 1} /</span>
                   <h3>{service.category}</h3>
                   <ul>
                     {service.descriptions.map((description, index) => (
@@ -112,110 +95,40 @@ export function StudioHome({ content: c }: { content: PortfolioContent }) {
                 </article>
               ))}
             </div>
-            <div className="studio-skills" id="skill">
-              {Object.entries(c.skills).map(([group, skills]) => (
-                <div key={group}>
-                  <h3>{group === 'frontend' ? 'Front-end toolkit' : 'Back-end toolkit'}</h3>
-                  <div className="studio-tags">
-                    {skills.map((skill) => (
-                      <span key={skill.id}>{skill.label}</span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          ) : (
+            <div id="service" />
+          )}
         </section>
-        {c.about ? (
-          <section className="studio-section studio-container studio-about" id="about">
-            <div>
-              <SectionHeading
-                number="03"
-                label="The person behind the work"
-                title={c.about.experience.title}
-              />
-              <p className="studio-lead">{c.about.experience.description}</p>
-              {c.about.images[0] ? (
-                <CoverImage
-                  src={c.about.images[0]}
-                  fallbackSrc="/placeholder.svg"
-                  alt="A glimpse behind the work"
-                  width={800}
-                  height={500}
-                  sizes="(max-width: 800px) 100vw, 50vw"
-                />
-              ) : null}
-            </div>
-            <div className="studio-about-details">
-              <h3>{c.about.workPermit.title}</h3>
-              <p>{c.about.workPermit.description}</p>
-              <h3>{c.about.interests.title}</h3>
-              <p>{c.about.interests.description}</p>
-              <div className="studio-tags">
-                {c.about.interests.areas.map((area) => (
-                  <span key={area}>{area}</span>
-                ))}
-              </div>
-            </div>
-          </section>
-        ) : null}
-        <section className="studio-section studio-container" id="article">
-          <SectionHeading number="04" label="Field notes" title="Thinking out loud." />
-          <div className="studio-writing">
-            {writing.map((article) => (
-              <article key={article.id}>
-                <Link href={article.pagePath || article.link}>
-                  <CoverImage
-                    src={article.imageUrl}
-                    fallbackSrc="/placeholder.svg"
-                    alt=""
-                    width={600}
-                    height={380}
-                    sizes="(max-width: 700px) 100vw, 33vw"
-                  />
-                  <p className="studio-eyebrow">
-                    {article.featured ? 'Featured / ' : ''}
-                    {article.author} · {article.readTime}
-                  </p>
-                  <h3>
-                    {article.title} <span aria-hidden="true">↗</span>
-                  </h3>
-                  <p>{article.excerpt}</p>
-                </Link>
+
+        <section className="studio-section studio-container" id="project">
+          <SectionHeading label="Portfolio" title="Selected projects" />
+          <WorkGrid projects={c.projects} initialLimit={4} />
+          <Link className="studio-text-link studio-archive-link" href="/projects">
+            Browse project archive ↗
+          </Link>
+        </section>
+
+        <section className="studio-section studio-container" id="education">
+          <SectionHeading label="Qualifications" title="Education & certifications" />
+          <div className="resume-timeline">
+            {c.educations.map((item) => (
+              <article key={item.id}>
+                <p className="resume-date">{item.date}</p>
+                <div>
+                  <h3>{item.title}</h3>
+                  <p>{item.location}</p>
+                </div>
               </article>
             ))}
           </div>
-          <Link className="studio-text-link studio-archive-link" href="/articles">
-            Browse all writing ↗
-          </Link>
-          {!writing.length ? <p>New field notes are on their way.</p> : null}
-        </section>
-        <section className="studio-section studio-container studio-career">
-          <SectionHeading number="05" label="Background" title="Built on experience." />
-          <div className="studio-career-columns">
-            <div>
-              <h3>Experience</h3>
-              {c.experiences.map((item) => (
-                <article key={item.id}>
-                  <span>{item.date}</span>
-                  <h4>{item.title}</h4>
-                  <p>{item.company}</p>
-                </article>
-              ))}
-            </div>
-            <div>
-              <h3>Education & credentials</h3>
-              {c.educations.map((item) => (
-                <article key={item.id}>
-                  <span>{item.date}</span>
-                  <h4>{item.title}</h4>
-                  <p>{item.location}</p>
-                </article>
-              ))}
-              {c.certificates.map((item) => (
-                <article key={item.id}>
-                  <span>{item.date}</span>
-                  <h4>
+          <div className="resume-certificates">
+            {c.certificates.map((item) => (
+              <article key={item.id}>
+                <span className="resume-certificate-mark" aria-hidden="true">
+                  ✓
+                </span>
+                <div>
+                  <h3>
                     {item.link ? (
                       <a href={item.link} target="_blank" rel="noopener noreferrer">
                         {item.title} ↗
@@ -223,41 +136,86 @@ export function StudioHome({ content: c }: { content: PortfolioContent }) {
                     ) : (
                       item.title
                     )}
-                  </h4>
+                  </h3>
                   <p>{item.issuer}</p>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-        <section className="studio-contact" id="contact">
-          <div className="studio-container">
-            <p className="studio-eyebrow">Have something in mind?</p>
-            <h2>
-              Let’s build
-              <br />
-              something <em>great.</em>
-            </h2>
-            {c.services.hiring ? (
-              <a className="studio-button" href={c.services.hiring.url}>
-                {c.services.hiring.label} ↗
-              </a>
-            ) : null}
-            <div className="studio-contact-links">
-              {c.footer?.contactInfo.map((item, i) => (
-                <div key={i}>
-                  <span>{item.type}</span>
-                  {item.url ? (
-                    <a href={item.url}>{item.content} ↗</a>
-                  ) : item.type === 'email' ? (
-                    <a href={`mailto:${item.content}`}>{item.content} ↗</a>
-                  ) : (
-                    <p>{item.content}</p>
-                  )}
+                  <span>{item.date}</span>
                 </div>
-              ))}
-            </div>
+              </article>
+            ))}
           </div>
+          {!c.educations.length && !c.certificates.length ? (
+            <p className="studio-empty">Qualifications have not been added yet.</p>
+          ) : null}
+        </section>
+
+        {c.about ? (
+          <section className="studio-section studio-container" id="about">
+            <SectionHeading label="More about me" title="Additional information" />
+            <div className="resume-additional">
+              <div>
+                <h3>{c.about.workPermit.title}</h3>
+                <p>{c.about.workPermit.description}</p>
+              </div>
+              <div>
+                <h3>{c.about.interests.title}</h3>
+                <p>{c.about.interests.description}</p>
+                <div className="studio-tags">
+                  {c.about.interests.areas.map((area) => (
+                    <span key={area}>{area}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        <section className="studio-section studio-container" id="article">
+          <SectionHeading label="Articles & insights" title="Recent writing" />
+          <div className="resume-writing-list">
+            {writing.map((article) => (
+              <article key={article.id}>
+                <div>
+                  <p className="studio-eyebrow">
+                    {article.featured ? 'Featured · ' : ''}
+                    {article.author} · {article.readTime}
+                  </p>
+                  <h3>
+                    <Link href={article.pagePath || article.link}>
+                      {article.title} <span aria-hidden="true">↗</span>
+                    </Link>
+                  </h3>
+                  <p>{article.excerpt}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+          {!writing.length ? <p className="studio-empty">No articles published yet.</p> : null}
+          <Link className="studio-text-link studio-archive-link" href="/articles">
+            Browse all writing ↗
+          </Link>
+        </section>
+
+        <section className="studio-section studio-container studio-contact" id="contact">
+          <SectionHeading label="Get in touch" title="Contact" />
+          <div className="studio-contact-links">
+            {c.footer?.contactInfo.map((item, index) => (
+              <div key={index}>
+                <span>{item.type}</span>
+                {item.url ? (
+                  <a href={item.url}>{item.content} ↗</a>
+                ) : item.type === 'email' ? (
+                  <a href={`mailto:${item.content}`}>{item.content} ↗</a>
+                ) : (
+                  <p>{item.content}</p>
+                )}
+              </div>
+            ))}
+          </div>
+          {c.services.hiring ? (
+            <a className="studio-button resume-contact-action" href={c.services.hiring.url}>
+              {c.services.hiring.label} ↗
+            </a>
+          ) : null}
         </section>
       </main>
     </StudioChrome>

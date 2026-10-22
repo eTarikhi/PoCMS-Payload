@@ -78,7 +78,7 @@ describe('Studio writing', () => {
         React.createElement('main', { id: 'main-content' }, 'Article'),
       ),
     )
-    expect(screen.getByRole('link', { name: 'Work' }).getAttribute('href')).toBe('/projects')
+    expect(screen.getByRole('link', { name: 'Projects' }).getAttribute('href')).toBe('/projects')
     expect(screen.getByRole('link', { name: 'Writing' }).getAttribute('href')).toBe('/articles')
     expect(screen.getByRole('link', { name: 'Portfolio' }).getAttribute('href')).toBe('/')
   })

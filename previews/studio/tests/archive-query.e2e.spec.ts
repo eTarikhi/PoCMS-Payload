@@ -55,14 +55,14 @@ test.describe('Shareable archive views', () => {
       'aria-pressed',
       'true',
     )
-    await expect(page.getByRole('link', { name: 'Work', exact: true })).toHaveAttribute(
+    await expect(page.getByRole('link', { name: 'Projects', exact: true })).toHaveAttribute(
       'aria-current',
-      'location',
+      'page',
     )
     await page.getByRole('link', { name: 'Writing', exact: true }).click()
     await expect(page.getByRole('link', { name: 'Writing', exact: true })).toHaveAttribute(
       'aria-current',
-      'location',
+      'page',
     )
   })
 })

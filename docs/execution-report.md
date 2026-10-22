@@ -16,7 +16,38 @@ All changes were committed and pushed directly to the designated branch. No pull
 request was created. No production deployment, production-data reset or content-model
 migration was performed. The earlier Studio redesign and hardening remain intact.
 
-## Latest requested change: dark public portfolio redesign
+## Latest requested change: professional résumé redesign
+
+The owner rejected the modern-dark presentation and explicitly selected **Professional
+résumé**: a practical sidebar with profile, experience, skills, and projects clearly
+organized. This supersedes the dark direction documented below.
+
+- Replaced the floating top navigation and oversized hero with a persistent navy
+  profile rail, CV/contact actions, and a light document-style content column.
+- Put the professional summary and career timeline first, followed by grouped skills,
+  selected projects, education/certifications, additional information, writing, and contact.
+- Reused CMS content rather than inventing qualifications, skill scores, or résumé claims.
+  Kept project filtering, screenshot viewer, archive search/history, articles, RSS, and
+  social/external profile links. Article and archive pages share the same profile rail.
+- On mobile the rail becomes a compact profile/navigation header; content stacks into
+  one column. Keyboard skip links, focus visibility, dialog focus restoration, reduced
+  motion, and automated WCAG checks remain covered. Payload admin is unchanged.
+- Updated regression tests to assert sidebar geometry, résumé-first ordering, the new
+  navigation labels, and consistent archive styling instead of obsolete dark colors.
+
+Validation: **79 frontend unit/integration tests, 26 preview browser tests, 8 main
+browser tests, and 10 live-CMS browser tests passed**. ESLint, TypeScript, and a Next
+production build passed. Desktop/mobile screenshots were reviewed locally. Browser
+coverage includes automated accessibility checks, mobile overflow, viewer controls,
+search/history, authenticated admin access, and CMS cache/Live Preview behavior.
+
+Port 3000 serves the rebuilt CMS-backed application using the isolated integration
+fixtures, not production data. Port 4173 is the separately labeled checked-in sample
+content design preview. No production deployment or content-model migration was made.
+Environment-specific regenerated schemas from local integration setup are not part
+of the UI changeset.
+
+## Historical, superseded direction: dark public portfolio redesign
 
 The owner rejected the previous visual direction and selected **public portfolio**
 and **modern dark** in the design clarification. The Payload admin was left unchanged.

@@ -12,12 +12,12 @@ test.describe('Engineer’s Studio frontend', () => {
     expect(results.violations).toEqual([])
   })
 
-  test('shows work-first navigation and accessible project filters', async ({ page }) => {
+  test('shows résumé sidebar navigation and accessible project filters', async ({ page }) => {
     await page.goto(baseURL)
     await expect(page.locator('main h1')).toBeVisible()
     await expect(page.locator('#home')).toHaveCSS('background-image', 'none')
     await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible()
-    await page.getByRole('link', { name: 'Work', exact: true }).click()
+    await page.getByRole('link', { name: 'Projects', exact: true }).click()
     await expect(page).toHaveURL(/\/projects$/)
     const filters = page.getByRole('group', { name: 'Filter projects' })
     const firstFilter = filters.getByRole('button').first()
@@ -39,15 +39,35 @@ test.describe('Engineer’s Studio frontend', () => {
   })
 })
 
-test('uses the dark portfolio design consistently on home and archives', async ({ page }) => {
+test('uses a consistent professional résumé shell on home and archives', async ({ page }) => {
   for (const path of ['/', '/projects', '/articles']) {
     await page.goto(`${baseURL}${path}`)
-    await expect(page.locator('.studio').first()).toHaveCSS('color-scheme', 'dark')
-    await expect(page.locator('.studio').first()).toHaveCSS('background-color', 'rgb(11, 15, 20)')
+    await expect(page.locator('.studio').first()).toHaveCSS('color-scheme', 'light')
+    await expect(page.locator('.studio').first()).toHaveCSS(
+      'background-color',
+      'rgb(245, 247, 250)',
+    )
     await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Let’s talk' })).toHaveCSS(
       'color',
-      'rgb(184, 239, 114)',
+      'rgb(32, 59, 98)',
     )
   }
+})
+
+test('places a compact sidebar beside résumé content on desktop', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await page.goto(baseURL)
+  const sidebar = await page.locator('.studio-nav').boundingBox()
+  const main = await page.getByRole('main').boundingBox()
+  expect(sidebar).not.toBeNull()
+  expect(main).not.toBeNull()
+  expect(sidebar!.width).toBeLessThan(300)
+  expect(main!.x).toBeGreaterThanOrEqual(sidebar!.x + sidebar!.width)
+  const order = await page.getByRole('main').evaluate((main) => {
+    const experience = main.querySelector('#experience')!
+    const projects = main.querySelector('#project')!
+    return !!(experience.compareDocumentPosition(projects) & Node.DOCUMENT_POSITION_FOLLOWING)
+  })
+  expect(order).toBe(true)
 })

@@ -23,7 +23,7 @@ test.describe('Studio writing preview', () => {
     await expect(page).toHaveURL(/\/articles\/design-preview$/)
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Inside the Engineer’s Studio')
     await expect(page.locator('.preview-notice')).toContainText('Demonstration article')
-    await expect(page.getByRole('link', { name: 'Work', exact: true })).toHaveAttribute(
+    await expect(page.getByRole('link', { name: 'Projects', exact: true })).toHaveAttribute(
       'href',
       '/projects',
     )

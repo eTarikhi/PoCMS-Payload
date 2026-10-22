@@ -10,7 +10,7 @@ export default async function ArticleNotFound() {
   const content = await getCachedPortfolioContent()
 
   return (
-    <SiteChrome footer={content.footer} name={content.header?.sureName}>
+    <SiteChrome footer={content.footer} name={content.header?.sureName} profile={content.header}>
       <ArticleNotFoundContent />
     </SiteChrome>
   )

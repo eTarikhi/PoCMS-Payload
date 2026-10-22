@@ -123,7 +123,12 @@ createRoot(document.getElementById('root')!).render(
     ) : loadingRoute ? (
       <FrontendLoading />
     ) : articleRoute ? (
-      <StudioChrome active="writing" footer={content.footer} name={content.header?.sureName}>
+      <StudioChrome
+        active="writing"
+        footer={content.footer}
+        name={content.header?.sureName}
+        profile={content.header}
+      >
         <main tabIndex={-1} id="main-content" className="article-page">
           <ArticleLayout article={demoArticle} />
           <MoreWriting articles={content.articles} current={demoArticle} />
@@ -134,7 +139,12 @@ createRoot(document.getElementById('root')!).render(
     ) : projectsRoute ? (
       <ProjectsArchive content={content} />
     ) : missingRoute ? (
-      <StudioChrome active="writing" footer={content.footer} name={content.header?.sureName}>
+      <StudioChrome
+        active="writing"
+        footer={content.footer}
+        name={content.header?.sureName}
+        profile={content.header}
+      >
         <ArticleNotFoundContent />
       </StudioChrome>
     ) : (

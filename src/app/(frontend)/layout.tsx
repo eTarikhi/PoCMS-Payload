@@ -28,7 +28,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 10,
   userScalable: true,
-  themeColor: '#0b0f14',
+  themeColor: '#1d2b3e',
 }
 
 export default function FrontendLayout({ children }: { children: React.ReactNode }) {
