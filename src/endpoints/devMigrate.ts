@@ -53,6 +53,7 @@ export const devMigrateEndpoint: Endpoint = {
           cwd: process.cwd(),
           timeout: 180_000,
           maxBuffer: 16 * 1024 * 1024,
+          shell: true,
           env: {
             ...process.env,
             PATH: [bin, process.env.PATH].filter(Boolean).join(path.delimiter),

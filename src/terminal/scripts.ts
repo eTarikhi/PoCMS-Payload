@@ -16,6 +16,8 @@ export type TerminalScript = {
   timeoutMs: number
   /** The command writes files or the database, so the page warns before running it. */
   writes?: boolean
+  /** Whether to spawn the command in a shell (true for scripts, false for binaries). */
+  shell?: boolean
 }
 
 const MINUTE = 60_000
@@ -27,6 +29,7 @@ export const TERMINAL_SCRIPTS: readonly TerminalScript[] = [
     description: 'ESLint over the repository.',
     args: ['run', 'lint'],
     timeoutMs: 3 * MINUTE,
+    shell: true,
   },
   {
     slug: 'typecheck',
@@ -34,6 +37,7 @@ export const TERMINAL_SCRIPTS: readonly TerminalScript[] = [
     description: 'TypeScript, no emit.',
     args: ['run', 'typecheck'],
     timeoutMs: 5 * MINUTE,
+    shell: true,
   },
   {
     slug: 'tw-prefix',
@@ -48,6 +52,7 @@ export const TERMINAL_SCRIPTS: readonly TerminalScript[] = [
     description: 'Every admin token pair meets WCAG 2.2 AA.',
     args: ['run', 'check:contrast'],
     timeoutMs: 2 * MINUTE,
+    shell: true,
   },
   {
     slug: 'generate',
@@ -56,6 +61,7 @@ export const TERMINAL_SCRIPTS: readonly TerminalScript[] = [
     args: ['run', 'generate:all'],
     timeoutMs: 5 * MINUTE,
     writes: true,
+    shell: true,
   },
   {
     slug: 'migrate-status',
@@ -63,6 +69,7 @@ export const TERMINAL_SCRIPTS: readonly TerminalScript[] = [
     description: 'Which migrations the database has applied.',
     args: ['run', 'migrate:status'],
     timeoutMs: 2 * MINUTE,
+    shell: true,
   },
   {
     slug: 'test-int',
@@ -70,6 +77,7 @@ export const TERMINAL_SCRIPTS: readonly TerminalScript[] = [
     description: 'Vitest against the configured database.',
     args: ['run', 'test:int'],
     timeoutMs: 15 * MINUTE,
+    shell: true,
   },
 ] as const
 
@@ -81,9 +89,10 @@ export const isTerminalEnabled = (env: Env = process.env): boolean =>
   env.NODE_ENV !== 'production'
 
 /** The command to spawn for a script. Kept separate so tests can assert it holds no user input. */
-export const commandFor = (script: TerminalScript): { command: string; args: string[] } => ({
+export const commandFor = (script: TerminalScript): { command: string; args: string[]; shell: boolean } => ({
   command: 'pnpm',
   args: [...script.args],
+  shell: script.shell ?? false,
 })
 
 /** For the client: the list without the internal timeout field. */
@@ -101,4 +110,5 @@ export const optionsFor = (
     description: script.description,
     writes: script.writes ?? false,
     timeoutSeconds: Math.round(script.timeoutMs / 1000),
+    shell: script.shell ?? false,
   }))

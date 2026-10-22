@@ -7,6 +7,7 @@ import * as migration_20261020_231332_drafts_and_scheduled_publishing from './20
 import * as migration_20261021_001500_skills_orderable from './20261021_001500_skills_orderable';
 import * as migration_20261021_150000_orderable_profile_and_services from './20261021_150000_orderable_profile_and_services';
 import * as migration_20261021_163000_media_folders from './20261021_163000_media_folders';
+import * as migration_20261022_045702_admin_changes from './20261022_045702_admin_changes';
 import * as migration_20261022_090000_seo_meta from './20261022_090000_seo_meta';
 
 export const migrations = [
@@ -38,22 +39,27 @@ export const migrations = [
   {
     up: migration_20261020_231332_drafts_and_scheduled_publishing.up,
     down: migration_20261020_231332_drafts_and_scheduled_publishing.down,
-    name: '20261020_231332_drafts_and_scheduled_publishing'
+    name: '20261020_231332_drafts_and_scheduled_publishing',
   },
   {
     up: migration_20261021_001500_skills_orderable.up,
     down: migration_20261021_001500_skills_orderable.down,
-    name: '20261021_001500_skills_orderable'
+    name: '20261021_001500_skills_orderable',
   },
   {
     up: migration_20261021_150000_orderable_profile_and_services.up,
     down: migration_20261021_150000_orderable_profile_and_services.down,
-    name: '20261021_150000_orderable_profile_and_services'
+    name: '20261021_150000_orderable_profile_and_services',
   },
   {
     up: migration_20261021_163000_media_folders.up,
     down: migration_20261021_163000_media_folders.down,
-    name: '20261021_163000_media_folders'
+    name: '20261021_163000_media_folders',
+  },
+  {
+    up: migration_20261022_045702_admin_changes.up,
+    down: migration_20261022_045702_admin_changes.down,
+    name: '20261022_045702_admin_changes',
   },
   {
     up: migration_20261022_090000_seo_meta.up,
