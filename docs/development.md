@@ -92,8 +92,21 @@ This database has no schema (missing tables: users, articles).
   then `pnpm migrate`.
 - **Migrations pending** → `pnpm migrate`; the log lists them by name. This one is a warning rather
   than an error, so a stale column does not take the site down.
-- **The database could not be reached** → the message names the connection error; check
-  `POSTGRES_URL` and that Postgres is running (`docker compose up -d db`).
+- **The database could not be reached** → the message says which failure it was, because the
+  common ones need different fixes:
+
+  | Error | What it means | What to do |
+  | --- | --- | --- |
+  | `ECONNREFUSED` | Nothing is listening on that host and port. | Start the database; check the URL and port. |
+  | `ECONNRESET`, `Connection terminated unexpectedly` | Something accepted the connection and closed it: a stopped container (Docker's port mapping answers, then resets), a server still starting, a proxy, or a host that wants TLS. | `docker compose ps` and `docker compose logs db`; retry in a few seconds; add `?sslmode=require` for a hosted database. |
+  | `ENOTFOUND` / `EAI_AGAIN` | The host name does not resolve. | Fix the host name, or the DNS/VPN the terminal uses. |
+  | `28P01` | The server was reached and refused the credentials. | Correct the user/password, or the host rule in `pg_hba.conf`. |
+  | `3D000` | The server was reached but the database does not exist. | Create it, or point the URL at the right one. |
+
+  `pnpm preflight` retries a transient failure four times (400 ms, 800 ms, 1.6 s) before it gives
+  up — a database that is still starting usually succeeds on the second attempt. If it is still
+  unreachable, `pnpm dev` stops instead of starting a server that can only render errors; run
+  `pnpm exec next dev` to start it anyway.
 
 The same rules are unit-tested in `tests/int/database-readiness.int.spec.ts`, and the live check runs
 on every Payload start, so the message cannot drift from the migrations.

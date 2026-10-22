@@ -41,7 +41,21 @@ export type SchemaFacts = {
   /** Names of the migrations in `src/migrations`, oldest first. */
   available: string[]
   /** Why the database could not be inspected, when it could not be reached at all. */
-  connectionError?: string
+  connectionError?: ConnectionFailure
+}
+
+/** The parts of a failed connection that change the advice. */
+export type ConnectionFailure = {
+  /** Node's errno (`ECONNREFUSED`) or PostgreSQL's SQLSTATE (`28P01`). */
+  code?: string
+  message: string
+}
+
+/** Where the connection was aimed, so the advice can name the address. */
+export type ConnectionTarget = {
+  host?: string
+  port?: string
+  database?: string
 }
 
 export type SchemaState =
@@ -80,9 +94,7 @@ export const describeSchema = (facts: SchemaFacts): SchemaReport => {
     return {
       state: 'unreachable',
       pending: facts.available,
-      message:
-        `The database could not be reached: ${facts.connectionError}\n` +
-        '  Check POSTGRES_URL in .env, and that the database is running (docker compose up -d db).',
+      message: describeConnectionError(facts.connectionError),
     }
   }
 
@@ -129,6 +141,97 @@ export const describeSchema = (facts: SchemaFacts): SchemaReport => {
   return { state: 'ready', pending: [], message: '' }
 }
 
+/**
+ * What the failure actually was.
+ *
+ * `pg` does not always keep the errno: a connection that is accepted and then dropped arrives as
+ * `Error: Connection terminated unexpectedly` with no `code` at all, and a reset during a query
+ * arrives as `read ECONNRESET` with the text but no field. Matching the text recovers the useful
+ * classification — without it, "connection terminated" would fall through to the generic advice
+ * that says to check the password.
+ */
+const CODE_PATTERNS: [RegExp, string][] = [
+  [/ECONNRESET/i, 'ECONNRESET'],
+  [/ECONNREFUSED/i, 'ECONNREFUSED'],
+  [/ETIMEDOUT|timeout expired/i, 'ETIMEDOUT'],
+  [/ENOTFOUND|EAI_AGAIN/i, 'ENOTFOUND'],
+  [/password authentication failed|no pg_hba\.conf entry/i, '28P01'],
+  [/database .* does not exist/i, '3D000'],
+  // The socket was accepted and closed: a stopped container's port mapping, a proxy, a restart.
+  [/connection terminated unexpectedly|connection terminated|server closed the connection/i, 'ECONNRESET'],
+]
+
+/** The errno, from the field when there is one and from the text otherwise. */
+export const classifyConnectionFailure = (failure: ConnectionFailure): ConnectionFailure => {
+  if (failure.code) return failure
+  for (const [pattern, code] of CODE_PATTERNS) {
+    if (pattern.test(failure.message)) return { ...failure, code }
+  }
+  return failure
+}
+
+/**
+ * Turn a failed connection into advice that matches the failure.
+ *
+ * `ECONNREFUSED` and `ECONNRESET` look alike in a log and mean different things: nothing listened
+ * on the address, versus something accepted the connection and then dropped it (a container or
+ * proxy that is not ready, or a host that wants TLS when the client did not send it). Telling a
+ * developer to check their password when the server is simply not up is how a five-minute problem
+ * becomes an hour.
+ */
+export const describeConnectionError = (raw: ConnectionFailure): string => {
+  const failure = classifyConnectionFailure(raw)
+  const code = failure.code ?? ''
+  const line = `The database could not be reached: ${failure.message}`
+
+  if (code === 'ECONNREFUSED')
+    return (
+      `${line}\n` +
+      '  Nothing is listening on that address, so the database is not running — or POSTGRES_URL\n' +
+      '  names the wrong port. Start it (docker compose up -d db) and check the URL in .env.'
+    )
+
+  if (code === 'ECONNRESET')
+    return (
+      `${line}\n` +
+      '  Something accepted the connection and then closed it — the usual sign of a database that\n' +
+      '  is not actually serving yet: a stopped container (Docker’s port mapping answers and then\n' +
+      '  resets), a server still starting, a proxy in front of it, or a server that wants TLS when\n' +
+      '  the URL says sslmode=disable. Check the container (docker compose ps) and its logs, retry\n' +
+      '  in a few seconds, or add ?sslmode=require to a hosted database’s URL.'
+    )
+
+  if (code === 'ENOTFOUND' || code === 'EAI_AGAIN')
+    return (
+      `${line}\n` +
+      '  The host name in POSTGRES_URL does not resolve. Check it for typos and for a VPN or DNS\n' +
+      '  setting that the terminal does not have.'
+    )
+
+  if (code === 'ETIMEDOUT' || code === 'EHOSTUNREACH')
+    return (
+      `${line}\n` +
+      '  The address did not answer in time. A firewall, a stopped host or a proxy can do that;\n' +
+      '  check POSTGRES_URL and whether the database is reachable from this machine.'
+    )
+
+  if (code === '28P01' || code === '28000')
+    return (
+      `${line}\n` +
+      '  The server was reached but refused the credentials: the user or password in POSTGRES_URL\n' +
+      '  is wrong, or the database does not accept connections from this host (pg_hba.conf).'
+    )
+
+  if (code === '3D000')
+    return (
+      `${line}\n` +
+      '  The server was reached but that database does not exist. Create it, or point POSTGRES_URL\n' +
+      '  at the right one.'
+    )
+
+  return `${line}\n  Check POSTGRES_URL in .env, and that the database is running (docker compose up -d db).`
+}
+
 /** The raw query behind `SchemaFacts.tables` and `hasMigrationsTable`, as one round trip. */
 export const TABLES_SQL = `select ${[...CORE_TABLES, MIGRATIONS_TABLE].map(
   (table) => `to_regclass('public.${table}') is not null as "${table}"`,
@@ -138,6 +241,25 @@ export const TABLES_SQL = `select ${[...CORE_TABLES, MIGRATIONS_TABLE].map(
 export const APPLIED_SQL = 'select "name" from "payload_migrations" order by "created_at" asc'
 
 type Execute = (args: { drizzle: unknown; raw: string }) => Promise<unknown>
+
+/**
+ * `pg` puts the errno on the error; Node's socket errors can also arrive as `cause`. Take the first
+ * code that looks like one, so the advice above is chosen from the real reason.
+ */
+export const connectionFailureOf = (error: unknown): ConnectionFailure => {
+  const seen: unknown[] = []
+  let current: unknown = error
+  while (current && typeof current === 'object' && !seen.includes(current) && seen.length < 5) {
+    seen.push(current)
+    const candidate = current as { code?: unknown; message?: unknown; cause?: unknown }
+    if (typeof candidate.code === 'string') {
+      return { code: candidate.code, message: String(candidate.message ?? candidate.code) }
+    }
+    current = candidate.cause
+  }
+  const message = error instanceof Error ? error.message : String(error)
+  return classifyConnectionFailure({ message })
+}
 
 /** `payload.db.execute` returns `{ rows }` for Postgres and an array for SQLite; accept both. */
 const rowsOf = (result: unknown): Record<string, unknown>[] => {
@@ -176,7 +298,7 @@ export const checkSchema = async (
       hasMigrationsTable: false,
       applied: [],
       available,
-      connectionError: error instanceof Error ? error.message : String(error),
+      connectionError: connectionFailureOf(error),
     })
   }
 }

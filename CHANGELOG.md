@@ -109,6 +109,14 @@ modernisation programme; every entry links the roadmap item it closes
   `scripts/preflight.ts`), so the common case — a fresh clone, a reset container — fails at the
   shell with the command to run instead of in the browser. Documented under Troubleshooting in
   `docs/development.md`.
+- **A database that resets the connection says so, in its own words.** `ECONNRESET` (and `pg`'s
+  code-less `Connection terminated unexpectedly`) is what a stopped container's port mapping or a
+  server that is still starting returns, and it used to print the generic “check POSTGRES_URL” hint
+  and let `next dev` start into a broken admin. The failure is now classified — `ECONNREFUSED`,
+  `ECONNRESET`, `ENOTFOUND`, `ETIMEDOUT`, `28P01`, `3D000` — each with its own advice;
+  `pnpm preflight` retries a transient failure four times before giving up, then stops instead of
+  continuing. `onInit` treats an unreachable database like a missing schema: it stops with the
+  message rather than serving pages that can only fail.
 - **The SEO plugin's fields, from the accessibility gate.** Its instruction lines are inline
   `#9A9A9A` (2.6:1), its length pills white on the CSS keywords red/orange/green (1.9–4:1), and its
   search-result preview is a mock (`pointer-events: none`) whose links are still focusable — one

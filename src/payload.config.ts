@@ -259,13 +259,15 @@ export default buildConfig({
     // Say what is wrong before the first query does. With push off, an unmigrated database answers
     // every request with Drizzle's raw "Failed query: select … from users" and the real cause
     // (`relation "users" does not exist`) only appears in the log; the message below names the
-    // command to run instead. A schema that is merely behind only gets a warning, so a stale column
-    // does not take the whole site down.
+    // command to run instead.
     const schema = await checkSchema(
       payload,
       migrations.map((migration) => migration.name),
     )
-    if (schema.state === 'missing') {
+    // A database with no schema, or none reachable at all, cannot serve a single page: stop with
+    // the message instead of letting every request answer with Drizzle's SQL. A schema that is
+    // merely behind only gets a warning, so a stale column does not take the whole site down.
+    if (schema.state === 'missing' || schema.state === 'unreachable') {
       payload.logger.error(schema.message)
       throw new Error(schema.message)
     }

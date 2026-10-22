@@ -5,6 +5,8 @@ import config from '@/payload.config'
 import {
   CORE_TABLES,
   checkSchema,
+  connectionFailureOf,
+  describeConnectionError,
   describeSchema,
   type SchemaFacts,
 } from '@/lib/database-readiness'
@@ -90,12 +92,12 @@ describe('describeSchema', () => {
         tables: { users: false, articles: false },
         hasMigrationsTable: false,
         applied: [],
-        connectionError: 'ECONNREFUSED 127.0.0.1:5432',
+        connectionError: { code: 'ECONNREFUSED', message: 'connect ECONNREFUSED 127.0.0.1:5432' },
       }),
     )
     expect(report.state).toBe('unreachable')
     expect(report.message).toContain('ECONNREFUSED')
-    expect(report.message).toContain('POSTGRES_URL')
+    expect(report.message).toContain('Nothing is listening')
     // Not "run pnpm migrate": the problem is the connection, not the schema.
     expect(report.message).not.toContain('pnpm migrate')
   })
@@ -103,6 +105,77 @@ describe('describeSchema', () => {
   it('ignores a migration recorded in the database that no longer exists in the code', () => {
     const report = describeSchema(facts({ applied: [...names, '20200101_000000_removed'] }))
     expect(report.state).toBe('ready')
+  })
+})
+
+describe('describeConnectionError', () => {
+  it('tells ECONNREFUSED (nothing listening) apart from ECONNRESET (dropped)', () => {
+    const refused = describeConnectionError({
+      code: 'ECONNREFUSED',
+      message: 'connect ECONNREFUSED 127.0.0.1:5432',
+    })
+    const reset = describeConnectionError({
+      code: 'ECONNRESET',
+      message: 'read ECONNRESET',
+    })
+
+    expect(refused).toContain('Nothing is listening')
+    expect(refused).toContain('docker compose up -d db')
+    // The reset is not "start the database": something answered, then closed.
+    expect(reset).toContain('accepted the connection and then closed it')
+    expect(reset).toContain('docker compose ps')
+    expect(reset).toContain('sslmode=require')
+    expect(reset).not.toContain('Nothing is listening')
+  })
+
+  it('classifies the resets `pg` reports without an errno', () => {
+    // pg drops the socket's code: the text is all there is.
+    const terminated = describeConnectionError({ message: 'Connection terminated unexpectedly' })
+    const read = describeConnectionError({ message: 'read ECONNRESET' })
+
+    for (const message of [terminated, read]) {
+      expect(message).toContain('accepted the connection and then closed it')
+      expect(message).toContain('docker compose ps')
+    }
+  })
+
+  it('names the credential and database cases by SQLSTATE', () => {
+    expect(describeConnectionError({ code: '28P01', message: 'password authentication failed' }))
+      .toContain('credentials')
+    expect(describeConnectionError({ code: '3D000', message: 'database "x" does not exist' }))
+      .toContain('does not exist')
+  })
+
+  it('keeps a generic hint for anything it does not recognise', () => {
+    const message = describeConnectionError({ message: 'something odd happened' })
+    expect(message).toContain('something odd happened')
+    expect(message).toContain('POSTGRES_URL')
+  })
+})
+
+describe('connectionFailureOf', () => {
+  it('takes the errno from the error itself', () => {
+    expect(connectionFailureOf(Object.assign(new Error('read ECONNRESET'), { code: 'ECONNRESET' })))
+      .toEqual({ code: 'ECONNRESET', message: 'read ECONNRESET' })
+  })
+
+  it('finds the errno when the socket error is wrapped in a cause', () => {
+    const wrapped = new Error('connect failed', {
+      cause: Object.assign(new Error('read ECONNRESET'), { code: 'ECONNRESET' }),
+    })
+    expect(connectionFailureOf(wrapped).code).toBe('ECONNRESET')
+  })
+
+  it('recovers the code from the message when pg dropped the field', () => {
+    expect(connectionFailureOf(new Error('Connection terminated unexpectedly'))).toEqual({
+      code: 'ECONNRESET',
+      message: 'Connection terminated unexpectedly',
+    })
+  })
+
+  it('falls back to the message when there is no code anywhere', () => {
+    expect(connectionFailureOf(new Error('plain failure'))).toEqual({ message: 'plain failure' })
+    expect(connectionFailureOf('a string')).toEqual({ message: 'a string' })
   })
 })
 
