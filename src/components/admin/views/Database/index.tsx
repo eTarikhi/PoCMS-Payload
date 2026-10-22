@@ -35,7 +35,7 @@ import {
 } from '@/components/admin/elements/Table'
 import { databaseTarget, isServerless, withDatabase } from '@/plugins/databaseTools/server/connection'
 import { parseDirection, parseFilters, type RowFilter, type SortDirection } from '@/plugins/databaseTools/server/filters'
-import { overview, readRows, ROW_PAGE_SIZE, resolveTable, tableDetail } from '@/plugins/databaseTools/server/introspection'
+import { overview, readRows, ROW_PAGE_SIZE, resolveTable, tableDetail, tableDdl } from '@/plugins/databaseTools/server/introspection'
 import { NeonClient, neonConsoleUrl } from '@/plugins/databaseTools/server/neon'
 import { runRepairChecks } from '@/plugins/databaseTools/server/repair'
 import { listSessions, LONG_RUNNING_SECONDS, type SessionOverview } from '@/plugins/databaseTools/server/sessions'
@@ -112,12 +112,14 @@ async function readDatabase(request: {
   return withDatabase(async (client) => {
     const summary = await overview(client)
     let detail = null
+    let ddl = null
     let page = null
     let tableError: string | null = null
     if (request.table) {
       const found = await resolveTable(client, request.table)
       if (found) {
         detail = await tableDetail(client, found.name)
+        ddl = await tableDdl(client, found.name)
         page = await readRows(client, found.name, {
           limit: ROW_PAGE_SIZE,
           offset: request.offset,
@@ -131,7 +133,7 @@ async function readDatabase(request: {
     }
     const repairs = await runRepairChecks(client, request.migrationNames)
     const sessions = request.sessions ? await listSessions(client) : null
-    return { summary, detail, page, tableError, repairs, sessions }
+    return { summary, detail, ddl, page, tableError, repairs, sessions }
   })
 }
 
@@ -428,6 +430,7 @@ export async function DatabaseView({
                       </Link>
                       <TableBrowser
                         detail={data.detail}
+                        ddl={data.ddl}
                         page={data.page}
                         adminRoute={adminRoute}
                         apiBase={apiBase}

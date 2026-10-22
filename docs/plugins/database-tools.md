@@ -138,7 +138,7 @@ All of them are mounted under `routes.api` + `apiBasePath` and gated by `access`
 | Method and path | Body / query | Answers |
 | --- | --- | --- |
 | `GET /api/database/backup` | `?format=sql\|json`, `?tables=a,b`, `?schemaOnly=1` | The dump as a download (`Content-Disposition`, `no-store`). `403` without access. |
-| `GET /api/database/table` | `?table=…&format=json\|csv`, `?limit=&offset=&sort=&dir=asc\|desc`, and `f=column:operator:value` repeated | JSON: `{ ok, page: { rows, total, filters, sort, direction, ignoredFilters } }`. CSV: a download, with `X-Rows-Exported` and `X-Rows-Truncated` headers. Operators: `eq`, `neq`, `contains`, `starts`, `gt`, `gte`, `lt`, `lte`, `isnull`, `notnull`. |
+| `GET /api/database/table` | `?table=…&format=json\|csv\|ddl`, `?limit=&offset=&sort=&dir=asc\|desc`, and `f=column:operator:value` repeated | JSON: `{ ok, page: { rows, total, filters, sort, direction, ignoredFilters } }`. CSV: a download, with `X-Rows-Exported` and `X-Rows-Truncated` headers. DDL: the table's `CREATE TABLE`, constraints and indexes as `application/sql`. Operators: `eq`, `neq`, `contains`, `starts`, `gt`, `gte`, `lt`, `lte`, `isnull`, `notnull`. |
 | `GET /api/database/sessions` | — | `{ ok, sessions: { role, isSuperuser, canSeeAllQueries, sessions: [{ pid, user, state, query, seconds, blockedBy, own }], active, idle, idleInTransaction, blocked, longest } }`. |
 | `POST /api/database/sessions/cancel` | `{ pid }` | `{ ok, pid }` — `pg_cancel_backend`: stops the running statement, keeps the connection. Refused for its own session, for a background process, and for a session that is not running a statement (`400`). |
 | `POST /api/database/sessions/terminate` | `{ pid, confirmation: pid }` | `{ ok, pid }` — `pg_terminate_backend`: ends the session and rolls its transaction back. The typed id is required. |
@@ -168,6 +168,19 @@ a link that can be bookmarked, shared or opened from the API. `server/filters.ts
 
 Sorting is the same idea: the column must exist, and `ctid` breaks ties so paging never repeats or
 skips a row when the sort key is not unique.
+
+### DDL and where the bytes are
+
+The table card opens a **Schema (DDL)** panel: `CREATE TABLE` with the columns, defaults, primary and
+unique constraints, then `ALTER TABLE … ADD CONSTRAINT` for the checks and foreign keys and each
+index's own `CREATE INDEX` definition. Every line is Postgres's deparsing (`format_type`,
+`pg_get_expr`, `pg_get_constraintdef`, `pg_get_indexdef`), not a guess from the Payload config, so it
+shows the database as it is. It is a description, not a migration: enum and domain types are named
+but not created, and ownership, grants and the referencing table's foreign keys are not included.
+`GET /table?format=ddl` downloads the same text.
+
+The header also splits the table's size into heap and indexes (`pg_table_size` and
+`pg_indexes_size`), which is the number to look at before choosing between `VACUUM` and `REINDEX`.
 
 ### Exporting a table
 

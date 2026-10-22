@@ -49,11 +49,13 @@ export function cellText(value: unknown): { text: string; muted: boolean } {
 
 export function TableBrowser({
   detail,
+  ddl,
   page,
   adminRoute,
   apiBase,
 }: {
   detail: TableDetail
+  ddl?: { sql: string; unsignedTypes: string[] } | null
   page: RowPage
   adminRoute: string
   apiBase: string
@@ -78,6 +80,12 @@ export function TableBrowser({
         <span className="acn:text-xs acn:text-muted-foreground">
           {table.rows.toLocaleString('en')} rows (estimate) · {formatBytes(table.bytes)} ·{' '}
           {columns.length} columns · {indexes.length} indexes
+        </span>
+        <span
+          className="acn:text-xs acn:text-muted-foreground"
+          title="Where the bytes are: the heap VACUUM FULL would rewrite, and the indexes REINDEX would"
+        >
+          {formatBytes(table.heapBytes)} heap · {formatBytes(table.indexBytes)} indexes
         </span>
         <a
           className={buttonVariants({ size: 'xs', variant: 'outline' })}
@@ -331,6 +339,34 @@ export function TableBrowser({
         <h3 className="acn:m-0 acn:mb-2 acn:text-sm acn:font-medium">Maintenance for this table</h3>
         <MaintenanceButtons table={table.name} />
       </div>
+
+      {ddl ? (
+        <details className="acn:rounded-lg acn:border acn:border-border">
+          <summary className="acn:cursor-pointer acn:select-none acn:p-3 acn:text-sm acn:font-medium">
+            Schema (DDL)
+            <span className="acn:ml-2 acn:text-xs acn:font-normal acn:text-muted-foreground">
+              the table as Postgres describes it — columns, constraints, indexes
+            </span>
+          </summary>
+          <div className="acn:space-y-2 acn:border-t acn:border-border acn:p-3">
+            <div className="acn:flex acn:flex-wrap acn:items-center acn:gap-2">
+              <a
+                className={buttonVariants({ size: 'xs', variant: 'outline' })}
+                href={`${apiBase}/table?table=${encodeURIComponent(table.name)}&format=ddl`}
+              >
+                Download .sql
+              </a>
+              <span className="acn:text-xs acn:text-muted-foreground">
+                A description, not a migration: no <code className="acn:font-mono">CREATE TYPE</code>{' '}
+                for enums, no ownership or grants.
+              </span>
+            </div>
+            <pre className="acn:m-0 acn:max-h-96 acn:overflow-auto acn:rounded-md acn:bg-muted acn:p-3 acn:font-mono acn:text-xs">
+              {ddl.sql}
+            </pre>
+          </div>
+        </details>
+      ) : null}
     </div>
   )
 }

@@ -126,6 +126,12 @@ modernisation programme; every entry links the roadmap item it closes
   Both refuse the page's own connection and background processes, and are audited.
   `GET /api/database/sessions`, `POST …/sessions/cancel`, `POST …/sessions/terminate`; a
   `sessions: false` option removes the card and the three endpoints.
+- **Table DDL and a size breakdown.** The table card opens a **Schema (DDL)** panel with the
+  `CREATE TABLE`, the constraints and the index definitions, all from Postgres's own deparsing, and
+  downloads the same text from `GET /api/database/table?format=ddl`. The header splits the size into
+  heap and indexes (`pg_table_size` / `pg_indexes_size`), which is what decides between `VACUUM` and
+  `REINDEX`. The panel says what the file is not: it names enum/domain types without creating them
+  and carries no ownership or grants.
 - **Filters, sorting and CSV export in the table browser.** A filter bar writes
   `f=column:operator:value` into the URL (bookmarkable, shareable, and the same parameter the API
   takes) across ten operators; the column must exist in the catalog and every value is a parameter

@@ -3,7 +3,7 @@ import type { Endpoint, PayloadRequest } from 'payload'
 import { buildJsonBackup, buildSqlBackup, type BuildBackupOptions } from './server/backup'
 import { DatabaseToolsError, withDatabase } from './server/connection'
 import { parseDirection, parseFilters } from './server/filters'
-import { exportCsv, readRows } from './server/introspection'
+import { exportCsv, readRows, tableDdl } from './server/introspection'
 import { isMaintenanceAction, runMaintenance } from './server/maintenance'
 import { NeonClient, NeonError } from './server/neon'
 import { applyRepair, type RepairCheckId } from './server/repair'
@@ -21,8 +21,8 @@ import { neonOptions, type ResolvedDatabaseToolsOptions } from './options'
  *   POST /api/database/maintenance       `{ action: analyze|vacuum|vacuum-analyze|reindex, table? }`
  *   POST /api/database/repair            `{ check: sequences|orphans|indexes|statistics|all }`
  *   POST /api/database/restore-inspect   `{ sql }` — what a restore file would do, without running it.
- *   GET  /api/database/table             `?table=…&format=csv|json&limit=&offset=&sort=&dir=&f=`
- *                                        A filtered page of rows, or the table as a CSV download.
+ *   GET  /api/database/table             `?table=…&format=csv|json|ddl&limit=&offset=&sort=&dir=&f=`
+ *                                        A filtered page of rows, the table as CSV, or its DDL.
  *   GET  /api/database/sessions          What Postgres is doing now: connections, long statements,
  *                                        idle transactions and who blocks whom.
  *   POST /api/database/sessions/cancel   `{ pid }` — stop the statement, keep the connection.
@@ -245,9 +245,22 @@ export const databaseToolsEndpoints = (options: ResolvedDatabaseToolsOptions): E
         const filters = parseFilters(req.searchParams.getAll('f'))
         const sort = req.searchParams.get('sort')
         const direction = parseDirection(req.searchParams.get('dir'))
-        const format = req.searchParams.get('format') === 'csv' ? 'csv' : 'json'
+        const requested = req.searchParams.get('format')
+        const format = requested === 'csv' || requested === 'ddl' ? requested : 'json'
 
         try {
+          if (format === 'ddl') {
+            const ddl = await withDatabase((client) => tableDdl(client, table))
+            return new Response(ddl.sql, {
+              status: 200,
+              headers: {
+                'Content-Type': 'application/sql; charset=utf-8',
+                'Content-Disposition': `attachment; filename="pocms-${table}-schema.sql"`,
+                'Cache-Control': 'no-store',
+              },
+            })
+          }
+
           if (format === 'csv') {
             const exportLimit = options.export === false ? 0 : options.export.maxRows
             if (exportLimit === 0) return json({ error: 'CSV export is turned off.' }, 403)

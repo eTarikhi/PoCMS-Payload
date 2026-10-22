@@ -1,6 +1,6 @@
 import type pg from 'pg'
 
-import { DatabaseToolsError, number, quoteTable } from './connection'
+import { DatabaseToolsError, number, quoteIdent, quoteTable } from './connection'
 import { buildWhere, type RowFilter, type SortDirection } from './filters'
 
 /**
@@ -16,7 +16,12 @@ export type TableSummary = {
   name: string
   oid: number
   rows: number
+  /** Heap + TOAST + indexes, the same number `\d+` shows. */
   bytes: number
+  /** The heap and its TOAST, without indexes: what a `VACUUM FULL` would rewrite. */
+  heapBytes: number
+  /** Every index on the table: what `REINDEX` would rewrite. */
+  indexBytes: number
   columns: number
   /** Rows that have been updated or deleted and not vacuumed yet. */
   deadRows: number
@@ -76,6 +81,8 @@ const TABLES_BASE = `
     c.relname as name,
     coalesce(s.n_live_tup, 0)::bigint as rows,
     pg_total_relation_size(c.oid)::bigint as bytes,
+    pg_table_size(c.oid)::bigint as heap_bytes,
+    pg_indexes_size(c.oid)::bigint as index_bytes,
     (select count(*)::int from pg_attribute a
       where a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped) as columns,
     coalesce(s.n_dead_tup, 0)::bigint as dead_rows,
@@ -93,6 +100,8 @@ const toSummary = (row: Record<string, unknown>): TableSummary => ({
   oid: number(row.oid),
   rows: number(row.rows),
   bytes: number(row.bytes),
+  heapBytes: number(row.heap_bytes),
+  indexBytes: number(row.index_bytes),
   columns: number(row.columns),
   deadRows: number(row.dead_rows),
   lastVacuum: row.last_vacuum ? new Date(String(row.last_vacuum)).toISOString() : null,
@@ -187,6 +196,83 @@ export const tableDetail = async (client: pg.Client, name: string): Promise<Tabl
       definition: String(row.definition),
     })),
   }
+}
+
+/**
+ * The table's shape as SQL an admin can read, paste into a migration or compare between two
+ * databases.
+ *
+ * Every line comes from Postgres's own deparsing (`format_type`, `pg_get_expr`,
+ * `pg_get_constraintdef`, `pg_get_indexdef`) rather than from string assembly over the config, so it
+ * reflects the database as it is — including columns the Payload config does not know about. It is
+ * a *description*, not a migration: it has no `CREATE SCHEMA`, no ownership, no grants, no
+ * `CREATE TYPE` for an enum and no foreign keys to other tables (those live on the referencing
+ * table). The caller shows those limits next to it.
+ */
+export const tableDdl = async (
+  client: pg.Client,
+  name: string,
+): Promise<{ table: string; sql: string; unsignedTypes: string[] }> => {
+  const table = await requireTable(client, name)
+  const detail = await tableDetail(client, name)
+  const quoted = quoteTable(table.name)
+
+  const lines: string[] = [`-- ${quoted} (${formatBytes(detail.table.bytes)})`]
+  lines.push(`create table ${quoted} (`)
+  const bodies = detail.columns.map((column) => {
+    const parts = [`  ${quoteIdent(column.name)} ${column.type}`]
+    if (!column.nullable) parts.push('not null')
+    if (column.default !== null) parts.push(`default ${column.default}`)
+    return parts.join(' ')
+  })
+  // Primary key and unique constraints belong inside `create table`; checks and foreign keys read
+  // better as `alter table` below, in the order Postgres reports them.
+  const inline = detail.constraints.filter(
+    (constraint) => constraint.type === 'p' || constraint.type === 'u',
+  )
+  for (const constraint of inline) {
+    bodies.push(`  constraint ${quoteIdent(constraint.name)} ${constraint.definition}`)
+  }
+  lines.push(bodies.join(',\n'))
+  lines.push(');')
+
+  for (const constraint of detail.constraints) {
+    if (constraint.type === 'p' || constraint.type === 'u') continue
+    lines.push(
+      `alter table ${quoted} add constraint ${quoteIdent(constraint.name)} ${constraint.definition};`,
+    )
+  }
+  // Primary-key and unique indexes are already implied by the constraints above.
+  for (const index of detail.indexes) {
+    if (index.primary) continue
+    if (inline.some((constraint) => constraint.name === index.name)) continue
+    lines.push(`${index.definition};`)
+  }
+
+  // Column types the file cannot define: an enum or a domain lives in the schema, not in the table.
+  const { rows } = await client.query(
+    `select distinct t.typname as name, t.typtype::text as kind
+       from pg_attribute a
+       join pg_type t on t.oid = a.atttypid
+      where a.attrelid = $1 and a.attnum > 0 and not a.attisdropped and t.typtype in ('e', 'd')
+      order by t.typname`,
+    [table.oid],
+  )
+  const unsignedTypes = (rows as Record<string, unknown>[]).map(
+    (row) => `${String(row.name)} (${row.kind === 'e' ? 'enum' : 'domain'})`,
+  )
+  if (unsignedTypes.length > 0) {
+    lines.push(`-- not defined here: ${unsignedTypes.join(', ')}`)
+  }
+
+  return { table: table.name, sql: `${lines.join('\n')}\n`, unsignedTypes }
+}
+
+/** `1.2 MB`, for the header lines of a DDL file. */
+const formatBytes = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} kB`
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
 export type RowPage = {

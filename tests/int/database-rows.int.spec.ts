@@ -15,6 +15,7 @@ import {
   MAX_CSV_ROWS,
   readRows,
   tableColumns,
+  tableDdl,
 } from '@/plugins/databaseTools/server/introspection'
 import {
   cancelQuery,
@@ -204,6 +205,33 @@ describe('readRows with filters and sort', () => {
     const columns = await withDb(async (client) => tableColumns(client, await oidOf(client, 'articles')))
     expect(columns.map((column) => column.name)).toContain('title')
     expect(columns.find((column) => column.name === 'id')?.type).toBe('integer')
+  })
+})
+
+describe('tableDdl', () => {
+  it('describes the table with its own types, defaults, keys and indexes', async () => {
+    const result = await withDb((client) => tableDdl(client, 'articles'))
+    expect(result.table).toBe('articles')
+    expect(result.sql).toMatch(/create table "public"\."articles" \(/)
+    expect(result.sql).toContain('"id" integer not null default nextval')
+    expect(result.sql).toContain('constraint "articles_pkey" PRIMARY KEY (id)')
+    expect(result.sql).toContain('FOREIGN KEY (image_id) REFERENCES media(id)')
+    expect(result.sql).toMatch(/^CREATE (UNIQUE )?INDEX/m)
+    // The enum the table uses is named, and said not to be part of this file.
+    expect(result.unsignedTypes.join(' ')).toContain('enum_articles_status')
+    expect(result.sql).toContain('-- not defined here:')
+  })
+
+  it('answers with the same shape for a table without indexes or foreign keys', async () => {
+    const result = await withDb((client) => tableDdl(client, 'payload_migrations'))
+    expect(result.sql).toMatch(/create table "public"\."payload_migrations"/)
+    expect(result.sql.trimEnd().endsWith(';')).toBe(true)
+  })
+
+  it('refuses a table that does not exist', async () => {
+    await expect(withDb((client) => tableDdl(client, 'nope_not_here'))).rejects.toThrow(
+      /no table called/i,
+    )
   })
 })
 
