@@ -43,6 +43,15 @@ pnpm migrate                    # apply it locally
    See [Deployment → Database migrations](deployment.md#database-migrations) for the deploy step.
    `pnpm migrate:status` lists applied and pending migrations.
 
+   **`index.ts` is generated from the folder.** `migrate:create` rewrites it from every `.ts` file
+   in `src/migrations`, so a migration file that is present but unregistered will join the registry
+   on the next generate. That matters when it duplicates another one: `20261022_000244` recreated
+   what `20261021_163000_media_folders` already adds, and registering both would fail halfway
+   through a fresh database. Migrations that are not part of the history live in
+   `src/migrations/archive/` (with a README saying why); their `.json` snapshots stay in place
+   because `migrate:create` diffs against the newest one. `tests/int/migrations.int.spec.ts` asserts
+   that the registry and the top-level files are the same list, so this cannot drift again.
+
    Media sizes are derived data, not schema: after adding a size in `src/collections/Media.ts` run
    `pnpm media:regenerate` so files uploaded earlier get the new size too (see
    `docs/ui-modernization/admin-ui-guide.md` → Media).

@@ -13,8 +13,9 @@ made the project hard to work on: a database that fails opaquely, and a CI gate 
 | --- | --- |
 | SEO | Payload's SEO plugin on Articles and Site settings, with fallbacks, generators, counters, a preview and an accessible admin treatment |
 | Crawlability | `/sitemap.xml` and `/robots.txt` as Next metadata routes, fed by the same cache tag as the pages |
-| Developer experience | A database-readiness check in `onInit` and a `pnpm preflight` step before `next dev` |
-| CI | The visual-invariants gate now actually runs; the migration registry no longer references missing files |
+| Developer experience | A database-readiness check in `onInit`, a `pnpm preflight` step before `next dev`, per-error connection advice with retries |
+| Build integrity | The migration registry matches the folder, guarded by a test; twelve duplicate migrations archived |
+| CI | Two CI breakages fixed and green on `dc9023f`; the owner then removed the workflows |
 
 Commits: `c142eaf`, `c9eeaf0`, `8225cbc`, `e9e6223`, `6265f8c`, `ec58cd6` (plus the owner's
 `f60c4b4` and `32860bf`). 41 files, +2,277 / −33 lines in the SEO and sitemap work alone; 6 test
@@ -79,7 +80,7 @@ dump), so this was a trap rather than an edge case.
   giving up, and `onInit` stops on an unreachable database instead of serving pages that can only
   fail.
 
-## 4. CI that actually runs its gate
+## 4. CI that actually runs its gate (workflows since removed by the owner)
 
 CI had been red since 19 October. The quality job passed; every run failed at *Visual invariants*.
 The step called Playwright directly, without the `--import=tsx/esm` loader that the package scripts
@@ -93,8 +94,15 @@ The owner's `32860bf` then committed a `src/migrations/index.ts` that imports ni
 that were never pushed (the folder was in `.gitignore`), which broke typecheck, preflight, migrate
 and the build. `ec58cd6` restores the registry to the files in the repository and removes
 `/src/migrations` from `.gitignore`: migrations are how a schema change reaches production, so they
-have to be committed. If those nine migrations are real, they need to be added and the registry
-regenerated (`pnpm generate:all` does not touch it; `payload migrate:create` does).
+have to be committed.
+
+The owner followed up with `403ced4`, which committed those migrations (and more: twelve files in
+total), and `0c5180b`, which deleted both workflows. So **CI no longer runs in this repository**;
+the two fixes above are recorded for whenever workflows are restored. The twelve committed
+migrations were not in the registry, and several create tables the registered history already
+creates, so registering them would make a fresh database fail halfway. They are now archived
+(`src/migrations/archive/`, with a README) and `tests/int/migrations.int.spec.ts` holds the
+registry and the folder to the same list.
 
 ## Quality evidence
 
@@ -108,7 +116,8 @@ regenerated (`pnpm generate:all` does not touch it; `payload migrate:create` doe
 | `pnpm test:e2e a11y` | **4/4** (light + dark, axe + skip link) |
 | `next build` | OK |
 | Route smoke test | `/`, `/admin`, `/sitemap.xml`, `/robots.txt` all 200 |
-| CI run [39704391765](https://github.com/eTarikhi/PoCMS-Payload/actions/runs/39704391765) | **success** — both jobs, first green run since 19 October |
+| CI run [39708768767](https://github.com/eTarikhi/PoCMS-Payload/actions/runs/39708768767) | **success** — both jobs, on `dc9023f` (the last commit before the workflows were removed) |
+| Fresh database | `pnpm migrate` from empty → all 10 migrations, `pnpm preflight` reports ready |
 
 New tests: `tests/int/seo.int.spec.ts` (8), `tests/int/sitemap.int.spec.ts` (5),
 `tests/int/database-readiness.int.spec.ts` (18), `tests/e2e/seo.e2e.spec.ts` (3),
@@ -117,9 +126,10 @@ New tests: `tests/int/seo.int.spec.ts` (8), `tests/int/sitemap.int.spec.ts` (5),
 
 ## Open items
 
-1. **The nine local migrations.** Either commit them (`src/migrations` is no longer ignored) and
-   regenerate the registry, or confirm they were experimental and drop them. Until then the
-   registry matches the repository.
+1. **CI is gone.** `0c5180b` deleted `.github/workflows/` and added `/.github` to `.gitignore`, so
+   nothing runs on push any more. The suites are unchanged and green locally; restore the two
+   workflows (from `dc9023f`) when CI is wanted again — `/.github` in `.gitignore` will otherwise
+   hide them from `git status`.
 2. **Deployed database.** `20261022_090000_seo_meta` (and anything after it) still has to run
    through *Actions → Migrate database* once the deploy carries it.
 3. **CI history.** `ec58cd6` is green (run 39704391765, both jobs). Earlier runs are red: 32860bf
