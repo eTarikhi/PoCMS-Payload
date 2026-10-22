@@ -88,6 +88,17 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Fixed
 
+- **The migration folder and its registry are kept equal.** `src/migrations/index.ts` is generated
+  from every `.ts` file in the folder, so an unregistered file joins the registry on the next
+  `migrate:create`. Twelve such files were in the tree: eight that predate the baseline and create
+  the whole schema themselves, three alternative generations of the roles work, and
+  `20261022_000244`, the generated duplicate of the hand-written `20261021_163000_media_folders`.
+  Registering them would run two migrations that create the same tables — a fresh database would
+  fail halfway. They now live in `src/migrations/archive/` (their `.json` snapshots stay, because
+  `migrate:create` diffs against the newest one), `src/migrations` is not ignored, and
+  `tests/int/migrations.int.spec.ts` asserts registry ↔ files. Verified by migrating an empty
+  database from scratch.
+
 - **CI is green again.** The `Build and end-to-end tests` job had failed on every run since 19
   October. Two causes: the visual-invariants step called Playwright without the `tsx` loader (below),
   and, on 22 October, a migration registry that imported files the repository did not contain
