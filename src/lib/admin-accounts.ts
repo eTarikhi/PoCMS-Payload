@@ -33,6 +33,8 @@ export type AccountSummary = {
   administrators: number
   /** Accounts with no role at all: they can sign in but the admin redirects them out. */
   roleless: string[]
+  /** Accounts left behind by `pnpm test:int` (its fixtures use `@example.test`). */
+  fromTests: string[]
 }
 
 export const normaliseEmail = (email: string): string => email.trim().toLowerCase()
@@ -134,5 +136,9 @@ export async function describeAccounts(payload: Payload): Promise<AccountSummary
     users,
     administrators: docs.filter((user) => hasFullAccess(user as { roles?: unknown })).length,
     roleless: users.filter((user) => user.roles.length === 0).map((user) => user.email),
+    // The integration suite runs against whatever `.env` points at and cleans up after itself;
+    // an interrupted run leaves a fixture account, which is enough to turn the admin's
+    // "Create first user" screen into a login form nobody has the password for.
+    fromTests: users.filter((user) => user.email.endsWith('@example.test')).map((user) => user.email),
   }
 }

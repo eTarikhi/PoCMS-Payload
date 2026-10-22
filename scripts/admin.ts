@@ -75,6 +75,19 @@ const askHidden = (question: string): Promise<string> =>
     })
   })
 
+/** Where the script is pointed, without the credentials — the usual first question. */
+const describeTarget = (): string => {
+  const url = process.env.POSTGRES_URL
+  if (!url) return 'POSTGRES_URL is not set'
+  try {
+    const parsed = new URL(url)
+    const database = parsed.pathname.replace(/^\//, '')
+    return `${parsed.hostname}:${parsed.port || '5432'}/${database}`
+  } catch {
+    return 'POSTGRES_URL is not a valid URL'
+  }
+}
+
 const connect = async () => {
   try {
     return await getPayload({ config })
@@ -90,6 +103,8 @@ const run = async () => {
     return
   }
 
+  console.log(`Database: ${describeTarget()}`)
+
   const payload = await connect()
 
   if (command === 'status') {
@@ -101,7 +116,9 @@ const run = async () => {
     } else {
       console.log(`\n${summary.users.length} account(s), ${summary.administrators} administrator(s):\n`)
       for (const user of summary.users) {
-        console.log(`  ${user.email.padEnd(36)} ${user.roles.length > 0 ? user.roles.join(', ') : '— no role'}`)
+        const roles = user.roles.length > 0 ? user.roles.join(', ') : '— no role'
+        const note = summary.fromTests.includes(user.email) ? '  (left by a test run)' : ''
+        console.log(`  ${user.email.padEnd(36)} ${roles}${note}`)
       }
       console.log()
     }
@@ -110,6 +127,11 @@ const run = async () => {
       console.warn('⚠ Nobody has a full-access role, so nobody can open the admin.')
       console.warn('  Fix: pnpm admin:create --email <one of the accounts above>\n')
       process.exitCode = 1
+    }
+    if (summary.users.length > 0 && summary.administrators === 0 && summary.fromTests.length > 0) {
+      console.warn('⚠ The accounts above were created by `pnpm test:int`, which uses the database in .env.')
+      console.warn('  An interrupted run leaves them behind; the admin then asks for a password nobody has.')
+      console.warn('  Fix: pnpm admin:create --email you@example.com\n')
     }
     if (summary.roleless.length > 0) {
       console.warn(`⚠ Without a role these accounts are refused by the admin: ${summary.roleless.join(', ')}`)

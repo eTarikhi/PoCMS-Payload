@@ -132,9 +132,13 @@ pnpm admin:status                       # who exists, with which roles; flags wh
 pnpm admin:create --email you@example.com   # creates it, or resets the password and adds a role
 ```
 
-- **`Sign in` instead of `Create first user`** → a user row already exists (an earlier attempt, a
-  restored dump, a colleague's account). `pnpm admin:status` lists the address;
-  `pnpm admin:create --email <that address>` sets a password you know.
+- **`Sign in` instead of `Create first user`** → a user row already exists. It can be an earlier
+  attempt, a restored dump, a colleague's account, or a fixture left by an interrupted
+  `pnpm test:int` (the suite runs against the database in `.env` and marks its accounts with
+  `@example.test`; `admin:status` labels those). Payload only shows the create form when the
+  `users` table is completely empty. `pnpm admin:status` lists the address and the database it is
+  looking at; `pnpm admin:create --email <that address>` sets a password you know (or create a new
+  account with a different address).
 - **Signed in, then sent back to `/admin/unauthorized`** → the account has no role, and
   `access.admin` (`hasAnyRole`) refuses it. Same command adds the built-in Administrator role.
 - **`No accounts yet`** → `pnpm admin:create --email …`; the password can come from
