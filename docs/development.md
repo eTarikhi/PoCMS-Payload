@@ -143,8 +143,9 @@ pnpm admin:create --email you@example.com   # creates it, or resets the password
   `access.admin` (`hasAnyRole`) refuses it. Same command adds the built-in Administrator role.
 - **`No accounts yet`** → `pnpm admin:create --email …`; the password can come from
   `ADMIN_PASSWORD`, so it stays out of the shell history.
-- **The database has no tables at all** → `pnpm migrate` first; `admin:create` reports the same
-  "no schema" message shown above.
+- **The database has no tables at all** (a new Neon/Vercel database) → `pnpm migrate` first, or add
+  `--migrate` to `admin:create`, which runs the migrations and then creates the account. Without it
+  the command reports the same "no schema" message shown above.
 
 `admin:status` exits non-zero when nobody can open the admin, so it is usable as a deploy check.
 

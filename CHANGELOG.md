@@ -14,8 +14,11 @@ modernisation programme; every entry links the roadmap item it closes
   `/admin/unauthorized`). `admin:create` is idempotent — it creates an Administrator for a new
   address, or sets the password and adds the role to an existing one — and takes the password from
   a hidden prompt, `--password`, or `ADMIN_PASSWORD`. `admin:status` lists the accounts and their
-  roles and exits non-zero when nobody can open the admin. Tested against the real database in
-  `tests/int/admin-accounts.int.spec.ts`.
+  roles and exits non-zero when nobody can open the admin. `--migrate` runs `pnpm migrate` first
+  when the database has no schema, so a brand-new Neon/Vercel database can be set up and given its
+  first account in one command. Tested against the real database in
+  `tests/int/admin-accounts.int.spec.ts`, and end to end on an empty database in a production
+  build (migrate, create, log in, open `/admin`).
 - **Per-document SEO metadata (Payload's SEO plugin).** Articles and the Site settings global get a
   `meta` group — title, description and an image — with a character counter, a search-result
   preview and an *Auto-generate* button per field. The generators fill in what the site would use

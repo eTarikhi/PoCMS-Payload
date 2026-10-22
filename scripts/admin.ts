@@ -15,6 +15,7 @@
  */
 import 'dotenv/config'
 
+import { spawnSync } from 'node:child_process'
 import { stdin, stdout } from 'node:process'
 import { createInterface } from 'node:readline'
 
@@ -29,11 +30,13 @@ import {
 import config from '../src/payload.config'
 
 const USAGE = `Usage:
-  pnpm admin:create --email <address> [--password <password>] [--name "<name>"]
+  pnpm admin:create --email <address> [--password <password>] [--name "<name>"] [--migrate]
   pnpm admin:status
 
   ADMIN_PASSWORD=<password> pnpm admin:create --email <address>   (no password in the history)
-  When no password is given and the terminal is interactive, it is asked for.`
+  When no password is given and the terminal is interactive, it is asked for.
+  --migrate runs \`pnpm migrate\` first when the database has no schema (a new Neon/Vercel
+  database does not have one until the migrations run).`
 
 const args = process.argv.slice(2)
 const command = args[0]
@@ -88,12 +91,30 @@ const describeTarget = (): string => {
   }
 }
 
-const connect = async () => {
+const messageOf = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error)
+
+/** onInit's wording for a database that has never been migrated (`src/lib/database-readiness.ts`). */
+const isMissingSchema = (message: string): boolean => /has no schema \(missing tables?/i.test(message)
+
+/**
+ * Payload, migrating first when asked. A brand-new Neon/Vercel database has no tables until the
+ * migrations run, and `--migrate` turns the two steps into one — but it is never automatic: the
+ * command says which database it is about to change.
+ */
+const connect = async (migrate: boolean) => {
   try {
     return await getPayload({ config })
   } catch (error) {
-    // The config's onInit already explains an unmigrated or unreachable database in full.
-    throw new Error(error instanceof Error ? error.message : String(error))
+    const message = messageOf(error)
+    if (!migrate || !isMissingSchema(message)) throw new Error(message)
+
+    console.log(`\n… This database has no schema. Running \`pnpm migrate\` first:\n`)
+    const result = spawnSync('pnpm', ['migrate'], { shell: true, stdio: 'inherit' })
+    if (result.status !== 0) throw new Error('The migrations failed; nothing was created.')
+
+    console.log('')
+    return await getPayload({ config })
   }
 }
 
@@ -105,7 +126,7 @@ const run = async () => {
 
   console.log(`Database: ${describeTarget()}`)
 
-  const payload = await connect()
+  const payload = await connect(args.includes('--migrate'))
 
   if (command === 'status') {
     const summary = await describeAccounts(payload)
@@ -168,5 +189,10 @@ run()
   // `status` sets process.exitCode when something needs fixing; keep it instead of forcing 0.
   .then(() => process.exit(process.exitCode ?? 0))
   .catch((error: unknown) => {
-    fail(error instanceof Error ? error.message : String(error))
+    const message = messageOf(error)
+    fail(
+      isMissingSchema(message) && !args.includes('--migrate')
+        ? `${message}\n\n  Create the schema with \`pnpm migrate\`, or run this command with --migrate\n  (\`pnpm admin:create --migrate --email …\`) to do both.`
+        : message,
+    )
   })

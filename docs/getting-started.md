@@ -99,6 +99,16 @@ pnpm admin:create --email you@example.com    # asks for the password
 pnpm admin:status                            # who exists, what they may do
 ```
 
+A hosted database (Neon, Vercel Postgres) is empty until the migrations run — the app says
+`This database has no schema (missing tables: users, articles)` and stops. `--migrate` does both
+steps in one, and prints the migration log first:
+
+```bash
+pnpm admin:create --migrate --email you@example.com
+```
+
+or, separately, `pnpm migrate` then `pnpm admin:create` (plus `pnpm seed` for demo content).
+
 `admin:create` is idempotent: a new address creates an Administrator, an existing one gets the new
 password and, if it had no role, the Administrator role (an account without a role is refused by
 the admin).
