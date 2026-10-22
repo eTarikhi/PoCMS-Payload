@@ -16,7 +16,33 @@ All changes were committed and pushed directly to the designated branch. No pull
 request was created. No production deployment, production-data reset or content-model
 migration was performed. The earlier Studio redesign and hardening remain intact.
 
-## Latest autonomous pass: native PostgreSQL and development Compose
+## Latest requested change: dark public portfolio redesign
+
+The owner rejected the previous visual direction and selected **public portfolio**
+and **modern dark** in the design clarification. The Payload admin was left unchanged.
+
+Replaced the warm paper/brown presentation with a midnight/slate palette, lime
+accents, a floating rounded navigation bar, a more personal hero introduction,
+framed portrait, modular project/service/writing cards, cleaner sans-serif contact
+typography and dark search/dialog/loading surfaces. The reading and missing-article
+pages follow the same palette. Existing CMS content and routes are preserved;
+no schema/data change or invented case study was introduced.
+
+Verified desktop appearance visually and corrected contact/CTA contrast issues.
+Added a browser regression for dark styling across home and both archives, and
+made the keyboard-skip test wait for the page to render before pressing Tab.
+
+Latest validation: **25 preview browser tests**, **79 frontend unit/component tests**,
+**7 real-app admin/public browser checks** and **10 real CMS integration browser
+checks** passed. Full production build, TypeScript, lint and diff checks passed.
+The older database-matrix results below belong to the previous infrastructure pass;
+the matrix was not redundantly rerun for this CSS/composition change.
+
+Implementation: `a628251`, pushed directly on the designated branch. The running
+**Dark portfolio preview** on port 4173 shows sample content with the new design;
+the rebuilt fixture-backed app on port 3000 also uses it. Admin design is unchanged.
+
+## Earlier autonomous pass: native PostgreSQL and development Compose
 
 Prioritized the deferred local-stack task after reviewing the external gates. The
 sandbox still has no Docker executable/engine, so container verification cannot be
