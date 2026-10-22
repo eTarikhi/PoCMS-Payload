@@ -81,6 +81,7 @@ test.describe('Studio writing preview', () => {
 
   test('supports keyboard skip navigation on an article', async ({ page }) => {
     await page.goto(`${baseURL}/articles/design-preview`)
+    await expect(page.getByRole('main')).toBeVisible()
     await page.keyboard.press('Tab')
     await expect(page.getByRole('link', { name: 'Skip to content' })).toBeFocused()
     await page.keyboard.press('Enter')

@@ -52,7 +52,7 @@
   width: min(1040px, calc(100vw - 48px));
   transform: translateX(-50%);
   margin: 0 0 48px;
-  background: #e4e1d8;
+  background: #151e29;
 }
 .studio .article-cover img {
   display: block;
@@ -110,15 +110,15 @@
 .studio .article-cta {
   display: inline-block;
   margin-top: 20px;
-  background: var(--ink);
-  color: #fff;
+  background: var(--accent);
+  color: #0b0f14;
   font-size: 14px;
   padding: 15px 25px;
-  border-radius: 3px;
+  border-radius: 10px;
 }
 .studio .article-cta:hover {
-  background: var(--accent);
-  color: #fff;
+  background: #caff8f;
+  color: #0b0f14;
 }
 @media (max-width: 600px) {
   .studio .article-page {

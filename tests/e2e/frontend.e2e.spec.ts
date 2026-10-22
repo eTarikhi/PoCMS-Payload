@@ -38,3 +38,16 @@ test.describe('Engineer’s Studio frontend', () => {
     expect(overflows).toBe(false)
   })
 })
+
+test('uses the dark portfolio design consistently on home and archives', async ({ page }) => {
+  for (const path of ['/', '/projects', '/articles']) {
+    await page.goto(`${baseURL}${path}`)
+    await expect(page.locator('.studio').first()).toHaveCSS('color-scheme', 'dark')
+    await expect(page.locator('.studio').first()).toHaveCSS('background-color', 'rgb(11, 15, 20)')
+    await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Let’s talk' })).toHaveCSS(
+      'color',
+      'rgb(184, 239, 114)',
+    )
+  }
+})

@@ -34,7 +34,10 @@ export function StudioHome({ content: c }: { content: PortfolioContent }) {
         <section className="studio-hero studio-container" id="home">
           <div>
             <p className="studio-eyebrow">
-              <span className="studio-dot" /> Independent portfolio / {name}
+              <span className="studio-dot" /> Design-minded development
+            </p>
+            <p className="studio-hero-intro">
+              Hello, I’m <strong>{name}</strong>
             </p>
             <h1>
               {c.header?.professionTexts[0] || 'Engineering with purpose'}
