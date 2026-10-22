@@ -68,7 +68,7 @@ test.describe('Component gallery', () => {
     await expect(page.locator('#nav-articles')).toBeVisible()
     await expect(page.getByTestId('quick-create')).toBeVisible()
 
-    // Admin tools section: the four whole-view tools, each linked for an administrator.
+    // Admin tools section: the whole-view tools, each linked for an administrator.
     const tools = page.locator('#tools')
     await expect(tools.getByRole('link', { name: 'Open Scheduled jobs' })).toHaveAttribute(
       'href',
@@ -81,6 +81,10 @@ test.describe('Component gallery', () => {
     await expect(tools.getByRole('link', { name: 'Open System' })).toHaveAttribute(
       'href',
       /\/admin\/system$/,
+    )
+    await expect(tools.getByRole('link', { name: 'Open Database' })).toHaveAttribute(
+      'href',
+      /\/admin\/database$/,
     )
     // The terminal's route exists only in development; the gallery lists it with its capability.
     await expect(tools).toContainText('useTerminal')

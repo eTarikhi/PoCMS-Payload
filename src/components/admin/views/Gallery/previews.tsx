@@ -442,7 +442,7 @@ export function FieldsPreview({
 const ADMIN_TOOLS: {
   path: string
   title: string
-  capability?: 'viewAuditLog' | 'manageJobs' | 'viewSystem' | 'useTerminal'
+  capability?: 'viewAuditLog' | 'manageJobs' | 'viewSystem' | 'manageDatabase' | 'useTerminal'
   description: string
 }[] = [
   {
@@ -465,6 +465,13 @@ const ADMIN_TOOLS: {
     capability: 'viewSystem',
     description:
       'Build and environment, versions, which integrations are configured (never their values), the database and its migrations, and newer releases on npm.',
+  },
+  {
+    path: '/admin/database',
+    title: 'Database',
+    capability: 'manageDatabase',
+    description:
+      'Every table with sizes and dead rows, a read-only row browser, a logical .sql/.json backup, a guarded restore, VACUUM/ANALYZE/REINDEX, safe repairs, and Neon branches with point-in-time restore when NEON_API_KEY is set.',
   },
   {
     path: '/admin/terminal',

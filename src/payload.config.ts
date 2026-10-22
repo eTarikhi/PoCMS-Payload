@@ -24,6 +24,18 @@ import { NavigationGlobal } from './globals/Navigation'
 import { SiteSettings } from './globals/SiteSettings'
 
 import { Users } from './collections/Users'
+import {
+  databaseBackupEndpoint,
+  databaseMaintenanceEndpoint,
+  databaseRepairEndpoint,
+  databaseRestoreEndpoint,
+  databaseRestoreInspectEndpoint,
+} from './endpoints/database'
+import {
+  neonBackupEndpoint,
+  neonDeleteEndpoint,
+  neonRestoreEndpoint,
+} from './endpoints/databaseNeon'
 import { devGenerateEndpoint } from './endpoints/devGenerate'
 import { jobsCancelEndpoint, jobsCronEndpoint, jobsRunEndpoint } from './endpoints/jobs'
 import { devMigrateEndpoint } from './endpoints/devMigrate'
@@ -140,6 +152,12 @@ export default buildConfig({
           path: '/terminal',
           meta: { title: 'Terminal' },
         },
+        // Tables, backups, restore, maintenance and Neon branches (manageDatabase).
+        database: {
+          Component: '/components/admin/views/Database#DatabaseView',
+          path: '/database',
+          meta: { title: 'Database' },
+        },
         // Scheduled maintenance (manageJobs): tasks, Run now, the runs and their outcomes.
         jobs: {
           Component: '/components/admin/views/Jobs#JobsView',
@@ -248,6 +266,15 @@ export default buildConfig({
     jobsRunEndpoint,
     jobsCancelEndpoint,
     jobsCronEndpoint,
+    // The database tools behind /admin/database (manageDatabase capability).
+    databaseBackupEndpoint,
+    databaseMaintenanceEndpoint,
+    databaseRepairEndpoint,
+    databaseRestoreInspectEndpoint,
+    databaseRestoreEndpoint,
+    neonBackupEndpoint,
+    neonRestoreEndpoint,
+    neonDeleteEndpoint,
     // Development only (they return 404 in production).
     devTerminalEndpoint,
     resetBundlerCacheEndpoint,

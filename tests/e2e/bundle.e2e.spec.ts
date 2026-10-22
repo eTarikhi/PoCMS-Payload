@@ -35,6 +35,7 @@ const ROUTES = [
   '/admin/gallery',
   '/admin/jobs',
   '/admin/system',
+  '/admin/database',
 ]
 
 type Totals = { js: number; css: number }

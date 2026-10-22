@@ -60,6 +60,12 @@ export const CAPABILITIES = [
     description: 'Versions, environment, database and configured integrations.',
   },
   {
+    name: 'manageDatabase',
+    label: 'Database tools',
+    description:
+      'Inspect tables, back up and restore, run VACUUM/ANALYZE/REINDEX, repair sequences and orphans, and manage Neon branches.',
+  },
+  {
     name: 'useDeveloperTools',
     label: 'Developer tools',
     description:

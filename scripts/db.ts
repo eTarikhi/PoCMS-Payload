@@ -4,6 +4,7 @@
  *
  *   pnpm db:status            tables, enum types, applied migrations, and the verdict
  *   pnpm db:reset --yes       drops the public schema, then runs `pnpm migrate`
+ *   pnpm db:restore <file> --yes   runs a .sql backup from /admin/database into this database
  *
  * `db:status` answers the question the app's error messages cannot: *which* objects are already
  * there. It reads the database with `pg` and the same classifier the app uses
@@ -19,6 +20,7 @@
 import 'dotenv/config'
 
 import { spawnSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 
 import pg from 'pg'
 
@@ -33,6 +35,7 @@ import {
   type CoreTable,
   type SchemaFacts,
 } from '../src/lib/database-readiness'
+import { inspectRestore, restoreSql } from '../src/database/restore'
 import { migrations } from '../src/migrations'
 
 const args = process.argv.slice(2)
@@ -45,7 +48,8 @@ const CONTENT_TABLES = ['users', 'articles', 'projects', 'media', 'certificates'
 const USAGE = `Usage:
   pnpm db:status              list the tables, enum types and applied migrations, with a verdict
   pnpm db:reset --yes         drop the public schema and run \`pnpm migrate\` (destructive)
-  pnpm db:reset --yes --force   also allowed when the tables still hold rows`
+  pnpm db:reset --yes --force   also allowed when the tables still hold rows
+  pnpm db:restore <file.sql>  run a backup from /admin/database (asks for --yes)`
 
 function fail(message: string): never {
   console.error(`\n✖ ${message}\n`)
@@ -88,7 +92,10 @@ const readFacts = async (client: pg.Client): Promise<SchemaFacts> => {
     : []
 
   const { rows: leftoverRows } = await client.query(LEFTOVERS_SQL)
-  const { tables: tableCount, enums } = (leftoverRows[0] ?? {}) as { tables?: number; enums?: number }
+  const { tables: tableCount, enums } = (leftoverRows[0] ?? {}) as {
+    tables?: number
+    enums?: number
+  }
 
   return {
     tables,
@@ -138,11 +145,17 @@ const status = async () => {
     const server = (await client.query('select current_database() as db')).rows[0] as { db: string }
 
     console.log(`\nDatabase: ${target}  (${server.db})`)
-    console.log(`Tables:   ${facts.leftovers?.tables ?? tables.length}   Enum types: ${facts.leftovers?.enums ?? 0}`)
-    console.log(`History:  ${facts.hasMigrationsTable ? `${facts.applied.length} of ${available.length} migrations applied` : 'no payload_migrations table'}`)
+    console.log(
+      `Tables:   ${facts.leftovers?.tables ?? tables.length}   Enum types: ${facts.leftovers?.enums ?? 0}`,
+    )
+    console.log(
+      `History:  ${facts.hasMigrationsTable ? `${facts.applied.length} of ${available.length} migrations applied` : 'no payload_migrations table'}`,
+    )
 
     if (tables.length > 0 && tables.length <= 40) {
-      console.log(`\n  ${(tables as { table_name: string }[]).map((row) => row.table_name).join('\n  ')}`)
+      console.log(
+        `\n  ${(tables as { table_name: string }[]).map((row) => row.table_name).join('\n  ')}`,
+      )
     }
 
     console.log()
@@ -163,9 +176,13 @@ const reset = async () => {
     await client.end()
 
     console.log(`\nThis would drop every table and type in the public schema of ${target}.`)
-    console.log(`  ${facts.leftovers?.tables ?? 0} table(s), ${facts.leftovers?.enums ?? 0} enum type(s)`)
+    console.log(
+      `  ${facts.leftovers?.tables ?? 0} table(s), ${facts.leftovers?.enums ?? 0} enum type(s)`,
+    )
     if (rows.length > 0) {
-      console.log(`  Rows that would be lost: ${rows.map((row) => `${row.rows} in ${row.table}`).join(', ')}`)
+      console.log(
+        `  Rows that would be lost: ${rows.map((row) => `${row.rows} in ${row.table}`).join(', ')}`,
+      )
     }
     fail('Nothing was dropped. Run `pnpm db:reset --yes` to do it.')
   }
@@ -191,11 +208,66 @@ const reset = async () => {
 
   console.log('\nRunning `pnpm migrate` …\n')
   const result = spawnSync('pnpm', ['migrate'], { shell: true, stdio: 'inherit' })
-  if (result.status !== 0) fail('The migrations failed. The database is empty; fix the cause and run `pnpm migrate`.')
+  if (result.status !== 0)
+    fail('The migrations failed. The database is empty; fix the cause and run `pnpm migrate`.')
 
   console.log('\n✔ The schema is in place. Next:')
   console.log('  pnpm admin:create --email you@example.com   the first administrator')
   console.log('  pnpm seed                                   demo content\n')
+}
+
+/**
+ * Restore a backup from the admin's database page. The same checks as the endpoint (`restore.ts`),
+ * plus a terminal confirmation: these are the operations that can replace content.
+ */
+const restore = async () => {
+  const file = args[1]
+  if (!file || file.startsWith('-')) fail(`Name the backup file.\n\n${USAGE}`)
+
+  let sql: string
+  try {
+    sql = readFileSync(file, 'utf8')
+  } catch {
+    fail(`Cannot read ${file}.`)
+  }
+
+  const client = await connect()
+  try {
+    const inspection = await inspectRestore(client, sql)
+    if (inspection.refusal) fail(inspection.refusal)
+
+    console.log(`\n${file}`)
+    console.log(`  ${inspection.statements} statements, ${inspection.tables.length} tables`)
+    console.log(
+      `  ${inspection.transactional ? 'Has' : 'Has no'} BEGIN/COMMIT — ${
+        inspection.transactional
+          ? 'a failure rolls back'
+          : 'a failure leaves earlier statements applied'
+      }`,
+    )
+    if (inspection.existing.length > 0) {
+      console.log(
+        `  The database already holds: ${inspection.existing
+          .map((entry) => `${entry.rows} in ${entry.table}`)
+          .join(', ')}`,
+      )
+      if (!args.includes('--yes'))
+        fail('Nothing was restored. Add --yes to add the file to this content.')
+    } else if (!args.includes('--yes')) {
+      fail(`Nothing was restored. Add --yes to run it into ${target}.`)
+    }
+
+    console.log(`\nRestoring into ${target} …`)
+    const result = await restoreSql(client, sql, { force: true })
+    console.log(`  ✔ ${result.tables} tables after ${result.durationMs} ms`)
+    if (result.after.length > 0) {
+      console.log(`  ${result.after.map((entry) => `${entry.rows} in ${entry.table}`).join(', ')}`)
+    }
+    console.log(`\n${result.message}`)
+    console.log('\nNext: check the site and /admin; a restore does not run migrations.\n')
+  } finally {
+    await client.end()
+  }
 }
 
 const main = async () => {
@@ -212,6 +284,7 @@ const main = async () => {
   }
 
   if (command === 'reset') return reset()
+  if (command === 'restore') return restore()
 
   fail(`Unknown command "${command}".\n\n${USAGE}`)
 }

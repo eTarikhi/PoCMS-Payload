@@ -47,7 +47,28 @@ The docker environment is intended to provide:
    - Optional, for the admin dashboard widgets: `GOOGLE_API_KEY` (Page speed), `VERCEL_TOKEN` and
      `VERCEL_PROJECT_ID` (Site traffic, Deployments), `GITHUB_TOKEN` (CI status of a private
      repository). See `.env.example` for how to create each one.
+   - Optional, for Admin › Database: `NEON_API_KEY` (branch backups and point-in-time restore;
+     without it the page links the Neon console), `NEON_PROJECT_ID`/`NEON_BRANCH_ID` when the key
+     sees several projects, and `DATABASE_DIRECT_URL` (the Neon endpoint without `-pooler`) so
+     backups and `VACUUM`/`REINDEX` do not run through PgBouncer.
 4. Deploy the application.
+
+## Database backups
+
+Admin › **Database** (`manageDatabase` capability) downloads a logical `.sql` backup of the
+database, the table being browsed, or the schema alone, and restores one. On Neon the same page can
+create a branch (a copy-on-write backup), restore the branch to a timestamp while keeping the
+current state under a name, and delete a backup branch — those need `NEON_API_KEY`, because a
+branch and its history are project storage rather than tables.
+
+- A backup restores into an **empty** database with `pnpm db:restore <file> --yes` or
+  `psql "$POSTGRES_URL" -v ON_ERROR_STOP=1 -f <file>`. It carries `payload_migrations`, so the
+  restored database does not need `pnpm migrate` again.
+- Prefer `DATABASE_DIRECT_URL` on Neon for a backup or a `VACUUM`: the pooled endpoint may cut a
+  long statement.
+- A backup is a logical copy. For a byte-exact, point-in-time copy use a Neon branch; the retention
+  window is the project's (a day on the free plan), so a branch is also the way to keep a copy
+  longer than that.
 
 ## Database migrations
 

@@ -15,12 +15,13 @@ PoCMS-Payload/
 │   │   ├── graphics/         #   logo, icon, account avatar
 │   │   ├── nav/              #   sidebar additions
 │   │   ├── providers/        #   admin providers (loads the admin stylesheet)
-│   │   ├── views/            #   custom views: component gallery, list view, singleton list
+│   │   ├── views/            #   custom views: gallery, system, database, jobs, terminal, list
 │   │   ├── widgets/          #   dashboard widgets and their config
 │   │   └── hooks/, utilities/
 │   ├── styles/admin/         # Admin design tokens, Tailwind entry, Payload overrides
 │   ├── plugins/              # Config plugins (adminUI: list view, list summary, cells)
 │   ├── access/               # Roles and permissions (ADR 0011), singleton create access
+│   ├── database/             # Database tools: introspection, backup, restore, maintenance, repair, Neon
 │   ├── endpoints/            # Custom API endpoints
 │   ├── fields/               # Shared field definitions
 │   ├── seed/                 # Seed script and data

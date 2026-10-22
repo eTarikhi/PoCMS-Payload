@@ -106,6 +106,7 @@ const SURFACES: Surface[] = [
   { name: 'audit log', path: '/admin/collections/audit-logs' },
   { name: 'component gallery', path: '/admin/gallery' },
   { name: 'system', path: '/admin/system' },
+  { name: 'database', path: '/admin/database' },
   { name: 'scheduled jobs', path: '/admin/jobs' },
   // Last: it clears the session cookie, so everything after it would be signed out.
   { name: 'sign in', path: '/admin/login', skipLink: false },

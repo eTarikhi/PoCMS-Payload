@@ -8,6 +8,23 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Added
 
+- **A database tools page at `/admin/database`.** A new `manageDatabase` capability (a checkbox on
+  the role, migration `20261022_140000_database_tools_capability`) unlocks a page that shows every
+  table in the public schema with rows, size, dead rows and last vacuum; a table browser with
+  columns, primary keys, indexes and constraints and a read-only page of rows; a logical backup
+  (`.sql` that Postgres renders itself with `format('%L', …)`, or `.json`) for the whole database,
+  the table being browsed, or the schema alone; a restore that inspects the file first and refuses
+  to touch a database with content unless the admin types `restore`; `ANALYZE`, `VACUUM`,
+  `VACUUM ANALYZE` and `REINDEX CONCURRENTLY` of invalid indexes; and health checks with narrow,
+  idempotent fixes — sequences behind their rows (`setval`), relation rows whose parent is gone
+  (`DELETE`), invalid indexes (`REINDEX`), tables without planner statistics (`ANALYZE`). On Neon,
+  `NEON_API_KEY` adds branch backups, point-in-time restore (which replaces the branch and keeps
+  the current state under a name) and branch deletion through the Neon API, because neither branch
+  creation nor history lives in SQL. Every endpoint needs the capability (`403` otherwise), every
+  destructive action is written to the audit log, and no message is a raw query or a connection
+  string. Backups restore with `psql -f` or the new `pnpm db:restore <file> --yes`, which was
+  verified round-trip into a fresh database (44 tables, 186 rows, migration history intact). Tests:
+  `tests/int/database-tools.int.spec.ts` (32, live SQL + the Neon client against a fake `fetch`).
 - **`pnpm admin:create` and `pnpm admin:status`.** The first account normally comes from the
   admin's "Create first user" screen, but that cannot help when a database already has a user row
   whose password is unknown, or an account with no role (the admin refuses those at

@@ -604,6 +604,10 @@ export interface Role {
      */
     viewSystem?: boolean | null;
     /**
+     * Inspect tables, back up and restore, run VACUUM/ANALYZE/REINDEX, repair sequences and orphans, and manage Neon branches.
+     */
+    manageDatabase?: boolean | null;
+    /**
      * The header developer menu (generators, migrations, caches, GraphQL) and the component gallery.
      */
     useDeveloperTools?: boolean | null;
@@ -1162,6 +1166,7 @@ export interface RolesSelect<T extends boolean = true> {
         viewAuditLog?: T;
         manageJobs?: T;
         viewSystem?: T;
+        manageDatabase?: T;
         useDeveloperTools?: T;
         useTerminal?: T;
       };

@@ -120,7 +120,9 @@ describe('describeSchema', () => {
     expect(report.state).toBe('pending')
     expect(report.pending).toEqual(names.slice(8))
     expect(report.message).toContain(names[8])
-    expect(report.message).toContain('2 migrations are not applied')
+    expect(report.message).toContain(
+      `${names.length - 8} migrations are not applied`,
+    )
     expect(report.message).toContain('pnpm migrate')
   })
 

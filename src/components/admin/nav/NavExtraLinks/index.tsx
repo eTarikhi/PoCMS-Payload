@@ -35,6 +35,11 @@ export function NavExtraLinks({ payload, user }: ServerProps) {
           <span className="nav__link-label">System</span>
         </Link>
       ) : null}
+      {hasCapability(user, 'manageDatabase') ? (
+        <Link className="nav__link" href={`${payload.config.routes.admin}/database`} id="nav-database">
+          <span className="nav__link-label">Database</span>
+        </Link>
+      ) : null}
       {hasCapability(user, 'useTerminal') && isTerminalEnabled() ? (
         <Link
           className="nav__link"

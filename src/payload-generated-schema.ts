@@ -864,6 +864,7 @@ export const roles = pgTable(
     capabilities_viewAuditLog: boolean('capabilities_view_audit_log').default(false),
     capabilities_manageJobs: boolean('capabilities_manage_jobs').default(false),
     capabilities_viewSystem: boolean('capabilities_view_system').default(false),
+    capabilities_manageDatabase: boolean('capabilities_manage_database').default(false),
     capabilities_useDeveloperTools: boolean('capabilities_use_developer_tools').default(false),
     capabilities_useTerminal: boolean('capabilities_use_terminal').default(false),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })

@@ -9,6 +9,7 @@ import * as migration_20261021_150000_orderable_profile_and_services from './202
 import * as migration_20261021_163000_media_folders from './20261021_163000_media_folders';
 import * as migration_20261022_045702_admin_changes from './20261022_045702_admin_changes';
 import * as migration_20261022_090000_seo_meta from './20261022_090000_seo_meta';
+import * as migration_20261022_140000_database_tools_capability from './20261022_140000_database_tools_capability';
 
 export const migrations = [
   {
@@ -65,5 +66,10 @@ export const migrations = [
     up: migration_20261022_090000_seo_meta.up,
     down: migration_20261022_090000_seo_meta.down,
     name: '20261022_090000_seo_meta'
+  },
+  {
+    up: migration_20261022_140000_database_tools_capability.up,
+    down: migration_20261022_140000_database_tools_capability.down,
+    name: '20261022_140000_database_tools_capability'
   },
 ];
