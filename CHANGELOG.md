@@ -97,6 +97,16 @@ modernisation programme; every entry links the roadmap item it closes
   `20261021_001500_skills_orderable` and `20261021_150000_orderable_profile_and_services` backfill
   the keys from the old numbers and drop the column.
 
+### Added
+
+- **`pnpm db:status` and `pnpm db:reset`.** A migration that dies partway — a serverless database
+  suspending mid-run, a stopped container — leaves its earlier `CREATE TYPE` statements behind, and
+  every retry then fails with `type "enum_articles_category" already exists`. That state is now
+  recognised: the readiness check reports `partial` (with the object counts) instead of "no schema",
+  `onInit` stops on it, and `db:status` shows the tables, types and applied migrations from outside
+  the app (it works when Payload will not start). `db:reset --yes` drops the public schema, prints
+  what it dropped, refuses to delete rows without `--force`, and then runs `pnpm migrate`.
+
 ### Fixed
 
 - **The migration folder and its registry are kept equal.** `src/migrations/index.ts` is generated

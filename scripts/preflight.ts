@@ -25,6 +25,7 @@ import {
   connectionFailureOf,
   describeConnectionError,
   describeSchema,
+  pgClientOptions,
   type CoreTable,
   type ConnectionTarget,
   type SchemaFacts,
@@ -56,10 +57,7 @@ const target: ConnectionTarget = {
   database: parsed.pathname.replace(/^\//, ''),
 }
 
-// Local databases are reached directly; anything else may need TLS, as in the Payload adapter.
-const ssl = /^(localhost|127\.0\.0\.1|\[::1\])/.test(parsed.hostname)
-  ? undefined
-  : { rejectUnauthorized: false }
+const clientOptions = pgClientOptions(url)
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -71,7 +69,7 @@ const connect = async (): Promise<{ client?: pg.Client; failure?: string }> => {
   let failure: ReturnType<typeof connectionFailureOf> | undefined
 
   for (let attempt = 1; attempt <= ATTEMPTS; attempt += 1) {
-    const client = new pg.Client({ connectionString: url, ssl, connectionTimeoutMillis: 10_000 })
+    const client = new pg.Client(clientOptions)
     try {
       await client.connect()
       return { client }

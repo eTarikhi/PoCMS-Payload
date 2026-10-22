@@ -109,6 +109,16 @@ pnpm admin:create --migrate --email you@example.com
 
 or, separately, `pnpm migrate` then `pnpm admin:create` (plus `pnpm seed` for demo content).
 
+If the migration stops partway (the serverless connection dropping mid-run leaves a few `CREATE
+TYPE` statements behind), the next attempt fails with
+`type "enum_articles_category" already exists`. Nothing else will run on that database until the
+leftovers are gone:
+
+```bash
+pnpm db:status          # what exists, and what the app makes of it
+pnpm db:reset --yes     # drops the public schema and migrates from zero
+```
+
 `admin:create` is idempotent: a new address creates an Administrator, an existing one gets the new
 password and, if it had no role, the Administrator role (an account without a role is refused by
 the admin).

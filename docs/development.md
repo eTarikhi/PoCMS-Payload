@@ -97,6 +97,18 @@ This database has no schema (missing tables: users, articles).
 
 - **No schema** → `pnpm migrate` (then `pnpm seed` for demo content). CI does the same, in that
   order, before it builds.
+- **Part of a schema** (`missing tables` *and* objects already in `public`) → a migration stopped
+  partway. The adapter runs each migration in a transaction, but a connection dropped in the middle
+  — a serverless database suspending, a stopped container, a closed laptop — can leave the earlier
+  `CREATE TYPE`s behind, and every later attempt then dies on
+  `type "enum_articles_category" already exists`. On a database with nothing to keep, start over:
+
+  ```bash
+  pnpm db:status          # what exists: tables, enum types, applied migrations
+  pnpm db:reset --yes     # drops the public schema, then runs `pnpm migrate`
+  ```
+
+  `db:reset` prints what it is about to drop and refuses to delete rows unless given `--force`.
 - **Tables but no history** (a database from the old development push) → `pnpm migrate:adopt` once,
   then `pnpm migrate`.
 - **Migrations pending** → `pnpm migrate`; the log lists them by name. This one is a warning rather
@@ -111,6 +123,9 @@ This database has no schema (missing tables: users, articles).
   | `ENOTFOUND` / `EAI_AGAIN` | The host name does not resolve. | Fix the host name, or the DNS/VPN the terminal uses. |
   | `28P01` | The server was reached and refused the credentials. | Correct the user/password, or the host rule in `pg_hba.conf`. |
   | `3D000` | The server was reached but the database does not exist. | Create it, or point the URL at the right one. |
+
+  `pnpm db:status` answers the same questions from outside the app, so it also works on a database
+  Payload refuses to start on.
 
   `pnpm preflight` retries a transient failure four times (400 ms, 800 ms, 1.6 s) before it gives
   up — a database that is still starting usually succeeds on the second attempt. Run it before

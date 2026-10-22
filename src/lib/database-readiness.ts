@@ -40,8 +40,20 @@ export type SchemaFacts = {
   applied: string[]
   /** Names of the migrations in `src/migrations`, oldest first. */
   available: string[]
+  /**
+   * Objects already in `public`. Only read when a core table is missing: a database with
+   * leftovers but no schema is one where a migration stopped partway, not a fresh one.
+   */
+  leftovers?: SchemaLeftovers
   /** Why the database could not be inspected, when it could not be reached at all. */
   connectionError?: ConnectionFailure
+}
+
+export type SchemaLeftovers = {
+  /** Base tables in `public`. */
+  tables: number
+  /** Enum types in `public` (`enum_articles_category`, …). */
+  enums: number
 }
 
 /** The parts of a failed connection that change the advice. */
@@ -63,6 +75,8 @@ export type SchemaState =
   | 'ready'
   /** No schema at all: nothing has been migrated. */
   | 'missing'
+  /** Objects exist but the core tables do not: a migration stopped partway. */
+  | 'partial'
   /** Tables exist but there is no migration history: the baseline has to be adopted. */
   | 'unmanaged'
   /** The schema exists but is behind `src/migrations`. */
@@ -77,6 +91,9 @@ export type SchemaReport = {
   /** A multi-line, actionable explanation. Empty only when the state is `ready`. */
   message: string
 }
+
+const hasLeftovers = (leftovers: SchemaLeftovers): boolean =>
+  leftovers.tables > 0 || leftovers.enums > 0
 
 const COMMAND_HINT =
   'Schema changes are only applied by migrations (push is off).\n' +
@@ -95,6 +112,35 @@ export const describeSchema = (facts: SchemaFacts): SchemaReport => {
       state: 'unreachable',
       pending: facts.available,
       message: describeConnectionError(facts.connectionError),
+    }
+  }
+
+  // Leftovers without the tables the app needs. The Postgres adapter applies a migration inside a
+  // transaction, but a connection dropped mid-run (a serverless database suspending, a stopped
+  // container) can still leave the earlier statements behind. The next attempt then dies on
+  // "type … already exists", which says nothing about the real problem.
+  if (missingTables.length > 0 && facts.leftovers && hasLeftovers(facts.leftovers)) {
+    const { tables, enums } = facts.leftovers
+    const found = [
+      tables > 0 ? `${tables} table${tables === 1 ? '' : 's'}` : '',
+      enums > 0 ? `${enums} enum type${enums === 1 ? '' : 's'}` : '',
+    ]
+      .filter(Boolean)
+      .join(' and ')
+
+    return {
+      state: 'partial',
+      pending: facts.available,
+      message:
+        `This database has part of a schema, but not the tables the app needs ` +
+        `(missing: ${missingTables.join(', ')}).\n` +
+        `  It already holds ${found} in the public schema, so a migration then stops at\n` +
+        '  “type … already exists” or “relation … already exists”. A migration was interrupted,\n' +
+        '  or an older checkout pushed a schema and its tables were dropped since.\n' +
+        '  On a database with nothing to keep — a new Neon/Vercel database, a local one you can\n' +
+        '  recreate — drop what is there and migrate from zero:\n' +
+        '    pnpm db:reset --yes     drops the public schema, then runs `pnpm migrate`\n' +
+        '  pnpm db:status            shows what exists before you decide',
     }
   }
 
@@ -232,7 +278,33 @@ export const describeConnectionError = (raw: ConnectionFailure): string => {
   return `${line}\n  Check POSTGRES_URL in .env, and that the database is running (docker compose up -d db).`
 }
 
+/** What is in `public`, for the partial-schema diagnosis. */
+export const LEFTOVERS_SQL = `
+  select
+    (select count(*) from information_schema.tables
+      where table_schema = 'public' and table_type = 'BASE TABLE')::int as "tables",
+    (select count(*) from pg_type t
+      join pg_namespace n on n.oid = t.typnamespace
+      where n.nspname = 'public' and t.typtype = 'e')::int as "enums"`
+
 /** The raw query behind `SchemaFacts.tables` and `hasMigrationsTable`, as one round trip. */
+/**
+ * Connection options for a `pg` client, from the URL alone.
+ *
+ * Local databases are reached directly; anything else may need TLS, as with the Payload adapter.
+ * `rejectUnauthorized: false` because a hosted Postgres (Neon, Vercel) presents a certificate that
+ * is not in Node's bundle, and the connection still runs over TLS.
+ */
+export const pgClientOptions = (connectionString: string) => {
+  const { hostname } = new URL(connectionString)
+  const local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(hostname)
+  return {
+    connectionString,
+    ssl: local ? undefined : { rejectUnauthorized: false },
+    connectionTimeoutMillis: 10_000,
+  }
+}
+
 export const TABLES_SQL = `select ${[...CORE_TABLES, MIGRATIONS_TABLE].map(
   (table) => `to_regclass('public.${table}') is not null as "${table}"`,
 ).join(', ')}`
@@ -291,7 +363,18 @@ export const checkSchema = async (
       ? rowsOf(await execute(APPLIED_SQL)).map((row) => String(row.name))
       : []
 
-    return describeSchema({ tables, hasMigrationsTable, applied, available })
+    // Only needed to tell "nothing was ever here" from "something stopped partway"; the query is
+    // cheap, and a failure to run it must not turn a readable message into a connection error.
+    const leftovers = Object.values(tables).every(Boolean)
+      ? undefined
+      : await execute(LEFTOVERS_SQL)
+          .then((result) => {
+            const [row] = rowsOf(result)
+            return { tables: Number(row?.tables ?? 0), enums: Number(row?.enums ?? 0) }
+          })
+          .catch(() => undefined)
+
+    return describeSchema({ tables, hasMigrationsTable, applied, available, leftovers })
   } catch (error) {
     return describeSchema({
       tables: { users: false, articles: false },

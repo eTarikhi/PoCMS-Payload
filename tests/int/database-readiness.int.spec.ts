@@ -65,6 +65,49 @@ describe('describeSchema', () => {
     expect(report.message).toContain('missing table: articles')
   })
 
+  it('recognises leftovers from a migration that stopped partway', () => {
+    const report = describeSchema(
+      facts({
+        tables: { users: false, articles: false },
+        hasMigrationsTable: false,
+        applied: [],
+        leftovers: { tables: 0, enums: 25 },
+      }),
+    )
+
+    expect(report.state).toBe('partial')
+    // What the developer saw: the retry of a half-applied baseline.
+    expect(report.message).toContain('part of a schema')
+    expect(report.message).toContain('25 enum types')
+    expect(report.message).toContain('already exists')
+    expect(report.message).toContain('pnpm db:reset --yes')
+  })
+
+  it('does not call a plain empty database partial', () => {
+    const report = describeSchema(
+      facts({
+        tables: { users: false, articles: false },
+        hasMigrationsTable: false,
+        applied: [],
+        leftovers: { tables: 0, enums: 0 },
+      }),
+    )
+    expect(report.state).toBe('missing')
+  })
+
+  it('counts leftover tables as well as types', () => {
+    const report = describeSchema(
+      facts({
+        tables: { users: false, articles: false },
+        hasMigrationsTable: false,
+        applied: [],
+        leftovers: { tables: 3, enums: 1 },
+      }),
+    )
+    expect(report.state).toBe('partial')
+    expect(report.message).toContain('3 tables and 1 enum type')
+  })
+
   it('asks for `pnpm migrate:adopt` when the tables exist but the history does not', () => {
     const report = describeSchema(facts({ hasMigrationsTable: false, applied: [] }))
     expect(report.state).toBe('unmanaged')

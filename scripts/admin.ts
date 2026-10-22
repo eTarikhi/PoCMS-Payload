@@ -97,6 +97,9 @@ const messageOf = (error: unknown): string =>
 /** onInit's wording for a database that has never been migrated (`src/lib/database-readiness.ts`). */
 const isMissingSchema = (message: string): boolean => /has no schema \(missing tables?/i.test(message)
 
+/** onInit's wording for a migration that stopped partway; migrating again cannot help. */
+const isPartialSchema = (message: string): boolean => /has part of a schema/i.test(message)
+
 /**
  * Payload, migrating first when asked. A brand-new Neon/Vercel database has no tables until the
  * migrations run, and `--migrate` turns the two steps into one — but it is never automatic: the
@@ -107,11 +110,15 @@ const connect = async (migrate: boolean) => {
     return await getPayload({ config })
   } catch (error) {
     const message = messageOf(error)
-    if (!migrate || !isMissingSchema(message)) throw new Error(message)
+    // A partial schema is not fixed by migrating: the leftovers have to go first (`pnpm db:reset`).
+    if (!migrate || isPartialSchema(message) || !isMissingSchema(message)) throw new Error(message)
 
     console.log(`\n… This database has no schema. Running \`pnpm migrate\` first:\n`)
     const result = spawnSync('pnpm', ['migrate'], { shell: true, stdio: 'inherit' })
-    if (result.status !== 0) throw new Error('The migrations failed; nothing was created.')
+    if (result.status !== 0)
+      throw new Error(
+        'The migrations failed; nothing was created. `pnpm db:status` shows what is in the database.',
+      )
 
     console.log('')
     return await getPayload({ config })

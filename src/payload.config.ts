@@ -264,10 +264,11 @@ export default buildConfig({
       payload,
       migrations.map((migration) => migration.name),
     )
-    // A database with no schema, or none reachable at all, cannot serve a single page: stop with
-    // the message instead of letting every request answer with Drizzle's SQL. A schema that is
-    // merely behind only gets a warning, so a stale column does not take the whole site down.
-    if (schema.state === 'missing' || schema.state === 'unreachable') {
+    // A database with no schema, only part of one, or none reachable at all cannot serve a single
+    // page: stop with the message instead of letting every request answer with Drizzle's SQL. A
+    // schema that is merely behind only gets a warning, so a stale column does not take the site
+    // down.
+    if (schema.state === 'missing' || schema.state === 'partial' || schema.state === 'unreachable') {
       payload.logger.error(schema.message)
       throw new Error(schema.message)
     }
