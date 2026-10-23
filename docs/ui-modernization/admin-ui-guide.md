@@ -945,17 +945,29 @@ asserts paths and bodies, and the plugin's contract (options, defaults, what it 
 ## Terminal (development only)
 
 Admin › **Terminal** (`/admin/terminal`, `views/Terminal`, the `useTerminal` capability) runs one
-of the project's package scripts and streams its output. A production build answers 404 on the page
-and on the endpoint, whatever the user's roles.
+of the project's package scripts and streams its output. A production build answers 404 on the
+endpoint and serves the page's `notFound()` view — with none of the allow-list in it — whatever the
+user's roles.
 
 - **The allow-list is code.** `src/terminal/scripts.ts` declares each slug, label, description,
-  `pnpm run` arguments and timeout. The browser posts a slug to `POST /api/dev/terminal`; the
-  endpoint (`src/endpoints/devTerminal.ts`) looks it up, spawns `pnpm` without a shell in the
-  repository root and streams stdout/stderr as `text/plain`. Time out and browser disconnects kill
-  the process (`SIGTERM`, then `SIGKILL`).
-- **What is on the list:** lint, typecheck, the two admin checks, `generate:all` (marked as writing
-  files), `migrate:status` and `test:int`. The dev server, the build, `seed` and `migrate` are
-  deliberately absent.
+  `pnpm run` arguments, timeout and two flags (`writes`, `database`). The browser posts a slug —
+  nothing else — to `POST /api/dev/terminal`; the endpoint (`src/endpoints/devTerminal.ts`) looks it
+  up, spawns `pnpm` in the repository root and streams stdout/stderr as `text/plain`. Time out and
+  browser disconnects kill the process (`SIGTERM`, then `SIGKILL`).
+- **Two arguments, always.** `commandFor` returns `pnpm run <script>`, so a command that needs a
+  flag gets a package.json script with the flag baked in (`db:schema-from:neon`,
+  `db:seed-from:neon`, `db:seed-load`). That is what makes the next point safe.
+- **`shell` is per entry, and only ever runs literals.** Entries may set `shell: true` when the
+  underlying script needs a shell (`pnpm` resolving a script that itself calls `cross-env`, the same
+  way `POST /api/dev-migrate` runs `payload migrate:create`). The endpoint passes that flag through
+  to `spawn` instead of hard-coding it. Nothing the browser sends reaches the command line, so a
+  shell only ever sees arguments written in `src/terminal/scripts.ts`; `tests/int/terminal.int.spec.ts`
+  asserts both facts (every named script exists in package.json, `args` has exactly two entries).
+- **What is on the list:** lint, typecheck, the two admin checks (`tw-prefix`, `contrast`),
+  `generate:all` (writes files), `migrate:status`, `test:int`, and the three database snapshots —
+  `schema-from` (writes a migration file), `seed-pull` (writes `src/seed/snapshot.json`) and
+  `seed-load` (writes files *and* the database, so the console shows a second, red warning). The dev
+  server, the build, `seed` and `migrate` are deliberately absent.
 - **The console is a lazy client chunk** (`TerminalLazy` → `Console.tsx`), so Payload's single admin
   route does not ship it to every page. Output is plain text in a `<pre role="log">`.
 - **Security review:** [terminal-security.md](./terminal-security.md) (threat model, controls,

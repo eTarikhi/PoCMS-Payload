@@ -126,8 +126,45 @@ the admin).
 ### Create a custom migration
 
 ```bash
-npx payload migrate:create
+pnpm migrate:create --name my_change   # diffs the schema and writes src/migrations/<ts>_my_change.ts
+pnpm migrate:status                    # which files have run, and which have not
+pnpm migrate:adopt --name <ts>_my_change   # record it as applied without running it
 ```
+
+`migrate:create` compares the Payload config against the database it connects to, so a database
+that already has the change produces an empty file — `--skip-empty` (already in the script) drops
+it again. Point it at a *freshly migrated* database to get only your own change.
+
+### Write a migration from any database
+
+When a database already holds the schema you want — production on Neon, a teammate's copy — its
+catalogs can produce the migration file directly, with no diff step and no risk of Payload
+re-creating something that exists:
+
+```bash
+pnpm db:schema-from:neon     # guarded CREATE … IF NOT EXISTS from DATABASE_DIRECT_URL (or POSTGRES_URL)
+pnpm db:seed-from:neon       # content seed as src/seed/snapshot.json, from the same database
+pnpm db:seed-load            # load that file into the local database, one transaction
+```
+
+| Command | What it does |
+| --- | --- |
+| `pnpm db:schema-from:neon` | Reads the catalogs of the Neon/remote database and writes `src/migrations/<ts>_schema_snapshot.ts`, registered in `src/migrations/index.ts`. **Guarded** by default (`IF NOT EXISTS` + catalog checks), so it is safe to run on a database that already has the schema; `--mode fresh` writes plain `CREATE`s with a real `down`. Never emits rows, grants, ownership or extensions. |
+| `pnpm db:seed-from:neon` | Writes `src/seed/snapshot.json`: the rows of the content collections (auth, operational and Payload tables excluded), parents first, capped at 5 000 rows per table. Review it before committing — it holds whatever the source database holds. `--apply --yes` loads it in the same step. |
+| `pnpm db:seed-load` | Loads `src/seed/snapshot.json` into the local database in one transaction: deletes the rows of the tables the file names (children first), inserts the file's rows, resets the sequences. Nothing outside the file is touched. |
+| `pnpm db:status` | Tables, enum types and applied migrations, plus a verdict on whether the app can run. |
+| `pnpm db:reset --yes` | Drops the public schema and migrates from zero. Destructive. |
+| `pnpm db:restore <file.sql>` | Runs a backup taken from `/admin/database`. |
+| `pnpm db:seed-apply <file.json> --yes` | `db:seed-load` for any snapshot path. |
+
+Both `:neon` shortcuts are the argument-free spelling of `pnpm db:schema-from --from neon` and
+`pnpm db:seed-from --from neon`; `--from local` always means `POSTGRES_URL`, and `--from <url>`
+connects wherever that URL points. Credentials are never printed. Run `pnpm db:schema-from` with no
+arguments for the full flag list.
+
+The same three commands are on the allow-list of the admin **Terminal** (`/admin/terminal`,
+development builds only), so the snapshot can be pulled and loaded without leaving the browser.
+See `docs/plugins/database-tools.md` and `docs/ui-modernization/terminal-security.md`.
 
 ## Start the app
 
@@ -146,14 +183,27 @@ Follow the on-screen setup instructions to create your first admin user.
 
 ```bash
 # Development
-pnpm dev
+pnpm dev                 # Next.js + Payload with hot reload
+pnpm generate:all        # import map, types, payload output
+pnpm lint                # eslint
+pnpm typecheck           # tsc --noEmit
+pnpm test:int            # integration tests (vitest)
 
 # Build / production
 pnpm build
 pnpm start
 
 # Database
-npx payload migrate
-npx payload migrate:fresh
-npx payload migrate:create
+pnpm migrate             # apply src/migrations
+pnpm migrate:status      # what has run
+pnpm migrate:create --name my_change
+pnpm migrate:adopt --name <ts>_my_change
+pnpm seed                # demo content
+pnpm admin:create --email you@example.com
+pnpm admin:status
+pnpm db:status
+pnpm db:schema-from:neon # migration file from a remote database's catalogs
+pnpm db:seed-from:neon   # content seed from a remote database
+pnpm db:seed-load        # load src/seed/snapshot.json locally
+pnpm db:reset --yes      # destructive
 ```

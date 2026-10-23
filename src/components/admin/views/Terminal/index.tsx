@@ -58,7 +58,8 @@ export function TerminalView({
             <p className="acn:m-0 acn:max-w-3xl acn:text-sm acn:text-muted-foreground">
               The project&rsquo;s checks and generators, run in the repository with their output
               streamed. Development only, and only for roles with the Terminal capability. Only the
-              commands on the left can run; there is no shell and no free-text input.
+              commands in the list can run — every one of them is compiled into the allow-list, and
+              there is no free-text input and nothing to type an argument into.
             </p>
           </header>
           <TerminalLazy scripts={optionsFor()} />

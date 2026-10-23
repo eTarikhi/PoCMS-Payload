@@ -83,6 +83,13 @@ const USAGE = `Usage:
   pnpm db:seed-from   [--from neon|local|<url>] [--out <file.json>] [--collections a,b]
                       [--max-rows 5000] [--apply --yes]
                               write a content seed from a database; --apply loads it into this one
+  pnpm db:seed-apply <file.json> [--yes]
+                              replace the rows of the tables the file names with the file's rows
+
+  Argument-free shortcuts (what the admin Terminal and CI run):
+    pnpm db:schema-from:neon   = db:schema-from --from neon
+    pnpm db:seed-from:neon     = db:seed-from --from neon
+    pnpm db:seed-load          = db:seed-apply src/seed/snapshot.json --yes
 
   --from neon (the default) uses DATABASE_DIRECT_URL, then POSTGRES_URL; --from local always uses
   POSTGRES_URL; --from <url> connects wherever the URL points. Credentials are never printed.`
@@ -528,6 +535,8 @@ const seedFrom = async () => {
   if (!args.includes('--apply')) {
     console.log('\n  Load it into this checkout’s database with:')
     console.log(`    pnpm db:seed-apply ${shown(destination)} --yes`)
+    if (destination === path.join(repo, 'src/seed/snapshot.json'))
+      console.log('    pnpm db:seed-load            (the same file, no arguments to get wrong)')
     console.log('  or generate and apply in one step: add --apply --yes.\n')
     return
   }

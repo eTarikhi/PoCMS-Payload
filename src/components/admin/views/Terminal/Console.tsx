@@ -128,6 +128,12 @@ export function TerminalConsole({ scripts }: { scripts: TerminalScriptOption[] }
                 This command writes files in the repository.
               </p>
             ) : null}
+            {selected?.database ? (
+              <p className="acn:m-0 acn:text-xs acn:text-destructive">
+                This command changes the database: it replaces the rows of the tables the file
+                names. It runs in one transaction, so a failure leaves the database as it was.
+              </p>
+            ) : null}
           </div>
 
           <div className="acn:flex acn:flex-wrap acn:gap-2">

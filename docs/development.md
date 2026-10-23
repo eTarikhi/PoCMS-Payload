@@ -200,6 +200,7 @@ pnpm db:seed-from --from neon --apply --yes
 
 # Just the file, to read or to commit after review:
 pnpm db:seed-from --from neon                       # → src/seed/snapshot.json
+pnpm db:seed-load                                   # = db:seed-apply src/seed/snapshot.json --yes
 pnpm db:seed-from --collections articles,projects --max-rows 200
 
 # A Payload migration written from the database's catalogs, registered in src/migrations/index.ts:
@@ -226,6 +227,12 @@ pnpm db:schema-from --from neon --mode fresh --out /tmp    # plain CREATEs, with
   `pnpm migrate:adopt --name <the file's name>`.
 - The same two files download from `/admin/database` → **From this database**, and a seed can be
   loaded from the **Load a seed** card (type `seed` to confirm).
+- Argument-free spellings exist for CI and for the admin **Terminal**, whose allow-list may only
+  name a package script (`pnpm run <script>`, never extra arguments):
+  `pnpm db:schema-from:neon`, `pnpm db:seed-from:neon` and `pnpm db:seed-load`. On the Terminal
+  (`/admin/terminal`, development builds only) they are the entries *Migration from this database*,
+  *Seed from this database* and *Load that seed into the local database*; the last one is flagged
+  `database`, so the console warns that it replaces rows before it runs.
 
 ### Build failures
 

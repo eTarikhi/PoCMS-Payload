@@ -15,8 +15,15 @@ import {
  *
  * Security review: docs/ui-modernization/terminal-security.md. In short: the endpoint answers 404
  * in production, requires the useTerminal capability, accepts only a slug from the compiled
- * allow-list (never a command or argument), spawns without a shell and in the repository root, and
- * kills the process on timeout or when the browser disconnects.
+ * allow-list (never a command or argument), spawns in the repository root, and kills the process on
+ * timeout or when the browser disconnects.
+ *
+ * Each entry decides whether it is spawned through a shell (`shell` in `src/terminal/scripts.ts`),
+ * because the scripts themselves are shell-shaped: their package.json entries run `cross-env`, which
+ * is not a binary the operating system can exec on its own. That is the same way the migration
+ * generator runs (`src/endpoints/devMigrate.ts`). It is safe for the same reason the rest of the
+ * endpoint is: the command and every argument are literals compiled from the allow-list, so there is
+ * nothing for a shell to interpret — the browser sends a slug and never reaches this array.
  */
 
 const NOT_FOUND = () => new Response('Not found', { status: 404 })
@@ -68,7 +75,7 @@ export const devTerminalEndpoint: Endpoint = {
       )
     }
 
-    const { command, args } = commandFor(script)
+    const { command, args, shell } = commandFor(script)
     const startedAt = Date.now()
     let closed = false
     const env = { ...process.env }
@@ -84,7 +91,7 @@ export const devTerminalEndpoint: Endpoint = {
         PAGER: 'cat',
         GIT_PAGER: 'cat',
       },
-      shell: false,
+      shell,
       stdio: ['ignore', 'pipe', 'pipe'],
     })
 

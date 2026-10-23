@@ -8,6 +8,23 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Added
 
+- **The Terminal can run the database snapshots, and the quick-start guide documents them.**
+  `/admin/terminal` gains three entries beside the checks it already ran: *Migration from this
+  database*, *Seed from this database* and *Load that seed into the local database* — the two
+  generators that `/admin/database` → **From this database** offers as downloads, now runnable
+  without leaving the admin panel. The Terminal may only ever run `pnpm run <script>` (two compiled
+  arguments, nothing from the browser), so a command that needs a flag gets a package.json script
+  with the flag baked in: `db:schema-from:neon`, `db:seed-from:neon` and `db:seed-load`
+  (`db:seed-apply src/seed/snapshot.json --yes`). Entries may now declare `database` as well as
+  `writes`, and the console shows a red warning for the one command that changes rows — it replaces
+  the rows of the tables its snapshot names, in one transaction — before it can be started.
+  `devTerminal` also stopped hard-coding `shell: false` and now honours each entry's own `shell`
+  flag, the way `POST /api/dev-migrate` already ran `payload migrate:create`; a shell is safe here
+  because the whole command line is compiled literals (`^[a-z0-9:-]+$`, asserted against
+  package.json), and `optionsFor` never sends the flag to the client. `docs/getting-started.md`
+  documents every `db:*` command with what it does, replaces the stale `npx payload migrate:fresh`
+  script list, and `terminal-security.md` records the shell decision, its two new residual risks and
+  the reasoning that keeps it sound. Three tests added to `terminal.int.spec.ts` (7 in the file).
 - **A schema comparison between two databases.** `/admin/database` → **Compare with another
   database** takes the **JSON** backup the Backup card already writes — from the Neon branch's admin
   page, normally — and says what that schema has which this one lacks. No second connection string

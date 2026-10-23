@@ -255,6 +255,7 @@ The CLI writes the same file into the checkout and registers it:
 
 ```bash
 pnpm db:schema-from --from neon                     # src/migrations/<stamp>_schema_snapshot.ts
+pnpm db:schema-from:neon                            # the same thing, no arguments to get wrong
 pnpm db:schema-from --from neon --mode fresh --out /tmp
 pnpm db:schema-from --tables articles,_articles_v --no-register
 ```
@@ -283,10 +284,19 @@ backup is not a seed) and one that names a table this database does not have.
 
 ```bash
 pnpm db:seed-from --from neon                          # write src/seed/snapshot.json
+pnpm db:seed-from:neon                                 # the same thing, no arguments to get wrong
 pnpm db:seed-from --from neon --apply --yes            # …and load it into the local database
 pnpm db:seed-from --collections articles,projects --max-rows 200
 pnpm db:seed-apply src/seed/snapshot.json --yes        # a file that is already on disk
+pnpm db:seed-load                                      # = the line above, for the default path
 ```
+
+The three argument-free spellings (`db:schema-from:neon`, `db:seed-from:neon`, `db:seed-load`) exist
+because the admin **Terminal** may only run `pnpm run <script>` — no arguments, ever — so a command
+that needs a flag needs a script with the flag baked in. On `/admin/database`'s sibling page
+`/admin/terminal` (development builds only, `useTerminal`) they are the entries *Migration from this
+database*, *Seed from this database* and *Load that seed into the local database*; the last is
+flagged `database` and warns in red that it replaces rows before it runs.
 
 `--from neon` uses `DATABASE_DIRECT_URL`, then `POSTGRES_URL`; `--from local` always uses
 `POSTGRES_URL`; `--from <url>` connects wherever the URL points. Credentials are never printed.
