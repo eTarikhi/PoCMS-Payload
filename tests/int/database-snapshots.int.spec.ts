@@ -3,7 +3,7 @@ import ts from 'typescript'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { pgClientOptions } from '@/lib/database-readiness'
-import { buildJsonBackup } from '@/plugins/databaseTools/server/backup'
+import { buildJsonBackup, NO_ROWS_BY_DEFAULT } from '@/plugins/databaseTools/server/backup'
 import { diffSchema, parseJsonBackup } from '@/plugins/databaseTools/server/diff'
 import { buildSchemaMigration } from '@/plugins/databaseTools/server/schemaMigration'
 import {
@@ -543,10 +543,29 @@ describe('comparing this database with another one’s backup', () => {
     expect(scoped.differences).toEqual([])
     expect(scoped.tables.compared).toBe(2)
 
-    const whole = await diffSchema(client, await backupOf())
+    const file = await backupOf()
+    const whole = await diffSchema(client, file)
     expect(whole.same).toBe(true)
     expect(whole.scoped).toBe(false)
     expect(whole.rows).toEqual([])
+
+    // Payload's own session tables are described but carry no rows, and the file says so: without
+    // `rowsOmitted` a preference row written by browsing the admin panel would be reported as the
+    // two databases disagreeing, which is the backup's policy rather than anybody's drift.
+    const omitted = file.tables
+      .filter((table) => table.rowsOmitted === true)
+      .map((table) => table.name)
+      .sort()
+    const present = new Set(file.tables.map((table) => table.name))
+    expect(omitted).toEqual(
+      [...NO_ROWS_BY_DEFAULT].filter((name) => present.has(name)).sort(),
+    )
+    expect(omitted.length).toBeGreaterThan(0)
+    for (const name of omitted) {
+      const described = file.tables.find((table) => table.name === name)
+      expect(described?.columns.length, name).toBeGreaterThan(0)
+      expect(described?.rows, name).toEqual([])
+    }
   }, 60_000)
 
   it('names what the file has and this database lacks, with the statement that would add it', async () => {

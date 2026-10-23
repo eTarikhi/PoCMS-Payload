@@ -232,6 +232,12 @@ export const diffSchema = async (client: pg.Client, backup: JsonBackup): Promise
     }
 
     // Row counts, for the question a schema diff cannot answer: is the other environment fuller?
+    // A table whose rows the backup left out on purpose (`rowsOmitted`) has no count to compare:
+    // reporting zero against this database's real rows would be a difference made of policy, not of
+    // data. Payload's own preference and lock rows change by browsing the admin panel, so this is the
+    // difference that appears most often and means least.
+    if (table.rowsOmitted === true) continue
+
     const fileRows = Array.isArray(table.rows) ? table.rows.length : 0
     const estimate = number(estimates.get(table.name))
     const small = estimate < COUNT_ROWS_BELOW

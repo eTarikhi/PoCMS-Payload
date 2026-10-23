@@ -371,6 +371,16 @@ export type JsonBackup = {
     columns: { name: string; type: string; nullable: boolean; default: string | null }[]
     rows: Record<string, unknown>[]
     truncated?: boolean
+    /**
+     * True when this table's rows were left out on purpose — Payload's locks, preferences and kv,
+     * whose rows are session state rather than content (see `NO_ROWS_BY_DEFAULT`).
+     *
+     * Without the marker a reader cannot tell "this file has no rows for that table" from "that
+     * table was empty", and a comparison reports a difference that is only the backup's own policy:
+     * browsing the admin panel writes a preference row, and the next diff says the two databases
+     * disagree. The schema is still described in full either way.
+     */
+    rowsOmitted?: boolean
   }[]
 }
 
@@ -429,6 +439,7 @@ export const buildJsonBackup = async (
       })),
       rows: rows.slice(0, maxRows).map((row) => row.row),
       ...(rows.length > maxRows ? { truncated: true } : {}),
+      ...(keepRows ? {} : { rowsOmitted: true }),
     })
   }
 
