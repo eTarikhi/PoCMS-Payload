@@ -8,6 +8,31 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Added
 
+- **Three read-only diagnostic cards on `/admin/database`.** *Server settings and connections* reads
+  `pg_settings`, `pg_stat_activity` and `pg_stat_database` and answers the questions the rest of the
+  page cannot: why a query was cancelled (`statement_timeout`, and the `0` that means "no limit"),
+  why the pool refuses clients (`max_connections` against the sessions open, minus the
+  superuser-reserved slots, plus the sessions of other databases that share the ceiling), why a sort
+  spilled to disk (`work_mem` and the temp-file counter), and whether the connection is the pooled or
+  the direct endpoint. Values are rendered in units a person reads — `shared_buffers` arrives in 8 kB
+  blocks and shows as `128 MB` — and nothing is changeable, because `ALTER SYSTEM` belongs to whoever
+  operates the server. *Bloat and vacuum health* reports dead tuples, the last vacuum/autovacuum/
+  analyze and their counts, writes since the last analyze, sizes, and the dead-tuple count at which
+  autovacuum would fire for that table (`threshold + scale_factor × rows`, with the table's own
+  `reloptions` winning over the server setting), with a `Vacuum` button per row that is the existing
+  maintenance endpoint scoped to one table. Its bloat column is an **estimate** — dead tuples × the
+  table's own average row width — because measuring it exactly needs `pgstattuple`, a superuser-only
+  extension most managed servers (Neon included) do not offer, and the card says which kind of number
+  it shows. *Slowest statements* ranks `pg_stat_statements` by total time, mean time and call count;
+  the extension only records when loaded at server start, so the report first finds out whether it can
+  answer at all and, when it cannot, says why in one sentence rather than showing an empty table that
+  reads like a quiet database. PostgreSQL 13 renamed its time columns, so the `SELECT` is built from
+  the columns the view actually has. All three fetch on the client with the moment they were read
+  beside them. New: `server/settings.ts`, `server/bloat.ts`, `server/statements.ts`,
+  `Diagnostics.tsx`, `GET /api/database/{settings,bloat,statements}`, and
+  `tests/int/database-diagnostics.int.spec.ts` (22 tests — the unit conversions, the autovacuum and
+  bloat arithmetic including a live per-table override that moves the trigger, and the honest
+  degradation when `pg_stat_statements` is absent).
 - **A migration drift guard: does every object in the database come from a migration?**
   `pnpm db:drift` reads the `up()` of every migration in `src/migrations`, lifts the SQL out of its
   `sql` template literals, and compares the tables, columns, indexes and enum types those statements

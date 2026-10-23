@@ -24,7 +24,7 @@ import { cn } from '@/components/admin/utilities/cn'
  * screen afterwards is what the database says, not what the button thought it did.
  */
 
-type Reply = { ok: boolean; error?: string; hint?: string; [key: string]: unknown }
+export type Reply = { ok: boolean; error?: string; hint?: string; [key: string]: unknown }
 
 /**
  * The plugin's endpoint prefix (`options.apiBasePath` under the API route). The server component
@@ -45,7 +45,24 @@ export function DatabaseToolsApi({
 
 export const useApiBase = () => React.useContext(ApiBase)
 
-async function post(path: string, body: unknown): Promise<Reply> {
+/**
+ * A GET from one of this plugin's endpoints. The diagnostics below read on the client because they
+ * are on-demand: the page should not pay for `pg_stat_statements` (which may not even exist on the
+ * server) every time somebody opens it.
+ */
+export async function get(path: string): Promise<Reply> {
+  try {
+    const response = await fetch(path, { headers: { Accept: 'application/json' } })
+    const data = (await response.json().catch(() => ({}))) as Reply & { error?: string }
+    return response.ok
+      ? { ...data, ok: true }
+      : { ok: false, error: data.error ?? `HTTP ${response.status}`, hint: data.hint }
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : String(error) }
+  }
+}
+
+export async function post(path: string, body: unknown): Promise<Reply> {
   try {
     const response = await fetch(path, {
       method: 'POST',

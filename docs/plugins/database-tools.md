@@ -49,6 +49,9 @@ export default buildConfig({
 | `GET /api/database/migration` and `…/seed` | On, `snapshots: false` removes both | `server/schemaMigration.ts`, `server/seedSnapshot.ts` |
 | `POST /api/database/diff` | On, `snapshots: false` removes it | `server/diff.ts` |
 | `POST /api/database/seed/apply` | On, `snapshots: false` or `snapshots.apply: false` removes it | `server/seedSnapshot.ts` |
+| `GET /api/database/settings` | On | `server/settings.ts` |
+| `GET /api/database/bloat` | On | `server/bloat.ts` |
+| `GET /api/database/statements` | On; answers with the reason when the server lacks the extension | `server/statements.ts` |
 | `GET /api/database/drift` | On, `drift: false` removes it with its card | `server/drift.ts`, `server/migrationSources.ts` |
 | `POST /api/database/neon/{backup,restore,delete}` | On, `neon: false` removes them; without `NEON_API_KEY` they answer `501` | `server/neon.ts` |
 
@@ -156,6 +159,9 @@ All of them are mounted under `routes.api` + `apiBasePath` and gated by `access`
 | `GET /api/database/seed` | `?collections=a,b`, `?tables=a,b`, `?maxRows=` | A content seed as a download (`application/json`): the collections this config defines, parents first, with the sequence values to set afterwards. |
 | `POST /api/database/diff` | `{ json }` | `{ ok, diff }` — a JSON backup from another database compared with this one: missing tables and columns (with the `ALTER TABLE` that would add them), types, nullability and defaults that differ, what only exists here, and row counts. Read-only. |
 | `POST /api/database/seed/apply` | `{ json, confirmation: 'seed' }`, or `{ json, dryRun: true }` (`?dryRun=1` works too) | `{ ok, tables, rows, sequences, warnings }` — deletes the rows of the tables the file names, inserts its rows, sets the sequences. One transaction; the typed word is required (`400`), a file over the restore limit is `413`, a file that is not a seed or names a missing table is `400`. A dry run needs no confirmation and writes nothing: `{ ok, dryRun: true, plan: { tables: [{ name, willDelete, willInsert, estimated }], rows, sequences, warnings } }`, and it refuses a seed this database cannot load, which is the point of asking first. |
+| `GET /api/database/settings` | — | `{ ok, settings }`: the server version and uptime, where the connection goes (host, port, database, pooled or direct, which environment variable), the settings that cancel work (`statement_timeout`, `idle_in_transaction_session_timeout`, `lock_timeout`) and the ones that size it (`max_connections`, `shared_buffers`, `work_mem`, `maintenance_work_mem`, `effective_cache_size`, the autovacuum family) with each value in units a person reads, the sessions of this database by state, user and application against the ceiling, and the cumulative counters since `stats_reset`. Read-only; `absent` names the settings this server does not report. |
+| `GET /api/database/bloat` | `?limit=` (≤ 500, default 60) | `{ ok, bloat }`: per table the live and dead tuples, the dead ratio, table/index/total size, an **estimated** bloat in bytes (dead tuples × the table's own average row width — `pgstattuple` is not available on most managed servers), the last vacuum/autovacuum/analyze and their counts, writes since the last analyze, the dead-tuple count at which autovacuum would fire (this table's own `reloptions` winning over the server setting), and whether it is due. Plus the server's autovacuum configuration and totals. Read-only. |
+| `GET /api/database/statements` | `?limit=` (≤ 100, default 15) | `{ ok, statements }`: `pg_stat_statements` ranked three ways — total time, mean time, calls — with rows, cache-hit ratio and the role, plus the extension's state and when counting started. When the extension is absent, or present but not in `shared_preload_libraries`, `available` is `false` and `hint` says which of those it is and who can change it. Query text arrives normalised by Postgres (literals are already `$1`) and is truncated to one line. Read-only. |
 | `GET /api/database/drift` | — | `{ ok, clean, drift: [{ kind, table, object? }], pending: […], counts, unreadable }`. `kind` is `undeclared-table`/`-column`/`-index`/`-type` for what the database has and no migration declares, `missing-table`/`-column` for the reverse. `501` when no migration source could be read. Read-only. |
 | `POST /api/database/neon/backup` | `{ name?, withEndpoint? }` | `{ ok, branch }` — a branch pinned to now. `501` without a key, `502` on a Neon error. |
 | `POST /api/database/neon/restore` | `{ timestamp (ISO 8601), confirmation: 'restore', preserveUnderName? }` | `{ ok, branch, restoredTo }`; the current state is kept as `preserveUnderName` when given. |
@@ -362,6 +368,35 @@ The same check runs as `pnpm db:drift` (exit code 1 on drift, `--json` for a mac
 read-only Terminal entry *Migration drift check*. Types, nullability, defaults and constraints are
 not compared — that is `POST /api/database/diff` (two databases) or `GET /api/database/migration`
 (one database's whole shape).
+
+### Server settings, bloat and statement history
+
+Three read-only cards answer the questions the rest of the page cannot:
+
+- **Server settings and connections** — *why did my query get cancelled* (`statement_timeout`),
+  *why does the pool refuse new clients* (`max_connections` against the sessions actually open, with
+  the superuser-reserved slots taken out), *why did a sort spill to disk* (`work_mem`, and the
+  temp-file counter that says it happened), and *is this the pooled endpoint or the direct one*.
+  Values arrive the way Postgres stores them (`shared_buffers` in 8 kB blocks, timeouts in
+  milliseconds) and `formatSetting` renders them; a `0` timeout reads as "off (no limit)", which is
+  what Postgres means by it. Nothing here is changeable: `ALTER SYSTEM` belongs to whoever operates
+  the server, and a web page is the wrong place for it.
+- **Bloat and vacuum health** — dead tuples per table, when each was last vacuumed and analyzed, and
+  the autovacuum trigger (`threshold + scale_factor × rows`, with a table's own `reloptions` winning)
+  so "is this table due?" is arithmetic rather than a guess. The bloat column is an **estimate**: dead
+  tuples times the table's average row width. Measuring it exactly needs `pgstattuple`, a
+  superuser-only extension most managed servers (Neon included) do not offer, and the card says which
+  kind of number it is showing. The `Vacuum` button on a row is the existing maintenance endpoint
+  scoped to that table; `VACUUM FULL` stays absent, because it locks the table for the whole rewrite.
+- **Slowest statements** — `pg_stat_statements` ranked by total time, mean time and call count. It is
+  an extension that only records when loaded at server start, so the first query finds out whether it
+  can answer at all and, when it cannot, says why in one sentence instead of showing an empty table
+  that reads like a quiet database. PostgreSQL 13 renamed its time columns, so the `SELECT` is built
+  from the columns the view actually has.
+
+All three fetch on the client, each with the moment it was read beside it: they are snapshots of a
+moment, not part of the page's identity, and a number that says when it was read is a number you can
+trust.
 
 ## Audit
 

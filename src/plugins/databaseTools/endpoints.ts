@@ -16,7 +16,10 @@ import { DatabaseToolsError, databaseTarget, withDatabase } from './server/conne
 import { declaredSchema, findDrift, liveSchema } from './server/drift'
 import { parseDirection, parseFilters } from './server/filters'
 import { exportCsv, readRows, tableDdl } from './server/introspection'
+import { bloatReport } from './server/bloat'
 import { isMaintenanceAction, runMaintenance } from './server/maintenance'
+import { serverSettings } from './server/settings'
+import { statementReport } from './server/statements'
 import { NeonClient, NeonError } from './server/neon'
 import { explainRows } from './server/plans'
 import { applyRepair, type RepairCheckId } from './server/repair'
@@ -53,6 +56,9 @@ import { MAX_RESTORE_BYTES, neonOptions, type ResolvedDatabaseToolsOptions } fro
  *                                        names first. `{ json, dryRun: true }` answers with the plan
  *                                        (per table: what would be deleted, what inserted) and
  *                                        writes nothing, so the confirmation is an informed one.
+ *   GET  /api/database/settings          How this server is configured, and how much of it is used.
+ *   GET  /api/database/bloat             Dead tuples, vacuum history and the estimated bloat per table.
+ *   GET  /api/database/statements        pg_stat_statements' top statements, where it is available.
  *   GET  /api/database/drift             Does every object in the database come from a migration?
  *   POST /api/database/neon/backup       `{ name, withEndpoint? }` → a branch pinned to now.
  *   POST /api/database/neon/restore      `{ timestamp, confirmation, preserveUnderName? }`
@@ -690,6 +696,60 @@ export const databaseToolsEndpoints = (options: ResolvedDatabaseToolsOptions): E
       })
     }
   }
+
+  // Read-only diagnostics. None of them takes a body, none of them changes anything, and each
+  // degrades on its own: a server that does not offer pg_stat_statements answers with the reason
+  // instead of an error, so a card can say something true either way.
+  endpoints.push({
+    path: `${base}/settings`,
+    method: 'get',
+    handler: async (req) => {
+      if (!(await allowed(req))) return denied()
+      try {
+        const settings = await withDatabase((client) => serverSettings(client))
+        return json({ ok: true, settings })
+      } catch (error) {
+        req.payload.logger.error({ msg: 'Reading the server settings failed', err: error })
+        return json(readable(error), error instanceof DatabaseToolsError ? 400 : 500)
+      }
+    },
+  })
+
+  endpoints.push({
+    path: `${base}/bloat`,
+    method: 'get',
+    handler: async (req) => {
+      if (!(await allowed(req))) return denied()
+      const requested = Number(req.searchParams.get('limit') ?? '')
+      const limit =
+        Number.isFinite(requested) && requested > 0 ? Math.min(requested, 500) : undefined
+      try {
+        const bloat = await withDatabase((client) => bloatReport(client, { limit }))
+        return json({ ok: true, bloat })
+      } catch (error) {
+        req.payload.logger.error({ msg: 'Reading the bloat report failed', err: error })
+        return json(readable(error), error instanceof DatabaseToolsError ? 400 : 500)
+      }
+    },
+  })
+
+  endpoints.push({
+    path: `${base}/statements`,
+    method: 'get',
+    handler: async (req) => {
+      if (!(await allowed(req))) return denied()
+      const requested = Number(req.searchParams.get('limit') ?? '')
+      const limit =
+        Number.isFinite(requested) && requested > 0 ? Math.min(requested, 100) : undefined
+      try {
+        const statements = await withDatabase((client) => statementReport(client, { limit }))
+        return json({ ok: true, statements })
+      } catch (error) {
+        req.payload.logger.error({ msg: 'Reading the statement history failed', err: error })
+        return json(readable(error), error instanceof DatabaseToolsError ? 400 : 500)
+      }
+    },
+  })
 
   if (options.drift !== false) {
     const readSources = options.drift.readSources

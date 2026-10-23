@@ -9,6 +9,9 @@ import {
   FileDiffIcon,
   GitBranchIcon,
   GitCompareArrowsIcon,
+  HardDriveIcon,
+  ListOrderedIcon,
+  SlidersHorizontalIcon,
   HardDriveDownloadIcon,
   InfoIcon,
   LayersIcon,
@@ -81,6 +84,7 @@ import {
 } from '@/plugins/databaseTools/options'
 import { formatBytes } from '@/system/status'
 
+import { BloatCard, ServerSettingsCard, StatementsCard } from './Diagnostics'
 import {
   DatabaseToolsApi,
   DiffPanel,
@@ -872,6 +876,79 @@ export async function DatabaseView({
                     </CardContent>
                   </Card>
                 ) : null}
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>
+                      <h2 className="acn:m-0 acn:flex acn:items-center acn:gap-2 acn:text-base">
+                        <SlidersHorizontalIcon
+                          aria-hidden
+                          className="acn:size-4 acn:text-muted-foreground"
+                        />
+                        Server settings and connections
+                      </h2>
+                    </CardTitle>
+                    <CardDescription>
+                      The limits that decide what this server will and will not finish: the timeouts
+                      that cancel a statement, the connection ceiling against the sessions actually
+                      open, and the memory a sort may spend before it spills to disk. Read from{' '}
+                      <Code>pg_settings</Code> and <Code>pg_stat_activity</Code>; nothing here is
+                      changeable, because these belong to whoever operates the server.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ServerSettingsCard />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>
+                      <h2 className="acn:m-0 acn:flex acn:items-center acn:gap-2 acn:text-base">
+                        <HardDriveIcon
+                          aria-hidden
+                          className="acn:size-4 acn:text-muted-foreground"
+                        />
+                        Bloat and vacuum health
+                      </h2>
+                    </CardTitle>
+                    <CardDescription>
+                      Dead tuples per table, when each was last vacuumed and analyzed, and how many
+                      dead tuples autovacuum would wait for before acting. An update never rewrites a
+                      row in place, so a table that is written a lot grows a tail of dead tuples that
+                      occupy space and stale the planner’s estimates until a vacuum collects them.
+                      <Code>VACUUM FULL</Code> is still deliberately absent: it locks the table for
+                      the whole rewrite.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <BloatCard />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>
+                      <h2 className="acn:m-0 acn:flex acn:items-center acn:gap-2 acn:text-base">
+                        <ListOrderedIcon
+                          aria-hidden
+                          className="acn:size-4 acn:text-muted-foreground"
+                        />
+                        Slowest statements
+                      </h2>
+                    </CardTitle>
+                    <CardDescription>
+                      What this server has actually been running, from{' '}
+                      <Code>pg_stat_statements</Code>: the statements that cost the most time in
+                      total, the ones that are slowest per call, and the ones called most often. The
+                      extension has to be loaded when the server starts, so on one that does not
+                      offer it this card says so instead of showing an empty table.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <StatementsCard />
+                  </CardContent>
+                </Card>
 
                 <div className="acn:grid acn:gap-6 acn:lg:grid-cols-2">
                   <Card>

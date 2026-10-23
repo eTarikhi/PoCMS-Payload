@@ -86,6 +86,9 @@ describe('databaseTools plugin', () => {
       '/database/seed',
       '/database/diff',
       '/database/seed/apply',
+      '/database/settings',
+      '/database/bloat',
+      '/database/statements',
       '/database/drift',
       '/database/neon/backup',
       '/database/neon/restore',
@@ -107,6 +110,9 @@ describe('databaseTools plugin', () => {
       '/database/seed',
       '/database/diff',
       '/database/seed/apply',
+      '/database/settings',
+      '/database/bloat',
+      '/database/statements',
       '/database/drift',
     ])
 
