@@ -749,6 +749,7 @@ maintenance tasks the CMS needs and shows when each one ran and what it found. T
 | `publish-scheduled` | daily | Publishes draft articles whose *Publish at* has passed, so a scheduled article goes live within a day (one cron call per day on Hobby). Running it by hand publishes immediately. |
 | `broken-links` | Mondays | Crawls the home page and every article page, collects their links and requests each one (HEAD, then GET when a server refuses HEAD). Reports the broken ones with the page they were found on. Up to 60 links per run. |
 | `database-upkeep` | Sundays | `ANALYZE`s the tables that have rows but no statistics, `VACUUM ANALYZE`s those with more than 1 000 dead rows, and moves any ID sequence that fell behind its highest id. Leaves orphaned rows and invalid indexes to the database page, where they are reported but not applied, and skips tables over 200 MB so a run fits in one request. |
+| `database-backup` | daily | Writes a full dump of the database to `BACKUP_DIR` (`.backups/`, git-ignored) and prunes it to the newest `BACKUP_KEEP` (7). `BACKUP_FORMAT` chooses `sql` — which restores through the database page's Restore card or `pnpm db:restore` — or `json`, the format the schema comparison reads. On a serverless filesystem the dump does not outlive the request, so the summary says so and names the alternative (a Neon backup branch, which the database page can create). Listed on `/admin/database` → **Scheduled backups**. |
 
 How a run happens:
 

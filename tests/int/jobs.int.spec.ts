@@ -23,6 +23,7 @@ describe('JobRun registry', () => {
       'publish-scheduled',
       'broken-links',
       'database-upkeep',
+      'database-backup',
     ])
     for (const task of TASKS) {
       expect(task.label.length).toBeGreaterThan(0)
@@ -201,6 +202,60 @@ describe('Jobs', () => {
         .toContain(check.id)
     }
   })
+
+  it('runs the nightly database backup into a directory of its own, and prunes it', async () => {
+    const os = await import('node:os')
+    const path = await import('node:path')
+    const fs = await import('node:fs/promises')
+    const { databaseBackup } = await import('@/jobs/tasks/databaseBackup')
+
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'pocms-backup-'))
+    const previous = { ...process.env }
+    process.env.BACKUP_DIR = dir
+    // Retention of one, so the second run has something to prune and the plan can be asserted.
+    process.env.BACKUP_KEEP = '1'
+    try {
+      const lines: string[] = []
+      const outcome = await databaseBackup.run({
+        payload,
+        log: (line) => lines.push(line),
+        siteURL: null,
+      })
+
+      expect(outcome.summary).toMatch(/Wrote pocms-.*\.sql/)
+      const details = outcome.details as {
+        file: string
+        bytes: number
+        tables: number
+        rows: number
+        directory: string
+        kept: string[]
+        removed: string[]
+      }
+      expect(details.bytes).toBeGreaterThan(1000)
+      expect(details.tables).toBeGreaterThan(20)
+      expect(details.directory).toBe(dir)
+
+      // The file is a real dump: it names the tables and can be read back as text.
+      const written = await fs.readFile(path.join(dir, details.file), 'utf8')
+      expect(written).toContain('CREATE TABLE')
+      expect(written).toContain('"articles"')
+
+      // A second run keeps the newest two and deletes the older one.
+      await new Promise((resolve) => setTimeout(resolve, 1100))
+      const second = await databaseBackup.run({ payload, log: () => undefined, siteURL: null })
+      const secondDetails = second.details as { file: string; kept: string[]; removed: string[] }
+      expect(secondDetails.file).not.toBe(details.file)
+      expect(secondDetails.removed).toEqual([details.file])
+      const left = (await fs.readdir(dir)).sort()
+      expect(left).toEqual([secondDetails.file])
+      expect(secondDetails.kept).toEqual([secondDetails.file])
+      expect(lines.join('\n')).toMatch(/Writing to/)
+    } finally {
+      process.env = previous
+      await fs.rm(dir, { recursive: true, force: true })
+    }
+  }, 180_000)
 
   it('moves a sequence that fell behind, so the next insert succeeds', async () => {
     const { withDatabase } = await import('@/plugins/databaseTools/server/connection')

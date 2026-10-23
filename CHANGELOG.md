@@ -8,6 +8,53 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Added
 
+- **Nightly database backups, with retention that cannot delete everything.** A `database-backup` job
+  (daily, in the existing queue, so every attempt is a `job-runs` document with a summary and a log)
+  writes the same full dump the Backup card produces on demand to `BACKUP_DIR` (`.backups/`, now
+  git-ignored) and prunes it to the newest `BACKUP_KEEP` (7); `BACKUP_FORMAT` chooses `sql` — which
+  restores through the Restore card or `pnpm db:restore <file> --yes` — or `json`, the format the
+  schema comparison reads. Retention is `prunePlan`, a pure function over the file list, and the
+  newest always survive: a retention that is not a number falls back to one, because
+  `slice(0, NaN)` is empty and `slice(NaN)` is the whole list, so an unvalidated `BACKUP_KEEP` would
+  have deleted every backup and reported that it kept none (a test asserts exactly that). Only names
+  the plan returns are unlinked, only inside the backup directory, and only files matching the two
+  extensions this plugin writes. `/admin/database` → **Scheduled backups** lists what is on disk with
+  a download link, and cannot delete anything: retention is the job's decision, and a second, less
+  logged way to lose a backup would be worse than no button. Because a serverless filesystem does not
+  outlive the request, the run detects that case from the database host and says so in its own
+  summary, naming the alternative — a Neon backup branch, which is point-in-time restorable and has a
+  button on the same page. New: `server/backups.ts`, `src/jobs/tasks/databaseBackup.ts`,
+  `GET /api/database/backups` and `…/backups/file`, `tests/int/database-backups.int.spec.ts`
+  (16 tests), one in `jobs.int.spec.ts` that runs the task twice against a temp directory and asserts
+  the prune, and the migration that adds the task's enum value to `job_runs.task` — without which the
+  runner cannot even *query* the collection, since an unknown enum value fails at the type.
+- **A Neon branch to work against, for a pull request.** `POST /api/database/neon/branch` creates a
+  branch off production (or any parent) with an endpoint by default, because the point is to connect
+  to it, and optionally from a moment in the parent's history (`initSource`) rather than its head —
+  which is what "reproduce yesterday's production data on my pull request" means. Creating one
+  changes nothing that exists. The connection string it can return is a credential, so it is included
+  only when the request says `reveal: true`, is shown once in the admin, and is never written to the
+  log or the audit record (both carry the branch id, the parent and the endpoint host). The form sits
+  in the Neon card beside the backup branch, offers the parent as a select, and says plainly that the
+  branch should be deleted when the work is merged. New: `NeonClient.createBranch()` (which handles
+  both shapes Neon has used for the string — top level, or on the endpoint), two tests against a fake
+  `fetch`.
+- **Per-table autovacuum overrides, behind a typed confirmation.** `ALTER TABLE … SET (autovacuum_*)`
+  for the tables whose needs differ from the server-wide trigger — a hot table wants a smaller
+  `autovacuum_vacuum_scale_factor`, an append-only one is never vacuumed by a delete-driven trigger
+  at all and needs the insert-driven pair — which is not something a managed server lets you change
+  globally for one table's sake. It is the only DDL these tools write, so it is built to be boring:
+  names come from an allow-list with Postgres' own bounds, values are parsed and re-rendered from the
+  parsed number or boolean so the string that arrived never reaches the statement, the table is
+  resolved through the catalog before it is quoted, the request must type the table's name, the
+  result is read back from `pg_class.reloptions` rather than echoed, and the change is audited.
+  `RESET` sits beside `SET`, because an override somebody forgets is a table that behaves unlike every
+  other table for no reason anyone can remember. The **Bloat and vacuum health** card gains a *Tune*
+  button per row that opens the form with each parameter's description, server default and current
+  override, and reports the trigger the change moves it to. New: `server/autovacuum.ts`,
+  `GET`/`POST /api/database/autovacuum`, `tests/int/database-tuning.int.spec.ts` (15 tests, including
+  a live set → catalog read-back → reset cycle and a refusal of `articles"; drop table users; --`
+  that asserts `users` is still there afterwards).
 - **Three read-only diagnostic cards on `/admin/database`.** *Server settings and connections* reads
   `pg_settings`, `pg_stat_activity` and `pg_stat_database` and answers the questions the rest of the
   page cannot: why a query was cancelled (`statement_timeout`, and the `0` that means "no limit"),

@@ -3,6 +3,8 @@
 import {
   ActivityIcon,
   ClockIcon,
+  DatabaseBackupIcon,
+  WrenchIcon,
   GaugeIcon,
   HardDriveIcon,
   ListOrderedIcon,
@@ -17,7 +19,7 @@ import * as React from 'react'
 import { Badge } from '@/components/admin/elements/Badge'
 import { Button } from '@/components/admin/elements/Button'
 
-import { get, post, useApiBase, type Reply } from './Actions'
+import { AutovacuumForm, get, post, useApiBase, type Reply } from './Actions'
 
 /**
  * The read-only diagnostics on /admin/database: how the server is configured, how much of each table
@@ -378,6 +380,8 @@ export function BloatCard() {
   const [busy, setBusy] = React.useState(false)
   const [vacuuming, setVacuuming] = React.useState<string | null>(null)
   const [action, setAction] = React.useState<Reply | null>(null)
+  /** The table whose autovacuum overrides are open for editing. */
+  const [tuning, setTuning] = React.useState<string | null>(null)
 
   const apply = React.useCallback((result: Reply) => {
     setReply(result)
@@ -534,19 +538,39 @@ export function BloatCard() {
                       ) : null}
                     </td>
                     <td className="acn:px-3 acn:py-1.5 acn:text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={vacuuming !== null}
-                        onClick={() => void vacuum(table.name)}
-                      >
-                        {vacuuming === table.name ? (
-                          <LoaderCircleIcon aria-hidden className="acn:motion-safe:animate-spin" />
-                        ) : (
-                          <RefreshCwIcon aria-hidden />
-                        )}
-                        Vacuum
-                      </Button>
+                      <span className="acn:inline-flex acn:gap-1.5">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={vacuuming !== null}
+                          onClick={() => void vacuum(table.name)}
+                        >
+                          {vacuuming === table.name ? (
+                            <LoaderCircleIcon aria-hidden className="acn:motion-safe:animate-spin" />
+                          ) : (
+                            <RefreshCwIcon aria-hidden />
+                          )}
+                          Vacuum
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setTuning(tuning === table.name ? null : table.name)}
+                          aria-expanded={tuning === table.name}
+                        >
+                          <WrenchIcon aria-hidden />
+                          Tune
+                        </Button>
+                      </span>
+                      {tuning === table.name ? (
+                        <div className="acn:mt-2 acn:border-t acn:border-border acn:pt-2 acn:text-left">
+                          <AutovacuumForm
+                            table={table.name}
+                            current={table.reloptions}
+                            onSaved={() => void refresh()}
+                          />
+                        </div>
+                      ) : null}
                     </td>
                   </tr>
                 ))}
@@ -577,6 +601,166 @@ export function BloatCard() {
               )}
             </p>
           ) : null}
+        </>
+      ) : null}
+    </div>
+  )
+}
+
+type BackupFile = {
+  name: string
+  bytes: number
+  modifiedAt: string
+  format: 'sql' | 'json'
+  takenAt: string | null
+}
+
+type BackupList = {
+  settings: {
+    dir: string
+    keep: number
+    format: string
+    ephemeralFilesystem: boolean
+    note: string
+  }
+  files: BackupFile[]
+  bytes: number
+}
+
+/**
+ * What the nightly backup job has written, and where.
+ *
+ * The job (`database-backup` on `/admin/jobs`) writes the same dump the Backup card downloads, so a
+ * file listed here restores through either door that already exists: the Restore card below, or
+ * `pnpm db:restore <file> --yes`. This card is the read half — it never deletes anything, because
+ * retention is the job's decision and a button here would be a second, less logged way to lose a
+ * backup.
+ */
+export function BackupsCard() {
+  const apiBase = useApiBase()
+  const [data, setData] = React.useState<BackupList | null>(null)
+  const [reply, setReply] = React.useState<Reply | null>(null)
+  const [busy, setBusy] = React.useState(false)
+
+  const refresh = async () => {
+    setBusy(true)
+    const result = await get(`${apiBase}/backups`)
+    setReply(result)
+    if (result.ok && result.files) {
+      setData({
+        settings: result.settings as BackupList['settings'],
+        files: result.files as BackupFile[],
+        bytes: Number(result.bytes ?? 0),
+      })
+    }
+    setBusy(false)
+  }
+
+  React.useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      const result = await get(`${apiBase}/backups`)
+      if (cancelled) return
+      setReply(result)
+      if (result.ok && result.files) {
+        setData({
+          settings: result.settings as BackupList['settings'],
+          files: result.files as BackupFile[],
+          bytes: Number(result.bytes ?? 0),
+        })
+      }
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [apiBase])
+
+  return (
+    <div className="acn:flex acn:flex-col acn:gap-4">
+      <div className="acn:flex acn:flex-wrap acn:items-center acn:justify-between acn:gap-2">
+        <p className="acn:m-0 acn:flex acn:items-center acn:gap-2 acn:text-sm acn:font-medium">
+          <DatabaseBackupIcon aria-hidden className="acn:size-4 acn:text-muted-foreground" />
+          Scheduled backups
+          {data ? (
+            <Badge variant={data.settings.ephemeralFilesystem ? 'destructive' : 'secondary'}>
+              {data.files.length} file(s) · {bytes(data.bytes)}
+            </Badge>
+          ) : null}
+        </p>
+        <Button variant="outline" size="sm" disabled={busy} onClick={() => void refresh()}>
+          {busy ? (
+            <LoaderCircleIcon aria-hidden className="acn:motion-safe:animate-spin" />
+          ) : (
+            <RefreshCwIcon aria-hidden />
+          )}
+          Read the directory again
+        </Button>
+      </div>
+
+      {reply ? <ErrorNote reply={reply} /> : null}
+
+      {data ? (
+        <>
+          <p className="acn:m-0 acn:text-xs acn:text-muted-foreground">
+            The <code className="acn:font-mono">database-backup</code> job runs nightly (see{' '}
+            <strong>Jobs</strong>) and writes a full dump to{' '}
+            <code className="acn:font-mono">{data.settings.dir}/</code>, keeping the newest{' '}
+            {data.settings.keep}. {data.settings.note}
+          </p>
+
+          {data.settings.ephemeralFilesystem ? (
+            <p className="acn:m-0 acn:flex acn:items-start acn:gap-1.5 acn:rounded-lg acn:bg-destructive/10 acn:p-3 acn:text-xs acn:text-destructive-emphasis">
+              <TriangleAlertIcon aria-hidden className="acn:mt-0.5 acn:size-3.5 acn:shrink-0" />
+              These files are written to a serverless filesystem, which does not outlive the request.
+              Use the Neon card’s <strong>Backup branch</strong> for a backup that survives and can be
+              restored to a moment in time.
+            </p>
+          ) : null}
+
+          {data.files.length === 0 ? (
+            <p className="acn:m-0 acn:text-xs acn:text-muted-foreground">
+              Nothing in <code className="acn:font-mono">{data.settings.dir}/</code> yet. Run the job
+              once from <strong>Jobs</strong> → <em>Database backup</em> → <em>Run now</em>, or take a
+              dump by hand from the Backup card above.
+            </p>
+          ) : (
+            <ul className="acn:m-0 acn:flex acn:list-none acn:flex-col acn:divide-y acn:divide-border acn:rounded-lg acn:border acn:border-border acn:p-0">
+              {data.files.slice(0, 12).map((file) => (
+                <li
+                  key={file.name}
+                  className="acn:flex acn:flex-wrap acn:items-center acn:justify-between acn:gap-2 acn:px-3 acn:py-2"
+                >
+                  <div className="acn:min-w-0">
+                    <p className="acn:m-0 acn:font-mono acn:text-xs acn:break-all">{file.name}</p>
+                    <p className="acn:m-0 acn:text-xs acn:text-muted-foreground">
+                      {bytes(file.bytes)} ·{' '}
+                      {file.takenAt ? new Date(file.takenAt).toLocaleString('en') : ago(file.modifiedAt)} ·{' '}
+                      {file.format}
+                    </p>
+                  </div>
+                  <a
+                    href={`${apiBase}/backups/file?name=${encodeURIComponent(file.name)}`}
+                    className="acn:inline-flex acn:shrink-0 acn:items-center acn:gap-1.5 acn:rounded-md acn:border acn:border-input acn:px-2.5 acn:py-1 acn:text-xs acn:no-underline hover:acn:bg-muted"
+                    download={file.name}
+                  >
+                    Download
+                  </a>
+                </li>
+              ))}
+              {data.files.length > 12 ? (
+                <li className="acn:px-3 acn:py-2 acn:text-xs acn:text-muted-foreground">
+                  and {data.files.length - 12} more…
+                </li>
+              ) : null}
+            </ul>
+          )}
+
+          <p className="acn:m-0 acn:text-xs acn:text-muted-foreground">
+            To restore one: download it, then use the <strong>Restore</strong> card (it inspects the
+            file first and asks for the word “restore”), or run{' '}
+            <code className="acn:font-mono">pnpm db:restore &lt;file&gt; --yes</code>.
+          </p>
         </>
       ) : null}
     </div>

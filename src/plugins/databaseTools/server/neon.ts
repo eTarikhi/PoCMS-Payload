@@ -15,7 +15,7 @@ import { databaseTarget } from './connection'
  *   GET    /projects
  *   GET    /projects/{id}/endpoints
  *   GET    /projects/{id}/branches
- *   POST   /projects/{id}/branches                         (a backup branch)
+ *   POST   /projects/{id}/branches                         (a backup branch, or one to work against)
  *   POST   /projects/{id}/branches/{branch}/restore        (point-in-time restore)
  *   DELETE /projects/{id}/branches/{branch}
  *   GET    /projects/{id}/operations/{operation}
@@ -84,6 +84,29 @@ const toBranch = (raw: unknown): NeonBranch => {
     lastResetAt: branch.last_reset_at ? String(branch.last_reset_at) : null,
     restoredFrom: branch.restored_from ? String(branch.restored_from) : null,
   }
+}
+
+export type NeonEndpoint = {
+  id: string
+  host: string
+  type: string
+  /**
+   * The connection string for this endpoint, when Neon returned one.
+   *
+   * A credential, and treated as one everywhere it travels: it is never logged, never written to the
+   * audit log, and only included in a response when the caller asked for it explicitly.
+   */
+  connectionUri: string | null
+}
+
+/** What creating a branch returns: the branch, the endpoint that came with it, and the operation. */
+export type NeonBranchCreation = {
+  branch: NeonBranch
+  endpoints: NeonEndpoint[]
+  /** Neon's own id for the work it started, so a caller can poll `operation()`. */
+  operationId: string | null
+  /** The first endpoint's connection string, when one was created and Neon returned it. */
+  connectionUri: string | null
 }
 
 export type NeonOptions = {
@@ -270,6 +293,70 @@ export class NeonClient {
     }
     const result = await this.request('POST', `/projects/${projectId}/branches`, payload)
     return toBranch(result.branch)
+  }
+
+  /**
+   * Create a branch to work against — a preview branch for a pull request, or a copy of production
+   * to try a migration on.
+   *
+   * The difference from `createBackupBranch` is what comes back: a branch you are going to *connect
+   * to* needs an endpoint and a connection string, so this returns them. That string is a
+   * credential, and it is the caller's job to treat it as one — this client returns it and logs
+   * nothing, and the endpoint that exposes it only does so when the request asked for it.
+   *
+   * `initSource` branches from a moment in the parent's history rather than from its head, which is
+   * what makes "reproduce yesterday's production data on my pull request" possible.
+   */
+  async createBranch({
+    name,
+    parentId,
+    withEndpoint = false,
+    initSource,
+  }: {
+    name: string
+    parentId?: string
+    withEndpoint?: boolean
+    /** An ISO timestamp in the parent branch's history. */
+    initSource?: string
+  }): Promise<NeonBranchCreation> {
+    const { projectId, branchId } = await this.resolve()
+    const payload = {
+      branch: {
+        name,
+        parent_id: parentId ?? branchId,
+        ...(initSource ? { init_source: initSource } : {}),
+      },
+      ...(withEndpoint ? { endpoints: [{ type: 'read_write' }] } : {}),
+    }
+    const result = await this.request('POST', `/projects/${projectId}/branches`, payload)
+
+    const endpoints = asArray(result.endpoints).map((raw): NeonEndpoint => {
+      const endpoint = asRecord(raw)
+      const uri =
+        typeof endpoint.connection_uri === 'string' && endpoint.connection_uri
+          ? endpoint.connection_uri
+          : null
+      return {
+        id: String(endpoint.id ?? ''),
+        host: String(endpoint.host ?? ''),
+        type: String(endpoint.type ?? ''),
+        connectionUri: uri,
+      }
+    })
+    // Neon also puts the string at the top level when it created an endpoint with the branch.
+    const topLevel =
+      typeof result.connection_uri === 'string' && result.connection_uri
+        ? result.connection_uri
+        : null
+    const operations = asArray(result.operations)
+    const first = asRecord(operations[0])
+
+    return {
+      branch: toBranch(result.branch),
+      endpoints,
+      operationId: first.id ? String(first.id) : null,
+      connectionUri: topLevel ?? endpoints.find((endpoint) => endpoint.connectionUri)?.connectionUri ?? null,
+    }
   }
 
   /**

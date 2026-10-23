@@ -1,5 +1,6 @@
 import type { JobTask } from './types'
 import { brokenLinks } from './tasks/brokenLinks'
+import { databaseBackup } from './tasks/databaseBackup'
 import { databaseUpkeep } from './tasks/databaseUpkeep'
 import { pagespeedReport } from './tasks/pagespeedReport'
 import { publishScheduled } from './tasks/publishScheduled'
@@ -16,6 +17,7 @@ export const TASKS: readonly JobTask[] = [
   publishScheduled,
   brokenLinks,
   databaseUpkeep,
+  databaseBackup,
 ]
 
 export const TASK_SLUGS = TASKS.map((task) => task.slug)

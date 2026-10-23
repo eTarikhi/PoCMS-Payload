@@ -1,3 +1,5 @@
+import fs from 'node:fs/promises'
+
 import type { Endpoint, PayloadRequest } from 'payload'
 
 import { buildJsonBackup, buildSqlBackup, type BuildBackupOptions } from './server/backup'
@@ -16,11 +18,19 @@ import { DatabaseToolsError, databaseTarget, withDatabase } from './server/conne
 import { declaredSchema, findDrift, liveSchema } from './server/drift'
 import { parseDirection, parseFilters } from './server/filters'
 import { exportCsv, readRows, tableDdl } from './server/introspection'
+import {
+  applyAutovacuum,
+  AUTOVACUUM_PARAMETERS,
+  describeSettings,
+  readTableAutovacuum,
+  validateSettings,
+} from './server/autovacuum'
+import { backupSettings, listBackups, safeBackupPath } from './server/backups'
 import { bloatReport } from './server/bloat'
 import { isMaintenanceAction, runMaintenance } from './server/maintenance'
 import { serverSettings } from './server/settings'
 import { statementReport } from './server/statements'
-import { NeonClient, NeonError } from './server/neon'
+import { NeonClient, NeonError, neonConsoleUrl } from './server/neon'
 import { explainRows } from './server/plans'
 import { applyRepair, type RepairCheckId } from './server/repair'
 import { inspectRestore, RestoreRefused, restoreSql } from './server/restore'
@@ -56,11 +66,18 @@ import { MAX_RESTORE_BYTES, neonOptions, type ResolvedDatabaseToolsOptions } fro
  *                                        names first. `{ json, dryRun: true }` answers with the plan
  *                                        (per table: what would be deleted, what inserted) and
  *                                        writes nothing, so the confirmation is an informed one.
+ *   GET  /api/database/autovacuum        A table's own autovacuum overrides, and what they move.
+ *   POST /api/database/autovacuum        `{ table, settings, confirmation }` — set or reset them.
+ *   GET  /api/database/backups           The dumps the scheduled backup job has written.
+ *   GET  /api/database/backups/file      One of them, as a download.
  *   GET  /api/database/settings          How this server is configured, and how much of it is used.
  *   GET  /api/database/bloat             Dead tuples, vacuum history and the estimated bloat per table.
  *   GET  /api/database/statements        pg_stat_statements' top statements, where it is available.
  *   GET  /api/database/drift             Does every object in the database come from a migration?
  *   POST /api/database/neon/backup       `{ name, withEndpoint? }` → a branch pinned to now.
+ *   POST /api/database/neon/branch       `{ name, parentId?, withEndpoint?, initSource?, reveal? }`
+ *                                        → a branch to work against (a pull-request preview), with
+ *                                        its connection string only when `reveal` asks for it.
  *   POST /api/database/neon/restore      `{ timestamp, confirmation, preserveUnderName? }`
  *   POST /api/database/neon/delete       `{ branchId, confirmation }`
  *
@@ -697,6 +714,181 @@ export const databaseToolsEndpoints = (options: ResolvedDatabaseToolsOptions): E
     }
   }
 
+  // Per-table autovacuum overrides: the one write here that is DDL, so it takes a typed
+  // confirmation, validates every name against an allow-list and every value against its bounds,
+  // resolves the table through the catalog first, and records what it did in the audit log.
+  endpoints.push(
+    {
+      path: `${base}/autovacuum`,
+      method: 'get',
+      handler: async (req) => {
+        if (!(await allowed(req))) return denied()
+        const table = String(req.searchParams.get('table') ?? '').trim()
+        if (!table) {
+          return json(
+            {
+              error: 'Name a table with ?table=.',
+              hint: `The parameters this can set are: ${AUTOVACUUM_PARAMETERS.map((p) => p.name).join(', ')}.`,
+              parameters: AUTOVACUUM_PARAMETERS,
+            },
+            400,
+          )
+        }
+        try {
+          const current = await withDatabase((client) => readTableAutovacuum(client, table))
+          return json({ ok: true, parameters: AUTOVACUUM_PARAMETERS, current })
+        } catch (error) {
+          req.payload.logger.error({ msg: 'Reading autovacuum overrides failed', err: error, table })
+          return json(readable(error), error instanceof DatabaseToolsError ? 400 : 500)
+        }
+      },
+    },
+    {
+      path: `${base}/autovacuum`,
+      method: 'post',
+      handler: async (req) => {
+        if (!(await allowed(req))) return denied()
+        const data = await body(req)
+        const table = String(data.table ?? '').trim()
+        if (!table) return json({ error: 'Name the table to tune.' }, 400)
+
+        const mode = data.mode === 'reset' ? 'reset' : 'set'
+        const validated = validateSettings(data.settings)
+        if (!validated.ok) return json(validated, 400)
+        const settings = validated.settings
+        if (Object.keys(settings).length === 0) {
+          return json(
+            {
+              error: 'There is nothing to change: no autovacuum parameter was given a value.',
+              hint: `The parameters are: ${AUTOVACUUM_PARAMETERS.map((p) => p.name).join(', ')}.`,
+            },
+            400,
+          )
+        }
+
+        // The typed word is the table's own name: this is DDL, and it is aimed at one table.
+        if (String(data.confirmation ?? '').trim().toLowerCase() !== table.toLowerCase()) {
+          return json(
+            { error: `Type the table’s name (“${table}”) to change how it is vacuumed.` },
+            400,
+          )
+        }
+
+        try {
+          const result = await withDatabase((client) =>
+            applyAutovacuum(client, table, settings, { mode }),
+          )
+          req.payload.logger.info({
+            msg: `Autovacuum ${mode === 'set' ? 'overrides set' : 'overrides reset'} on ${result.table}`,
+            user: req.user?.email,
+            settings: describeSettings(settings),
+          })
+          await audit(
+            req,
+            `${mode === 'set' ? 'Set' : 'Reset'} autovacuum on ${result.table}: ${describeSettings(settings)}`,
+            [
+              { field: 'table', to: result.table },
+              { field: mode === 'set' ? 'settings' : 'reset', to: describeSettings(settings) },
+            ],
+          )
+          return json({
+            ok: true,
+            ...result,
+            unknown: validated.unknown,
+            hint:
+              mode === 'set'
+                ? 'The override takes effect immediately and needs no restart. RESET removes it.'
+                : 'The table follows the server-wide autovacuum settings again.',
+          })
+        } catch (error) {
+          req.payload.logger.error({ msg: 'Changing autovacuum overrides failed', err: error, table })
+          return json(readable(error), error instanceof DatabaseToolsError ? 400 : 500)
+        }
+      },
+    },
+  )
+
+  // The scheduled backup job writes to a directory on this process's disk; these two endpoints are
+  // how the page shows what is there. Listing reads the directory, and the download re-checks the
+  // name against it: a filename from a query string is one `../` away from `../../.env`, so the
+  // guard is the resolved path, not a string search.
+  endpoints.push(
+    {
+      path: `${base}/backups`,
+      method: 'get',
+      handler: async (req) => {
+        if (!(await allowed(req))) return denied()
+        try {
+          const settings = backupSettings()
+          const files = await listBackups(settings)
+          return json({
+            ok: true,
+            settings: {
+              dir: settings.dir,
+              keep: settings.keep,
+              format: settings.format,
+              ephemeralFilesystem: settings.ephemeralFilesystem,
+              note: settings.note,
+            },
+            files,
+            bytes: files.reduce((sum, file) => sum + file.bytes, 0),
+          })
+        } catch (error) {
+          req.payload.logger.error({ msg: 'Listing the backups failed', err: error })
+          return json(readable(error), 500)
+        }
+      },
+    },
+    {
+      path: `${base}/backups/file`,
+      method: 'get',
+      handler: async (req) => {
+        if (!(await allowed(req))) return denied()
+        const name = String(req.searchParams.get('name') ?? '')
+        const settings = backupSettings()
+        const target = safeBackupPath(settings, name)
+        if (!target) {
+          return json(
+            {
+              error: `“${name.slice(0, 60)}” is not a backup file in ${settings.dir}/.`,
+              hint: 'Only the .sql and .json dumps this plugin wrote can be downloaded, and only from inside the backup directory.',
+            },
+            400,
+          )
+        }
+        try {
+          const contents = await fs.readFile(target, 'utf8')
+          req.payload.logger.info({
+            msg: 'A stored backup was downloaded',
+            user: req.user?.email,
+            // The name, never the contents: a dump holds every row of the database.
+            file: name,
+            bytes: Buffer.byteLength(contents, 'utf8'),
+          })
+          return new Response(contents, {
+            status: 200,
+            headers: {
+              'Content-Type': name.endsWith('.json')
+                ? 'application/json'
+                : 'application/sql; charset=utf-8',
+              'Content-Disposition': `attachment; filename="${name}"`,
+              'Cache-Control': 'no-store',
+            },
+          })
+        } catch (error) {
+          req.payload.logger.error({ msg: 'Reading a stored backup failed', err: error, file: name })
+          return json(
+            {
+              error: `“${name}” could not be read.`,
+              hint: 'It may have been pruned by the retention rule since the list was read.',
+            },
+            404,
+          )
+        }
+      },
+    },
+  )
+
   // Read-only diagnostics. None of them takes a body, none of them changes anything, and each
   // degrades on its own: a server that does not offer pg_stat_statements answers with the reason
   // instead of an error, so a card can say something true either way.
@@ -877,6 +1069,98 @@ const neonEndpoints = (options: ResolvedDatabaseToolsOptions): Endpoint[] => {
           })
           await audit(req, `Created Neon backup branch ${branch.name}`, branch)
           return json({ ok: true, branch })
+        } catch (error) {
+          req.payload.logger.error({ msg: 'Neon branch creation failed', err: error })
+          return json(neonReadable(error), 502)
+        }
+      },
+    },
+    {
+      // A branch to *work against*, rather than a backup: a pull-request preview, or a copy of
+      // production to try a migration on. Creating one changes nothing that exists.
+      path: `${base}/neon/branch`,
+      method: 'post',
+      handler: async (req) => {
+        if (!(await allowed(req))) return denied()
+        if (!available()) return unavailable()
+
+        const data = await body(req)
+        const name = branchName(data.name)
+        if (!name) {
+          return json(
+            {
+              error: 'A branch needs a name.',
+              hint: 'Something you will recognise in the Neon console and in a pull request’s environment, e.g. pr-412-preview.',
+            },
+            400,
+          )
+        }
+
+        // A moment in the parent's history, or nothing (the parent's head). Anything else is a
+        // request Neon would refuse with a message about its own API, so it is checked here.
+        let initSource: string | undefined
+        if (data.initSource !== undefined && data.initSource !== null && data.initSource !== '') {
+          const parsed = new Date(String(data.initSource))
+          if (Number.isNaN(parsed.getTime())) {
+            return json(
+              { error: `“${String(data.initSource).slice(0, 40)}” is not a date and time.` },
+              400,
+            )
+          }
+          if (parsed.getTime() > Date.now()) {
+            return json({ error: 'A branch cannot start from a moment that has not happened yet.' }, 400)
+          }
+          initSource = parsed.toISOString()
+        }
+
+        const parentId = typeof data.parentId === 'string' && data.parentId.trim() ? data.parentId.trim() : undefined
+        const withEndpoint = data.withEndpoint === true
+        // The connection string is a credential: it is returned only when the request asks for it,
+        // and it is never logged and never written to the audit log either way.
+        const reveal = data.reveal === true
+
+        try {
+          const created = await client().createBranch({
+            name,
+            ...(parentId ? { parentId } : {}),
+            withEndpoint,
+            ...(initSource ? { initSource } : {}),
+          })
+
+          req.payload.logger.info({
+            msg: `Neon branch created: ${name}`,
+            user: req.user?.email,
+            branch: created.branch.id,
+            parent: created.branch.parentId,
+            endpoints: created.endpoints.map((endpoint) => endpoint.host),
+          })
+          await audit(
+            req,
+            `Created Neon branch ${created.branch.name} (${created.branch.id})` +
+              (created.branch.parentId ? ` from ${created.branch.parentId}` : '') +
+              (initSource ? ` at ${initSource}` : '') +
+              (withEndpoint ? ', with a read/write endpoint' : ''),
+            { branch: created.branch.id },
+          )
+
+          return json({
+            ok: true,
+            branch: created.branch,
+            endpoints: created.endpoints.map((endpoint) => ({
+              id: endpoint.id,
+              host: endpoint.host,
+              type: endpoint.type,
+            })),
+            operationId: created.operationId,
+            consoleUrl: neonConsoleUrl(neon.projectId),
+            ...(reveal && created.connectionUri ? { connectionUri: created.connectionUri } : {}),
+            // Said plainly either way, because a preview branch that is forgotten is a bill.
+            warning: reveal
+              ? 'The connection string is a credential: it belongs in the preview environment’s POSTGRES_URL, not in a comment or a commit. Delete the branch when the pull request is merged.'
+              : withEndpoint
+                ? 'An endpoint was created with this branch. Its connection string is in the Neon console — ask for it here with reveal: true if you need it in this response.'
+                : 'This branch has no endpoint, so nothing can connect to it yet. Create one in the Neon console, or ask for one when creating the branch.',
+          })
         } catch (error) {
           req.payload.logger.error({ msg: 'Neon branch creation failed', err: error })
           return json(neonReadable(error), 502)

@@ -429,15 +429,34 @@ describe('the Neon client', () => {
           },
         ],
       })
-    if (path === '/projects/proj-1/branches' && init?.method === 'POST')
+    if (path === '/projects/proj-1/branches' && init?.method === 'POST') {
+      const asked = init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : {}
+      const branch = (asked.branch ?? {}) as Record<string, unknown>
+      const withEndpoint = Array.isArray(asked.endpoints)
       return reply({
         branch: {
           id: 'br-new',
-          name: 'backup-now',
+          name: String(branch.name ?? 'backup-now'),
+          parent_id: branch.parent_id ? String(branch.parent_id) : undefined,
           current_state: 'init',
           created_at: '2026-10-22T00:00:00Z',
         },
+        operations: withEndpoint ? [{ id: 'op-1', action: 'create_branch' }] : [],
+        ...(withEndpoint
+          ? {
+              endpoints: [
+                {
+                  id: 'ep-new',
+                  host: 'ep-new-pooler.eu-central-1.aws.neon.tech',
+                  type: 'read_write',
+                },
+              ],
+              connection_uri:
+                'postgres://user:secret@ep-new-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require',
+            }
+          : {}),
       })
+    }
     if (path === '/projects/proj-1/branches/br-main/restore')
       return reply({
         branch: { id: 'br-main', name: 'main', default: true, current_state: 'ready' },
@@ -510,6 +529,82 @@ describe('the Neon client', () => {
     calls.length = 0
     await client.createBackupBranch({ name: 'backup-queryable', withEndpoint: true })
     expect(calls.at(-1)?.body).toMatchObject({ endpoints: [{ type: 'read_write' }] })
+  })
+
+  it('creates a branch to work against, and brings back its connection string', async () => {
+    const client = new NeonClient({
+      apiKey: 'key',
+      projectId: 'proj-1',
+      branchId: 'br-main',
+      fetch: fakeFetch,
+    })
+
+    calls.length = 0
+    const created = await client.createBranch({
+      name: 'pr-412-preview',
+      withEndpoint: true,
+      initSource: '2026-10-21T12:00:00.000Z',
+    })
+    expect(created.branch).toMatchObject({ id: 'br-new', name: 'pr-412-preview' })
+    expect(created.operationId).toBe('op-1')
+    // This response carries the string at the top level, which is where Neon puts it when it
+    // created an endpoint with the branch; the endpoint itself has none.
+    expect(created.endpoints).toEqual([
+      {
+        id: 'ep-new',
+        host: 'ep-new-pooler.eu-central-1.aws.neon.tech',
+        type: 'read_write',
+        connectionUri: null,
+      },
+    ])
+    expect(created.connectionUri).toBe(
+      'postgres://user:secret@ep-new-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require',
+    )
+
+    // The other shape Neon has used: the string on the endpoint, nothing at the top level.
+    const perEndpoint = new NeonClient({
+      apiKey: 'key',
+      projectId: 'proj-1',
+      branchId: 'br-main',
+      fetch: (async () =>
+        new Response(
+          JSON.stringify({
+            branch: { id: 'br-2', name: 'pr-1', current_state: 'init' },
+            endpoints: [
+              {
+                id: 'ep-2',
+                host: 'ep-2.aws.neon.tech',
+                type: 'read_write',
+                connection_uri: 'postgres://u:p@ep-2.aws.neon.tech/db',
+              },
+            ],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        )) as unknown as typeof fetch,
+    })
+    const other = await perEndpoint.createBranch({ name: 'pr-1', withEndpoint: true })
+    expect(other.connectionUri).toBe('postgres://u:p@ep-2.aws.neon.tech/db')
+    expect(other.endpoints[0]?.connectionUri).toBe('postgres://u:p@ep-2.aws.neon.tech/db')
+
+    const call = calls.at(-1)
+    expect(call?.path).toBe('/projects/proj-1/branches')
+    expect(call?.body).toEqual({
+      branch: {
+        name: 'pr-412-preview',
+        parent_id: 'br-main',
+        init_source: '2026-10-21T12:00:00.000Z',
+      },
+      endpoints: [{ type: 'read_write' }],
+    })
+
+    // Without an endpoint there is nothing to connect with, and no string to leak.
+    calls.length = 0
+    const bare = await client.createBranch({ name: 'try-a-migration', parentId: 'br-backup' })
+    expect(bare.endpoints).toEqual([])
+    expect(bare.connectionUri).toBeNull()
+    expect(calls.at(-1)?.body).toEqual({
+      branch: { name: 'try-a-migration', parent_id: 'br-backup' },
+    })
   })
 
   it('restores a branch to a timestamp, keeping the current state under a name', async () => {

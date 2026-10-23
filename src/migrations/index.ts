@@ -13,6 +13,7 @@ import * as migration_20261022_140000_database_tools_capability from './20261022
 import * as migration_20261022_160000_database_upkeep_job from './20261022_160000_database_upkeep_job';
 import * as migration_20261023_022612_schema_snapshot from './20261023_022612_schema_snapshot';
 import * as migration_20261023_023618_admin_changes from './20261023_023618_admin_changes';
+import * as migration_20261023_050000_database_backup_job from './20261023_050000_database_backup_job';
 
 export const migrations = [
   {
@@ -89,5 +90,10 @@ export const migrations = [
     up: migration_20261023_023618_admin_changes.up,
     down: migration_20261023_023618_admin_changes.down,
     name: '20261023_023618_admin_changes'
+  },
+  {
+    up: migration_20261023_050000_database_backup_job.up,
+    down: migration_20261023_050000_database_backup_job.down,
+    name: '20261023_050000_database_backup_job'
   },
 ];

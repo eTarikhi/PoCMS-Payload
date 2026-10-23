@@ -71,6 +71,8 @@ describe('databaseTools plugin', () => {
   })
 
   it('registers its own endpoints after the app’s, under the API path', async () => {
+    // `/database/autovacuum` is listed twice on purpose: Payload routes one endpoint per method, so
+    // the read and the DDL write are two registrations of the same path.
     expect(paths(await plugin())).toEqual([
       '/ping',
       '/database/backup',
@@ -86,11 +88,16 @@ describe('databaseTools plugin', () => {
       '/database/seed',
       '/database/diff',
       '/database/seed/apply',
+      '/database/autovacuum',
+      '/database/autovacuum',
+      '/database/backups',
+      '/database/backups/file',
       '/database/settings',
       '/database/bloat',
       '/database/statements',
       '/database/drift',
       '/database/neon/backup',
+      '/database/neon/branch',
       '/database/neon/restore',
       '/database/neon/delete',
     ])
@@ -110,6 +117,10 @@ describe('databaseTools plugin', () => {
       '/database/seed',
       '/database/diff',
       '/database/seed/apply',
+      '/database/autovacuum',
+      '/database/autovacuum',
+      '/database/backups',
+      '/database/backups/file',
       '/database/settings',
       '/database/bloat',
       '/database/statements',

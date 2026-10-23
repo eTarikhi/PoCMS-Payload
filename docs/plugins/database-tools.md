@@ -49,6 +49,8 @@ export default buildConfig({
 | `GET /api/database/migration` and `…/seed` | On, `snapshots: false` removes both | `server/schemaMigration.ts`, `server/seedSnapshot.ts` |
 | `POST /api/database/diff` | On, `snapshots: false` removes it | `server/diff.ts` |
 | `POST /api/database/seed/apply` | On, `snapshots: false` or `snapshots.apply: false` removes it | `server/seedSnapshot.ts` |
+| `GET`/`POST /api/database/autovacuum` | On | `server/autovacuum.ts` |
+| `GET /api/database/backups` and `…/backups/file` | On | `server/backups.ts` |
 | `GET /api/database/settings` | On | `server/settings.ts` |
 | `GET /api/database/bloat` | On | `server/bloat.ts` |
 | `GET /api/database/statements` | On; answers with the reason when the server lacks the extension | `server/statements.ts` |
@@ -164,6 +166,11 @@ All of them are mounted under `routes.api` + `apiBasePath` and gated by `access`
 | `GET /api/database/statements` | `?limit=` (≤ 100, default 15) | `{ ok, statements }`: `pg_stat_statements` ranked three ways — total time, mean time, calls — with rows, cache-hit ratio and the role, plus the extension's state and when counting started. When the extension is absent, or present but not in `shared_preload_libraries`, `available` is `false` and `hint` says which of those it is and who can change it. Query text arrives normalised by Postgres (literals are already `$1`) and is truncated to one line. Read-only. |
 | `GET /api/database/drift` | — | `{ ok, clean, drift: [{ kind, table, object? }], pending: […], counts, unreadable }`. `kind` is `undeclared-table`/`-column`/`-index`/`-type` for what the database has and no migration declares, `missing-table`/`-column` for the reverse. `501` when no migration source could be read. Read-only. |
 | `POST /api/database/neon/backup` | `{ name?, withEndpoint? }` | `{ ok, branch }` — a branch pinned to now. `501` without a key, `502` on a Neon error. |
+| `POST /api/database/neon/branch` | `{ name, parentId?, withEndpoint?, initSource?, reveal? }` | `{ ok, branch, endpoints, operationId, consoleUrl, warning }` — a branch to *work against*: a pull-request preview, or a copy of production to try a migration on. `initSource` branches from a moment in the parent's history rather than its head. The connection string is a credential, so it is included only when `reveal: true`, and is never logged or audited either way. `400` for a missing name or an unparsable/future date, `501` without a key, `502` on a Neon error. |
+| `GET /api/database/autovacuum` | `?table=` | `{ ok, parameters, current }` — the allow-listed parameters with their bounds and descriptions, and the table's own overrides with the triggers they produce. |
+| `POST /api/database/autovacuum` | `{ table, settings, confirmation: <table name>, mode?: 'reset' }` | `{ ok, table, statements, reloptions, autovacuum, vacuumTrigger, analyzeTrigger, unknown, hint }` — `ALTER TABLE … SET (autovacuum_*)` or `RESET (…)`. Names come from an allow-list, values are parsed and re-rendered (the string that arrived never reaches the statement), the table is resolved through the catalog first, and the result is read back from `pg_class.reloptions`. `400` for an unnamed table, an empty change set, a bad value, or a confirmation that is not the table's name. |
+| `GET /api/database/backups` | — | `{ ok, settings, files, bytes }` — what the `database-backup` job has written: names, sizes, timestamps, and whether this process's filesystem will outlive the request. |
+| `GET /api/database/backups/file` | `?name=` | The dump as a download (`Content-Disposition`, `no-store`). `400` for a name that is not one of these dumps or that resolves outside the backup directory, `404` for one that has been pruned since the list was read. |
 | `POST /api/database/neon/restore` | `{ timestamp (ISO 8601), confirmation: 'restore', preserveUnderName? }` | `{ ok, branch, restoredTo }`; the current state is kept as `preserveUnderName` when given. |
 | `POST /api/database/neon/delete` | `{ branchId, confirmation: branchId }` | `{ ok, deleted }`. The default and protected branches are refused. |
 
@@ -397,6 +404,61 @@ Three read-only cards answer the questions the rest of the page cannot:
 All three fetch on the client, each with the moment it was read beside it: they are snapshots of a
 moment, not part of the page's identity, and a number that says when it was read is a number you can
 trust.
+
+### Scheduled backups
+
+The `database-backup` job (`src/jobs/tasks/databaseBackup.ts`) writes the same dump the Backup card
+produces on demand, nightly, through the jobs queue — so every attempt is a document in `job-runs`
+with a summary and a log, and "did the backup run last night?" has an answer. It is configured by
+three environment variables: `BACKUP_DIR` (default `.backups/`, git-ignored), `BACKUP_KEEP` (default
+7) and `BACKUP_FORMAT` (`sql`, which restores through the Restore card or `pnpm db:restore`, or
+`json`, which the schema comparison reads).
+
+Retention is `prunePlan`, a pure function over the file list: it keeps the newest `KEEP` by the stamp
+in the filename, and anything that is not a number — including `NaN`, where `slice(0, NaN)` is empty
+and `slice(NaN)` is the whole list — falls back to keeping one rather than deleting everything. Only
+names that plan returns are unlinked, only inside the backup directory, and only files matching the
+two extensions this plugin writes.
+
+The card lists what is on disk with a download link. It cannot delete anything: retention is the
+job's decision, and a second, less logged way to lose a backup would be worse than no button.
+
+What it cannot do is outlive a serverless filesystem. On Vercel the directory is scratch space, so
+the run detects that (`isServerless`, from the database host) and says so in its own summary, naming
+what to use instead: a Neon backup branch, which is point-in-time restorable and has a button on the
+same page.
+
+### A branch to work against
+
+`POST /api/database/neon/branch` is the backup-branch call with a different intent, and intent
+changes two things. An endpoint is wanted by default, because the point is to connect to it — so the
+response can carry a connection string, which is a credential: it is returned only when the request
+says `reveal: true`, it is shown once in the admin, and it is never written to the log or the audit
+record (both carry the branch id, the parent and the endpoint host). `initSource` is the other half:
+branching from a moment in the parent's history rather than its head, which is what "reproduce
+yesterday's production data on my pull request" means.
+
+Creating a branch changes nothing that exists. Deleting it is the existing `neon/delete` endpoint,
+and the card says so, because a preview branch nobody deletes is a bill.
+
+### Per-table autovacuum overrides
+
+Autovacuum's server-wide trigger (`threshold + scale_factor × rows`, 50 and 0.2 by default) is wrong
+in opposite directions for two kinds of table: a hot one (a queue, a counter) wants a smaller factor
+so it is vacuumed sooner, and an append-only one (an audit log) is never vacuumed by a
+delete-driven trigger at all and needs the insert-driven pair. Changing the server setting for one
+table's sake is not an option on a managed database, so this writes `ALTER TABLE … SET (autovacuum_*)`
+— per-table, immediate, no restart, and visible in `pg_class.reloptions`, which is where the bloat
+card reads it back.
+
+It is the only DDL here, so it is built to be boring: parameter names come from an allow-list
+(`AUTOVACUUM_PARAMETERS`, with Postgres' own bounds), values are parsed and re-rendered from the
+parsed number or boolean so the string that arrived never reaches the statement, the table is
+resolved through the catalog before it is quoted, the request must type the table's name, the result
+is read back from the catalog rather than echoed, and the change is written to the audit log. A name
+outside the allow-list is reported in `unknown` rather than set; a bad value for a known name is a
+`400`. `RESET` is offered beside `SET`, because an override somebody forgets is a table that behaves
+unlike every other table for no reason anyone can remember.
 
 ## Audit
 

@@ -3,6 +3,7 @@
 import {
   CheckIcon,
   DatabaseBackupIcon,
+  GitBranchIcon,
   LoaderCircleIcon,
   PlayIcon,
   RotateCcwIcon,
@@ -931,6 +932,341 @@ export function DiffPanel() {
 }
 
 /** Create a Neon branch pinned to now: the cheap, provider-level backup. */
+type NeonBranchRow = { id: string; name: string; default: boolean; parentId: string | null }
+
+/**
+ * A branch to work against: a preview database for a pull request, or a copy of production to try a
+ * migration on.
+ *
+ * The difference from the backup form above is intent, and intent changes two things. An endpoint is
+ * wanted by default, because the point is to connect to it — and a connection string is a
+ * credential, so it is only asked for when the box below is ticked, is shown once, and is never
+ * written to the log or the audit trail. `initSource` is the other half: branching from a moment in
+ * the parent's history rather than its head, which is what "reproduce yesterday's production data on
+ * my pull request" means.
+ */
+export function NeonBranchForm({
+  branches,
+  defaultName,
+}: {
+  branches: NeonBranchRow[]
+  defaultName: string
+}) {
+  const router = useRouter()
+  const apiBase = useApiBase()
+  const [name, setName] = React.useState(defaultName)
+  const [parentId, setParentId] = React.useState('')
+  const [withEndpoint, setWithEndpoint] = React.useState(true)
+  const [reveal, setReveal] = React.useState(false)
+  const [initSource, setInitSource] = React.useState('')
+  const [busy, setBusy] = React.useState(false)
+  const [reply, setReply] = React.useState<Reply | null>(null)
+
+  const created = reply?.ok ? reply : null
+
+  return (
+    <div className="acn:flex acn:flex-col acn:gap-2">
+      <div className="acn:flex acn:flex-col acn:gap-2 acn:sm:flex-row">
+        <Input
+          aria-label="Branch name"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="pr-412-preview"
+        />
+        <select
+          aria-label="Parent branch"
+          className="acn:rounded-md acn:border acn:border-input acn:bg-transparent acn:px-2.5 acn:py-1.5 acn:text-sm"
+          value={parentId}
+          onChange={(event) => setParentId(event.target.value)}
+        >
+          <option value="">From the branch this app uses</option>
+          {branches.map((branch) => (
+            <option key={branch.id} value={branch.id}>
+              {branch.name}
+              {branch.default ? ' (default)' : ''}
+            </option>
+          ))}
+        </select>
+        <Button
+          size="sm"
+          disabled={busy || name.trim().length === 0}
+          onClick={async () => {
+            setBusy(true)
+            setReply(null)
+            const result = await post(`${apiBase}/neon/branch`, {
+              name,
+              withEndpoint,
+              reveal,
+              ...(parentId ? { parentId } : {}),
+              ...(initSource ? { initSource } : {}),
+            })
+            setReply(result)
+            if (result.ok) router.refresh()
+            setBusy(false)
+          }}
+        >
+          {busy ? (
+            <LoaderCircleIcon aria-hidden className="acn:motion-safe:animate-spin" />
+          ) : (
+            <GitBranchIcon aria-hidden />
+          )}
+          {busy ? 'Creating…' : 'Create branch'}
+        </Button>
+      </div>
+
+      <label className="acn:flex acn:items-center acn:gap-2 acn:text-xs acn:text-muted-foreground">
+        <input
+          type="checkbox"
+          checked={withEndpoint}
+          onChange={(event) => setWithEndpoint(event.target.checked)}
+          className="acn:size-3.5 acn:accent-primary"
+        />
+        Create a compute endpoint too, so something can connect to it (costs compute while it runs)
+      </label>
+      <label className="acn:flex acn:items-center acn:gap-2 acn:text-xs acn:text-muted-foreground">
+        <input
+          type="checkbox"
+          checked={reveal}
+          onChange={(event) => setReveal(event.target.checked)}
+          className="acn:size-3.5 acn:accent-primary"
+        />
+        Show the connection string in the response — it is a credential, and it is not logged
+      </label>
+
+      <label className="acn:flex acn:flex-col acn:gap-1 acn:text-xs acn:text-muted-foreground">
+        <span>Branch from a moment in the parent’s history (optional)</span>
+        <input
+          type="datetime-local"
+          className="acn:rounded-md acn:border acn:border-input acn:bg-transparent acn:px-2.5 acn:py-1.5 acn:text-sm"
+          value={initSource}
+          onChange={(event) => setInitSource(event.target.value)}
+        />
+      </label>
+
+      <Outcome reply={reply} />
+
+      {created ? (
+        <div className="acn:rounded-lg acn:bg-muted acn:p-3 acn:text-xs">
+          <p className="acn:m-0 acn:font-medium">
+            {String(created.branch ? (created.branch as { name: string }).name : name)} ·{' '}
+            <span className="acn:font-mono">
+              {created.branch ? (created.branch as { id: string }).id : ''}
+            </span>
+          </p>
+          {Array.isArray(created.endpoints) && created.endpoints.length > 0 ? (
+            <p className="acn:m-0 acn:mt-1 acn:font-mono acn:text-muted-foreground">
+              {(created.endpoints as { host: string }[]).map((endpoint) => endpoint.host).join(', ')}
+            </p>
+          ) : null}
+          {typeof created.connectionUri === 'string' ? (
+            <div className="acn:mt-2">
+              <p className="acn:m-0 acn:font-medium acn:text-foreground">Connection string</p>
+              <code className="acn:mt-1 acn:block acn:rounded-md acn:border acn:border-border acn:bg-background acn:p-2 acn:font-mono acn:text-xs acn:break-all">
+                {created.connectionUri}
+              </code>
+              <p className="acn:m-0 acn:mt-1 acn:text-muted-foreground">
+                Put it in the preview environment’s <code className="acn:font-mono">POSTGRES_URL</code>.
+                It is shown once, is not in the log or the audit trail, and the branch should be
+                deleted when the pull request is merged.
+              </p>
+            </div>
+          ) : null}
+          {typeof created.warning === 'string' ? (
+            <p className="acn:m-0 acn:mt-2 acn:text-muted-foreground">{created.warning}</p>
+          ) : null}
+          {typeof created.consoleUrl === 'string' && created.consoleUrl ? (
+            <a
+              className="acn:mt-1 acn:inline-block acn:text-primary acn:hover:underline"
+              href={created.consoleUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open this project in the Neon console
+            </a>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+type AutovacuumParameter = {
+  name: string
+  kind: 'boolean' | 'integer' | 'real'
+  min?: number
+  max?: number
+  description: string
+  serverDefault?: string
+}
+
+/**
+ * Per-table autovacuum overrides.
+ *
+ * The server-wide trigger (`threshold + scale_factor × rows`, 50 and 0.2 by default) is wrong in
+ * opposite directions for two kinds of table: a hot one wants a smaller factor so it is vacuumed
+ * sooner, and an append-only one is never vacuumed by a delete-driven trigger at all. Neither is a
+ * reason to change the server for everybody, and on a managed database that is not an option anyway.
+ *
+ * The form only offers the allow-listed parameters, shows each one's server default and current
+ * override, and asks for the table's name before sending — this is DDL. An empty field means "no
+ * override", so saving sends only the fields that have a value, and *Reset* removes the ones that
+ * are set. What comes back is read from the catalog afterwards, not assumed from the request.
+ */
+export function AutovacuumForm({
+  table,
+  current,
+  onSaved,
+}: {
+  table: string
+  current: Record<string, string>
+  onSaved?: () => void
+}) {
+  const apiBase = useApiBase()
+  const [parameters, setParameters] = React.useState<AutovacuumParameter[]>([])
+  const [values, setValues] = React.useState<Record<string, string>>(current)
+  const [confirmation, setConfirmation] = React.useState('')
+  const [busy, setBusy] = React.useState(false)
+  const [reply, setReply] = React.useState<Reply | null>(null)
+
+  React.useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      const result = await get(`${apiBase}/autovacuum?table=${encodeURIComponent(table)}`)
+      if (cancelled) return
+      if (result.ok && Array.isArray(result.parameters)) {
+        setParameters(result.parameters as AutovacuumParameter[])
+      }
+      const live = result.ok && result.current ? (result.current as { autovacuum: Record<string, string> }) : null
+      if (live) setValues(live.autovacuum)
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [apiBase, table])
+
+  const filled = Object.fromEntries(
+    Object.entries(values).filter(([, value]) => String(value ?? '').trim() !== ''),
+  )
+  const changed =
+    Object.keys(filled).some((name) => String(filled[name]) !== String(current[name] ?? '')) ||
+    Object.keys(current).some((name) => !(name in filled))
+  const ready = confirmation.trim().toLowerCase() === table.toLowerCase()
+
+  const send = async (mode: 'set' | 'reset') => {
+    setBusy(true)
+    setReply(null)
+    const settings =
+      mode === 'set'
+        ? filled
+        : Object.fromEntries(Object.keys(current).map((name) => [name, '1']))
+    const result = await post(`${apiBase}/autovacuum`, { table, settings, mode, confirmation })
+    setReply(result)
+    if (result.ok) {
+      setConfirmation('')
+      const live = result as { autovacuum?: Record<string, string> }
+      if (live.autovacuum) setValues(live.autovacuum)
+      onSaved?.()
+    }
+    setBusy(false)
+  }
+
+  return (
+    <div className="acn:flex acn:flex-col acn:gap-3">
+      {parameters.length === 0 ? (
+        <p className="acn:m-0 acn:text-xs acn:text-muted-foreground">Reading the parameters…</p>
+      ) : (
+        <dl className="acn:m-0 acn:grid acn:gap-2 acn:sm:grid-cols-2">
+          {parameters.map((parameter) => (
+            <div
+              key={parameter.name}
+              className="acn:flex acn:flex-col acn:gap-1 acn:rounded-lg acn:border acn:border-border acn:p-2.5"
+            >
+              <dt className="acn:font-mono acn:text-xs acn:font-medium">{parameter.name}</dt>
+              <dd className="acn:m-0">
+                {parameter.kind === 'boolean' ? (
+                  <select
+                    aria-label={parameter.name}
+                    className="acn:w-full acn:rounded-md acn:border acn:border-input acn:bg-transparent acn:px-2 acn:py-1 acn:text-xs"
+                    value={values[parameter.name] ?? ''}
+                    onChange={(event) =>
+                      setValues((previous) => ({ ...previous, [parameter.name]: event.target.value }))
+                    }
+                  >
+                    <option value="">server default{parameter.serverDefault ? ` (${parameter.serverDefault})` : ''}</option>
+                    <option value="true">true</option>
+                    <option value="false">false</option>
+                  </select>
+                ) : (
+                  <input
+                    aria-label={parameter.name}
+                    className="acn:w-full acn:rounded-md acn:border acn:border-input acn:bg-transparent acn:px-2 acn:py-1 acn:font-mono acn:text-xs"
+                    placeholder={parameter.serverDefault ? `default ${parameter.serverDefault}` : ''}
+                    value={values[parameter.name] ?? ''}
+                    onChange={(event) =>
+                      setValues((previous) => ({ ...previous, [parameter.name]: event.target.value }))
+                    }
+                  />
+                )}
+                <span className="acn:mt-1 acn:block acn:text-xs acn:text-muted-foreground">
+                  {parameter.description}
+                  {parameter.min !== undefined || parameter.max !== undefined
+                    ? ` (${parameter.min ?? '−∞'}…${parameter.max ?? '∞'})`
+                    : ''}
+                </span>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+
+      <div className="acn:flex acn:flex-col acn:gap-2 acn:sm:flex-row acn:sm:items-end">
+        <label className="acn:flex acn:flex-1 acn:flex-col acn:gap-1 acn:text-xs">
+          <span className="acn:font-medium">
+            Type <code className="acn:font-mono">{table}</code> to confirm
+          </span>
+          <Input
+            value={confirmation}
+            onChange={(event) => setConfirmation(event.target.value)}
+            placeholder={table}
+            autoComplete="off"
+            spellCheck={false}
+          />
+        </label>
+        <div className="acn:flex acn:gap-2">
+          <Button size="sm" disabled={busy || !ready || !changed} onClick={() => void send('set')}>
+            {busy ? <LoaderCircleIcon aria-hidden className="acn:motion-safe:animate-spin" /> : <WrenchIcon aria-hidden />}
+            Save overrides
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={busy || !ready || Object.keys(current).length === 0}
+            onClick={() => void send('reset')}
+          >
+            <RotateCcwIcon aria-hidden />
+            Reset
+          </Button>
+        </div>
+      </div>
+
+      <Outcome reply={reply} />
+      {reply?.ok && typeof reply.vacuumTrigger === 'number' ? (
+        <p className="acn:m-0 acn:text-xs acn:text-muted-foreground">
+          Autovacuum now fires for this table at{' '}
+          {Number(reply.vacuumTrigger).toLocaleString('en')} dead tuple(s), and an analyze at{' '}
+          {Number(reply.analyzeTrigger).toLocaleString('en')} modified row(s).
+        </p>
+      ) : null}
+      {reply?.ok && Array.isArray(reply.unknown) && (reply.unknown as string[]).length > 0 ? (
+        <p className="acn:m-0 acn:text-xs acn:text-muted-foreground">
+          Not set, because this tool does not know them: {(reply.unknown as string[]).join(', ')}.
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
 export function NeonBackupForm({ defaultName }: { defaultName: string }) {
   const router = useRouter()
   const apiBase = useApiBase()

@@ -7,6 +7,7 @@ import {
   DatabaseIcon,
   FileCode2Icon,
   FileDiffIcon,
+  DatabaseBackupIcon,
   GitBranchIcon,
   GitCompareArrowsIcon,
   HardDriveIcon,
@@ -84,12 +85,13 @@ import {
 } from '@/plugins/databaseTools/options'
 import { formatBytes } from '@/system/status'
 
-import { BloatCard, ServerSettingsCard, StatementsCard } from './Diagnostics'
+import { BackupsCard, BloatCard, ServerSettingsCard, StatementsCard } from './Diagnostics'
 import {
   DatabaseToolsApi,
   DiffPanel,
   MaintenanceButtons,
   NeonBackupForm,
+  NeonBranchForm,
   NeonDeleteBranch,
   NeonRestoreForm,
   RepairAllButton,
@@ -930,6 +932,30 @@ export async function DatabaseView({
                   <CardHeader>
                     <CardTitle>
                       <h2 className="acn:m-0 acn:flex acn:items-center acn:gap-2 acn:text-base">
+                        <DatabaseBackupIcon
+                          aria-hidden
+                          className="acn:size-4 acn:text-muted-foreground"
+                        />
+                        Scheduled backups
+                      </h2>
+                    </CardTitle>
+                    <CardDescription>
+                      What the nightly <Code>database-backup</Code> job has written, and where. It is
+                      the same dump the Backup card produces on demand, so it restores the same way —
+                      through the Restore card, which inspects the file and asks for the word, or with{' '}
+                      <Code>pnpm db:restore</Code>. Retention keeps the newest few; the job decides,
+                      not a button here.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <BackupsCard />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>
+                      <h2 className="acn:m-0 acn:flex acn:items-center acn:gap-2 acn:text-base">
                         <ListOrderedIcon
                           aria-hidden
                           className="acn:size-4 acn:text-muted-foreground"
@@ -1170,6 +1196,28 @@ export async function DatabaseView({
                               </p>
                               <NeonBackupForm
                                 defaultName={`backup-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}`}
+                              />
+                            </div>
+
+                            <div className="acn:border-t acn:border-border acn:pt-3">
+                              <h3 className="acn:m-0 acn:text-sm acn:font-medium">
+                                A branch to work against
+                              </h3>
+                              <p className="acn:m-0 acn:mb-2 acn:text-xs acn:text-muted-foreground">
+                                A preview database for a pull request, or a copy of production to try
+                                a migration on. Nothing that exists is changed by creating one. With
+                                an endpoint it can be connected to; its connection string is a
+                                credential and is only shown when the box asks for it. Delete the
+                                branch when the work is merged.
+                              </p>
+                              <NeonBranchForm
+                                branches={neon.branches.map((branch) => ({
+                                  id: branch.id,
+                                  name: branch.name,
+                                  default: branch.default,
+                                  parentId: branch.parentId,
+                                }))}
+                                defaultName={`pr-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}`}
                               />
                             </div>
 

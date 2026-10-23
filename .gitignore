@@ -69,3 +69,6 @@ src/styles/admin/nav-icons.css
 # by this checkout (production, CI, a teammate). Never ignore src/migrations: an index.ts that
 # imports a migration the repository does not contain does not compile.
 .env_
+
+# Nightly database dumps written by the database-backup job (BACKUP_DIR).
+.backups/
