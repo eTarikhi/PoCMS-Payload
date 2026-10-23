@@ -86,6 +86,7 @@ describe('databaseTools plugin', () => {
       '/database/seed',
       '/database/diff',
       '/database/seed/apply',
+      '/database/drift',
       '/database/neon/backup',
       '/database/neon/restore',
       '/database/neon/delete',
@@ -106,7 +107,12 @@ describe('databaseTools plugin', () => {
       '/database/seed',
       '/database/diff',
       '/database/seed/apply',
+      '/database/drift',
     ])
+
+    // The drift guard compares the catalogs with src/migrations, which only exists in a checkout:
+    // a host that has no sources to read turns it off and the endpoint goes with it.
+    expect(paths(await plugin({ drift: false }))).not.toContain('/database/drift')
 
     // The generated files and the comparison are read-only apart from the apply; turning the family
     // off removes all four endpoints.

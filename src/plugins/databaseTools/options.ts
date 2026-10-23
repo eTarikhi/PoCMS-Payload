@@ -1,5 +1,7 @@
 import type { PayloadComponent, PayloadRequest, ServerProps } from 'payload'
 
+import { readMigrationSources, type MigrationSourcesResult } from './server/migrationSources'
+
 /**
  * The capability this plugin's screens and endpoints need, in the shape the Roles collection
  * stores capabilities (a checkbox per entry of `CAPABILITIES` in `src/access/permissions.ts`).
@@ -139,6 +141,14 @@ export type DatabaseToolsOptions = {
    */
   snapshots?: false | { maxRowsPerTable?: number; apply?: boolean }
   /**
+   * The migration drift guard: does every table, column, index and enum type in the database come
+   * from a migration? `false` removes the card and the endpoint. `readSources` supplies the
+   * migration *text* (the default reads `src/migrations/<name>.ts` for every name in `migrations`);
+   * a packaged plugin whose migrations are compiled into a bundle passes its own reader, or turns
+   * the guard off. @default { readSources: read src/migrations }
+   */
+  drift?: false | { readSources?: () => MigrationSourcesResult | Promise<MigrationSourcesResult> }
+  /**
    * Where the admin components live. Override these when the plugin is packaged and its components
    * are imported from a package specifier rather than this app's `/components` alias.
    */
@@ -165,6 +175,7 @@ export type ResolvedDatabaseToolsOptions = {
   export: false | { maxRows: number }
   restore: false | { maxBytes: number }
   snapshots: false | { maxRowsPerTable: number; apply: boolean }
+  drift: false | { readSources: () => MigrationSourcesResult | Promise<MigrationSourcesResult> }
   components: { view: DatabaseToolsComponent; navigation: DatabaseToolsComponent }
 }
 
@@ -239,6 +250,18 @@ export const resolveOptions = (
     options.restore === false
       ? false
       : { maxBytes: options.restore?.maxBytes ?? MAX_RESTORE_BYTES },
+  drift:
+    options.drift === false
+      ? false
+      : {
+          readSources:
+            options.drift?.readSources ??
+            (() =>
+              readMigrationSources({
+                names: options.migrations ?? [],
+                dir: undefined,
+              })),
+        },
   components: {
     view: options.components?.view ?? DEFAULTS.viewComponent,
     navigation: options.components?.navigation ?? DEFAULTS.navComponent,

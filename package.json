@@ -22,6 +22,7 @@
     "db:schema-from:neon": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/db.ts schema-from --from neon",
     "db:seed-from:neon": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/db.ts seed-from --from neon",
     "db:seed-load": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/db.ts seed-apply src/seed/snapshot.json --yes",
+    "db:drift": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/db.ts drift",
     "devsafe": "rm -rf .next && cross-env NODE_OPTIONS=--no-deprecation next dev",
     "generate:graphQLSchema": "node scripts/generate.mjs graphql",
     "generate:importmap": "node scripts/generate.mjs importmap",

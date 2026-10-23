@@ -49,6 +49,14 @@ import {
   type CoreTable,
   type SchemaFacts,
 } from '../src/lib/database-readiness'
+import {
+  declaredSchema,
+  describeFinding,
+  findDrift,
+  liveSchema,
+  summarise,
+} from '../src/plugins/databaseTools/server/drift'
+import { readMigrationSources } from '../src/plugins/databaseTools/server/migrationSources'
 import { inspectRestore, restoreSql } from '../src/plugins/databaseTools/server/restore'
 import { buildSchemaMigration } from '../src/plugins/databaseTools/server/schemaMigration'
 import {
@@ -56,6 +64,7 @@ import {
   buildSeedSnapshot,
   clampSeedRows,
   parseSeedSnapshot,
+  planSeedApply,
   seedableCollections,
   type SeedCollection,
   type SeedSnapshot,
@@ -83,8 +92,12 @@ const USAGE = `Usage:
   pnpm db:seed-from   [--from neon|local|<url>] [--out <file.json>] [--collections a,b]
                       [--max-rows 5000] [--apply --yes]
                               write a content seed from a database; --apply loads it into this one
-  pnpm db:seed-apply <file.json> [--yes]
-                              replace the rows of the tables the file names with the file's rows
+  pnpm db:seed-apply <file.json> [--dry-run] [--yes]
+                              replace the rows of the tables the file names with the file's rows;
+                              --dry-run prints what that would delete and insert, and writes nothing
+  pnpm db:drift [--from neon|local|<url>] [--json]
+                              fail when the database has a table, column, index or enum type that
+                              no migration in src/migrations declares (exit code 1)
 
   Argument-free shortcuts (what the admin Terminal and CI run):
     pnpm db:schema-from:neon   = db:schema-from --from neon
@@ -583,16 +596,38 @@ const seedApply = async () => {
     fail(error instanceof Error ? error.message : String(error))
   }
 
-  if (!args.includes('--yes')) {
-    console.log(
-      `\nThis replaces the rows of ${snapshot.tables.length} table(s) in ${target} ` +
-        `with ${snapshot.counts.rows} row(s) from ${snapshot.source.database || 'the file'}.`,
-    )
-    fail('Nothing was written. Run `pnpm db:seed-apply <file> --yes` to do it.')
-  }
+  const dryRun = args.includes('--dry-run') || args.includes('--plan')
 
   const client = await connect()
   try {
+    // The plan is what the confirmation is for: it names every table, what it holds now and what
+    // the file would put there, and it refuses a seed this database cannot load — before anything
+    // is written.
+    const plan = await planSeedApply(client, snapshot)
+    if (dryRun) {
+      console.log(`\nWhat \`pnpm db:seed-apply ${shown(file)} --yes\` would do in ${target}:\n`)
+      for (const table of plan.tables) {
+        console.log(
+          `  ${table.name.padEnd(34)} delete ${String(table.willDelete).padStart(7)} → insert ${String(table.willInsert).padStart(7)}${table.estimated ? '  (estimated)' : ''}`,
+        )
+      }
+      console.log(
+        `\n  ${plan.tables.length} table(s), ${plan.rows} row(s) in, ${plan.sequences} sequence(s) reset, one transaction.`,
+      )
+      for (const warning of plan.warnings) console.log(`  ⚠ ${warning}`)
+      console.log('\nNothing was written.\n')
+      return
+    }
+
+    if (!args.includes('--yes')) {
+      console.log(
+        `\nThis replaces the rows of ${plan.tables.length} table(s) in ${target} ` +
+          `with ${plan.rows} row(s) from ${snapshot.source.database || 'the file'}.`,
+      )
+      console.log('  See the whole plan with: pnpm db:seed-apply <file> --dry-run')
+      fail('Nothing was written. Run `pnpm db:seed-apply <file> --yes` to do it.')
+    }
+
     const result = await applySeedSnapshot(client, snapshot)
     console.log(
       `\n✔ ${result.tables.length} table(s), ${result.rows} row(s), ${result.sequences} sequence(s) set in ${target}`,
@@ -601,6 +636,68 @@ const seedApply = async () => {
   } finally {
     await client.end()
   }
+}
+
+/**
+ * Does every object in the database come from a migration?
+ *
+ * `push: false` makes `src/migrations` the only writer, so a column that exists here and in no
+ * migration file was added by hand — and the next database built from the migrations will not have
+ * it. This is the check that catches that before it reaches a colleague or a fresh branch: it reads
+ * the `up()` of every registered migration, compares the objects they declare with the catalogs, and
+ * exits non-zero on drift so CI can fail on it.
+ */
+const drift = async () => {
+  const asJson = args.includes('--json')
+  const source = sourceOf()
+  const { sources, unreadable } = readMigrationSources({
+    names: available,
+    dir: path.join(repo, 'src/migrations'),
+  })
+
+  if (sources.length === 0) {
+    fail('No migration sources could be read from src/migrations, so there is nothing to compare.')
+  }
+
+  const client = await connectTo(source.url)
+  let report
+  try {
+    if (!asJson) console.log(`\nComparing ${source.label} with ${sources.length} migration(s) …`)
+    report = findDrift(await liveSchema(client), declaredSchema(sources), sources)
+  } finally {
+    await client.end()
+  }
+
+  if (asJson) {
+    console.log(JSON.stringify({ target: describe(source.url), unreadable, ...report }, null, 2))
+  } else {
+    console.log(`  ${summarise(report)}`)
+    if (unreadable.length > 0)
+      console.log(`  ⚠ could not read: ${unreadable.join(', ')} (the comparison is partial)`)
+
+    if (report.drift.length === 0) {
+      console.log('\n✔ No drift: every table, column, index and enum type comes from a migration.\n')
+    } else {
+      console.log(`\n✖ ${report.drift.length} object(s) no migration declares:`)
+      for (const finding of report.drift) console.log(`    ${describeFinding(finding)}`)
+      console.log(
+        '\n  Fix it one of two ways:\n' +
+          '    write the migration:  pnpm db:schema-from:neon   (then review and commit the file)\n' +
+          '    or drop the object:   it was added by hand and no environment built from src/migrations has it\n',
+      )
+    }
+
+    if (report.pending.length > 0) {
+      console.log(`⚠ ${report.pending.length} declared object(s) this database does not have:`)
+      for (const finding of report.pending.slice(0, 20))
+        console.log(`    ${describeFinding(finding)}`)
+      if (report.pending.length > 20) console.log(`    …and ${report.pending.length - 20} more`)
+      console.log('  Usually a migration that has not run here: `pnpm migrate:status`.\n')
+    }
+  }
+
+  // Drift fails the run; a migration that simply has not been applied here only warns.
+  if (report.drift.length > 0) process.exitCode = 1
 }
 
 const main = async () => {
@@ -621,6 +718,7 @@ const main = async () => {
   if (command === 'schema-from') return schemaFrom()
   if (command === 'seed-from') return seedFrom()
   if (command === 'seed-apply') return seedApply()
+  if (command === 'drift') return drift()
 
   fail(`Unknown command "${command}".\n\n${USAGE}`)
 }

@@ -206,6 +206,13 @@ pnpm db:seed-from --collections articles,projects --max-rows 200
 # A Payload migration written from the database's catalogs, registered in src/migrations/index.ts:
 pnpm db:schema-from --from neon
 pnpm db:schema-from --from neon --mode fresh --out /tmp    # plain CREATEs, with a down that drops
+
+# Does every object in the database come from a migration? Exits 1 when one does not:
+pnpm db:drift
+pnpm db:drift --from neon                                  # the same check against production
+
+# What a seed would do, without doing it:
+pnpm db:seed-apply src/seed/snapshot.json --dry-run
 ```
 
 - `--from neon` uses `DATABASE_DIRECT_URL`, then `POSTGRES_URL`; `--from local` always uses
@@ -226,7 +233,19 @@ pnpm db:schema-from --from neon --mode fresh --out /tmp    # plain CREATEs, with
 - On a database that already has the schema, record the file as applied instead of running it:
   `pnpm migrate:adopt --name <the file's name>`.
 - The same two files download from `/admin/database` → **From this database**, and a seed can be
-  loaded from the **Load a seed** card (type `seed` to confirm).
+  loaded from the **Load a seed** card (type `seed` to confirm). That card's *Show what this would
+  change* button is the dry run: per table, the rows it would delete and the rows it would insert,
+  read from the server, before the confirmation is typed.
+- `pnpm db:drift` is the guard behind "the branch has a column nobody migrated". It reads the `up()`
+  of every registered migration, lifts the SQL out of its `sql` templates (including a loop that
+  builds its table name at runtime, and the `DO` blocks a guarded snapshot wraps its checks in), and
+  compares the objects those statements declare with `pg_class`, `pg_attribute`, `pg_indexes` and
+  `pg_type`. An object in the database that no migration declares is **drift** and fails the run;
+  an object a migration declares that the database lacks is reported separately as **pending**,
+  which is normally just a migration that has not run here. It does not compare types, defaults or
+  constraints — two databases are `/admin/database` → **Compare with another database**, and one
+  database's whole shape is `pnpm db:schema-from`. The same check is a card on `/admin/database`
+  (**Migration drift**) and a read-only Terminal entry (*Migration drift check*).
 - Argument-free spellings exist for CI and for the admin **Terminal**, whose allow-list may only
   name a package script (`pnpm run <script>`, never extra arguments):
   `pnpm db:schema-from:neon`, `pnpm db:seed-from:neon` and `pnpm db:seed-load`. On the Terminal

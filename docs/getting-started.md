@@ -145,6 +145,7 @@ re-creating something that exists:
 pnpm db:schema-from:neon     # guarded CREATE … IF NOT EXISTS from DATABASE_DIRECT_URL (or POSTGRES_URL)
 pnpm db:seed-from:neon       # content seed as src/seed/snapshot.json, from the same database
 pnpm db:seed-load            # load that file into the local database, one transaction
+pnpm db:drift                # does every object in the database come from a migration? exits 1 if not
 ```
 
 | Command | What it does |
@@ -155,7 +156,8 @@ pnpm db:seed-load            # load that file into the local database, one trans
 | `pnpm db:status` | Tables, enum types and applied migrations, plus a verdict on whether the app can run. |
 | `pnpm db:reset --yes` | Drops the public schema and migrates from zero. Destructive. |
 | `pnpm db:restore <file.sql>` | Runs a backup taken from `/admin/database`. |
-| `pnpm db:seed-apply <file.json> --yes` | `db:seed-load` for any snapshot path. |
+| `pnpm db:seed-apply <file.json> --yes` | `db:seed-load` for any snapshot path. Add `--dry-run` to print what it would delete and insert, per table, and write nothing. |
+| `pnpm db:drift` | Compares the connected database with the `up()` of every migration in `src/migrations` and names any table, column, index or enum type no migration declares — the "branch has a column nobody migrated" case. Exits non-zero on drift, so a pipeline can fail on it; `--json` prints the report for a machine. Read-only. |
 
 Both `:neon` shortcuts are the argument-free spelling of `pnpm db:schema-from --from neon` and
 `pnpm db:seed-from --from neon`; `--from local` always means `POSTGRES_URL`, and `--from <url>`

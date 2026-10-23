@@ -344,6 +344,91 @@ export const parseSeedSnapshot = (text: string): SeedSnapshot => {
   return snapshot as SeedSnapshot
 }
 
+export type SeedPlanTable = {
+  name: string
+  /** Rows in the table now, which an apply deletes. */
+  willDelete: number
+  /** Rows the file holds for it, which an apply inserts. */
+  willInsert: number
+  /** True when `willDelete` is the planner's estimate rather than a count. */
+  estimated: boolean
+}
+
+export type SeedPlan = {
+  tables: SeedPlanTable[]
+  rows: number
+  /** Sequences an apply would move past the highest id it inserts. */
+  sequences: number
+  warnings: string[]
+}
+
+/** Above this many estimated rows the plan trusts the estimate instead of counting. */
+const COUNT_ROWS_BELOW = 100_000
+
+/**
+ * What an apply of this seed *would* do, without doing any of it.
+ *
+ * The same refusals as the real thing run first, so a dry run also answers "will this file even
+ * load here": a seed naming a table this database does not have is refused here rather than after
+ * somebody has typed the confirmation word. Row counts come from the planner's estimate when a table
+ * is big enough that counting it would be slower than the apply itself, and say so.
+ */
+export const planSeedApply = async (
+  client: pg.Client,
+  snapshot: SeedSnapshot,
+): Promise<SeedPlan> => {
+  const existing = new Set((await listTables(client)).map((table) => table.name))
+  const missing = snapshot.tables.map((table) => table.name).filter((name) => !existing.has(name))
+  if (missing.length > 0) {
+    throw new DatabaseToolsError(
+      `This seed names ${missing.length} table(s) this database does not have: ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? '…' : ''}.`,
+      'Run `pnpm migrate` first, or generate the seed from a database with the same schema.',
+    )
+  }
+
+  const plan: SeedPlan = { tables: [], rows: 0, sequences: 0, warnings: [] }
+
+  for (const table of snapshot.tables) {
+    // Serial: pg queues concurrent queries on one client and warns about it.
+    const estimate = await client.query<{ reltuples: number }>(
+      `select c.reltuples::bigint as reltuples
+         from pg_class c join pg_namespace n on n.oid = c.relnamespace
+        where n.nspname = 'public' and c.relname = $1`,
+      [table.name],
+    )
+    const reltuples = number(estimate.rows[0]?.reltuples)
+    const estimated = reltuples >= COUNT_ROWS_BELOW
+    const willDelete = estimated
+      ? Math.max(0, reltuples)
+      : number(
+          (
+            await client.query<{ n: number }>(
+              `select count(*)::bigint as n from ${quoteTable(table.name)}`,
+            )
+          ).rows[0]?.n,
+        )
+    const willInsert = Array.isArray(table.data) ? table.data.length : 0
+    plan.tables.push({ name: table.name, willDelete, willInsert, estimated })
+    plan.rows += willInsert
+  }
+
+  // One setval per sequence the file names, plus one per table whose sequence it did not name.
+  const named = new Set((snapshot.sequences ?? []).map((entry) => entry.sequence))
+  plan.sequences = named.size
+  for (const table of snapshot.tables) {
+    const sequence = await sequenceOf(client, table.name)
+    if (sequence && !named.has(sequence)) plan.sequences += 1
+  }
+
+  plan.warnings.push(...(snapshot.warnings ?? []))
+  if (plan.tables.some((table) => table.estimated)) {
+    plan.warnings.push(
+      'A table with more than 100 000 rows is counted from the planner’s estimate, so its “deleted” number is approximate.',
+    )
+  }
+  return plan
+}
+
 /**
  * Load a seed into the connected database: delete the tables it names (children first), insert the
  * rows (parents first), set the sequences. One transaction — a seed that fails halfway leaves the

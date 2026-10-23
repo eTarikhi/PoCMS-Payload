@@ -14,6 +14,7 @@ import {
   DEFAULT_SEED_EXCLUDES,
   insertOrder,
   parseSeedSnapshot,
+  planSeedApply,
   seedableCollections,
   tableNameFor,
 } from '@/plugins/databaseTools/server/seedSnapshot'
@@ -372,6 +373,46 @@ describe('the generated files, live', () => {
       expect(before[0]).toMatchObject({ kind: 'b', tags: ['x', 'y'], blob: 'deadbeef' })
       expect(Number(before[0]?.amount)).toBe(12.34)
       expect((before[0]?.doc as { a: number[] }).a).toEqual([1, 2])
+    }, 60_000)
+
+    it('plans an apply without writing anything, and refuses what an apply would refuse', async () => {
+      const { snapshot } = await buildSeedSnapshot(client, {
+        collections: [],
+        tables: ['snap_parent', 'snap_child'],
+      })
+      // A row added after the file was written: the plan has to see it, because an apply deletes it.
+      await client.query(`insert into snap_parent (name) values ('planned')`)
+
+      const plan = await planSeedApply(client, snapshot)
+      expect(plan.tables.map((table) => [table.name, table.willDelete, table.willInsert])).toEqual([
+        ['snap_parent', 3, 2],
+        ['snap_child', 2, 2],
+      ])
+      expect(plan.rows).toBe(4)
+      expect(plan.sequences).toBeGreaterThanOrEqual(2)
+      expect(plan.tables.every((table) => table.estimated === false)).toBe(true)
+
+      // Nothing was written to produce that answer.
+      expect((await client.query('select count(*)::int as n from snap_parent')).rows[0].n).toBe(3)
+
+      // The plan is also the refusal: a seed naming a table this database lacks is caught before
+      // anybody types the confirmation word.
+      await expect(
+        planSeedApply(client, {
+          ...snapshot,
+          tables: [...snapshot.tables, { name: 'no_such_table', columns: ['id'], data: [] }],
+        }),
+      ).rejects.toThrow(/does not have/)
+
+      // Leave the scratch tables exactly as they were: the next test asserts the sequence's value,
+      // so both the row and the sequence go back.
+      await client.query(`delete from snap_parent where name = 'planned'`)
+      await client.query(
+        `select setval(pg_get_serial_sequence('snap_parent', 'id'), (select coalesce(max(id), 1) from snap_parent))`,
+      )
+      await client.query(
+        `select setval(pg_get_serial_sequence('snap_child', 'id'), (select coalesce(max(id), 1) from snap_child))`,
+      )
     }, 60_000)
 
     it('replaces the rows and leaves the sequence past the highest id', async () => {

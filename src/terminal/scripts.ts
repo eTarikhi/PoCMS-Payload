@@ -114,6 +114,15 @@ export const TERMINAL_SCRIPTS: readonly TerminalScript[] = [
     shell: true,
   },
   {
+    slug: 'drift',
+    label: 'Migration drift check',
+    description:
+      'Compares the connected database with the up() of every migration in src/migrations and names any table, column, index or enum type no migration declares. Read-only; exits non-zero on drift, which is what a pipeline wants.',
+    args: ['run', 'db:drift'],
+    timeoutMs: 2 * MINUTE,
+    shell: true,
+  },
+  {
     slug: 'test-int',
     label: 'Integration tests',
     description: 'Vitest against the configured database.',

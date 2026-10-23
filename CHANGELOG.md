@@ -8,6 +8,38 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Added
 
+- **A migration drift guard: does every object in the database come from a migration?**
+  `pnpm db:drift` reads the `up()` of every migration in `src/migrations`, lifts the SQL out of its
+  `sql` template literals, and compares the tables, columns, indexes and enum types those statements
+  declare with `pg_class`, `pg_attribute`, `pg_indexes` and `pg_type`. An object the database has and
+  no migration declares is **drift** — somebody changed it by hand, and the next environment built
+  from the migrations will not have it — and fails the run (exit code 1), which is the "the branch has
+  a column nobody migrated" case `docs/development.md` already promised a command for. A declared
+  object this database lacks is reported separately as **pending** (normally a migration that has not
+  run here) and only warns. The parser handles the shapes this repository actually writes: Payload's
+  generated `CREATE TABLE` bodies with their table constraints, a hand-written multi-action
+  `ALTER TABLE … ADD COLUMN a, ADD COLUMN b`, the `DO $do$` blocks a guarded snapshot wraps its
+  catalog checks in, later `DROP`s cancelling earlier `CREATE`s, and — because migrations are
+  TypeScript — a loop that builds its table name at runtime (`${sql.identifier(table)}`), whose
+  statements are matched by shape instead: the column they add, the one they drop, and the literal
+  tail of the index name they build. `counts.wildcards` reports how many were matched that way. The
+  same check is a card on `/admin/database` (**Migration drift**), `GET /api/database/drift`, and a
+  read-only Terminal entry; the plugin takes `drift: false | { readSources }` so a packaged host with
+  no sources on disk can supply its own reader or turn it off. New: `server/drift.ts`,
+  `server/migrationSources.ts`, `tests/int/migration-drift.int.spec.ts` (17 tests: the parser against
+  every shape above, this checkout asserted clean, and hand-made objects asserted named — then
+  dropped and the guard clean again).
+- **A seed apply can be planned before it is run.** `POST /api/database/seed/apply` accepts
+  `{ json, dryRun: true }` (or `?dryRun=1`) and answers with per-table numbers — what an apply would
+  delete and what it would insert — without writing anything and without asking for the confirmation
+  word, because the plan is what makes the confirmation an informed one. It runs the same refusals as
+  the real apply, so a seed naming a table this database does not have is caught *before* anybody
+  types `seed`. Row counts come from the planner's estimate above 100 000 rows and say so
+  (`estimated: true`). The **Load a seed** card gains *Show what this would change* (a table of the
+  plan beside the file preview) and `pnpm db:seed-apply <file> --dry-run` prints the same plan in the
+  terminal; the refusal without `--yes` now points at it. New: `planSeedApply()` in
+  `server/seedSnapshot.ts`, with a live test that the plan writes nothing and that the scratch
+  sequences are left exactly as they were for the tests after it.
 - **The Terminal can run the database snapshots, and the quick-start guide documents them.**
   `/admin/terminal` gains three entries beside the checks it already ran: *Migration from this
   database*, *Seed from this database* and *Load that seed into the local database* — the two

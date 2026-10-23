@@ -49,6 +49,7 @@ export default buildConfig({
 | `GET /api/database/migration` and `…/seed` | On, `snapshots: false` removes both | `server/schemaMigration.ts`, `server/seedSnapshot.ts` |
 | `POST /api/database/diff` | On, `snapshots: false` removes it | `server/diff.ts` |
 | `POST /api/database/seed/apply` | On, `snapshots: false` or `snapshots.apply: false` removes it | `server/seedSnapshot.ts` |
+| `GET /api/database/drift` | On, `drift: false` removes it with its card | `server/drift.ts`, `server/migrationSources.ts` |
 | `POST /api/database/neon/{backup,restore,delete}` | On, `neon: false` removes them; without `NEON_API_KEY` they answer `501` | `server/neon.ts` |
 
 A plugin is `(options) => (incomingConfig) => Config`: it is applied while the config is built, after
@@ -78,6 +79,7 @@ resolved object is what the components and the endpoints receive.
 | `sessions` | `boolean` | `true` | The live sessions card and its three endpoints: connections, long statements, idle-in-transaction sessions, who blocks whom, and the guarded `pg_cancel_backend` / `pg_terminate_backend` actions. |
 | `export` | `false \| { maxRows? }` | `{ maxRows: 10000 }` | The "Export CSV" button and `GET /table?format=csv`. `maxRows` is capped at 100,000 whatever it says. |
 | `snapshots` | `false \| { maxRowsPerTable?, apply? }` | `{ maxRowsPerTable: 5000, apply: true }` | The files this page writes and reads: the generated migration, the content seed, the schema comparison, and the endpoint that loads a seed. `apply: false` keeps the read-only three and removes the write. |
+| `drift` | `false \| { readSources? }` | reads `src/migrations/<name>.ts` for every name in `migrations` | The migration drift guard: its card and `GET /drift`. `readSources` returns `{ sources, unreadable }`, so a host whose migrations are compiled into a bundle (and has no files to read) passes its own reader — or `false` and the card goes. |
 | `components` | `{ view?, navigation? }` | this repo's `/components/admin/…` paths | Where the two components live — the first thing to change when the plugin is published as a package. |
 
 Options are read once, when the config is built: changing them needs a restart, like any other
@@ -153,7 +155,8 @@ All of them are mounted under `routes.api` + `apiBasePath` and gated by `access`
 | `GET /api/database/migration` | `?mode=guarded\|fresh`, `?tables=a,b` | A Payload migration file as a download (`text/typescript`, `no-store`), written from this database's catalogs. |
 | `GET /api/database/seed` | `?collections=a,b`, `?tables=a,b`, `?maxRows=` | A content seed as a download (`application/json`): the collections this config defines, parents first, with the sequence values to set afterwards. |
 | `POST /api/database/diff` | `{ json }` | `{ ok, diff }` — a JSON backup from another database compared with this one: missing tables and columns (with the `ALTER TABLE` that would add them), types, nullability and defaults that differ, what only exists here, and row counts. Read-only. |
-| `POST /api/database/seed/apply` | `{ json, confirmation: 'seed' }` | `{ ok, tables, rows, sequences, warnings }` — deletes the rows of the tables the file names, inserts its rows, sets the sequences. One transaction; the typed word is required (`400`), a file over the restore limit is `413`, a file that is not a seed or names a missing table is `400`. |
+| `POST /api/database/seed/apply` | `{ json, confirmation: 'seed' }`, or `{ json, dryRun: true }` (`?dryRun=1` works too) | `{ ok, tables, rows, sequences, warnings }` — deletes the rows of the tables the file names, inserts its rows, sets the sequences. One transaction; the typed word is required (`400`), a file over the restore limit is `413`, a file that is not a seed or names a missing table is `400`. A dry run needs no confirmation and writes nothing: `{ ok, dryRun: true, plan: { tables: [{ name, willDelete, willInsert, estimated }], rows, sequences, warnings } }`, and it refuses a seed this database cannot load, which is the point of asking first. |
+| `GET /api/database/drift` | — | `{ ok, clean, drift: [{ kind, table, object? }], pending: […], counts, unreadable }`. `kind` is `undeclared-table`/`-column`/`-index`/`-type` for what the database has and no migration declares, `missing-table`/`-column` for the reverse. `501` when no migration source could be read. Read-only. |
 | `POST /api/database/neon/backup` | `{ name?, withEndpoint? }` | `{ ok, branch }` — a branch pinned to now. `501` without a key, `502` on a Neon error. |
 | `POST /api/database/neon/restore` | `{ timestamp (ISO 8601), confirmation: 'restore', preserveUnderName? }` | `{ ok, branch, restoredTo }`; the current state is kept as `preserveUnderName` when given. |
 | `POST /api/database/neon/delete` | `{ branchId, confirmation: branchId }` | `{ ok, deleted }`. The default and protected branches are refused. |
@@ -328,6 +331,37 @@ A file that named tables (`?tables=…` when it was downloaded, recorded as `sel
 taken at its word: what it left out is a choice, not drift, so the "only here" findings are skipped
 and the card says why. A missing table is not offered as a statement at all — that is a migration's
 job, and `pnpm db:schema-from` writes one from the other database.
+
+### Migration drift
+
+`push: false` makes `src/migrations` the only writer of this schema, so every table, column, index
+and enum type in the database should be traceable to a statement in one of them. The drift guard
+checks exactly that, from both sides:
+
+- **declared** — the `up()` of every migration the host lists in `options.migrations`, with the SQL
+  lifted out of its `sql` template literals and parsed statement by statement: `CREATE TABLE` bodies
+  (columns told apart from table constraints), multi-action `ALTER TABLE … ADD COLUMN a, ADD COLUMN b`,
+  `CREATE INDEX`, `CREATE TYPE`, the `DO $do$` blocks a guarded snapshot wraps its catalog checks in,
+  and the `DROP`s that cancel an earlier `CREATE`. `down()` is never read: it drops what `up()` made.
+- **live** — `pg_class`, `pg_attribute`, `pg_indexes` and `pg_type` for `public`.
+
+A live object no migration declares is **drift** (`undeclared-*`): somebody changed the database by
+hand, and the next environment built from the migrations will not have it. The fix is a migration
+(`pnpm db:schema-from` writes one from the catalogs) or dropping the object. A declared object this
+database lacks is reported separately as **pending** (`missing-*`), which is normally a migration
+that has not run here — `pnpm migrate:status` names it — so it warns rather than fails.
+
+Migrations are TypeScript, and some build their SQL in a loop
+(`ALTER TABLE ${sql.identifier(table)} ADD COLUMN "_order" …`). The table name in such a statement
+cannot be known statically, so the parser keeps the *shape*: the column excuses any table's
+`_order`, a runtime-built index name is matched by its literal tail (`__order_idx`), and a column
+dropped from a runtime-named table cancels it everywhere. `counts.wildcards` says how many
+statements were matched that way, so the report is honest about how much of it was exact.
+
+The same check runs as `pnpm db:drift` (exit code 1 on drift, `--json` for a machine) and as the
+read-only Terminal entry *Migration drift check*. Types, nullability, defaults and constraints are
+not compared — that is `POST /api/database/diff` (two databases) or `GET /api/database/migration`
+(one database's whole shape).
 
 ## Audit
 

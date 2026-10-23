@@ -8,6 +8,7 @@ import {
   FileCode2Icon,
   FileDiffIcon,
   GitBranchIcon,
+  GitCompareArrowsIcon,
   HardDriveDownloadIcon,
   InfoIcon,
   LayersIcon,
@@ -58,6 +59,14 @@ import {
 } from '@/plugins/databaseTools/server/introspection'
 import { explainRows } from '@/plugins/databaseTools/server/plans'
 import { indexReport } from '@/plugins/databaseTools/server/advisors'
+import {
+  declaredSchema,
+  describeFinding,
+  findDrift,
+  liveSchema,
+  summarise,
+  type DriftReport,
+} from '@/plugins/databaseTools/server/drift'
 import { NeonClient, neonConsoleUrl } from '@/plugins/databaseTools/server/neon'
 import { runRepairChecks } from '@/plugins/databaseTools/server/repair'
 import {
@@ -136,6 +145,8 @@ async function readDatabase(request: {
   filters: RowFilter[]
   migrationNames: string[]
   sessions: boolean
+  /** The migration text the drift guard compares the catalogs with, or null when it is off. */
+  driftSources: { name: string; source: string }[] | null
 }) {
   return withDatabase(async (client) => {
     const summary = await overview(client)
@@ -168,10 +179,37 @@ async function readDatabase(request: {
         tableError = `There is no table called “${request.table}” in the public schema.`
       }
     }
+    let driftError: string | null = null
     const repairs = await runRepairChecks(client, request.migrationNames)
     const indexes = await indexReport(client)
     const sessions = request.sessions ? await listSessions(client) : null
-    return { summary, detail, ddl, page, plan, tableError, repairs, sessions, indexes }
+    // Read-only, and it degrades on its own: a parser that meets a migration shape it does not
+    // model must not take the whole page down with it.
+    let drift: DriftReport | null = null
+    if (request.driftSources) {
+      try {
+        drift = findDrift(
+          await liveSchema(client),
+          declaredSchema(request.driftSources),
+          request.driftSources,
+        )
+      } catch (error) {
+        driftError = error instanceof Error ? error.message : String(error)
+      }
+    }
+    return {
+      summary,
+      detail,
+      ddl,
+      page,
+      plan,
+      tableError,
+      repairs,
+      sessions,
+      indexes,
+      drift,
+      driftError,
+    }
   })
 }
 
@@ -253,6 +291,18 @@ export async function DatabaseView({
   const direction = parseDirection(searchParams?.dir)
   const target = databaseTarget()
 
+  // The guard reads the migration text, which only exists in a checkout: a compiled bundle passes
+  // its own reader or turns the card off, and the page then simply has no drift report.
+  let driftSources: { name: string; source: string }[] | null = null
+  if (options.drift !== false) {
+    try {
+      const result = await Promise.resolve(options.drift.readSources())
+      driftSources = result.sources.length > 0 ? result.sources : null
+    } catch {
+      driftSources = null
+    }
+  }
+
   let data: Awaited<ReturnType<typeof readDatabase>> | null = null
   let databaseError: string | null = null
   try {
@@ -264,6 +314,7 @@ export async function DatabaseView({
       filters,
       migrationNames: options.migrations,
       sessions: options.sessions,
+      driftSources,
     })
   } catch (error) {
     databaseError = error instanceof Error ? error.message : String(error)
@@ -726,6 +777,101 @@ export async function DatabaseView({
                     </div>
                   </CardContent>
                 </Card>
+
+                {data.drift ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>
+                        <h2 className="acn:m-0 acn:flex acn:items-center acn:gap-2 acn:text-base">
+                          <GitCompareArrowsIcon
+                            aria-hidden
+                            className="acn:size-4 acn:text-muted-foreground"
+                          />
+                          Migration drift
+                          <Badge variant={data.drift.clean ? 'secondary' : 'destructive'}>
+                            {data.drift.clean ? 'Clean' : `${data.drift.drift.length} to fix`}
+                          </Badge>
+                        </h2>
+                      </CardTitle>
+                      <CardDescription>
+                        Every table, column, index and enum type here, against the{' '}
+                        <Code>up()</Code> of the migrations this checkout would run. With{' '}
+                        <Code>push: false</Code> the migrations are the only writer, so an object
+                        none of them declares was made by hand — and the next database built from
+                        them will not have it.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="acn:space-y-3">
+                      <p className="acn:m-0 acn:text-xs acn:text-muted-foreground">
+                        {summarise(data.drift)}. Also available as <Code>pnpm db:drift</Code>, which
+                        exits non-zero on drift so a pipeline can fail on it.
+                      </p>
+
+                      {data.driftError ? (
+                        <p className="acn:m-0 acn:text-xs acn:text-destructive">{data.driftError}</p>
+                      ) : null}
+
+                      {data.drift.clean ? (
+                        <p className="acn:m-0 acn:text-xs acn:text-muted-foreground">
+                          Nothing is unaccounted for: the schema in the database is the schema in{' '}
+                          <Code>src/migrations</Code>.
+                        </p>
+                      ) : (
+                        <div className="acn:rounded-lg acn:border acn:border-destructive/30 acn:bg-destructive/10 acn:p-3">
+                          <p className="acn:m-0 acn:text-sm acn:font-medium acn:text-destructive-emphasis">
+                            {data.drift.drift.length} object(s) no migration declares
+                          </p>
+                          <ul className="acn:m-0 acn:mt-1.5 acn:list-disc acn:space-y-0.5 acn:pl-4 acn:text-xs">
+                            {data.drift.drift.slice(0, 20).map((finding) => (
+                              <li
+                                key={`${finding.kind}:${finding.table}:${finding.object ?? ''}`}
+                                className="acn:break-words"
+                              >
+                                {describeFinding(finding)}
+                              </li>
+                            ))}
+                            {data.drift.drift.length > 20 ? (
+                              <li className="acn:text-muted-foreground">
+                                and {data.drift.drift.length - 20} more…
+                              </li>
+                            ) : null}
+                          </ul>
+                          <p className="acn:m-0 acn:mt-2 acn:text-xs acn:text-muted-foreground">
+                            Either write the migration (<Code>pnpm db:schema-from:neon</Code> reads
+                            the catalogs and registers the file) or drop the object. Until then a
+                            fresh <Code>pnpm migrate</Code> does not reproduce this database.
+                          </p>
+                        </div>
+                      )}
+
+                      {data.drift.pending.length > 0 ? (
+                        <div className="acn:rounded-lg acn:bg-muted acn:p-3">
+                          <p className="acn:m-0 acn:text-sm acn:font-medium">
+                            {data.drift.pending.length} declared object(s) this database does not
+                            have
+                          </p>
+                          <ul className="acn:m-0 acn:mt-1.5 acn:list-disc acn:space-y-0.5 acn:pl-4 acn:text-xs acn:text-muted-foreground">
+                            {data.drift.pending.slice(0, 10).map((finding) => (
+                              <li
+                                key={`${finding.kind}:${finding.table}:${finding.object ?? ''}`}
+                                className="acn:break-words"
+                              >
+                                {describeFinding(finding)}
+                              </li>
+                            ))}
+                            {data.drift.pending.length > 10 ? (
+                              <li>and {data.drift.pending.length - 10} more…</li>
+                            ) : null}
+                          </ul>
+                          <p className="acn:m-0 acn:mt-2 acn:text-xs acn:text-muted-foreground">
+                            Not drift — usually a migration that has not run here yet.{' '}
+                            <Code>pnpm migrate:status</Code> names it.
+                          </p>
+                        </div>
+                      ) : null}
+                    </CardContent>
+                  </Card>
+                ) : null}
 
                 <div className="acn:grid acn:gap-6 acn:lg:grid-cols-2">
                   <Card>

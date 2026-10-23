@@ -473,12 +473,22 @@ function previewSeed(text: string): SeedPreview | { error: string } {
  * failure leaves the database as it was. Typing `seed` is the confirmation; the server asks for it
  * too.
  */
+type SeedPlan = {
+  tables: { name: string; willDelete: number; willInsert: number; estimated: boolean }[]
+  rows: number
+  sequences: number
+  warnings: string[]
+}
+
 export function SeedPanel() {
   const router = useRouter()
   const apiBase = useApiBase()
   const [file, setFile] = React.useState<File | null>(null)
   const [json, setJson] = React.useState<string | null>(null)
   const [preview, setPreview] = React.useState<SeedPreview | { error: string } | null>(null)
+  const [plan, setPlan] = React.useState<SeedPlan | null>(null)
+  const [planning, setPlanning] = React.useState(false)
+  const [planError, setPlanError] = React.useState<string | null>(null)
   const [confirmation, setConfirmation] = React.useState('')
   const [busy, setBusy] = React.useState(false)
   const [reply, setReply] = React.useState<Reply | null>(null)
@@ -489,6 +499,8 @@ export function SeedPanel() {
     setReply(null)
     setConfirmation('')
     setJson(null)
+    setPlan(null)
+    setPlanError(null)
     if (!chosen) return
     const text = await readFile(chosen).catch(() => null)
     if (text === null) {
@@ -504,6 +516,22 @@ export function SeedPanel() {
     preview !== null &&
     !('error' in preview) &&
     confirmation.trim().toLowerCase() === 'seed'
+
+  /**
+   * Ask the server what applying this file would do. It writes nothing — the same endpoint with
+   * `dryRun` counts the rows each named table holds now and the rows the file carries — so the
+   * confirmation below is an informed one rather than a guess at a table's contents.
+   */
+  const showPlan = async () => {
+    if (!json) return
+    setPlanning(true)
+    setPlanError(null)
+    setPlan(null)
+    const result = await post(`${apiBase}/seed/apply`, { json, dryRun: true })
+    if (result.ok && result.plan) setPlan(result.plan as SeedPlan)
+    else setPlanError(result.error ?? 'The plan could not be read.')
+    setPlanning(false)
+  }
 
   const apply = async () => {
     if (!json) return
@@ -565,6 +593,84 @@ export function SeedPanel() {
                 <li key={warning}>{warning}</li>
               ))}
             </ul>
+          ) : null}
+        </div>
+      ) : null}
+
+      {preview && !('error' in preview) ? (
+        <div className="acn:flex acn:flex-col acn:gap-2">
+          <Button
+            variant="outline"
+            className="acn:self-start"
+            disabled={planning}
+            onClick={() => void showPlan()}
+          >
+            {planning ? (
+              <LoaderCircleIcon aria-hidden className="acn:motion-safe:animate-spin" />
+            ) : (
+              <PlayIcon aria-hidden />
+            )}
+            {planning ? 'Counting…' : plan ? 'Refresh what this would change' : 'Show what this would change'}
+          </Button>
+
+          {planError ? (
+            <p className="acn:m-0 acn:flex acn:items-start acn:gap-1.5 acn:text-xs acn:text-destructive">
+              <TriangleAlertIcon aria-hidden className="acn:mt-0.5 acn:size-3.5 acn:shrink-0" />
+              {planError}
+            </p>
+          ) : null}
+
+          {plan ? (
+            <div className="acn:rounded-lg acn:border acn:border-border">
+              <table className="acn:w-full acn:border-collapse acn:text-xs">
+                <caption className="acn:border-b acn:border-border acn:px-3 acn:py-2 acn:text-left acn:text-muted-foreground">
+                  {plan.tables.length} table(s) · {plan.rows.toLocaleString('en')} row(s) in ·{' '}
+                  {plan.sequences} sequence(s) reset · nothing has been written
+                </caption>
+                <thead>
+                  <tr className="acn:border-b acn:border-border acn:text-left acn:text-muted-foreground">
+                    <th scope="col" className="acn:px-3 acn:py-1.5 acn:font-medium">Table</th>
+                    <th scope="col" className="acn:px-3 acn:py-1.5 acn:text-right acn:font-medium">
+                      Deleted
+                    </th>
+                    <th scope="col" className="acn:px-3 acn:py-1.5 acn:text-right acn:font-medium">
+                      Inserted
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {plan.tables.slice(0, 30).map((row) => (
+                    <tr key={row.name} className="acn:border-b acn:border-border/60 acn:last:border-0">
+                      <td className="acn:px-3 acn:py-1.5 acn:font-mono acn:break-all">{row.name}</td>
+                      <td className="acn:px-3 acn:py-1.5 acn:text-right acn:tabular-nums">
+                        {row.willDelete.toLocaleString('en')}
+                        {row.estimated ? <span className="acn:text-muted-foreground"> ~</span> : null}
+                      </td>
+                      <td className="acn:px-3 acn:py-1.5 acn:text-right acn:tabular-nums">
+                        {row.willInsert.toLocaleString('en')}
+                      </td>
+                    </tr>
+                  ))}
+                  {plan.tables.length > 30 ? (
+                    <tr>
+                      <td
+                        colSpan={3}
+                        className="acn:px-3 acn:py-1.5 acn:text-muted-foreground"
+                      >
+                        and {plan.tables.length - 30} more table(s)…
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+              {plan.warnings.length > 0 ? (
+                <ul className="acn:m-0 acn:list-disc acn:space-y-0.5 acn:border-t acn:border-border acn:px-3 acn:py-2 acn:pl-7 acn:text-xs acn:text-muted-foreground">
+                  {plan.warnings.slice(0, 4).map((warning) => (
+                    <li key={warning}>{warning}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
           ) : null}
         </div>
       ) : null}

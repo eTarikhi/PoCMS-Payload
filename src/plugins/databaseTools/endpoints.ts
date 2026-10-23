@@ -8,10 +8,12 @@ import {
   buildSeedSnapshot,
   clampSeedRows,
   parseSeedSnapshot,
+  planSeedApply,
   seedableCollections,
   type SeedCollection,
 } from './server/seedSnapshot'
 import { DatabaseToolsError, databaseTarget, withDatabase } from './server/connection'
+import { declaredSchema, findDrift, liveSchema } from './server/drift'
 import { parseDirection, parseFilters } from './server/filters'
 import { exportCsv, readRows, tableDdl } from './server/introspection'
 import { isMaintenanceAction, runMaintenance } from './server/maintenance'
@@ -48,7 +50,10 @@ import { MAX_RESTORE_BYTES, neonOptions, type ResolvedDatabaseToolsOptions } fro
  *                                        what its schema has that this database does not. Read-only.
  *   POST /api/database/seed/apply        `{ json, confirmation }` — loads that file into the
  *                                        connected database, deleting the rows of the tables it
- *                                        names first.
+ *                                        names first. `{ json, dryRun: true }` answers with the plan
+ *                                        (per table: what would be deleted, what inserted) and
+ *                                        writes nothing, so the confirmation is an informed one.
+ *   GET  /api/database/drift             Does every object in the database come from a migration?
  *   POST /api/database/neon/backup       `{ name, withEndpoint? }` → a branch pinned to now.
  *   POST /api/database/neon/restore      `{ timestamp, confirmation, preserveUnderName? }`
  *   POST /api/database/neon/delete       `{ branchId, confirmation }`
@@ -632,6 +637,27 @@ export const databaseToolsEndpoints = (options: ResolvedDatabaseToolsOptions): E
               413,
             )
           }
+          const dryRun = data.dryRun === true || req.searchParams.get('dryRun') === '1'
+
+          let snapshot
+          try {
+            snapshot = parseSeedSnapshot(text)
+          } catch (error) {
+            return json(readable(error), error instanceof DatabaseToolsError ? 400 : 500)
+          }
+
+          // The plan needs no confirmation: it writes nothing, and it is what makes the
+          // confirmation an informed one.
+          if (dryRun) {
+            try {
+              const plan = await withDatabase((client) => planSeedApply(client, snapshot))
+              return json({ ok: true, dryRun: true, plan })
+            } catch (error) {
+              req.payload.logger.error({ msg: 'Planning a seed apply failed', err: error })
+              return json(readable(error), error instanceof DatabaseToolsError ? 400 : 500)
+            }
+          }
+
           // Typing the word is the confirmation: this deletes the rows the file names.
           if (
             String(data.confirmation ?? '')
@@ -642,13 +668,6 @@ export const databaseToolsEndpoints = (options: ResolvedDatabaseToolsOptions): E
               { error: 'Type “seed” in the confirmation box to replace these tables’ rows.' },
               400,
             )
-          }
-
-          let snapshot
-          try {
-            snapshot = parseSeedSnapshot(text)
-          } catch (error) {
-            return json(readable(error), error instanceof DatabaseToolsError ? 400 : 500)
           }
 
           try {
@@ -670,6 +689,44 @@ export const databaseToolsEndpoints = (options: ResolvedDatabaseToolsOptions): E
         },
       })
     }
+  }
+
+  if (options.drift !== false) {
+    const readSources = options.drift.readSources
+    endpoints.push({
+      path: `${base}/drift`,
+      method: 'get',
+      handler: async (req) => {
+        if (!(await allowed(req))) return denied()
+        try {
+          const { sources, unreadable } = await readSources()
+          if (sources.length === 0) {
+            return json(
+              {
+                error: 'No migration sources could be read, so there is nothing to compare with.',
+                hint: 'The guard reads src/migrations/<name>.ts for every registered migration. A compiled bundle has no sources to read; pass `drift.readSources` or turn the card off.',
+                unreadable,
+              },
+              501,
+            )
+          }
+          // Read-only: the catalogs on one side, the migration text on the other.
+          const report = await withDatabase((client) =>
+            liveSchema(client).then((live) => findDrift(live, declaredSchema(sources), sources)),
+          )
+          req.payload.logger.info({
+            msg: `Migration drift check: ${report.drift.length} undeclared object(s)`,
+            user: req.user?.email,
+            drift: report.drift.length,
+            pending: report.pending.length,
+          })
+          return json({ ok: true, unreadable, ...report })
+        } catch (error) {
+          req.payload.logger.error({ msg: 'The migration drift check failed', err: error })
+          return json(readable(error), error instanceof DatabaseToolsError ? 400 : 500)
+        }
+      },
+    })
   }
 
   if (options.neon !== false) endpoints.push(...neonEndpoints(options))
