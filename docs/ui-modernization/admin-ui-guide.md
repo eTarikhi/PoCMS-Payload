@@ -876,6 +876,25 @@ comparison, size formatting) and are covered by `tests/int/system.int.spec.ts`; 
 covered by `tests/e2e/system.e2e.spec.ts`, which also checks that a signed-in user without the
 capability gets a 404 and that no secret value reaches the page.
 
+## Email page
+
+Admin › **Email** (`/admin/email`, `views/Email`, the `manageEmails` capability) answers one question
+— *will this site's email arrive?* — and makes it checkable rather than a matter of faith.
+
+| Card | What it does |
+| --- | --- |
+| Delivery | Which provider was chosen and why, the From and reply-to, the site name, where the links point, whether each credential is **present** (never its value), the redirect, the environment. Red when nothing will be delivered, with the reason in one sentence. |
+| Send a test | One real send through that provider, to your own address by default, with the outcome — including *redirected* and *not sent, `EMAIL_DISABLED` is set* rather than a spinner that stops. |
+| Templates | Every template rendered with its sample data, fetched from the server so the preview is what a send produces and not a copy of it, shown as delivered HTML in a sandboxed iframe and as plain text. |
+| Recent sends | The last 15 rows of the email log, with the provider's error beside the subject and the address a development redirect stood in for. |
+
+The log itself is the `email-logs` collection (`custom: { permissions: false }`, so it is guarded by
+the capability rather than a per-role access level, like the audit log). It is written only by the
+wrapper around the provider, which is why it holds Payload's own password-reset and verification
+emails too; `create` and `update` are `false`, so nobody edits a row by hand. It never stores a message
+body — a reset email carries a live token, and a log is not a place to keep one. See
+[docs/email.md](../email.md) for the providers, the templates, the guards and how to add one.
+
 ## Database page
 
 Admin › **Database** (`/admin/database`, `views/Database`, the `manageDatabase` capability) is the

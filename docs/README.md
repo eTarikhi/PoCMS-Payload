@@ -14,6 +14,7 @@ This repository is organized into a small set of topic-based guides. Use the pag
 
 ## Reference and operations
 
+- [Email](email.md) — which provider sends, the templates, the two development guards, the send log and `/admin/email`
 - [API reference](api.md) — REST and GraphQL usage
 - [Deployment](deployment.md) — Docker, Vercel, and production setup
 - [Development and troubleshooting](development.md) — common issues and workflows

@@ -16,6 +16,7 @@ import {
 } from './server/seedSnapshot'
 import { DatabaseToolsError, databaseTarget, withDatabase } from './server/connection'
 import { declaredSchema, findDrift, liveSchema } from './server/drift'
+import { readMigrationSources } from './server/migrationSources'
 import { parseDirection, parseFilters } from './server/filters'
 import { exportCsv, readRows, tableDdl } from './server/introspection'
 import {
@@ -944,7 +945,11 @@ export const databaseToolsEndpoints = (options: ResolvedDatabaseToolsOptions): E
   })
 
   if (options.drift !== false) {
-    const readSources = options.drift.readSources
+    // The filesystem default lives here rather than in `options.ts`, which client components reach
+    // through `src/access/permissions.ts` and which must therefore import no `node:` module.
+    const readSources =
+      options.drift.readSources ??
+      (() => readMigrationSources({ names: options.migrations }))
     endpoints.push({
       path: `${base}/drift`,
       method: 'get',

@@ -57,6 +57,12 @@ export const CAPABILITIES = [
     description: 'See the job queue, run jobs now and cancel queued ones.',
   },
   {
+    name: 'manageEmails',
+    label: 'Email',
+    description:
+      'The email log, the templates with their previews, whether a provider is configured, and sending a test message.',
+  },
+  {
     name: 'viewSystem',
     label: 'System information',
     description: 'Versions, environment, database and configured integrations.',

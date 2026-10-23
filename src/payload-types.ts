@@ -82,6 +82,7 @@ export interface Config {
     'job-runs': JobRun;
     'pagespeed-reports': PagespeedReport;
     'audit-logs': AuditLog;
+    'email-logs': EmailLog;
     'payload-kv': PayloadKv;
     'payload-folders': FolderInterface;
     'payload-locked-documents': PayloadLockedDocument;
@@ -112,6 +113,7 @@ export interface Config {
     'job-runs': JobRunsSelect<false> | JobRunsSelect<true>;
     'pagespeed-reports': PagespeedReportsSelect<false> | PagespeedReportsSelect<true>;
     'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
+    'email-logs': EmailLogsSelect<false> | EmailLogsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-folders': PayloadFoldersSelect<false> | PayloadFoldersSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -600,6 +602,10 @@ export interface Role {
      */
     manageJobs?: boolean | null;
     /**
+     * The email log, the templates with their previews, whether a provider is configured, and sending a test message.
+     */
+    manageEmails?: boolean | null;
+    /**
      * Versions, environment, database and configured integrations.
      */
     viewSystem?: boolean | null;
@@ -633,7 +639,8 @@ export interface Role {
  */
 export interface JobRun {
   id: number;
-  task: 'trash-cleanup' | 'pagespeed-report' | 'publish-scheduled' | 'broken-links' | 'database-upkeep';
+  task:
+    'trash-cleanup' | 'pagespeed-report' | 'publish-scheduled' | 'broken-links' | 'database-upkeep' | 'database-backup';
   status: 'queued' | 'running' | 'done' | 'failed' | 'cancelled';
   trigger: 'manual' | 'cron';
   /**
@@ -755,6 +762,74 @@ export interface AuditLog {
   createdAt: string;
 }
 /**
+ * Every email the site attempted: who it went to, which template, whether the provider accepted it, and what it said when it did not. Bodies are never stored.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-logs".
+ */
+export interface EmailLog {
+  id: number;
+  /**
+   * What the provider did with it.
+   */
+  status: 'sent' | 'redirected' | 'skipped' | 'failed';
+  /**
+   * Which of this site’s templates produced it.
+   */
+  template?: ('forgot-password' | 'verify-email' | 'welcome' | 'test' | 'digest' | 'payload') | null;
+  /**
+   * The address the message was delivered to.
+   */
+  to: string;
+  /**
+   * Set when EMAIL_OVERRIDE_RECIPIENT took the place of the real recipient: this is the address the message was meant for.
+   */
+  redirectedFrom?: string | null;
+  /**
+   * The From address the message carried.
+   */
+  from?: string | null;
+  subject: string;
+  /**
+   * The provider’s own words when it refused, or why nothing was sent.
+   */
+  error?: string | null;
+  /**
+   * The adapter that handled it (`resend-rest`, `nodemailer`, `console`).
+   */
+  provider?: string | null;
+  /**
+   * The provider’s id for the message, for finding it in their dashboard.
+   */
+  messageId?: string | null;
+  /**
+   * Size of the HTML and text bodies.
+   */
+  bytes?: number | null;
+  /**
+   * How long the provider took.
+   */
+  durationMs?: number | null;
+  /**
+   * Who asked for it, when a person did: the signed-in address behind an admin action.
+   */
+  triggeredBy?: string | null;
+  /**
+   * Whatever the caller wanted kept beside the send (a document id, a job run). Never a message body.
+   */
+  context?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -837,6 +912,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'audit-logs';
         value: number | AuditLog;
+      } | null)
+    | ({
+        relationTo: 'email-logs';
+        value: number | EmailLog;
       } | null)
     | ({
         relationTo: 'payload-folders';
@@ -1165,6 +1244,7 @@ export interface RolesSelect<T extends boolean = true> {
         viewDeployments?: T;
         viewAuditLog?: T;
         manageJobs?: T;
+        manageEmails?: T;
         viewSystem?: T;
         manageDatabase?: T;
         useDeveloperTools?: T;
@@ -1241,6 +1321,27 @@ export interface AuditLogsSelect<T extends boolean = true> {
   userEmail?: T;
   ip?: T;
   changes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-logs_select".
+ */
+export interface EmailLogsSelect<T extends boolean = true> {
+  status?: T;
+  template?: T;
+  to?: T;
+  redirectedFrom?: T;
+  from?: T;
+  subject?: T;
+  error?: T;
+  provider?: T;
+  messageId?: T;
+  bytes?: T;
+  durationMs?: T;
+  triggeredBy?: T;
+  context?: T;
   updatedAt?: T;
   createdAt?: T;
 }

@@ -8,6 +8,75 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Added
 
+- **An email system, built on Payload's adapter pattern** (`docs/email.md`, `/admin/email`,
+  `src/email/`). Payload's API is a transport, a From address and `payload.sendEmail(message)`; what
+  it does not have is a choice of provider that fails loudly, templates in the site's own voice, a
+  record of what was sent, or any protection against a staging environment emailing real people. All
+  five are here.
+  - **Provider selection that says what it decided** (`src/email/config.ts`): Resend when
+    `RESEND_API_KEY` is set (a REST call, which is what a serverless function wants and what the
+    Payload docs recommend for Vercel), SMTP through nodemailer when `SMTP_HOST` is, a log-only
+    adapter when neither is, and `EMAIL_PROVIDER` to override. Payload's own answer to "no email
+    configured" is a startup warning and a log line per attempt — right for a library, wrong for a
+    site, because the first person to notice is somebody whose password reset never arrived. So
+    `/admin/email` states it in one red line, and shows whether each credential is *present* without
+    ever showing its value. `EMAIL_PROVIDER=resend` with no key is reported as the misconfiguration it
+    is rather than failing at the first send.
+  - **A logging adapter around the provider** (`src/email/adapter.ts`, the `EmailAdapter` interface the
+    Payload docs describe), which is what makes the log complete: everything goes through one adapter,
+    so it holds this site's templates *and* Payload's own password-reset and verification emails. One
+    row per attempt — `sent`, `redirected`, `skipped` or `failed` — with the recipient, subject,
+    template, provider id, size, duration, who asked for it and the provider's own error. A failed log
+    write is logged and swallowed; a failed **send** is recorded and re-thrown, so no caller is ever
+    told a send worked when it did not. **It never stores a body**: a reset email carries a live token,
+    and a log anybody with the capability can read must not become a way to take over an account. There
+    is no flag that turns that on.
+  - **The two development guards**, applied in the wrapper so they cover Payload's auth emails too and
+    not only the call sites that remembered them: `EMAIL_OVERRIDE_RECIPIENT` redirects every message
+    and keeps the address it was really for, and `EMAIL_DISABLED` sends nothing and records the
+    attempt. Both are deliberately *not* left to the providers' own `overrideRecipientAddress`, because
+    that redirect happens below the log and would be invisible.
+  - **Five templates** (`src/email/templates.ts`), each a pure function of its data and the brand
+    returning a subject, HTML and a hand-written plain-text body — not markup stripped of its tags,
+    because a reset link buried in HTML is a link nobody can click in a terminal mail client. Written
+    the way email has to be and not the way this repository is: tables for layout, inline styles, no
+    stylesheet, no script, no external image. Every interpolated value goes through `escapeHtml` and
+    only `http(s)` reaches an `href`; a test renders all five with hostile data and asserts none of it
+    survives. The brand (site name, reply-to, public origin) is read from **Site settings** and
+    `NEXT_PUBLIC_SITE_URL` at send time, so a rename needs no deploy, and a missing public origin is
+    called out on the page because a reset link that points nowhere is a lockout.
+  - **Payload's auth emails replaced through its own config options** — `auth.forgotPassword.
+    generateEmailHTML`/`generateEmailSubject` on `Users`, with the verification pair written and
+    waiting (turning `verify` on would ask every existing account to confirm before signing in, so it
+    stays off). What the defaults lack and these add: a link built from the configured public origin
+    rather than the request's, which behind a proxy or on a preview deployment can be an address the
+    reader cannot reach; a plain-text body; the site's name; and a line for the reader who did not ask.
+    Since Payload builds these messages itself there is no header to attach, so each template leaves a
+    `data-pocms-template` marker in the document and the wrapper reads it — which is how the log can
+    say a reset email was a reset email.
+  - **Invitations** (`src/email/hooks.ts`): Payload creates a user and says nothing, so an
+    `afterChange` hook sends the `welcome` template, telling two cases apart — no password supplied
+    (the API, a seed) gets a token link generated with `disableEmail: true` so Payload's own email does
+    not go out beside it, and a password supplied by an administrator gets a pointer to the sign-in
+    page rather than an override of their choice. It stays quiet about updates, self-created accounts,
+    creates with no request behind them (the CLI, where a human chose the password at a terminal) and
+    collections with verification on.
+  - **`sendTemplate`**, which returns its outcome instead of throwing: a notification is a side effect
+    of something that mattered more, and a provider that is down must not stop an administrator
+    creating an account. Payload's auth emails are the exception and deliberately do not come through
+    it.
+  - **`/admin/email`** (`manageEmails`, a new capability, with its nav link): the delivery situation, a
+    real test send to your own address with the outcome stated rather than a spinner that stops, every
+    template rendered server-side as delivered HTML in a sandboxed iframe and as plain text, and the
+    last 15 log rows. Endpoints `GET /api/email/status`, `GET /api/email/templates`,
+    `POST /api/email/test`. The `email-logs` collection is `custom: { permissions: false }` (guarded by
+    the capability, like the audit log) with `create`/`update` false, so a row is a truthful account
+    rather than something to tidy up.
+  - New: `src/email/{brand,layout,templates,config,consoleAdapter,adapter,send,auth,hooks}.ts`,
+    `src/collections/EmailLogs.ts`, `src/endpoints/email.ts`,
+    `src/components/admin/views/Email/{index,Actions}.tsx`,
+    `src/migrations/20261023_061418_email_log.ts`, `docs/email.md`, and
+    `tests/int/email.int.spec.ts` (36 tests).
 - **Nightly database backups, with retention that cannot delete everything.** A `database-backup` job
   (daily, in the existing queue, so every attempt is a `job-runs` document with a summary and a log)
   writes the same full dump the Backup card produces on demand to `BACKUP_DIR` (`.backups/`, now
@@ -321,6 +390,17 @@ modernisation programme; every entry links the roadmap item it closes
   (25, including a live cancel and terminate against real backends).
 
 ### Changed
+
+- **`pnpm migrate:create` output is no longer taken at face value.** The generator diffs the config
+  against its own last snapshot rather than against the database, so it does not know about this
+  project's hand-written migrations: for the email log it emitted `ALTER TYPE … ADD VALUE
+  'database-upkeep'` and `'database-backup'` (both already added, and a bare `ADD VALUE` on an existing
+  value fails), `ADD COLUMN "capabilities_manage_database"` (already added), `ALTER TABLE "media" DROP
+  COLUMN "_objectkey"` (a column no migration here ever created), and a `down` that rebuilt
+  `enum_job_runs_task` from its four original values — which would have destroyed every run record of
+  the two tasks this project added. `20261023_061418_email_log.ts` keeps the parts that were genuinely
+  new and documents each correction in its header. Read a generated migration before running it;
+  `pnpm db:drift` afterwards confirms the file declares everything it created.
 
 - **The database tools are a Payload plugin.** The page, its endpoints and its sidebar link now come
   from one `databaseTools({ … })` call in `plugins:`, the layout Payload documents in

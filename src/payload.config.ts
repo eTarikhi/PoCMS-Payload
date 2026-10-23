@@ -3,7 +3,10 @@ import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { GraphQL } from '@payloadcms/graphql/types'
 
-import { resendAdapter } from '@payloadcms/email-resend'
+// The email adapters (Resend, nodemailer) are imported where the provider is chosen, so a blank
+// RESEND_API_KEY falls back to a log-only adapter instead of failing every send: see
+// src/email/settings.ts and src/email/provider.ts. The examples below are kept as documentation
+// of the alternatives.
 // import nodemailerSendgrid from 'nodemailer-sendgrid'
 // import nodemailer from 'nodemailer'
 
@@ -19,6 +22,8 @@ import { migrations } from './migrations'
 import { ensureRoles } from './access/roles'
 import { createRoles } from './collections/Roles'
 import { AuditLogs } from './collections/AuditLogs'
+import { EmailLogs } from './collections/EmailLogs'
+import { buildEmailAdapter } from './email/provider'
 import { i18nConfig } from './i18n'
 import { Footer } from './globals/Footer'
 import { NavigationGlobal } from './globals/Navigation'
@@ -29,6 +34,11 @@ import { devGenerateEndpoint } from './endpoints/devGenerate'
 import { jobsCancelEndpoint, jobsCronEndpoint, jobsRunEndpoint } from './endpoints/jobs'
 import { devMigrateEndpoint } from './endpoints/devMigrate'
 import { devTerminalEndpoint } from './endpoints/devTerminal'
+import {
+  emailStatusEndpoint,
+  emailTemplatesEndpoint,
+  emailTestEndpoint,
+} from './endpoints/email'
 import { devRestartEndpoint } from './endpoints/devRestart'
 import { migrationStatusEndpoint } from './endpoints/migrationStatus'
 import { purgePagesEndpoint } from './endpoints/purgePages'
@@ -148,6 +158,12 @@ export default buildConfig({
           path: '/jobs',
           meta: { title: 'Scheduled jobs' },
         },
+        // Delivery, templates and the send log (manageEmails).
+        email: {
+          Component: '/components/admin/views/Email#EmailView',
+          path: '/email',
+          meta: { title: 'Email' },
+        },
       },
     },
     // Dashboard widgets (P4): welcome, content health, counts, publishing chart, recent changes.
@@ -192,6 +208,9 @@ export default buildConfig({
     PageSpeedReports,
     // Append-only audit trail (E5). Read with the viewAuditLog capability; never governed by roles.
     AuditLogs,
+    // Every send the email adapter attempted, with the same shape of guard: written by the wrapper
+    // around the provider, read with the manageEmails capability, never by hand.
+    EmailLogs,
   ],
   globals,
   editor: lexicalEditor(),
@@ -251,6 +270,10 @@ export default buildConfig({
     jobsCancelEndpoint,
     jobsCronEndpoint,
     // Development only (they return 404 in production).
+    // The email page: provider status, template previews and a test send (manageEmails).
+    emailStatusEndpoint,
+    emailTemplatesEndpoint,
+    emailTestEndpoint,
     devTerminalEndpoint,
     resetBundlerCacheEndpoint,
     devGenerateEndpoint,
@@ -360,11 +383,12 @@ export default buildConfig({
   //   }),
   // }),
 
-  email: resendAdapter({
-    defaultFromAddress: 'dev@vtarikhi.com',
-    defaultFromName: 'PoCMS',
-    apiKey: process.env.RESEND_API_KEY || '',
-  }),
+  // Which provider sends, whether it can, and the wrapper that logs every attempt: see
+  // src/email/settings.ts and provider.ts. Resend when RESEND_API_KEY is set (a REST call, which is
+  // what a serverless
+  // function wants), SMTP when SMTP_HOST is, and a log-only adapter when neither is — with the
+  // reason on /admin/email rather than in a startup warning nobody reads.
+  email: buildEmailAdapter(),
 })
 
 const NoProductionIntrospection: GraphQL.ValidationRule = (context) => ({

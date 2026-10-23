@@ -1,6 +1,6 @@
 import type { PayloadComponent, PayloadRequest, ServerProps } from 'payload'
 
-import { readMigrationSources, type MigrationSourcesResult } from './server/migrationSources'
+import type { MigrationSourcesResult } from './server/migrationSources'
 
 /**
  * The capability this plugin's screens and endpoints need, in the shape the Roles collection
@@ -143,9 +143,9 @@ export type DatabaseToolsOptions = {
   /**
    * The migration drift guard: does every table, column, index and enum type in the database come
    * from a migration? `false` removes the card and the endpoint. `readSources` supplies the
-   * migration *text* (the default reads `src/migrations/<name>.ts` for every name in `migrations`);
-   * a packaged plugin whose migrations are compiled into a bundle passes its own reader, or turns
-   * the guard off. @default { readSources: read src/migrations }
+   * migration *text*; left out, the guard reads `src/migrations/<name>.ts` for every name in
+   * `migrations`. A packaged plugin whose migrations are compiled into a bundle passes its own
+   * reader, or turns the guard off. @default { } — read src/migrations
    */
   drift?: false | { readSources?: () => MigrationSourcesResult | Promise<MigrationSourcesResult> }
   /**
@@ -175,7 +175,13 @@ export type ResolvedDatabaseToolsOptions = {
   export: false | { maxRows: number }
   restore: false | { maxBytes: number }
   snapshots: false | { maxRowsPerTable: number; apply: boolean }
-  drift: false | { readSources: () => MigrationSourcesResult | Promise<MigrationSourcesResult> }
+  /**
+   * `readSources` is optional even after resolution, and the two server-only consumers (the view and
+   * the endpoint) supply the filesystem default themselves. It cannot be defaulted *here*: this file
+   * is imported by `src/access/permissions.ts` for `DATABASE_TOOLS_CAPABILITY`, which client
+   * components import, and a `node:fs` import in that graph fails the admin bundle outright.
+   */
+  drift: false | { readSources?: () => MigrationSourcesResult | Promise<MigrationSourcesResult> }
   components: { view: DatabaseToolsComponent; navigation: DatabaseToolsComponent }
 }
 
@@ -250,18 +256,7 @@ export const resolveOptions = (
     options.restore === false
       ? false
       : { maxBytes: options.restore?.maxBytes ?? MAX_RESTORE_BYTES },
-  drift:
-    options.drift === false
-      ? false
-      : {
-          readSources:
-            options.drift?.readSources ??
-            (() =>
-              readMigrationSources({
-                names: options.migrations ?? [],
-                dir: undefined,
-              })),
-        },
+  drift: options.drift === false ? false : { ...(options.drift ?? {}) },
   components: {
     view: options.components?.view ?? DEFAULTS.viewComponent,
     navigation: options.components?.navigation ?? DEFAULTS.navComponent,

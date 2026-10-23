@@ -71,6 +71,7 @@ import {
   summarise,
   type DriftReport,
 } from '@/plugins/databaseTools/server/drift'
+import { readMigrationSources } from '@/plugins/databaseTools/server/migrationSources'
 import { NeonClient, neonConsoleUrl } from '@/plugins/databaseTools/server/neon'
 import { runRepairChecks } from '@/plugins/databaseTools/server/repair'
 import {
@@ -302,7 +303,12 @@ export async function DatabaseView({
   let driftSources: { name: string; source: string }[] | null = null
   if (options.drift !== false) {
     try {
-      const result = await Promise.resolve(options.drift.readSources())
+      // This is a server component, so the filesystem default is safe here — and it has to be here
+      // rather than in `options.ts`, which client components reach through `src/access/permissions.ts`.
+      const readSources =
+        options.drift.readSources ??
+        (() => readMigrationSources({ names: options.migrations }))
+      const result = await Promise.resolve(readSources())
       driftSources = result.sources.length > 0 ? result.sources : null
     } catch {
       driftSources = null
