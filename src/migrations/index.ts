@@ -11,6 +11,8 @@ import * as migration_20261022_045702_admin_changes from './20261022_045702_admi
 import * as migration_20261022_090000_seo_meta from './20261022_090000_seo_meta';
 import * as migration_20261022_140000_database_tools_capability from './20261022_140000_database_tools_capability';
 import * as migration_20261022_160000_database_upkeep_job from './20261022_160000_database_upkeep_job';
+import * as migration_20261023_022612_schema_snapshot from './20261023_022612_schema_snapshot';
+import * as migration_20261023_023618_admin_changes from './20261023_023618_admin_changes';
 
 export const migrations = [
   {
@@ -66,16 +68,26 @@ export const migrations = [
   {
     up: migration_20261022_090000_seo_meta.up,
     down: migration_20261022_090000_seo_meta.down,
-    name: '20261022_090000_seo_meta'
+    name: '20261022_090000_seo_meta',
   },
   {
     up: migration_20261022_140000_database_tools_capability.up,
     down: migration_20261022_140000_database_tools_capability.down,
-    name: '20261022_140000_database_tools_capability'
+    name: '20261022_140000_database_tools_capability',
   },
   {
     up: migration_20261022_160000_database_upkeep_job.up,
     down: migration_20261022_160000_database_upkeep_job.down,
-    name: '20261022_160000_database_upkeep_job'
+    name: '20261022_160000_database_upkeep_job',
+  },
+  {
+    up: migration_20261023_022612_schema_snapshot.up,
+    down: migration_20261023_022612_schema_snapshot.down,
+    name: '20261023_022612_schema_snapshot',
+  },
+  {
+    up: migration_20261023_023618_admin_changes.up,
+    down: migration_20261023_023618_admin_changes.down,
+    name: '20261023_023618_admin_changes'
   },
 ];

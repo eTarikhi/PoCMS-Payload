@@ -15,7 +15,7 @@ import {
   ToolsPreview,
   WidgetsPreview,
 } from './previews'
-import { RegistryTables } from './Registry'
+import { RegistryTables } from './RegistryTable'
 import { collectRegistry } from './registry'
 import { GallerySection } from './Section'
 

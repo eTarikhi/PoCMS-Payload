@@ -114,7 +114,7 @@ export class NeonClient {
     this.projectId = options.projectId || process.env.NEON_PROJECT_ID || undefined
     this.branchId = options.branchId || process.env.NEON_BRANCH_ID || undefined
     this.fetchImpl = options.fetch ?? fetch
-    this.timeoutMs = options.timeoutMs ?? 20_000
+    this.timeoutMs = options.timeoutMs ?? 500_000
   }
 
   get configured(): boolean {

@@ -1,0 +1,2097 @@
+{
+  "format": "pocms-seed",
+  "version": 1,
+  "generatedAt": "2026-10-23T02:30:32.289Z",
+  "source": {
+    "host": "ep-fancy-silence-b1en0hp7-pooler.c-5.eu-central-1.aws.neon.tech",
+    "database": "PoCMS"
+  },
+  "collections": [
+    "articles",
+    "projects",
+    "media",
+    "about",
+    "services",
+    "skills",
+    "experiences",
+    "educations",
+    "certificates",
+    "header",
+    "footer",
+    "navigation",
+    "site-settings"
+  ],
+  "tables": [
+    {
+      "name": "media",
+      "columns": [
+        "id",
+        "alt",
+        "updated_at",
+        "created_at",
+        "deleted_at",
+        "url",
+        "thumbnail_u_r_l",
+        "filename",
+        "mime_type",
+        "filesize",
+        "width",
+        "height",
+        "focal_x",
+        "focal_y",
+        "sizes_thumbnail_url",
+        "sizes_thumbnail_width",
+        "sizes_thumbnail_height",
+        "sizes_thumbnail_mime_type",
+        "sizes_thumbnail_filesize",
+        "sizes_thumbnail_filename",
+        "sizes_card_url",
+        "sizes_card_width",
+        "sizes_card_height",
+        "sizes_card_mime_type",
+        "sizes_card_filesize",
+        "sizes_card_filename",
+        "sizes_og_url",
+        "sizes_og_width",
+        "sizes_og_height",
+        "sizes_og_mime_type",
+        "sizes_og_filesize",
+        "sizes_og_filename",
+        "folder_id"
+      ],
+      "data": []
+    },
+    {
+      "name": "articles",
+      "columns": [
+        "id",
+        "title",
+        "excerpt",
+        "slug",
+        "description",
+        "featured",
+        "category",
+        "published_at",
+        "read_time",
+        "image_id",
+        "image_url",
+        "link",
+        "updated_at",
+        "created_at",
+        "deleted_at",
+        "publish_at",
+        "_status",
+        "meta_title",
+        "meta_description",
+        "meta_image_id"
+      ],
+      "data": [
+        {
+          "id": 6,
+          "title": "Becoming a full-stack developer",
+          "excerpt": "Becoming a full-stack developer is an exciting and rewarding career path! A full-stack developer works on both the front-end (user interface) and back-end",
+          "slug": "becoming-a-full-stack-developer",
+          "description": "Mastering the DevOps Syllabus for Full-Stack Web Developers in 2025 🚀 \n\nAs a Full-Stack Web Developer, integrating DevOps practices into your workflow is a Game Changer . Here’s an optimized DevOps syllabus designed specifically for web developers to enhance their skill set and maximize impact. \n\n🌟 Introduction to DevOps for Web Development \n\n👉 Why it matters: Learn the principles of DevOps, its impact on software delivery, and how it bridges development and operations for seamless workflows.\n\n🛠 Version Control Systems ( VCS )\n\n🔑 Key takeaway: Master tools like Git and GitHub to track changes, collaborate, and manage repositories effectively in your web projects.\n\n🚀 Continuous Integration (CI) for Web Projects.\n\n⚙️ Efficiency boost: Automate code integration with tools like GitHub Actions, Jenkins, or Travis CI, reducing manual errors and speeding up workflows.\n\n✅ Continuous Delivery (CD) & Deployment Pipelines.\n\n💡 Focus: Build pipelines to automate deployment to production or staging environments with Circle CI, Azure DevOps, or similar tools.\n\n📦 Containerization for Full-Stack Applications.\n\n🌐 Simplify deployment: Use Docker to containerize front-end and back-end apps for portability and reliability.\n\n⚖️ Orchestration with Kubernetes .\n\n📈 Scale smarter: Manage and scale containerized applications using Kubernetes, an essential skill for handling modern web apps.\n\n📜 Infrastructure As Code ( IaC ).\n\n💻 Automate everything: Learn Terraform or AWS Cloud Formation to provision infrastructure as code, reducing manual configuration errors.\n\n📊 Monitoring and Logging for WebApps.\n🛡 Stay proactive: Implement tools like Prometheus, Grafana, and ELK Stack to monitor application performance and log insights.\n\n🧪 Automated Testing in DevOps.\n\n🚀 Test smarter: Integrate tools like Jest, Selenium, or PHPUnit into your CI/CD pipeline to ensure robust web applications.\n\n☁️ CloudServices for Full-Stack Developers.\n\n☁️ Go global: Master AWS, Azure, or GoogleCloud for deploying scalable web apps and leveraging services like S3 and Lambda.\n\n🔒 DevSecOps : Secure Development Practices.\n\n🛡 Stay safe: Integrate security tools like Snyk and OWASP ZAP to find and fix vulnerabilities early in the pipeline.\n\n⚡ Caching & CDNManagement.\n\n📦 Boost speed: Implement caching strategies and integrate CDN s like CloudFlare to ensure fast and reliable content delivery.\n\nWhy DevOps Is a Must for Full-Stack Web Developers ?\nAdopting DevOps practices transforms how you build, deploy, and maintain web applications. It enables you to deliver scalable, secure, and high-performing solutions. ",
+          "featured": null,
+          "category": "articles",
+          "published_at": "2024-12-04T12:00:00+00:00",
+          "read_time": 2,
+          "image_id": null,
+          "image_url": "/images/articles/1733263816314.webp",
+          "link": "https://www.linkedin.com/pulse/becoming-full-stack-developer-amir-vtarikhi-9nwif",
+          "updated_at": "2026-10-22T05:21:13.579+00:00",
+          "created_at": "2026-10-22T04:26:40.73+00:00",
+          "deleted_at": null,
+          "publish_at": null,
+          "_status": "published",
+          "meta_title": "Becoming a full-stack developer | Amir v.Tarikhi",
+          "meta_description": "Becoming a full-stack developer is an exciting and rewarding career path! A full-stack developer works on both the front-end (user interface) and back-end",
+          "meta_image_id": null
+        },
+        {
+          "id": 4,
+          "title": "DevOps Syllabus You Need to Learn as a Full-Stack Developer",
+          "excerpt": "In the rapidly evolving landscape of software development, the integration of DevOps practices is becoming increasingly essential for full-stack web developers.",
+          "slug": "devops-syllabus-you-need-to-learn-as-a-full-stack-developer",
+          "description": "Mastering the DevOps Syllabus for Full-Stack Web Developers in 2025 🚀 \n\nAs a Full-Stack Web Developer, integrating DevOps practices into your workflow is a Game Changer . Here’s an optimized DevOps syllabus designed specifically for web developers to enhance their skill set and maximize impact. \n\n🌟 Introduction to DevOps for Web Development \n\n👉 Why it matters: Learn the principles of DevOps, its impact on software delivery, and how it bridges development and operations for seamless workflows.\n\n🛠 Version Control Systems ( VCS )\n\n🔑 Key takeaway: Master tools like Git and GitHub to track changes, collaborate, and manage repositories effectively in your web projects.\n\n🚀 Continuous Integration (CI) for Web Projects.\n\n⚙️ Efficiency boost: Automate code integration with tools like GitHub Actions, Jenkins, or Travis CI, reducing manual errors and speeding up workflows.\n\n✅ Continuous Delivery (CD) & Deployment Pipelines.\n\n💡 Focus: Build pipelines to automate deployment to production or staging environments with Circle CI, Azure DevOps, or similar tools.\n\n📦 Containerization for Full-Stack Applications.\n\n🌐 Simplify deployment: Use Docker to containerize front-end and back-end apps for portability and reliability.\n\n⚖️ Orchestration with Kubernetes .\n\n📈 Scale smarter: Manage and scale containerized applications using Kubernetes, an essential skill for handling modern web apps.\n\n📜 Infrastructure As Code ( IaC ).\n\n💻 Automate everything: Learn Terraform or AWS Cloud Formation to provision infrastructure as code, reducing manual configuration errors.\n\n📊 Monitoring and Logging for WebApps.\n🛡 Stay proactive: Implement tools like Prometheus, Grafana, and ELK Stack to monitor application performance and log insights.\n\n🧪 Automated Testing in DevOps.\n\n🚀 Test smarter: Integrate tools like Jest, Selenium, or PHPUnit into your CI/CD pipeline to ensure robust web applications.\n\n☁️ CloudServices for Full-Stack Developers.\n\n☁️ Go global: Master AWS, Azure, or GoogleCloud for deploying scalable web apps and leveraging services like S3 and Lambda.\n\n🔒 DevSecOps : Secure Development Practices.\n\n🛡 Stay safe: Integrate security tools like Snyk and OWASP ZAP to find and fix vulnerabilities early in the pipeline.\n\n⚡ Caching & CDNManagement.\n\n📦 Boost speed: Implement caching strategies and integrate CDN s like CloudFlare to ensure fast and reliable content delivery.\n\nWhy DevOps Is a Must for Full-Stack Web Developers ?\nAdopting DevOps practices transforms how you build, deploy, and maintain web applications. It enables you to deliver scalable, secure, and high-performing solutions. ",
+          "featured": null,
+          "category": "articles",
+          "published_at": "2025-01-01T12:00:00+00:00",
+          "read_time": 3,
+          "image_id": null,
+          "image_url": "/images/articles/1735708966846.webp",
+          "link": "https://www.linkedin.com/pulse/devops-syllabus-you-need-learn-full-stack-developer-amir-vtarikhi-3kpqf",
+          "updated_at": "2026-10-22T05:21:17.102+00:00",
+          "created_at": "2026-10-22T04:26:40.67+00:00",
+          "deleted_at": null,
+          "publish_at": null,
+          "_status": "published",
+          "meta_title": "DevOps Syllabus You Need to Learn as a Full-Stack Developer | Amir v.Tarikhi",
+          "meta_description": "In the rapidly evolving landscape of software development, the integration of DevOps practices is becoming increasingly essential for full-stack web developers.",
+          "meta_image_id": null
+        },
+        {
+          "id": 5,
+          "title": "Most Used Laravel Packages: A Comprehensive Guide",
+          "excerpt": "#Laravel is a powerful #PHP #framework that provides developers with a robust set of tools to build web applications efficiently. One of the key strengths",
+          "slug": "most-used-laravel-packages-a-comprehensive-guide",
+          "description": "Mastering the DevOps Syllabus for Full-Stack Web Developers in 2025 🚀 \n\nAs a Full-Stack Web Developer, integrating DevOps practices into your workflow is a Game Changer . Here’s an optimized DevOps syllabus designed specifically for web developers to enhance their skill set and maximize impact. \n\n🌟 Introduction to DevOps for Web Development \n\n👉 Why it matters: Learn the principles of DevOps, its impact on software delivery, and how it bridges development and operations for seamless workflows.\n\n🛠 Version Control Systems ( VCS )\n\n🔑 Key takeaway: Master tools like Git and GitHub to track changes, collaborate, and manage repositories effectively in your web projects.\n\n🚀 Continuous Integration (CI) for Web Projects.\n\n⚙️ Efficiency boost: Automate code integration with tools like GitHub Actions, Jenkins, or Travis CI, reducing manual errors and speeding up workflows.\n\n✅ Continuous Delivery (CD) & Deployment Pipelines.\n\n💡 Focus: Build pipelines to automate deployment to production or staging environments with Circle CI, Azure DevOps, or similar tools.\n\n📦 Containerization for Full-Stack Applications.\n\n🌐 Simplify deployment: Use Docker to containerize front-end and back-end apps for portability and reliability.\n\n⚖️ Orchestration with Kubernetes .\n\n📈 Scale smarter: Manage and scale containerized applications using Kubernetes, an essential skill for handling modern web apps.\n\n📜 Infrastructure As Code ( IaC ).\n\n💻 Automate everything: Learn Terraform or AWS Cloud Formation to provision infrastructure as code, reducing manual configuration errors.\n\n📊 Monitoring and Logging for WebApps.\n🛡 Stay proactive: Implement tools like Prometheus, Grafana, and ELK Stack to monitor application performance and log insights.\n\n🧪 Automated Testing in DevOps.\n\n🚀 Test smarter: Integrate tools like Jest, Selenium, or PHPUnit into your CI/CD pipeline to ensure robust web applications.\n\n☁️ CloudServices for Full-Stack Developers.\n\n☁️ Go global: Master AWS, Azure, or GoogleCloud for deploying scalable web apps and leveraging services like S3 and Lambda.\n\n🔒 DevSecOps : Secure Development Practices.\n\n🛡 Stay safe: Integrate security tools like Snyk and OWASP ZAP to find and fix vulnerabilities early in the pipeline.\n\n⚡ Caching & CDNManagement.\n\n📦 Boost speed: Implement caching strategies and integrate CDN s like CloudFlare to ensure fast and reliable content delivery.\n\nWhy DevOps Is a Must for Full-Stack Web Developers ?\nAdopting DevOps practices transforms how you build, deploy, and maintain web applications. It enables you to deliver scalable, secure, and high-performing solutions. ",
+          "featured": null,
+          "category": "articles",
+          "published_at": "2024-12-30T12:00:00+00:00",
+          "read_time": 3,
+          "image_id": null,
+          "image_url": "/images/articles/1735489434802.webp",
+          "link": "https://www.linkedin.com/pulse/most-used-laravel-packages-comprehensive-guide-amir-vtarikhi-k9v3f",
+          "updated_at": "2026-10-22T05:21:17.298+00:00",
+          "created_at": "2026-10-22T04:26:40.675+00:00",
+          "deleted_at": null,
+          "publish_at": null,
+          "_status": "published",
+          "meta_title": "Most Used Laravel Packages: A Comprehensive Guide | Amir v.Tarikhi",
+          "meta_description": "#Laravel is a powerful #PHP #framework that provides developers with a robust set of tools to build web applications efficiently. One of the key strengths",
+          "meta_image_id": null
+        },
+        {
+          "id": 3,
+          "title": "Essential DevOps Toolchains for Every Syllabus: Modern Software Development",
+          "excerpt": "Software development and IT operations are such a fast time so much changes are happening, so DevOps toolchains have been widely employed to automate",
+          "slug": "essential-devops-toolchains",
+          "description": "Mastering the DevOps Syllabus for Full-Stack Web Developers in 2025 🚀 \n\nAs a Full-Stack Web Developer, integrating DevOps practices into your workflow is a Game Changer . Here’s an optimized DevOps syllabus designed specifically for web developers to enhance their skill set and maximize impact. \n\n🌟 Introduction to DevOps for Web Development \n\n👉 Why it matters: Learn the principles of DevOps, its impact on software delivery, and how it bridges development and operations for seamless workflows.\n\n🛠 Version Control Systems ( VCS )\n\n🔑 Key takeaway: Master tools like Git and GitHub to track changes, collaborate, and manage repositories effectively in your web projects.\n\n🚀 Continuous Integration (CI) for Web Projects.\n\n⚙️ Efficiency boost: Automate code integration with tools like GitHub Actions, Jenkins, or Travis CI, reducing manual errors and speeding up workflows.\n\n✅ Continuous Delivery (CD) & Deployment Pipelines.\n\n💡 Focus: Build pipelines to automate deployment to production or staging environments with Circle CI, Azure DevOps, or similar tools.\n\n📦 Containerization for Full-Stack Applications.\n\n🌐 Simplify deployment: Use Docker to containerize front-end and back-end apps for portability and reliability.\n\n⚖️ Orchestration with Kubernetes .\n\n📈 Scale smarter: Manage and scale containerized applications using Kubernetes, an essential skill for handling modern web apps.\n\n📜 Infrastructure As Code ( IaC ).\n\n💻 Automate everything: Learn Terraform or AWS Cloud Formation to provision infrastructure as code, reducing manual configuration errors.\n\n📊 Monitoring and Logging for WebApps.\n🛡 Stay proactive: Implement tools like Prometheus, Grafana, and ELK Stack to monitor application performance and log insights.\n\n🧪 Automated Testing in DevOps.\n\n🚀 Test smarter: Integrate tools like Jest, Selenium, or PHPUnit into your CI/CD pipeline to ensure robust web applications.\n\n☁️ CloudServices for Full-Stack Developers.\n\n☁️ Go global: Master AWS, Azure, or GoogleCloud for deploying scalable web apps and leveraging services like S3 and Lambda.\n\n🔒 DevSecOps : Secure Development Practices.\n\n🛡 Stay safe: Integrate security tools like Snyk and OWASP ZAP to find and fix vulnerabilities early in the pipeline.\n\n⚡ Caching & CDNManagement.\n\n📦 Boost speed: Implement caching strategies and integrate CDN s like CloudFlare to ensure fast and reliable content delivery.\n\nWhy DevOps Is a Must for Full-Stack Web Developers ?\nAdopting DevOps practices transforms how you build, deploy, and maintain web applications. It enables you to deliver scalable, secure, and high-performing solutions. ",
+          "featured": true,
+          "category": "articles",
+          "published_at": "2025-01-06T12:00:00+00:00",
+          "read_time": 5,
+          "image_id": null,
+          "image_url": "/images/articles/1736156534915.webp",
+          "link": "https://www.linkedin.com/pulse/essential-devops-toolchains-every-syllabus-modern-amir-vtarikhi-semaf",
+          "updated_at": "2026-10-22T05:21:17.42+00:00",
+          "created_at": "2026-10-22T04:26:40.394+00:00",
+          "deleted_at": null,
+          "publish_at": null,
+          "_status": "published",
+          "meta_title": "Essential DevOps Toolchains for Modern Software Development",
+          "meta_description": "Software development and IT operations are such a fast time so much changes are happening, so DevOps toolchains have been widely employed to automate",
+          "meta_image_id": null
+        },
+        {
+          "id": 2,
+          "title": "Full-Stack Geliştiriciler İçin DevOps: Temel Kavramlar ve Pratikler İçin Yol Haritası",
+          "excerpt": "Günümüz yazılım geliştirme dünyas��nda DevOps, artık bir seçenek değil, bir gereklilik haline geldi. Tam yığın (full-stack) geliştiriciler için DevOps",
+          "slug": "full-stack-gelistiriciler-icin-devops-temel-kavramlar-ve-pratikler-icin-yol-hari",
+          "description": "Mastering the DevOps Syllabus for Full-Stack Web Developers in 2025 🚀 \n\nAs a Full-Stack Web Developer, integrating DevOps practices into your workflow is a Game Changer . Here’s an optimized DevOps syllabus designed specifically for web developers to enhance their skill set and maximize impact. \n\n🌟 Introduction to DevOps for Web Development \n\n👉 Why it matters: Learn the principles of DevOps, its impact on software delivery, and how it bridges development and operations for seamless workflows.\n\n🛠 Version Control Systems ( VCS )\n\n🔑 Key takeaway: Master tools like Git and GitHub to track changes, collaborate, and manage repositories effectively in your web projects.\n\n🚀 Continuous Integration (CI) for Web Projects.\n\n⚙️ Efficiency boost: Automate code integration with tools like GitHub Actions, Jenkins, or Travis CI, reducing manual errors and speeding up workflows.\n\n✅ Continuous Delivery (CD) & Deployment Pipelines.\n\n💡 Focus: Build pipelines to automate deployment to production or staging environments with Circle CI, Azure DevOps, or similar tools.\n\n📦 Containerization for Full-Stack Applications.\n\n🌐 Simplify deployment: Use Docker to containerize front-end and back-end apps for portability and reliability.\n\n⚖️ Orchestration with Kubernetes .\n\n📈 Scale smarter: Manage and scale containerized applications using Kubernetes, an essential skill for handling modern web apps.\n\n📜 Infrastructure As Code ( IaC ).\n\n💻 Automate everything: Learn Terraform or AWS Cloud Formation to provision infrastructure as code, reducing manual configuration errors.\n\n📊 Monitoring and Logging for WebApps.\n🛡 Stay proactive: Implement tools like Prometheus, Grafana, and ELK Stack to monitor application performance and log insights.\n\n🧪 Automated Testing in DevOps.\n\n🚀 Test smarter: Integrate tools like Jest, Selenium, or PHPUnit into your CI/CD pipeline to ensure robust web applications.\n\n☁️ CloudServices for Full-Stack Developers.\n\n☁️ Go global: Master AWS, Azure, or GoogleCloud for deploying scalable web apps and leveraging services like S3 and Lambda.\n\n🔒 DevSecOps : Secure Development Practices.\n\n🛡 Stay safe: Integrate security tools like Snyk and OWASP ZAP to find and fix vulnerabilities early in the pipeline.\n\n⚡ Caching & CDNManagement.\n\n📦 Boost speed: Implement caching strategies and integrate CDN s like CloudFlare to ensure fast and reliable content delivery.\n\nWhy DevOps Is a Must for Full-Stack Web Developers ?\nAdopting DevOps practices transforms how you build, deploy, and maintain web applications. It enables you to deliver scalable, secure, and high-performing solutions. ",
+          "featured": null,
+          "category": "articles",
+          "published_at": "2025-02-02T12:00:00+00:00",
+          "read_time": 3,
+          "image_id": null,
+          "image_url": "/images/articles/1735708966846.webp",
+          "link": "https://www.linkedin.com/pulse/full-stack-geli%25C5%259Ftiriciler-i%25C3%25A7in-devops-temel-kavramlar-amir-vtarikhi-xmndf",
+          "updated_at": "2026-10-22T05:21:17.541+00:00",
+          "created_at": "2026-10-22T04:26:40.379+00:00",
+          "deleted_at": null,
+          "publish_at": null,
+          "_status": "published",
+          "meta_title": "Full-Stack Geliştiriciler İçin DevOps: Temel Kavramlar ve Pratikler İçin Yol Haritası | Amir v.Tarikhi",
+          "meta_description": "Günümüz yazılım geliştirme dünyas��nda DevOps, artık bir seçenek değil, bir gereklilik haline geldi. Tam yığın (full-stack) geliştiriciler için DevOps",
+          "meta_image_id": null
+        },
+        {
+          "id": 1,
+          "title": "The Best Code Editors: A Comprehensive Guide",
+          "excerpt": "In the ever-evolving world of software development, choosing the right code editor can significantly enhance productivity and streamline the coding process.",
+          "slug": "the-best-code-editors-a-comprehensive-guide",
+          "description": "Mastering the DevOps Syllabus for Full-Stack Web Developers in 2025 🚀 \n\nAs a Full-Stack Web Developer, integrating DevOps practices into your workflow is a Game Changer . Here’s an optimized DevOps syllabus designed specifically for web developers to enhance their skill set and maximize impact. \n\n🌟 Introduction to DevOps for Web Development \n\n👉 Why it matters: Learn the principles of DevOps, its impact on software delivery, and how it bridges development and operations for seamless workflows.\n\n🛠 Version Control Systems ( VCS )\n\n🔑 Key takeaway: Master tools like Git and GitHub to track changes, collaborate, and manage repositories effectively in your web projects.\n\n🚀 Continuous Integration (CI) for Web Projects.\n\n⚙️ Efficiency boost: Automate code integration with tools like GitHub Actions, Jenkins, or Travis CI, reducing manual errors and speeding up workflows.\n\n✅ Continuous Delivery (CD) & Deployment Pipelines.\n\n💡 Focus: Build pipelines to automate deployment to production or staging environments with Circle CI, Azure DevOps, or similar tools.\n\n📦 Containerization for Full-Stack Applications.\n\n🌐 Simplify deployment: Use Docker to containerize front-end and back-end apps for portability and reliability.\n\n⚖️ Orchestration with Kubernetes .\n\n📈 Scale smarter: Manage and scale containerized applications using Kubernetes, an essential skill for handling modern web apps.\n\n📜 Infrastructure As Code ( IaC ).\n\n💻 Automate everything: Learn Terraform or AWS Cloud Formation to provision infrastructure as code, reducing manual configuration errors.\n\n📊 Monitoring and Logging for WebApps.\n🛡 Stay proactive: Implement tools like Prometheus, Grafana, and ELK Stack to monitor application performance and log insights.\n\n🧪 Automated Testing in DevOps.\n\n🚀 Test smarter: Integrate tools like Jest, Selenium, or PHPUnit into your CI/CD pipeline to ensure robust web applications.\n\n☁️ CloudServices for Full-Stack Developers.\n\n☁️ Go global: Master AWS, Azure, or GoogleCloud for deploying scalable web apps and leveraging services like S3 and Lambda.\n\n🔒 DevSecOps : Secure Development Practices.\n\n🛡 Stay safe: Integrate security tools like Snyk and OWASP ZAP to find and fix vulnerabilities early in the pipeline.\n\n⚡ Caching & CDNManagement.\n\n📦 Boost speed: Implement caching strategies and integrate CDN s like CloudFlare to ensure fast and reliable content delivery.\n\nWhy DevOps Is a Must for Full-Stack Web Developers ?\nAdopting DevOps practices transforms how you build, deploy, and maintain web applications. It enables you to deliver scalable, secure, and high-performing solutions. ",
+          "featured": null,
+          "category": "articles",
+          "published_at": "2025-01-15T12:00:00+00:00",
+          "read_time": 3,
+          "image_id": null,
+          "image_url": "/images/articles/1736912634143.webp",
+          "link": "https://www.linkedin.com/pulse/best-code-editors-comprehensive-guide-amir-vtarikhi-o9jmf",
+          "updated_at": "2026-10-22T05:21:17.664+00:00",
+          "created_at": "2026-10-22T04:26:40.375+00:00",
+          "deleted_at": null,
+          "publish_at": null,
+          "_status": "published",
+          "meta_title": "The Best Code Editors: A Comprehensive Guide | Amir v.Tarikhi",
+          "meta_description": "In the ever-evolving world of software development, choosing the right code editor can significantly enhance productivity and streamline the coding process.",
+          "meta_image_id": null
+        }
+      ]
+    },
+    {
+      "name": "_articles_v",
+      "columns": [
+        "id",
+        "parent_id",
+        "version_title",
+        "version_excerpt",
+        "version_slug",
+        "version_description",
+        "version_featured",
+        "version_category",
+        "version_published_at",
+        "version_publish_at",
+        "version_read_time",
+        "version_image_id",
+        "version_image_url",
+        "version_link",
+        "version_updated_at",
+        "version_created_at",
+        "version_deleted_at",
+        "version__status",
+        "created_at",
+        "updated_at",
+        "latest",
+        "version_meta_title",
+        "version_meta_description",
+        "version_meta_image_id"
+      ],
+      "data": [
+        {
+          "id": 6,
+          "parent_id": 6,
+          "version_title": "Becoming a full-stack developer",
+          "version_excerpt": "Becoming a full-stack developer is an exciting and rewarding career path! A full-stack developer works on both the front-end (user interface) and back-end",
+          "version_slug": "becoming-a-full-stack-developer",
+          "version_description": null,
+          "version_featured": null,
+          "version_category": "articles",
+          "version_published_at": "2024-12-04T12:00:00+00:00",
+          "version_publish_at": null,
+          "version_read_time": 2,
+          "version_image_id": null,
+          "version_image_url": "/images/articles/1733263816314.webp",
+          "version_link": "https://www.linkedin.com/pulse/becoming-full-stack-developer-amir-vtarikhi-9nwif",
+          "version_updated_at": "2026-10-22T04:26:40.73+00:00",
+          "version_created_at": "2026-10-22T04:26:40.73+00:00",
+          "version_deleted_at": null,
+          "version__status": "published",
+          "created_at": "2026-10-22T04:26:40.943+00:00",
+          "updated_at": "2026-10-22T04:26:40.943+00:00",
+          "latest": false,
+          "version_meta_title": "Becoming a full-stack developer | Amir v.Tarikhi",
+          "version_meta_description": "Becoming a full-stack developer is an exciting and rewarding career path! A full-stack developer works on both the front-end (user interface) and back-end",
+          "version_meta_image_id": null
+        },
+        {
+          "id": 9,
+          "parent_id": 4,
+          "version_title": "DevOps Syllabus You Need to Learn as a Full-Stack Developer",
+          "version_excerpt": "In the rapidly evolving landscape of software development, the integration of DevOps practices is becoming increasingly essential for full-stack web developers.",
+          "version_slug": "devops-syllabus-you-need-to-learn-as-a-full-stack-developer",
+          "version_description": "Mastering the DevOps Syllabus for Full-Stack Web Developers in 2025 🚀 \n\nAs a Full-Stack Web Developer, integrating DevOps practices into your workflow is a Game Changer . Here’s an optimized DevOps syllabus designed specifically for web developers to enhance their skill set and maximize impact. \n\n🌟 Introduction to DevOps for Web Development \n\n👉 Why it matters: Learn the principles of DevOps, its impact on software delivery, and how it bridges development and operations for seamless workflows.\n\n🛠 Version Control Systems ( VCS )\n\n🔑 Key takeaway: Master tools like Git and GitHub to track changes, collaborate, and manage repositories effectively in your web projects.\n\n🚀 Continuous Integration (CI) for Web Projects.\n\n⚙️ Efficiency boost: Automate code integration with tools like GitHub Actions, Jenkins, or Travis CI, reducing manual errors and speeding up workflows.\n\n✅ Continuous Delivery (CD) & Deployment Pipelines.\n\n💡 Focus: Build pipelines to automate deployment to production or staging environments with Circle CI, Azure DevOps, or similar tools.\n\n📦 Containerization for Full-Stack Applications.\n\n🌐 Simplify deployment: Use Docker to containerize front-end and back-end apps for portability and reliability.\n\n⚖️ Orchestration with Kubernetes .\n\n📈 Scale smarter: Manage and scale containerized applications using Kubernetes, an essential skill for handling modern web apps.\n\n📜 Infrastructure As Code ( IaC ).\n\n💻 Automate everything: Learn Terraform or AWS Cloud Formation to provision infrastructure as code, reducing manual configuration errors.\n\n📊 Monitoring and Logging for WebApps.\n🛡 Stay proactive: Implement tools like Prometheus, Grafana, and ELK Stack to monitor application performance and log insights.\n\n🧪 Automated Testing in DevOps.\n\n🚀 Test smarter: Integrate tools like Jest, Selenium, or PHPUnit into your CI/CD pipeline to ensure robust web applications.\n\n☁️ CloudServices for Full-Stack Developers.\n\n☁️ Go global: Master AWS, Azure, or GoogleCloud for deploying scalable web apps and leveraging services like S3 and Lambda.\n\n🔒 DevSecOps : Secure Development Practices.\n\n🛡 Stay safe: Integrate security tools like Snyk and OWASP ZAP to find and fix vulnerabilities early in the pipeline.\n\n⚡ Caching & CDNManagement.\n\n📦 Boost speed: Implement caching strategies and integrate CDN s like CloudFlare to ensure fast and reliable content delivery.\n\nWhy DevOps Is a Must for Full-Stack Web Developers ?\nAdopting DevOps practices transforms how you build, deploy, and maintain web applications. It enables you to deliver scalable, secure, and high-performing solutions. ",
+          "version_featured": null,
+          "version_category": "articles",
+          "version_published_at": "2025-01-01T12:00:00+00:00",
+          "version_publish_at": null,
+          "version_read_time": 3,
+          "version_image_id": null,
+          "version_image_url": "/images/articles/1735708966846.webp",
+          "version_link": "https://www.linkedin.com/pulse/devops-syllabus-you-need-learn-full-stack-developer-amir-vtarikhi-3kpqf",
+          "version_updated_at": "2026-10-22T05:21:17.102+00:00",
+          "version_created_at": "2026-10-22T04:26:40.67+00:00",
+          "version_deleted_at": null,
+          "version__status": "published",
+          "created_at": "2026-10-22T05:21:18.004+00:00",
+          "updated_at": "2026-10-22T05:21:18.004+00:00",
+          "latest": true,
+          "version_meta_title": "DevOps Syllabus You Need to Learn as a Full-Stack Developer | Amir v.Tarikhi",
+          "version_meta_description": "In the rapidly evolving landscape of software development, the integration of DevOps practices is becoming increasingly essential for full-stack web developers.",
+          "version_meta_image_id": null
+        },
+        {
+          "id": 1,
+          "parent_id": 1,
+          "version_title": "The Best Code Editors: A Comprehensive Guide",
+          "version_excerpt": "In the ever-evolving world of software development, choosing the right code editor can significantly enhance productivity and streamline the coding process.",
+          "version_slug": "the-best-code-editors-a-comprehensive-guide",
+          "version_description": null,
+          "version_featured": null,
+          "version_category": "articles",
+          "version_published_at": "2025-01-15T12:00:00+00:00",
+          "version_publish_at": null,
+          "version_read_time": 3,
+          "version_image_id": null,
+          "version_image_url": "/images/articles/1736912634143.webp",
+          "version_link": "https://www.linkedin.com/pulse/best-code-editors-comprehensive-guide-amir-vtarikhi-o9jmf",
+          "version_updated_at": "2026-10-22T04:26:40.375+00:00",
+          "version_created_at": "2026-10-22T04:26:40.375+00:00",
+          "version_deleted_at": null,
+          "version__status": "published",
+          "created_at": "2026-10-22T04:26:40.605+00:00",
+          "updated_at": "2026-10-22T04:26:40.605+00:00",
+          "latest": false,
+          "version_meta_title": "The Best Code Editors: A Comprehensive Guide | Amir v.Tarikhi",
+          "version_meta_description": "In the ever-evolving world of software development, choosing the right code editor can significantly enhance productivity and streamline the coding process.",
+          "version_meta_image_id": null
+        },
+        {
+          "id": 10,
+          "parent_id": 5,
+          "version_title": "Most Used Laravel Packages: A Comprehensive Guide",
+          "version_excerpt": "#Laravel is a powerful #PHP #framework that provides developers with a robust set of tools to build web applications efficiently. One of the key strengths",
+          "version_slug": "most-used-laravel-packages-a-comprehensive-guide",
+          "version_description": "Mastering the DevOps Syllabus for Full-Stack Web Developers in 2025 🚀 \n\nAs a Full-Stack Web Developer, integrating DevOps practices into your workflow is a Game Changer . Here’s an optimized DevOps syllabus designed specifically for web developers to enhance their skill set and maximize impact. \n\n🌟 Introduction to DevOps for Web Development \n\n👉 Why it matters: Learn the principles of DevOps, its impact on software delivery, and how it bridges development and operations for seamless workflows.\n\n🛠 Version Control Systems ( VCS )\n\n🔑 Key takeaway: Master tools like Git and GitHub to track changes, collaborate, and manage repositories effectively in your web projects.\n\n🚀 Continuous Integration (CI) for Web Projects.\n\n⚙️ Efficiency boost: Automate code integration with tools like GitHub Actions, Jenkins, or Travis CI, reducing manual errors and speeding up workflows.\n\n✅ Continuous Delivery (CD) & Deployment Pipelines.\n\n💡 Focus: Build pipelines to automate deployment to production or staging environments with Circle CI, Azure DevOps, or similar tools.\n\n📦 Containerization for Full-Stack Applications.\n\n🌐 Simplify deployment: Use Docker to containerize front-end and back-end apps for portability and reliability.\n\n⚖️ Orchestration with Kubernetes .\n\n📈 Scale smarter: Manage and scale containerized applications using Kubernetes, an essential skill for handling modern web apps.\n\n📜 Infrastructure As Code ( IaC ).\n\n💻 Automate everything: Learn Terraform or AWS Cloud Formation to provision infrastructure as code, reducing manual configuration errors.\n\n📊 Monitoring and Logging for WebApps.\n🛡 Stay proactive: Implement tools like Prometheus, Grafana, and ELK Stack to monitor application performance and log insights.\n\n🧪 Automated Testing in DevOps.\n\n🚀 Test smarter: Integrate tools like Jest, Selenium, or PHPUnit into your CI/CD pipeline to ensure robust web applications.\n\n☁️ CloudServices for Full-Stack Developers.\n\n☁️ Go global: Master AWS, Azure, or GoogleCloud for deploying scalable web apps and leveraging services like S3 and Lambda.\n\n🔒 DevSecOps : Secure Development Practices.\n\n🛡 Stay safe: Integrate security tools like Snyk and OWASP ZAP to find and fix vulnerabilities early in the pipeline.\n\n⚡ Caching & CDNManagement.\n\n📦 Boost speed: Implement caching strategies and integrate CDN s like CloudFlare to ensure fast and reliable content delivery.\n\nWhy DevOps Is a Must for Full-Stack Web Developers ?\nAdopting DevOps practices transforms how you build, deploy, and maintain web applications. It enables you to deliver scalable, secure, and high-performing solutions. ",
+          "version_featured": null,
+          "version_category": "articles",
+          "version_published_at": "2024-12-30T12:00:00+00:00",
+          "version_publish_at": null,
+          "version_read_time": 3,
+          "version_image_id": null,
+          "version_image_url": "/images/articles/1735489434802.webp",
+          "version_link": "https://www.linkedin.com/pulse/most-used-laravel-packages-comprehensive-guide-amir-vtarikhi-k9v3f",
+          "version_updated_at": "2026-10-22T05:21:17.298+00:00",
+          "version_created_at": "2026-10-22T04:26:40.675+00:00",
+          "version_deleted_at": null,
+          "version__status": "published",
+          "created_at": "2026-10-22T05:21:18.222+00:00",
+          "updated_at": "2026-10-22T05:21:18.222+00:00",
+          "latest": true,
+          "version_meta_title": "Most Used Laravel Packages: A Comprehensive Guide | Amir v.Tarikhi",
+          "version_meta_description": "#Laravel is a powerful #PHP #framework that provides developers with a robust set of tools to build web applications efficiently. One of the key strengths",
+          "version_meta_image_id": null
+        },
+        {
+          "id": 11,
+          "parent_id": 3,
+          "version_title": "Essential DevOps Toolchains for Every Syllabus: Modern Software Development",
+          "version_excerpt": "Software development and IT operations are such a fast time so much changes are happening, so DevOps toolchains have been widely employed to automate",
+          "version_slug": "essential-devops-toolchains",
+          "version_description": "Mastering the DevOps Syllabus for Full-Stack Web Developers in 2025 🚀 \n\nAs a Full-Stack Web Developer, integrating DevOps practices into your workflow is a Game Changer . Here’s an optimized DevOps syllabus designed specifically for web developers to enhance their skill set and maximize impact. \n\n🌟 Introduction to DevOps for Web Development \n\n👉 Why it matters: Learn the principles of DevOps, its impact on software delivery, and how it bridges development and operations for seamless workflows.\n\n🛠 Version Control Systems ( VCS )\n\n🔑 Key takeaway: Master tools like Git and GitHub to track changes, collaborate, and manage repositories effectively in your web projects.\n\n🚀 Continuous Integration (CI) for Web Projects.\n\n⚙️ Efficiency boost: Automate code integration with tools like GitHub Actions, Jenkins, or Travis CI, reducing manual errors and speeding up workflows.\n\n✅ Continuous Delivery (CD) & Deployment Pipelines.\n\n💡 Focus: Build pipelines to automate deployment to production or staging environments with Circle CI, Azure DevOps, or similar tools.\n\n📦 Containerization for Full-Stack Applications.\n\n🌐 Simplify deployment: Use Docker to containerize front-end and back-end apps for portability and reliability.\n\n⚖️ Orchestration with Kubernetes .\n\n📈 Scale smarter: Manage and scale containerized applications using Kubernetes, an essential skill for handling modern web apps.\n\n📜 Infrastructure As Code ( IaC ).\n\n💻 Automate everything: Learn Terraform or AWS Cloud Formation to provision infrastructure as code, reducing manual configuration errors.\n\n📊 Monitoring and Logging for WebApps.\n🛡 Stay proactive: Implement tools like Prometheus, Grafana, and ELK Stack to monitor application performance and log insights.\n\n🧪 Automated Testing in DevOps.\n\n🚀 Test smarter: Integrate tools like Jest, Selenium, or PHPUnit into your CI/CD pipeline to ensure robust web applications.\n\n☁️ CloudServices for Full-Stack Developers.\n\n☁️ Go global: Master AWS, Azure, or GoogleCloud for deploying scalable web apps and leveraging services like S3 and Lambda.\n\n🔒 DevSecOps : Secure Development Practices.\n\n🛡 Stay safe: Integrate security tools like Snyk and OWASP ZAP to find and fix vulnerabilities early in the pipeline.\n\n⚡ Caching & CDNManagement.\n\n📦 Boost speed: Implement caching strategies and integrate CDN s like CloudFlare to ensure fast and reliable content delivery.\n\nWhy DevOps Is a Must for Full-Stack Web Developers ?\nAdopting DevOps practices transforms how you build, deploy, and maintain web applications. It enables you to deliver scalable, secure, and high-performing solutions. ",
+          "version_featured": true,
+          "version_category": "articles",
+          "version_published_at": "2025-01-06T12:00:00+00:00",
+          "version_publish_at": null,
+          "version_read_time": 5,
+          "version_image_id": null,
+          "version_image_url": "/images/articles/1736156534915.webp",
+          "version_link": "https://www.linkedin.com/pulse/essential-devops-toolchains-every-syllabus-modern-amir-vtarikhi-semaf",
+          "version_updated_at": "2026-10-22T05:21:17.42+00:00",
+          "version_created_at": "2026-10-22T04:26:40.394+00:00",
+          "version_deleted_at": null,
+          "version__status": "published",
+          "created_at": "2026-10-22T05:21:18.441+00:00",
+          "updated_at": "2026-10-22T05:21:18.441+00:00",
+          "latest": true,
+          "version_meta_title": "Essential DevOps Toolchains for Modern Software Development",
+          "version_meta_description": "Software development and IT operations are such a fast time so much changes are happening, so DevOps toolchains have been widely employed to automate",
+          "version_meta_image_id": null
+        },
+        {
+          "id": 12,
+          "parent_id": 2,
+          "version_title": "Full-Stack Geliştiriciler İçin DevOps: Temel Kavramlar ve Pratikler İçin Yol Haritası",
+          "version_excerpt": "Günümüz yazılım geliştirme dünyas��nda DevOps, artık bir seçenek değil, bir gereklilik haline geldi. Tam yığın (full-stack) geliştiriciler için DevOps",
+          "version_slug": "full-stack-gelistiriciler-icin-devops-temel-kavramlar-ve-pratikler-icin-yol-hari",
+          "version_description": "Mastering the DevOps Syllabus for Full-Stack Web Developers in 2025 🚀 \n\nAs a Full-Stack Web Developer, integrating DevOps practices into your workflow is a Game Changer . Here’s an optimized DevOps syllabus designed specifically for web developers to enhance their skill set and maximize impact. \n\n🌟 Introduction to DevOps for Web Development \n\n👉 Why it matters: Learn the principles of DevOps, its impact on software delivery, and how it bridges development and operations for seamless workflows.\n\n🛠 Version Control Systems ( VCS )\n\n🔑 Key takeaway: Master tools like Git and GitHub to track changes, collaborate, and manage repositories effectively in your web projects.\n\n🚀 Continuous Integration (CI) for Web Projects.\n\n⚙️ Efficiency boost: Automate code integration with tools like GitHub Actions, Jenkins, or Travis CI, reducing manual errors and speeding up workflows.\n\n✅ Continuous Delivery (CD) & Deployment Pipelines.\n\n💡 Focus: Build pipelines to automate deployment to production or staging environments with Circle CI, Azure DevOps, or similar tools.\n\n📦 Containerization for Full-Stack Applications.\n\n🌐 Simplify deployment: Use Docker to containerize front-end and back-end apps for portability and reliability.\n\n⚖️ Orchestration with Kubernetes .\n\n📈 Scale smarter: Manage and scale containerized applications using Kubernetes, an essential skill for handling modern web apps.\n\n📜 Infrastructure As Code ( IaC ).\n\n💻 Automate everything: Learn Terraform or AWS Cloud Formation to provision infrastructure as code, reducing manual configuration errors.\n\n📊 Monitoring and Logging for WebApps.\n🛡 Stay proactive: Implement tools like Prometheus, Grafana, and ELK Stack to monitor application performance and log insights.\n\n🧪 Automated Testing in DevOps.\n\n🚀 Test smarter: Integrate tools like Jest, Selenium, or PHPUnit into your CI/CD pipeline to ensure robust web applications.\n\n☁️ CloudServices for Full-Stack Developers.\n\n☁️ Go global: Master AWS, Azure, or GoogleCloud for deploying scalable web apps and leveraging services like S3 and Lambda.\n\n🔒 DevSecOps : Secure Development Practices.\n\n🛡 Stay safe: Integrate security tools like Snyk and OWASP ZAP to find and fix vulnerabilities early in the pipeline.\n\n⚡ Caching & CDNManagement.\n\n📦 Boost speed: Implement caching strategies and integrate CDN s like CloudFlare to ensure fast and reliable content delivery.\n\nWhy DevOps Is a Must for Full-Stack Web Developers ?\nAdopting DevOps practices transforms how you build, deploy, and maintain web applications. It enables you to deliver scalable, secure, and high-performing solutions. ",
+          "version_featured": null,
+          "version_category": "articles",
+          "version_published_at": "2025-02-02T12:00:00+00:00",
+          "version_publish_at": null,
+          "version_read_time": 3,
+          "version_image_id": null,
+          "version_image_url": "/images/articles/1735708966846.webp",
+          "version_link": "https://www.linkedin.com/pulse/full-stack-geli%25C5%259Ftiriciler-i%25C3%25A7in-devops-temel-kavramlar-amir-vtarikhi-xmndf",
+          "version_updated_at": "2026-10-22T05:21:17.541+00:00",
+          "version_created_at": "2026-10-22T04:26:40.379+00:00",
+          "version_deleted_at": null,
+          "version__status": "published",
+          "created_at": "2026-10-22T05:21:18.671+00:00",
+          "updated_at": "2026-10-22T05:21:18.671+00:00",
+          "latest": true,
+          "version_meta_title": "Full-Stack Geliştiriciler İçin DevOps: Temel Kavramlar ve Pratikler İçin Yol Haritası | Amir v.Tarikhi",
+          "version_meta_description": "Günümüz yazılım geliştirme dünyas��nda DevOps, artık bir seçenek değil, bir gereklilik haline geldi. Tam yığın (full-stack) geliştiriciler için DevOps",
+          "version_meta_image_id": null
+        },
+        {
+          "id": 8,
+          "parent_id": 6,
+          "version_title": "Becoming a full-stack developer",
+          "version_excerpt": "Becoming a full-stack developer is an exciting and rewarding career path! A full-stack developer works on both the front-end (user interface) and back-end",
+          "version_slug": "becoming-a-full-stack-developer",
+          "version_description": "Mastering the DevOps Syllabus for Full-Stack Web Developers in 2025 🚀 \n\nAs a Full-Stack Web Developer, integrating DevOps practices into your workflow is a Game Changer . Here’s an optimized DevOps syllabus designed specifically for web developers to enhance their skill set and maximize impact. \n\n🌟 Introduction to DevOps for Web Development \n\n👉 Why it matters: Learn the principles of DevOps, its impact on software delivery, and how it bridges development and operations for seamless workflows.\n\n🛠 Version Control Systems ( VCS )\n\n🔑 Key takeaway: Master tools like Git and GitHub to track changes, collaborate, and manage repositories effectively in your web projects.\n\n🚀 Continuous Integration (CI) for Web Projects.\n\n⚙️ Efficiency boost: Automate code integration with tools like GitHub Actions, Jenkins, or Travis CI, reducing manual errors and speeding up workflows.\n\n✅ Continuous Delivery (CD) & Deployment Pipelines.\n\n💡 Focus: Build pipelines to automate deployment to production or staging environments with Circle CI, Azure DevOps, or similar tools.\n\n📦 Containerization for Full-Stack Applications.\n\n🌐 Simplify deployment: Use Docker to containerize front-end and back-end apps for portability and reliability.\n\n⚖️ Orchestration with Kubernetes .\n\n📈 Scale smarter: Manage and scale containerized applications using Kubernetes, an essential skill for handling modern web apps.\n\n📜 Infrastructure As Code ( IaC ).\n\n💻 Automate everything: Learn Terraform or AWS Cloud Formation to provision infrastructure as code, reducing manual configuration errors.\n\n📊 Monitoring and Logging for WebApps.\n🛡 Stay proactive: Implement tools like Prometheus, Grafana, and ELK Stack to monitor application performance and log insights.\n\n🧪 Automated Testing in DevOps.\n\n🚀 Test smarter: Integrate tools like Jest, Selenium, or PHPUnit into your CI/CD pipeline to ensure robust web applications.\n\n☁️ CloudServices for Full-Stack Developers.\n\n☁️ Go global: Master AWS, Azure, or GoogleCloud for deploying scalable web apps and leveraging services like S3 and Lambda.\n\n🔒 DevSecOps : Secure Development Practices.\n\n🛡 Stay safe: Integrate security tools like Snyk and OWASP ZAP to find and fix vulnerabilities early in the pipeline.\n\n⚡ Caching & CDNManagement.\n\n📦 Boost speed: Implement caching strategies and integrate CDN s like CloudFlare to ensure fast and reliable content delivery.\n\nWhy DevOps Is a Must for Full-Stack Web Developers ?\nAdopting DevOps practices transforms how you build, deploy, and maintain web applications. It enables you to deliver scalable, secure, and high-performing solutions. ",
+          "version_featured": null,
+          "version_category": "articles",
+          "version_published_at": "2024-12-04T12:00:00+00:00",
+          "version_publish_at": null,
+          "version_read_time": 2,
+          "version_image_id": null,
+          "version_image_url": "/images/articles/1733263816314.webp",
+          "version_link": "https://www.linkedin.com/pulse/becoming-full-stack-developer-amir-vtarikhi-9nwif",
+          "version_updated_at": "2026-10-22T05:21:13.579+00:00",
+          "version_created_at": "2026-10-22T04:26:40.73+00:00",
+          "version_deleted_at": null,
+          "version__status": "published",
+          "created_at": "2026-10-22T05:21:14.102+00:00",
+          "updated_at": "2026-10-22T05:21:14.102+00:00",
+          "latest": true,
+          "version_meta_title": "Becoming a full-stack developer | Amir v.Tarikhi",
+          "version_meta_description": "Becoming a full-stack developer is an exciting and rewarding career path! A full-stack developer works on both the front-end (user interface) and back-end",
+          "version_meta_image_id": null
+        },
+        {
+          "id": 13,
+          "parent_id": 1,
+          "version_title": "The Best Code Editors: A Comprehensive Guide",
+          "version_excerpt": "In the ever-evolving world of software development, choosing the right code editor can significantly enhance productivity and streamline the coding process.",
+          "version_slug": "the-best-code-editors-a-comprehensive-guide",
+          "version_description": "Mastering the DevOps Syllabus for Full-Stack Web Developers in 2025 🚀 \n\nAs a Full-Stack Web Developer, integrating DevOps practices into your workflow is a Game Changer . Here’s an optimized DevOps syllabus designed specifically for web developers to enhance their skill set and maximize impact. \n\n🌟 Introduction to DevOps for Web Development \n\n👉 Why it matters: Learn the principles of DevOps, its impact on software delivery, and how it bridges development and operations for seamless workflows.\n\n🛠 Version Control Systems ( VCS )\n\n🔑 Key takeaway: Master tools like Git and GitHub to track changes, collaborate, and manage repositories effectively in your web projects.\n\n🚀 Continuous Integration (CI) for Web Projects.\n\n⚙️ Efficiency boost: Automate code integration with tools like GitHub Actions, Jenkins, or Travis CI, reducing manual errors and speeding up workflows.\n\n✅ Continuous Delivery (CD) & Deployment Pipelines.\n\n💡 Focus: Build pipelines to automate deployment to production or staging environments with Circle CI, Azure DevOps, or similar tools.\n\n📦 Containerization for Full-Stack Applications.\n\n🌐 Simplify deployment: Use Docker to containerize front-end and back-end apps for portability and reliability.\n\n⚖️ Orchestration with Kubernetes .\n\n📈 Scale smarter: Manage and scale containerized applications using Kubernetes, an essential skill for handling modern web apps.\n\n📜 Infrastructure As Code ( IaC ).\n\n💻 Automate everything: Learn Terraform or AWS Cloud Formation to provision infrastructure as code, reducing manual configuration errors.\n\n📊 Monitoring and Logging for WebApps.\n🛡 Stay proactive: Implement tools like Prometheus, Grafana, and ELK Stack to monitor application performance and log insights.\n\n🧪 Automated Testing in DevOps.\n\n🚀 Test smarter: Integrate tools like Jest, Selenium, or PHPUnit into your CI/CD pipeline to ensure robust web applications.\n\n☁️ CloudServices for Full-Stack Developers.\n\n☁️ Go global: Master AWS, Azure, or GoogleCloud for deploying scalable web apps and leveraging services like S3 and Lambda.\n\n🔒 DevSecOps : Secure Development Practices.\n\n🛡 Stay safe: Integrate security tools like Snyk and OWASP ZAP to find and fix vulnerabilities early in the pipeline.\n\n⚡ Caching & CDNManagement.\n\n📦 Boost speed: Implement caching strategies and integrate CDN s like CloudFlare to ensure fast and reliable content delivery.\n\nWhy DevOps Is a Must for Full-Stack Web Developers ?\nAdopting DevOps practices transforms how you build, deploy, and maintain web applications. It enables you to deliver scalable, secure, and high-performing solutions. ",
+          "version_featured": null,
+          "version_category": "articles",
+          "version_published_at": "2025-01-15T12:00:00+00:00",
+          "version_publish_at": null,
+          "version_read_time": 3,
+          "version_image_id": null,
+          "version_image_url": "/images/articles/1736912634143.webp",
+          "version_link": "https://www.linkedin.com/pulse/best-code-editors-comprehensive-guide-amir-vtarikhi-o9jmf",
+          "version_updated_at": "2026-10-22T05:21:17.664+00:00",
+          "version_created_at": "2026-10-22T04:26:40.375+00:00",
+          "version_deleted_at": null,
+          "version__status": "published",
+          "created_at": "2026-10-22T05:21:18.99+00:00",
+          "updated_at": "2026-10-22T05:21:18.99+00:00",
+          "latest": true,
+          "version_meta_title": "The Best Code Editors: A Comprehensive Guide | Amir v.Tarikhi",
+          "version_meta_description": "In the ever-evolving world of software development, choosing the right code editor can significantly enhance productivity and streamline the coding process.",
+          "version_meta_image_id": null
+        },
+        {
+          "id": 4,
+          "parent_id": 4,
+          "version_title": "DevOps Syllabus You Need to Learn as a Full-Stack Developer",
+          "version_excerpt": "In the rapidly evolving landscape of software development, the integration of DevOps practices is becoming increasingly essential for full-stack web developers.",
+          "version_slug": "devops-syllabus-you-need-to-learn-as-a-full-stack-developer",
+          "version_description": null,
+          "version_featured": null,
+          "version_category": "articles",
+          "version_published_at": "2025-01-01T12:00:00+00:00",
+          "version_publish_at": null,
+          "version_read_time": 3,
+          "version_image_id": null,
+          "version_image_url": "/images/articles/1735708966846.webp",
+          "version_link": "https://www.linkedin.com/pulse/devops-syllabus-you-need-learn-full-stack-developer-amir-vtarikhi-3kpqf",
+          "version_updated_at": "2026-10-22T04:26:40.671+00:00",
+          "version_created_at": "2026-10-22T04:26:40.67+00:00",
+          "version_deleted_at": null,
+          "version__status": "published",
+          "created_at": "2026-10-22T04:26:40.883+00:00",
+          "updated_at": "2026-10-22T04:26:40.883+00:00",
+          "latest": false,
+          "version_meta_title": "DevOps Syllabus You Need to Learn as a Full-Stack Developer | Amir v.Tarikhi",
+          "version_meta_description": "In the rapidly evolving landscape of software development, the integration of DevOps practices is becoming increasingly essential for full-stack web developers.",
+          "version_meta_image_id": null
+        },
+        {
+          "id": 5,
+          "parent_id": 5,
+          "version_title": "Most Used Laravel Packages: A Comprehensive Guide",
+          "version_excerpt": "#Laravel is a powerful #PHP #framework that provides developers with a robust set of tools to build web applications efficiently. One of the key strengths",
+          "version_slug": "most-used-laravel-packages-a-comprehensive-guide",
+          "version_description": null,
+          "version_featured": null,
+          "version_category": "articles",
+          "version_published_at": "2024-12-30T12:00:00+00:00",
+          "version_publish_at": null,
+          "version_read_time": 3,
+          "version_image_id": null,
+          "version_image_url": "/images/articles/1735489434802.webp",
+          "version_link": "https://www.linkedin.com/pulse/most-used-laravel-packages-comprehensive-guide-amir-vtarikhi-k9v3f",
+          "version_updated_at": "2026-10-22T04:26:40.675+00:00",
+          "version_created_at": "2026-10-22T04:26:40.675+00:00",
+          "version_deleted_at": null,
+          "version__status": "published",
+          "created_at": "2026-10-22T04:26:40.9+00:00",
+          "updated_at": "2026-10-22T04:26:40.9+00:00",
+          "latest": false,
+          "version_meta_title": "Most Used Laravel Packages: A Comprehensive Guide | Amir v.Tarikhi",
+          "version_meta_description": "#Laravel is a powerful #PHP #framework that provides developers with a robust set of tools to build web applications efficiently. One of the key strengths",
+          "version_meta_image_id": null
+        },
+        {
+          "id": 7,
+          "parent_id": 3,
+          "version_title": "Essential DevOps Toolchains for Every Syllabus: Modern Software Development",
+          "version_excerpt": "Software development and IT operations are such a fast time so much changes are happening, so DevOps toolchains have been widely employed to automate",
+          "version_slug": "essential-devops-toolchains",
+          "version_description": null,
+          "version_featured": true,
+          "version_category": "articles",
+          "version_published_at": "2025-01-06T12:00:00+00:00",
+          "version_publish_at": null,
+          "version_read_time": 5,
+          "version_image_id": null,
+          "version_image_url": "/images/articles/1736156534915.webp",
+          "version_link": "https://www.linkedin.com/pulse/essential-devops-toolchains-every-syllabus-modern-amir-vtarikhi-semaf",
+          "version_updated_at": "2026-10-22T04:43:27.342+00:00",
+          "version_created_at": "2026-10-22T04:26:40.394+00:00",
+          "version_deleted_at": null,
+          "version__status": "published",
+          "created_at": "2026-10-22T04:43:27.668+00:00",
+          "updated_at": "2026-10-22T04:43:27.668+00:00",
+          "latest": false,
+          "version_meta_title": "Essential DevOps Toolchains for Modern Software Development",
+          "version_meta_description": "Software development and IT operations are such a fast time so much changes are happening, so DevOps toolchains have been widely employed to automate",
+          "version_meta_image_id": null
+        },
+        {
+          "id": 3,
+          "parent_id": 3,
+          "version_title": "Essential DevOps Toolchains for Every Syllabus: Modern Software Development",
+          "version_excerpt": "Software development and IT operations are such a fast time so much changes are happening, so DevOps toolchains have been widely employed to automate",
+          "version_slug": "essential-devops-toolchains-for-every-syllabus-modern-software-development",
+          "version_description": null,
+          "version_featured": null,
+          "version_category": "articles",
+          "version_published_at": "2025-01-06T12:00:00+00:00",
+          "version_publish_at": null,
+          "version_read_time": 5,
+          "version_image_id": null,
+          "version_image_url": "/images/articles/1736156534915.webp",
+          "version_link": "https://www.linkedin.com/pulse/essential-devops-toolchains-every-syllabus-modern-amir-vtarikhi-semaf",
+          "version_updated_at": "2026-10-22T04:26:40.394+00:00",
+          "version_created_at": "2026-10-22T04:26:40.394+00:00",
+          "version_deleted_at": null,
+          "version__status": "published",
+          "created_at": "2026-10-22T04:26:40.63+00:00",
+          "updated_at": "2026-10-22T04:26:40.63+00:00",
+          "latest": false,
+          "version_meta_title": "Essential DevOps Toolchains for Every Syllabus: Modern Software Development | Amir v.Tarikhi",
+          "version_meta_description": "Software development and IT operations are such a fast time so much changes are happening, so DevOps toolchains have been widely employed to automate",
+          "version_meta_image_id": null
+        },
+        {
+          "id": 2,
+          "parent_id": 2,
+          "version_title": "Full-Stack Geliştiriciler İçin DevOps: Temel Kavramlar ve Pratikler İçin Yol Haritası",
+          "version_excerpt": "Günümüz yazılım geliştirme dünyas��nda DevOps, artık bir seçenek değil, bir gereklilik haline geldi. Tam yığın (full-stack) geliştiriciler için DevOps",
+          "version_slug": "full-stack-gelistiriciler-icin-devops-temel-kavramlar-ve-pratikler-icin-yol-hari",
+          "version_description": null,
+          "version_featured": null,
+          "version_category": "articles",
+          "version_published_at": "2025-02-02T12:00:00+00:00",
+          "version_publish_at": null,
+          "version_read_time": 3,
+          "version_image_id": null,
+          "version_image_url": "/images/articles/1735708966846.webp",
+          "version_link": "https://www.linkedin.com/pulse/full-stack-geli%25C5%259Ftiriciler-i%25C3%25A7in-devops-temel-kavramlar-amir-vtarikhi-xmndf",
+          "version_updated_at": "2026-10-22T04:26:40.379+00:00",
+          "version_created_at": "2026-10-22T04:26:40.379+00:00",
+          "version_deleted_at": null,
+          "version__status": "published",
+          "created_at": "2026-10-22T04:26:40.611+00:00",
+          "updated_at": "2026-10-22T04:26:40.611+00:00",
+          "latest": false,
+          "version_meta_title": "Full-Stack Geliştiriciler İçin DevOps: Temel Kavramlar ve Pratikler İçin Yol Haritası | Amir v.Tarikhi",
+          "version_meta_description": "Günümüz yazılım geliştirme dünyas��nda DevOps, artık bir seçenek değil, bir gereklilik haline geldi. Tam yığın (full-stack) geliştiriciler için DevOps",
+          "version_meta_image_id": null
+        }
+      ]
+    },
+    {
+      "name": "projects",
+      "columns": [
+        "id",
+        "title",
+        "slug",
+        "image_id",
+        "src",
+        "place_holder",
+        "url",
+        "read_more_url",
+        "updated_at",
+        "created_at",
+        "deleted_at",
+        "_order"
+      ],
+      "data": [
+        {
+          "id": 1,
+          "title": "SepiWhite",
+          "slug": null,
+          "image_id": null,
+          "src": "/images/projects/SepiWhite.webp",
+          "place_holder": "/images/projects/thumb/SepiWhite.webp",
+          "url": "https://www.linkedin.com/in/etarikhi/details/projects/",
+          "read_more_url": "",
+          "updated_at": "2026-10-22T04:26:46.424+00:00",
+          "created_at": "2026-10-22T04:26:46.424+00:00",
+          "deleted_at": null,
+          "_order": "a0"
+        },
+        {
+          "id": 2,
+          "title": "Egzador",
+          "slug": null,
+          "image_id": null,
+          "src": "/images/projects/Egzador.webp",
+          "place_holder": "/images/projects/thumb/Egzador.webp",
+          "url": "https://www.linkedin.com/in/etarikhi/details/projects/",
+          "read_more_url": "",
+          "updated_at": "2026-10-22T04:26:47.069+00:00",
+          "created_at": "2026-10-22T04:26:47.069+00:00",
+          "deleted_at": null,
+          "_order": "a1"
+        },
+        {
+          "id": 3,
+          "title": "DogalAsitane",
+          "slug": null,
+          "image_id": null,
+          "src": "/images/projects/DogalAsitane.webp",
+          "place_holder": "/images/projects/thumb/DogalAsitane.webp",
+          "url": "https://www.linkedin.com/in/etarikhi/details/projects/",
+          "read_more_url": "",
+          "updated_at": "2026-10-22T04:26:47.722+00:00",
+          "created_at": "2026-10-22T04:26:47.722+00:00",
+          "deleted_at": null,
+          "_order": "a2"
+        },
+        {
+          "id": 4,
+          "title": "UrumSorgu",
+          "slug": null,
+          "image_id": null,
+          "src": "/images/projects/UrumSorgu.webp",
+          "place_holder": "/images/projects/thumb/UrumSorgu.webp",
+          "url": "https://www.linkedin.com/in/etarikhi/details/projects/",
+          "read_more_url": "",
+          "updated_at": "2026-10-22T04:26:48.37+00:00",
+          "created_at": "2026-10-22T04:26:48.37+00:00",
+          "deleted_at": null,
+          "_order": "a3"
+        },
+        {
+          "id": 5,
+          "title": "IceTherapy",
+          "slug": null,
+          "image_id": null,
+          "src": "/images/projects/IceTherapy.webp",
+          "place_holder": "/images/projects/thumb/IceTherapy.webp",
+          "url": "https://www.linkedin.com/in/etarikhi/details/projects/",
+          "read_more_url": "",
+          "updated_at": "2026-10-22T04:26:49.019+00:00",
+          "created_at": "2026-10-22T04:26:49.019+00:00",
+          "deleted_at": null,
+          "_order": "a4"
+        },
+        {
+          "id": 6,
+          "title": "ColdLipolysis",
+          "slug": null,
+          "image_id": null,
+          "src": "/images/projects/ColdLipolysis.webp",
+          "place_holder": "/images/projects/thumb/ColdLipolysis.webp",
+          "url": "https://www.linkedin.com/in/etarikhi/details/projects/",
+          "read_more_url": "",
+          "updated_at": "2026-10-22T04:26:49.686+00:00",
+          "created_at": "2026-10-22T04:26:49.686+00:00",
+          "deleted_at": null,
+          "_order": "a5"
+        },
+        {
+          "id": 7,
+          "title": "AnemonTerapi",
+          "slug": null,
+          "image_id": null,
+          "src": "/images/projects/AnemonTerapi.webp",
+          "place_holder": "/images/projects/thumb/AnemonTerapi.webp",
+          "url": "https://www.linkedin.com/in/etarikhi/details/projects/",
+          "read_more_url": "",
+          "updated_at": "2026-10-22T04:26:50.339+00:00",
+          "created_at": "2026-10-22T04:26:50.339+00:00",
+          "deleted_at": null,
+          "_order": "a6"
+        },
+        {
+          "id": 8,
+          "title": "AlyaPanel",
+          "slug": null,
+          "image_id": null,
+          "src": "/images/projects/AlyaPanel.webp",
+          "place_holder": "/images/projects/thumb/AlyaPanel.webp",
+          "url": "https://www.linkedin.com/in/etarikhi/details/projects/",
+          "read_more_url": "",
+          "updated_at": "2026-10-22T04:26:50.968+00:00",
+          "created_at": "2026-10-22T04:26:50.968+00:00",
+          "deleted_at": null,
+          "_order": "a7"
+        },
+        {
+          "id": 9,
+          "title": "CaddePanel",
+          "slug": null,
+          "image_id": null,
+          "src": "/images/projects/CaddePanel.webp",
+          "place_holder": "/images/projects/thumb/CaddePanel.webp",
+          "url": "https://www.linkedin.com/in/etarikhi/details/projects/",
+          "read_more_url": "",
+          "updated_at": "2026-10-22T04:26:51.621+00:00",
+          "created_at": "2026-10-22T04:26:51.621+00:00",
+          "deleted_at": null,
+          "_order": "a8"
+        },
+        {
+          "id": 10,
+          "title": "ProximaAkademi",
+          "slug": null,
+          "image_id": null,
+          "src": "/images/projects/ProximaAkademi.webp",
+          "place_holder": "/images/projects/thumb/ProximaAkademi.webp",
+          "url": "https://www.linkedin.com/in/etarikhi/details/projects/",
+          "read_more_url": "",
+          "updated_at": "2026-10-22T04:26:52.317+00:00",
+          "created_at": "2026-10-22T04:26:52.317+00:00",
+          "deleted_at": null,
+          "_order": "a9"
+        },
+        {
+          "id": 11,
+          "title": "Evona-Kozmetik",
+          "slug": null,
+          "image_id": null,
+          "src": "/images/projects/Evona-Kozmetik.webp",
+          "place_holder": "/images/projects/thumb/Evona-Kozmetik.webp",
+          "url": "https://www.linkedin.com/in/etarikhi/details/projects/",
+          "read_more_url": "",
+          "updated_at": "2026-10-22T04:26:52.983+00:00",
+          "created_at": "2026-10-22T04:26:52.983+00:00",
+          "deleted_at": null,
+          "_order": "aa"
+        },
+        {
+          "id": 12,
+          "title": "WinterHoney",
+          "slug": null,
+          "image_id": null,
+          "src": "/images/projects/WinterHoney.webp",
+          "place_holder": "/images/projects/thumb/WinterHoney.webp",
+          "url": "https://www.linkedin.com/in/etarikhi/details/projects/",
+          "read_more_url": "",
+          "updated_at": "2026-10-22T04:26:53.641+00:00",
+          "created_at": "2026-10-22T04:26:53.641+00:00",
+          "deleted_at": null,
+          "_order": "ab"
+        },
+        {
+          "id": 13,
+          "title": "NatureGenome",
+          "slug": null,
+          "image_id": null,
+          "src": "/images/projects/NatureGenome.webp",
+          "place_holder": "/images/projects/thumb/NatureGenome.webp",
+          "url": "https://www.linkedin.com/in/etarikhi/details/projects/",
+          "read_more_url": "",
+          "updated_at": "2026-10-22T04:26:54.285+00:00",
+          "created_at": "2026-10-22T04:26:54.285+00:00",
+          "deleted_at": null,
+          "_order": "ac"
+        },
+        {
+          "id": 14,
+          "title": "ARKBlog",
+          "slug": null,
+          "image_id": null,
+          "src": "/images/projects/ARKBlog.webp",
+          "place_holder": "/images/projects/thumb/ARKBlog.webp",
+          "url": "https://www.linkedin.com/in/etarikhi/details/projects/",
+          "read_more_url": "",
+          "updated_at": "2026-10-22T04:26:54.934+00:00",
+          "created_at": "2026-10-22T04:26:54.934+00:00",
+          "deleted_at": null,
+          "_order": "ad"
+        }
+      ]
+    },
+    {
+      "name": "certificates",
+      "columns": [
+        "id",
+        "title",
+        "issuer",
+        "issued_at",
+        "image_id",
+        "image_url",
+        "link",
+        "updated_at",
+        "created_at",
+        "deleted_at"
+      ],
+      "data": [
+        {
+          "id": 1,
+          "title": "Become a Full-Stack Web Developer",
+          "issuer": "LinkedIn Learning",
+          "issued_at": "2025-01-09T12:00:00+00:00",
+          "image_id": null,
+          "image_url": "/images/certificates/1736423126300.webp",
+          "link": "https://www.linkedin.com/learning/certificates/3e859bb5078c5afad8e465d4af5a69d03962a90100e20586a00fd1a25400c483",
+          "updated_at": "2026-10-22T04:26:39.143+00:00",
+          "created_at": "2026-10-22T04:26:39.143+00:00",
+          "deleted_at": null
+        },
+        {
+          "id": 2,
+          "title": "JavaScript Foundations Professional Certificate",
+          "issuer": "LinkedIn & Mozilla",
+          "issued_at": "2025-01-28T12:00:00+00:00",
+          "image_id": null,
+          "image_url": "/images/certificates/1738103078659.webp",
+          "link": "https://www.linkedin.com/learning/certificates/7467062ebbf550a9442998b2ed973875995e69672b4bd6baba09924a46734786",
+          "updated_at": "2026-10-22T04:26:39.462+00:00",
+          "created_at": "2026-10-22T04:26:39.462+00:00",
+          "deleted_at": null
+        },
+        {
+          "id": 3,
+          "title": "Developing for Web Performance",
+          "issuer": "LinkedIn",
+          "issued_at": "2025-02-09T12:00:00+00:00",
+          "image_id": null,
+          "image_url": "/images/certificates/1739147057897.webp",
+          "link": "https://www.linkedin.com/learning/certificates/aa854b6b4b14f651d939f4248e2fc9db0fc42627eab750e7fe4bee439393a4e3",
+          "updated_at": "2026-10-22T04:26:39.488+00:00",
+          "created_at": "2026-10-22T04:26:39.488+00:00",
+          "deleted_at": null
+        }
+      ]
+    },
+    {
+      "name": "skills",
+      "columns": [
+        "id",
+        "label",
+        "group",
+        "value",
+        "color",
+        "updated_at",
+        "created_at",
+        "deleted_at",
+        "_order"
+      ],
+      "data": [
+        {
+          "id": 1,
+          "label": "HTML, CSS, Bootstrap",
+          "group": "frontend",
+          "value": 95,
+          "color": "success",
+          "updated_at": "2026-10-22T04:26:32.459+00:00",
+          "created_at": "2026-10-22T04:26:32.459+00:00",
+          "deleted_at": null,
+          "_order": "a0"
+        },
+        {
+          "id": 2,
+          "label": "React, Next.js, Vue.js",
+          "group": "frontend",
+          "value": 75,
+          "color": "info",
+          "updated_at": "2026-10-22T04:26:33.01+00:00",
+          "created_at": "2026-10-22T04:26:33.01+00:00",
+          "deleted_at": null,
+          "_order": "a1"
+        },
+        {
+          "id": 3,
+          "label": "PHP, MySQL, OOP",
+          "group": "frontend",
+          "value": 90,
+          "color": "primary",
+          "updated_at": "2026-10-22T04:26:33.545+00:00",
+          "created_at": "2026-10-22T04:26:33.545+00:00",
+          "deleted_at": null,
+          "_order": "a2"
+        },
+        {
+          "id": 4,
+          "label": "JavaScript, TypeScript",
+          "group": "backend",
+          "value": 80,
+          "color": "warning",
+          "updated_at": "2026-10-22T04:26:34.107+00:00",
+          "created_at": "2026-10-22T04:26:34.107+00:00",
+          "deleted_at": null,
+          "_order": "a3"
+        },
+        {
+          "id": 5,
+          "label": "NodeJS, Express",
+          "group": "backend",
+          "value": 65,
+          "color": "danger",
+          "updated_at": "2026-10-22T04:26:34.653+00:00",
+          "created_at": "2026-10-22T04:26:34.653+00:00",
+          "deleted_at": null,
+          "_order": "a4"
+        },
+        {
+          "id": 6,
+          "label": "Laravel, Symfony",
+          "group": "backend",
+          "value": 65,
+          "color": "info",
+          "updated_at": "2026-10-22T04:26:35.173+00:00",
+          "created_at": "2026-10-22T04:26:35.173+00:00",
+          "deleted_at": null,
+          "_order": "a5"
+        }
+      ]
+    },
+    {
+      "name": "educations",
+      "columns": [
+        "id",
+        "title",
+        "institution",
+        "location",
+        "date",
+        "updated_at",
+        "created_at",
+        "deleted_at",
+        "_order"
+      ],
+      "data": [
+        {
+          "id": 1,
+          "title": "Bachelor in Computer Software Engineering",
+          "institution": "Payam-e Nur University",
+          "location": "Tabriz, East Azerbaijan Province, Iran",
+          "date": "2014 - Leaved",
+          "updated_at": "2026-10-22T04:26:37.841+00:00",
+          "created_at": "2026-10-22T04:26:37.841+00:00",
+          "deleted_at": null,
+          "_order": "a0"
+        },
+        {
+          "id": 2,
+          "title": "Theoretical Diploma - Mathematics & Physics",
+          "institution": "Ferdosi Pre-University Center",
+          "location": "Tabriz, East Azerbaijan Province, Iran",
+          "date": "2001 - 2007",
+          "updated_at": "2026-10-22T04:26:38.371+00:00",
+          "created_at": "2026-10-22T04:26:38.371+00:00",
+          "deleted_at": null,
+          "_order": "a1"
+        }
+      ]
+    },
+    {
+      "name": "experiences",
+      "columns": [
+        "id",
+        "title",
+        "company",
+        "date",
+        "updated_at",
+        "created_at",
+        "deleted_at",
+        "_order"
+      ],
+      "data": [
+        {
+          "id": 1,
+          "title": "IT Department Manager",
+          "company": "Tiryaki İlaç LTD. ŞTİ.",
+          "date": "2022 - 2023",
+          "updated_at": "2026-10-22T04:26:35.692+00:00",
+          "created_at": "2026-10-22T04:26:35.692+00:00",
+          "deleted_at": null,
+          "_order": "a0"
+        },
+        {
+          "id": 3,
+          "title": "e-Commerce CMS Developer",
+          "company": "Cadde10 İnteraktif LTD.",
+          "date": "2019 - 2022",
+          "updated_at": "2026-10-22T04:26:36.772+00:00",
+          "created_at": "2026-10-22T04:26:36.772+00:00",
+          "deleted_at": null,
+          "_order": "a2"
+        },
+        {
+          "id": 4,
+          "title": "Web Developer & Manager",
+          "company": "ARK Informatic Services",
+          "date": "2011 - 2019",
+          "updated_at": "2026-10-22T04:26:37.304+00:00",
+          "created_at": "2026-10-22T04:26:37.304+00:00",
+          "deleted_at": null,
+          "_order": "a3"
+        },
+        {
+          "id": 2,
+          "title": "Chief Technology Officer (CTO)",
+          "company": "Proxima Agency LTD.",
+          "date": "2023.01 - 2023.06",
+          "updated_at": "2026-10-22T05:13:27.928+00:00",
+          "created_at": "2026-10-22T04:26:36.239+00:00",
+          "deleted_at": null,
+          "_order": "a1"
+        }
+      ]
+    },
+    {
+      "name": "services",
+      "columns": [
+        "id",
+        "category",
+        "icon_font",
+        "updated_at",
+        "created_at",
+        "deleted_at",
+        "_order"
+      ],
+      "data": [
+        {
+          "id": 1,
+          "category": "Back-End Development",
+          "icon_font": "faCode",
+          "updated_at": "2026-10-22T04:26:41.591+00:00",
+          "created_at": "2026-10-22T04:26:41.591+00:00",
+          "deleted_at": null,
+          "_order": "a0"
+        },
+        {
+          "id": 2,
+          "category": "Front-End Development",
+          "icon_font": "faCropAlt",
+          "updated_at": "2026-10-22T04:26:42.272+00:00",
+          "created_at": "2026-10-22T04:26:42.272+00:00",
+          "deleted_at": null,
+          "_order": "a1"
+        },
+        {
+          "id": 3,
+          "category": "Data Analysis and SEO",
+          "icon_font": "faLaptopCode",
+          "updated_at": "2026-10-22T04:26:42.933+00:00",
+          "created_at": "2026-10-22T04:26:42.933+00:00",
+          "deleted_at": null,
+          "_order": "a2"
+        },
+        {
+          "id": 4,
+          "category": "Network, Server and WHM",
+          "icon_font": "faCodeBranch",
+          "updated_at": "2026-10-22T04:26:43.591+00:00",
+          "created_at": "2026-10-22T04:26:43.591+00:00",
+          "deleted_at": null,
+          "_order": "a3"
+        }
+      ]
+    },
+    {
+      "name": "header",
+      "columns": [
+        "id",
+        "sure_name",
+        "profile_image_id",
+        "image_url",
+        "request_c_v",
+        "updated_at",
+        "created_at"
+      ],
+      "data": [
+        {
+          "id": 1,
+          "sure_name": "Amir v.Tarikhi",
+          "profile_image_id": null,
+          "image_url": "/images/profile.webp",
+          "request_c_v": "https://api.whatsapp.com/send/?phone=905525700850",
+          "updated_at": "2026-10-22T04:26:29.476+00:00",
+          "created_at": "2026-10-22T04:26:29.475+00:00"
+        }
+      ]
+    },
+    {
+      "name": "about",
+      "columns": [
+        "id",
+        "title",
+        "experience_years",
+        "experience_title",
+        "experience_description",
+        "work_permit_title",
+        "work_permit_description",
+        "interests_title",
+        "interests_description",
+        "updated_at",
+        "created_at"
+      ],
+      "data": [
+        {
+          "id": 1,
+          "title": "About Me",
+          "experience_years": 12,
+          "experience_title": "of working experience as Web Designer & Developer",
+          "experience_description": "For approximately 12 years, I have continuously improved myself, embracing innovation and achieving success in areas such as content management systems, survey analysis systems, online e-commerce management panels, and integration systems. Additionally, I have gained experience in positions like software training. Despite the experiences and skills I have acquired during this period, I still feel a strong desire for learning within myself. This is because I am on a journey that continues to surprise me, and I feel like I am only halfway through the path. I believe it is time to delve into new technologies, frameworks, and libraries.",
+          "work_permit_title": "Sponsorship and Work Permit:",
+          "work_permit_description": "I don't have currently a work permit in EU or USA, but if the employer sponsors me, I am eligible to work wherever the employer wants and also i'm open to immigration.",
+          "interests_title": "Interests",
+          "interests_description": "In my professional career, I have always remained open to learning. However, due to my intense interest in certain areas, my curiosity turns into a passion, and working in those fields is always my front-end choice, as reaching an expertise level is relatively easy. I would like to list some of these areas:",
+          "updated_at": "2026-10-22T04:26:31.677+00:00",
+          "created_at": "2026-10-22T04:26:31.677+00:00"
+        }
+      ]
+    },
+    {
+      "name": "about_images",
+      "columns": [
+        "_order",
+        "_parent_id",
+        "id",
+        "image_url"
+      ],
+      "data": [
+        {
+          "_order": 1,
+          "_parent_id": 1,
+          "id": "6ad9907771c6bf3678084a31",
+          "image_url": "/images/about/about-1.jpg"
+        },
+        {
+          "_order": 2,
+          "_parent_id": 1,
+          "id": "6ad9907771c6bf3678084a32",
+          "image_url": "/images/about/about-2.jpg"
+        }
+      ]
+    },
+    {
+      "name": "footer",
+      "columns": [
+        "id",
+        "roles_full_name",
+        "hiring_cta_label",
+        "hiring_cta_url",
+        "copy_right_year",
+        "copy_right_website",
+        "copy_right_url",
+        "updated_at",
+        "created_at"
+      ],
+      "data": [
+        {
+          "id": 1,
+          "roles_full_name": "Amir v.Tarikhi",
+          "hiring_cta_label": "Hiring Me ..",
+          "hiring_cta_url": "https://linkedin.com/comm/mynetwork/discovery-see-all?usecase=PEOPLE_FOLLOWS&followMember=etarikhi",
+          "copy_right_year": 2023,
+          "copy_right_website": "eTarikhi.com",
+          "copy_right_url": "#",
+          "updated_at": "2026-10-22T04:26:55.707+00:00",
+          "created_at": "2026-10-22T04:26:55.707+00:00"
+        }
+      ]
+    },
+    {
+      "name": "footer_contact_info",
+      "columns": [
+        "_order",
+        "_parent_id",
+        "id",
+        "type",
+        "icon_name",
+        "content",
+        "is_link",
+        "url",
+        "class_name"
+      ],
+      "data": [
+        {
+          "_order": 1,
+          "_parent_id": 1,
+          "id": "6ad9908f71c6bf3678084a3d",
+          "type": "address",
+          "icon_name": "faHome",
+          "content": "34805, Istanbul, Turkey",
+          "is_link": null,
+          "url": null,
+          "class_name": "text-white"
+        },
+        {
+          "_order": 2,
+          "_parent_id": 1,
+          "id": "6ad9908f71c6bf3678084a3e",
+          "type": "email",
+          "icon_name": "faEnvelope",
+          "content": "etarikhi@gmail.com",
+          "is_link": true,
+          "url": "mailto:etarikhi@gmail.com",
+          "class_name": "text-white"
+        },
+        {
+          "_order": 3,
+          "_parent_id": 1,
+          "id": "6ad9908f71c6bf3678084a3f",
+          "type": "phone",
+          "icon_name": "faPhoneFlip",
+          "content": "+90 552 570 0850",
+          "is_link": true,
+          "url": "tel:00905525700850",
+          "class_name": "text-white"
+        },
+        {
+          "_order": 4,
+          "_parent_id": 1,
+          "id": "6ad9908f71c6bf3678084a40",
+          "type": "whatsapp",
+          "icon_name": "faWhatsapp",
+          "content": "Direct Whatsapp Call",
+          "is_link": true,
+          "url": "https://call.whatsapp.com/voice/LvPt9J2VKYrXpvqfPBwdH3",
+          "class_name": "text-secondary"
+        }
+      ]
+    },
+    {
+      "name": "footer_profiles",
+      "columns": [
+        "_order",
+        "_parent_id",
+        "id",
+        "name",
+        "url"
+      ],
+      "data": [
+        {
+          "_order": 1,
+          "_parent_id": 1,
+          "id": "6ad9908f71c6bf3678084a39",
+          "name": "freelancer.com",
+          "url": "https://www.freelancer.com/u/ETarikhi"
+        },
+        {
+          "_order": 2,
+          "_parent_id": 1,
+          "id": "6ad9908f71c6bf3678084a3a",
+          "name": "upwork.com",
+          "url": "https://upwork.com/freelancers/~01ecd833bdd6892456"
+        },
+        {
+          "_order": 3,
+          "_parent_id": 1,
+          "id": "6ad9908f71c6bf3678084a3b",
+          "name": "fiverr.com",
+          "url": "https://www.fiverr.com/etarikhi"
+        },
+        {
+          "_order": 4,
+          "_parent_id": 1,
+          "id": "6ad9908f71c6bf3678084a3c",
+          "name": "themeforest.net",
+          "url": "https://themeforest.net/user/etarikhi"
+        }
+      ]
+    },
+    {
+      "name": "footer_social_links",
+      "columns": [
+        "_order",
+        "_parent_id",
+        "id",
+        "platform",
+        "url",
+        "icon_name",
+        "aria_label"
+      ],
+      "data": [
+        {
+          "_order": 1,
+          "_parent_id": 1,
+          "id": "6ad9908f71c6bf3678084a33",
+          "platform": "facebook",
+          "url": "https://www.facebook.com/etarikhi",
+          "icon_name": "faFacebookF",
+          "aria_label": "Facebook"
+        },
+        {
+          "_order": 2,
+          "_parent_id": 1,
+          "id": "6ad9908f71c6bf3678084a34",
+          "platform": "twitter",
+          "url": "https://www.twitter.com/eTarikhi",
+          "icon_name": "faXTwitter",
+          "aria_label": "Twitter"
+        },
+        {
+          "_order": 3,
+          "_parent_id": 1,
+          "id": "6ad9908f71c6bf3678084a35",
+          "platform": "instagram",
+          "url": "https://www.instagram.com/eTarikhi",
+          "icon_name": "faInstagram",
+          "aria_label": "Instagram"
+        },
+        {
+          "_order": 4,
+          "_parent_id": 1,
+          "id": "6ad9908f71c6bf3678084a36",
+          "platform": "linkedin",
+          "url": "https://www.linkedin.com/in/eTarikhi",
+          "icon_name": "faLinkedin",
+          "aria_label": "LinkedIn"
+        },
+        {
+          "_order": 5,
+          "_parent_id": 1,
+          "id": "6ad9908f71c6bf3678084a37",
+          "platform": "github",
+          "url": "https://www.github.com/eTarikhi",
+          "icon_name": "faGithub",
+          "aria_label": "Github"
+        },
+        {
+          "_order": 6,
+          "_parent_id": 1,
+          "id": "6ad9908f71c6bf3678084a38",
+          "platform": "whatsapp",
+          "url": "https://api.whatsapp.com/send/?phone=905525700850",
+          "icon_name": "faWhatsapp",
+          "aria_label": "Whatsapp"
+        }
+      ]
+    },
+    {
+      "name": "navigation",
+      "columns": [
+        "id",
+        "brand",
+        "updated_at",
+        "created_at"
+      ],
+      "data": [
+        {
+          "id": 1,
+          "brand": "eTarikhi",
+          "updated_at": "2026-10-22T04:26:56.821+00:00",
+          "created_at": "2026-10-22T04:26:56.821+00:00"
+        }
+      ]
+    },
+    {
+      "name": "navigation_primary_links",
+      "columns": [
+        "_order",
+        "_parent_id",
+        "id",
+        "label",
+        "href",
+        "new_tab"
+      ],
+      "data": [
+        {
+          "_order": 1,
+          "_parent_id": 1,
+          "id": "6ad9909071c6bf3678084a41",
+          "label": "Home",
+          "href": "/#home",
+          "new_tab": false
+        },
+        {
+          "_order": 2,
+          "_parent_id": 1,
+          "id": "6ad9909071c6bf3678084a42",
+          "label": "About",
+          "href": "/#about",
+          "new_tab": false
+        },
+        {
+          "_order": 3,
+          "_parent_id": 1,
+          "id": "6ad9909071c6bf3678084a43",
+          "label": "Skills",
+          "href": "/#skill",
+          "new_tab": false
+        }
+      ]
+    },
+    {
+      "name": "navigation_secondary_links",
+      "columns": [
+        "_order",
+        "_parent_id",
+        "id",
+        "label",
+        "href",
+        "new_tab"
+      ],
+      "data": [
+        {
+          "_order": 1,
+          "_parent_id": 1,
+          "id": "6ad9909071c6bf3678084a44",
+          "label": "Services",
+          "href": "/#service",
+          "new_tab": false
+        },
+        {
+          "_order": 2,
+          "_parent_id": 1,
+          "id": "6ad9909071c6bf3678084a45",
+          "label": "Projects",
+          "href": "/#project",
+          "new_tab": false
+        },
+        {
+          "_order": 3,
+          "_parent_id": 1,
+          "id": "6ad9909071c6bf3678084a46",
+          "label": "Contact",
+          "href": "/#contact",
+          "new_tab": false
+        }
+      ]
+    },
+    {
+      "name": "projects_categories",
+      "columns": [
+        "order",
+        "parent_id",
+        "value",
+        "id"
+      ],
+      "data": [
+        {
+          "order": 1,
+          "parent_id": 1,
+          "value": "front-end",
+          "id": 1
+        },
+        {
+          "order": 2,
+          "parent_id": 1,
+          "value": "back-end",
+          "id": 2
+        },
+        {
+          "order": 1,
+          "parent_id": 2,
+          "value": "front-end",
+          "id": 3
+        },
+        {
+          "order": 2,
+          "parent_id": 2,
+          "value": "back-end",
+          "id": 4
+        },
+        {
+          "order": 1,
+          "parent_id": 3,
+          "value": "front-end",
+          "id": 5
+        },
+        {
+          "order": 1,
+          "parent_id": 4,
+          "value": "front-end",
+          "id": 6
+        },
+        {
+          "order": 2,
+          "parent_id": 4,
+          "value": "back-end",
+          "id": 7
+        },
+        {
+          "order": 1,
+          "parent_id": 5,
+          "value": "front-end",
+          "id": 8
+        },
+        {
+          "order": 2,
+          "parent_id": 5,
+          "value": "back-end",
+          "id": 9
+        },
+        {
+          "order": 1,
+          "parent_id": 6,
+          "value": "front-end",
+          "id": 10
+        },
+        {
+          "order": 2,
+          "parent_id": 6,
+          "value": "back-end",
+          "id": 11
+        },
+        {
+          "order": 1,
+          "parent_id": 7,
+          "value": "front-end",
+          "id": 12
+        },
+        {
+          "order": 2,
+          "parent_id": 7,
+          "value": "back-end",
+          "id": 13
+        },
+        {
+          "order": 1,
+          "parent_id": 8,
+          "value": "front-end",
+          "id": 14
+        },
+        {
+          "order": 2,
+          "parent_id": 8,
+          "value": "back-end",
+          "id": 15
+        },
+        {
+          "order": 3,
+          "parent_id": 8,
+          "value": "cms-crm",
+          "id": 16
+        },
+        {
+          "order": 1,
+          "parent_id": 9,
+          "value": "front-end",
+          "id": 17
+        },
+        {
+          "order": 2,
+          "parent_id": 9,
+          "value": "back-end",
+          "id": 18
+        },
+        {
+          "order": 3,
+          "parent_id": 9,
+          "value": "cms-crm",
+          "id": 19
+        },
+        {
+          "order": 1,
+          "parent_id": 10,
+          "value": "front-end",
+          "id": 20
+        },
+        {
+          "order": 2,
+          "parent_id": 10,
+          "value": "back-end",
+          "id": 21
+        },
+        {
+          "order": 3,
+          "parent_id": 10,
+          "value": "cms-crm",
+          "id": 22
+        },
+        {
+          "order": 1,
+          "parent_id": 11,
+          "value": "front-end",
+          "id": 23
+        },
+        {
+          "order": 2,
+          "parent_id": 11,
+          "value": "back-end",
+          "id": 24
+        },
+        {
+          "order": 1,
+          "parent_id": 12,
+          "value": "front-end",
+          "id": 25
+        },
+        {
+          "order": 2,
+          "parent_id": 12,
+          "value": "back-end",
+          "id": 26
+        },
+        {
+          "order": 1,
+          "parent_id": 13,
+          "value": "front-end",
+          "id": 27
+        },
+        {
+          "order": 2,
+          "parent_id": 13,
+          "value": "back-end",
+          "id": 28
+        },
+        {
+          "order": 1,
+          "parent_id": 14,
+          "value": "front-end",
+          "id": 29
+        }
+      ]
+    },
+    {
+      "name": "about_rels",
+      "columns": [
+        "id",
+        "order",
+        "parent_id",
+        "path",
+        "media_id"
+      ],
+      "data": []
+    },
+    {
+      "name": "about_texts",
+      "columns": [
+        "id",
+        "order",
+        "parent_id",
+        "path",
+        "text"
+      ],
+      "data": [
+        {
+          "id": 1,
+          "order": 1,
+          "parent_id": 1,
+          "path": "interests.areas",
+          "text": "Robotics"
+        },
+        {
+          "id": 2,
+          "order": 2,
+          "parent_id": 1,
+          "path": "interests.areas",
+          "text": "Machine Learning"
+        },
+        {
+          "id": 3,
+          "order": 3,
+          "parent_id": 1,
+          "path": "interests.areas",
+          "text": "Artificial Intelligence"
+        },
+        {
+          "id": 4,
+          "order": 4,
+          "parent_id": 1,
+          "path": "interests.areas",
+          "text": "Big Data and Data Analysis"
+        }
+      ]
+    },
+    {
+      "name": "footer_texts",
+      "columns": [
+        "id",
+        "order",
+        "parent_id",
+        "path",
+        "text"
+      ],
+      "data": [
+        {
+          "id": 1,
+          "order": 1,
+          "parent_id": 1,
+          "path": "roles.footerRoles",
+          "text": "Senior PHP Developer"
+        },
+        {
+          "id": 2,
+          "order": 2,
+          "parent_id": 1,
+          "path": "roles.footerRoles",
+          "text": "Junior NodeJS Developer"
+        },
+        {
+          "id": 3,
+          "order": 3,
+          "parent_id": 1,
+          "path": "roles.footerRoles",
+          "text": "Junior Laravel Developer"
+        },
+        {
+          "id": 4,
+          "order": 4,
+          "parent_id": 1,
+          "path": "roles.footerRoles",
+          "text": "E-Commerce CRM Developer"
+        },
+        {
+          "id": 5,
+          "order": 5,
+          "parent_id": 1,
+          "path": "roles.footerRoles",
+          "text": "Automation Panel Developer"
+        },
+        {
+          "id": 6,
+          "order": 6,
+          "parent_id": 1,
+          "path": "roles.footerRoles",
+          "text": "SEO Manager and Consultant"
+        }
+      ]
+    },
+    {
+      "name": "header_texts",
+      "columns": [
+        "id",
+        "order",
+        "parent_id",
+        "path",
+        "text"
+      ],
+      "data": [
+        {
+          "id": 1,
+          "order": 1,
+          "parent_id": 1,
+          "path": "professionTexts",
+          "text": "Full-Stack Senior PHP Developer"
+        },
+        {
+          "id": 2,
+          "order": 2,
+          "parent_id": 1,
+          "path": "professionTexts",
+          "text": "Junior Laravel - NodeJS Developer"
+        },
+        {
+          "id": 3,
+          "order": 3,
+          "parent_id": 1,
+          "path": "professionTexts",
+          "text": "Automation Panel Developer"
+        },
+        {
+          "id": 4,
+          "order": 4,
+          "parent_id": 1,
+          "path": "professionTexts",
+          "text": "E-Commerce CMS - CRM Developer"
+        },
+        {
+          "id": 5,
+          "order": 5,
+          "parent_id": 1,
+          "path": "professionTexts",
+          "text": "SEO Manager and Consultant"
+        }
+      ]
+    },
+    {
+      "name": "services_texts",
+      "columns": [
+        "id",
+        "order",
+        "parent_id",
+        "path",
+        "text"
+      ],
+      "data": [
+        {
+          "id": 1,
+          "order": 1,
+          "parent_id": 1,
+          "path": "descriptions",
+          "text": "PHP, OOP, MVC, MySQL, PDO"
+        },
+        {
+          "id": 2,
+          "order": 2,
+          "parent_id": 1,
+          "path": "descriptions",
+          "text": "RESTful API, SOAP, GraphQL"
+        },
+        {
+          "id": 3,
+          "order": 3,
+          "parent_id": 1,
+          "path": "descriptions",
+          "text": "Ajax, JavaScript, TypeScript"
+        },
+        {
+          "id": 4,
+          "order": 4,
+          "parent_id": 1,
+          "path": "descriptions",
+          "text": "Frameworks ( Laravel, Symfony, .. )"
+        },
+        {
+          "id": 5,
+          "order": 5,
+          "parent_id": 1,
+          "path": "descriptions",
+          "text": "CMS & CRM ( WordPress, Joomla, .. )"
+        },
+        {
+          "id": 6,
+          "order": 6,
+          "parent_id": 1,
+          "path": "descriptions",
+          "text": "Shopify, WooCommerce, OpenCart, Presta"
+        },
+        {
+          "id": 7,
+          "order": 1,
+          "parent_id": 2,
+          "path": "descriptions",
+          "text": "HTML5, CSS3, Bootstrap 5"
+        },
+        {
+          "id": 8,
+          "order": 2,
+          "parent_id": 2,
+          "path": "descriptions",
+          "text": "JavaScript, TypeScript, ES6"
+        },
+        {
+          "id": 9,
+          "order": 3,
+          "parent_id": 2,
+          "path": "descriptions",
+          "text": "React, Next.js, Vue.js"
+        },
+        {
+          "id": 10,
+          "order": 4,
+          "parent_id": 2,
+          "path": "descriptions",
+          "text": "Vite, WebPack, JQuery"
+        },
+        {
+          "id": 11,
+          "order": 5,
+          "parent_id": 2,
+          "path": "descriptions",
+          "text": "Elementor & UI Kits"
+        },
+        {
+          "id": 12,
+          "order": 6,
+          "parent_id": 2,
+          "path": "descriptions",
+          "text": "Responsive Design"
+        },
+        {
+          "id": 13,
+          "order": 1,
+          "parent_id": 3,
+          "path": "descriptions",
+          "text": "Bing & Yandex Webmaster Tools"
+        },
+        {
+          "id": 14,
+          "order": 2,
+          "parent_id": 3,
+          "path": "descriptions",
+          "text": "Facebook Meta Webmaster Tools"
+        },
+        {
+          "id": 15,
+          "order": 3,
+          "parent_id": 3,
+          "path": "descriptions",
+          "text": "Google Analytics and Webmaster Tools"
+        },
+        {
+          "id": 16,
+          "order": 4,
+          "parent_id": 3,
+          "path": "descriptions",
+          "text": "Search Engine Optimization"
+        },
+        {
+          "id": 17,
+          "order": 5,
+          "parent_id": 3,
+          "path": "descriptions",
+          "text": "Google PageSpeed Optimization"
+        },
+        {
+          "id": 18,
+          "order": 6,
+          "parent_id": 3,
+          "path": "descriptions",
+          "text": "Database and Server Cache Optimization"
+        },
+        {
+          "id": 19,
+          "order": 1,
+          "parent_id": 4,
+          "path": "descriptions",
+          "text": "Linux Web Server Configuration (CP, DA, PL)"
+        },
+        {
+          "id": 20,
+          "order": 2,
+          "parent_id": 4,
+          "path": "descriptions",
+          "text": "WHM (Cpanel, Direct Admin, Plesk) Management"
+        },
+        {
+          "id": 21,
+          "order": 3,
+          "parent_id": 4,
+          "path": "descriptions",
+          "text": "WHMCS, CloudFlare & DNS Server Management"
+        },
+        {
+          "id": 22,
+          "order": 4,
+          "parent_id": 4,
+          "path": "descriptions",
+          "text": "Web Server Security and Data Protection"
+        },
+        {
+          "id": 23,
+          "order": 5,
+          "parent_id": 4,
+          "path": "descriptions",
+          "text": "CloudFlare Load Balancing & Cloud Configuration"
+        }
+      ]
+    },
+    {
+      "name": "site_settings",
+      "columns": [
+        "id",
+        "site_name",
+        "support_email",
+        "maintenance_enabled",
+        "maintenance_title",
+        "maintenance_message",
+        "updated_at",
+        "created_at",
+        "meta_title",
+        "meta_description",
+        "meta_image_id"
+      ],
+      "data": [
+        {
+          "id": 1,
+          "site_name": "eTarikhi",
+          "support_email": "etarikhi@gmail.com",
+          "maintenance_enabled": false,
+          "maintenance_title": "Back soon",
+          "maintenance_message": "The site is being updated. Everything will be back shortly — thanks for your patience.",
+          "updated_at": "2026-10-22T04:26:57.704+00:00",
+          "created_at": "2026-10-22T04:26:57.705+00:00",
+          "meta_title": "eTarikhi Live Resume | Full-Stack Senior Web Developer",
+          "meta_description": "Senior PHP, JavaScript & MySQL, Mid. React & Next.js, Jr. Node.js & Laravel, E-Commerce CMS, WordPress, WooCommerce & Shopify Developer ..",
+          "meta_image_id": null
+        }
+      ]
+    }
+  ],
+  "sequences": [
+    {
+      "table": "media",
+      "sequence": "public.media_id_seq",
+      "value": 1
+    },
+    {
+      "table": "articles",
+      "sequence": "public.articles_id_seq",
+      "value": 6
+    },
+    {
+      "table": "_articles_v",
+      "sequence": "public._articles_v_id_seq",
+      "value": 13
+    },
+    {
+      "table": "projects",
+      "sequence": "public.projects_id_seq",
+      "value": 14
+    },
+    {
+      "table": "certificates",
+      "sequence": "public.certificates_id_seq",
+      "value": 3
+    },
+    {
+      "table": "skills",
+      "sequence": "public.skills_id_seq",
+      "value": 6
+    },
+    {
+      "table": "educations",
+      "sequence": "public.educations_id_seq",
+      "value": 2
+    },
+    {
+      "table": "experiences",
+      "sequence": "public.experiences_id_seq",
+      "value": 4
+    },
+    {
+      "table": "services",
+      "sequence": "public.services_id_seq",
+      "value": 4
+    },
+    {
+      "table": "header",
+      "sequence": "public.header_id_seq",
+      "value": 1
+    },
+    {
+      "table": "about",
+      "sequence": "public.about_id_seq",
+      "value": 1
+    },
+    {
+      "table": "footer",
+      "sequence": "public.footer_id_seq",
+      "value": 1
+    },
+    {
+      "table": "navigation",
+      "sequence": "public.navigation_id_seq",
+      "value": 1
+    },
+    {
+      "table": "projects_categories",
+      "sequence": "public.projects_categories_id_seq",
+      "value": 29
+    },
+    {
+      "table": "about_rels",
+      "sequence": "public.about_rels_id_seq",
+      "value": 1
+    },
+    {
+      "table": "about_texts",
+      "sequence": "public.about_texts_id_seq",
+      "value": 4
+    },
+    {
+      "table": "footer_texts",
+      "sequence": "public.footer_texts_id_seq",
+      "value": 6
+    },
+    {
+      "table": "header_texts",
+      "sequence": "public.header_texts_id_seq",
+      "value": 5
+    },
+    {
+      "table": "services_texts",
+      "sequence": "public.services_texts_id_seq",
+      "value": 23
+    },
+    {
+      "table": "site_settings",
+      "sequence": "public.site_settings_id_seq",
+      "value": 1
+    }
+  ],
+  "counts": {
+    "tables": 26,
+    "rows": 146
+  },
+  "warnings": []
+}

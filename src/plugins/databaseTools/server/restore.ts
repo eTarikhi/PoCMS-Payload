@@ -157,7 +157,7 @@ export const restoreSql = async (
   const started = Date.now()
   // Session settings, not part of the file: a restore of a large dump should not hit the default
   // statement timeout, and it should fail fast rather than wait forever on a lock.
-  await client.query(`set statement_timeout = 0`)
+  await client.query(`set statement_timeout = '30s'`)
   await client.query(`set lock_timeout = '30s'`)
   await client.query(sql)
 
