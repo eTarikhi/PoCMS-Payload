@@ -43,6 +43,8 @@ export const EmailLogs: CollectionConfig = {
     hidden: ({ user }) => !hasCapability(user, 'manageEmails'),
     listSearchableFields: ['to', 'subject'],
   },
+  // Saved views: store and share this list view's filters, columns and sort order.
+  enableQueryPresets: true,
   access: {
     read: ({ req }) => hasCapability(req.user, 'manageEmails'),
     // The adapter wrapper writes these with `overrideAccess`; nothing creates or edits one by hand.

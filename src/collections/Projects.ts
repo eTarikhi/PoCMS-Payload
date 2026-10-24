@@ -22,6 +22,8 @@ export const Projects: CollectionConfig = {
   orderable: true,
   // Deleting moves documents to the trash (restorable); deleting for good needs the Full level.
   trash: true,
+  // Saved views: store and share this list view's filters, columns and sort order.
+  enableQueryPresets: true,
   // Levels from the user's roles (ADR 0011): public read, edit and trash, full to delete for good.
   access: contentAccess('projects'),
   fields: [

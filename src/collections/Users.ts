@@ -42,6 +42,8 @@ export const Users: CollectionConfig = {
     // it, and `undefined` would not say why. See src/email/auth.ts for both generators.
     // verify: { generateEmailHTML: generateVerifyEmailHTML, generateEmailSubject: generateVerifyEmailSubject },
   },
+  // Saved views: store and share this list view's filters, columns and sort order.
+  enableQueryPresets: true,
   access: {
     // The admin panel needs at least one role (ADR 0011); REST and GraphQL logins still work.
     admin: ({ req }) => hasAnyRole(req.user),

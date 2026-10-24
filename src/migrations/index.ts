@@ -15,6 +15,7 @@ import * as migration_20261023_022612_schema_snapshot from './20261023_022612_sc
 import * as migration_20261023_023618_admin_changes from './20261023_023618_admin_changes';
 import * as migration_20261023_050000_database_backup_job from './20261023_050000_database_backup_job';
 import * as migration_20261023_061418_email_log from './20261023_061418_email_log';
+import * as migration_20261024_220318_query_presets from './20261024_220318_query_presets';
 
 export const migrations = [
   {
@@ -101,5 +102,10 @@ export const migrations = [
     up: migration_20261023_061418_email_log.up,
     down: migration_20261023_061418_email_log.down,
     name: '20261023_061418_email_log',
+  },
+  {
+    up: migration_20261024_220318_query_presets.up,
+    down: migration_20261024_220318_query_presets.down,
+    name: '20261024_220318_query_presets',
   },
 ];

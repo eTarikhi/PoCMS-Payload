@@ -19,6 +19,8 @@ export const PageSpeedReports: CollectionConfig = {
     useAsTitle: 'url',
     defaultColumns: ['url', 'strategy', 'fetchedAt', 'createdAt'],
   },
+  // Saved views: store and share this list view's filters, columns and sort order.
+  enableQueryPresets: true,
   access: {
     read: ({ req }) => hasCapability(req.user, 'viewAnalytics'),
     create: () => false,

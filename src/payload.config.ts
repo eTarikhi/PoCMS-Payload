@@ -16,6 +16,12 @@ import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
 import { governedEntities, hasCapability } from './access/permissions'
+import {
+  presetAccess,
+  presetConstraintOptions,
+  presetConstraints,
+  presetLabels,
+} from './access/queryPresets'
 import { recordAudit } from './audit/record'
 import { checkSchema } from './lib/database-readiness'
 import { migrations } from './migrations'
@@ -230,6 +236,19 @@ export default buildConfig({
         ),
       }),
     ],
+  },
+  // Saved views (Payload's query presets): the collections listed in src/access/queryPresets.ts get a
+  // control that stores a list view's filters, columns and sort order as a document, so a view like
+  // "Unpublished articles" or "Failed email this week" survives the session and can be shared. The
+  // views live in Payload's own hidden collection; what is configured here is who may use them.
+  // Collection-level access *replaces* Payload's default instead of extending it, so it states the
+  // signed-in requirement itself, and per-view sharing (only me / everyone / specific users /
+  // specific roles) decides the rest.
+  queryPresets: {
+    access: presetAccess,
+    constraints: presetConstraints,
+    filterConstraints: presetConstraintOptions,
+    labels: presetLabels,
   },
   // Our own admin strings, under the `custom` namespace (src/i18n/en.ts). Payload's interface
   // translations stay as shipped; a second language only needs a new file and an entry here.

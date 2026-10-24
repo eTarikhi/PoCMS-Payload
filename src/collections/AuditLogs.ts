@@ -25,6 +25,8 @@ export const AuditLogs: CollectionConfig = {
   },
   // Not a governed collection: access is the capability, not a per-collection access level.
   custom: { permissions: false },
+  // Saved views: store and share this list view's filters, columns and sort order.
+  enableQueryPresets: true,
   access: {
     read: ({ req }) => hasCapability(req.user, 'viewAuditLog'),
     create: () => false,

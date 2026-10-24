@@ -545,6 +545,51 @@ the signed-in user's access and ignore the current search and filters; a failing
 and left out. It is a server component, so it adds no client JavaScript. Opt out with
 `custom: { listSummary: false }`.
 
+### Saved views (query presets)
+
+Payload's query presets store one list view's **filters, columns, sort order and grouping** as a
+document, so "Unpublished articles", "Failed email this week" or "Media with no alt text" survives
+the session and can be handed to a colleague instead of being rebuilt every morning. Everything
+lives in `src/access/queryPresets.ts`:
+
+- **Opt-in per collection** with `enableQueryPresets: true`. `PRESET_COLLECTIONS` is the list, and
+  a test compares it against the resolved config, so the two cannot drift apart. The singletons
+  (`about`, `header`) and `roles` are left out: one document and a handful of rows have nothing to
+  page through.
+- **The views themselves** live in Payload's own `payload-query-presets` collection, which is
+  `admin.hidden`: the only interface is the control Payload adds to each list view. Labels come from
+  the `savedViews` namespace in `src/i18n/en.ts` ("Saved view"), which reads better than "Preset" in
+  the sharing dialog.
+- **Two levels of access, combined with an `and`.** Collection level (`presetAccess`) is "any signed-in
+  user" and *replaces* Payload's default rather than extending it, so it says so explicitly. Document
+  level is each view's sharing settings: Payload's **Only me** (the default), **Everyone** and
+  **Specific users**, plus **Specific Roles** added here — a relationship to this project's `roles`
+  collection, which fits ADR 0011 better than picking editors one by one. It is stored at
+  `access.<operation>.roles`, and its rule matches a user whose role IDs contain one of them,
+  whichever shape `req.user.roles` arrives in (IDs from a token, documents from a database read).
+- **Sharing is per view, not per person.** Full access does not open a view shared with a role the
+  administrator does not hold; that is the point of the document level. Offering a view to
+  **Everyone** is the one choice with a blast radius, so `filterConstraints` leaves it to full-access
+  users and hides it from everyone else.
+- **Payload refuses to lock an author out**: `preventLockout` saves a throwaway copy and reads it
+  back as the author, so sharing a view with a role you do not hold fails validation instead of
+  orphaning it.
+- Payload **normalizes the `where` it stores** into its canonical `{ or: [ { and: [ … ] } ] }` shape,
+  so a stored view does not compare equal to the object that created it.
+
+Migration `20261024_220318_query_presets` creates the table, its `_rels` table and four enums. One of
+them, `related_collection`, is generated from the collections that opt in — so turning saved views on
+for a fourteenth collection needs a migration that adds the value, exactly as a new job task needs one
+for `enum_job_runs_task`. To do it: add `enableQueryPresets: true` to the collection, add its slug to
+`PRESET_COLLECTIONS`, run `pnpm migrate:create` and read what it produced (this one is additive, but
+the generator diffs the config against its own last snapshot), then `pnpm db:drift`.
+
+`tests/int/query-presets.int.spec.ts` covers the config wiring (which collections, which sharing
+options, where the roles picker sits), the labels, the constraint filter, and the access behaviour
+through the Local API: private by default, invisible to another editor, visible to a role holder and
+not to an administrator outside it, the lockout refusal, and the enum rejecting a collection that has
+not opted in.
+
 ### Typography
 
 Body text is 14px instead of Payload's 13px (`tokens.css`). Payload computes `--base` as

@@ -43,6 +43,8 @@ export const Articles: CollectionConfig = {
   defaultSort: 'publishedAt',
   // Deleting moves documents to the trash (restorable); deleting for good needs the Full level.
   trash: true,
+  // Saved views: store and share this list view's filters, columns and sort order.
+  enableQueryPresets: true,
   // Levels from the user's roles (ADR 0011): public read, edit and trash, full to delete for good.
   // Drafts change "public": an anonymous reader only sees published articles, while the admin's
   // signed-in readers see drafts too — that is what makes a draft private until it is published.

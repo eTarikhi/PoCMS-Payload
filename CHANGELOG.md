@@ -8,6 +8,33 @@ modernisation programme; every entry links the roadmap item it closes
 
 ### Added
 
+- **Saved views for every list worth filtering** (`src/access/queryPresets.ts`,
+  `docs/ui-modernization/admin-ui-guide.md` §List views, migration `20261024_220318_query_presets`).
+  Payload's query presets store a list view's filters, columns, sort order and grouping as a document;
+  this turns them on for the thirteen collections an editor or an operator actually pages through and
+  leaves out the two singletons and `roles`, which have nothing to filter. "Unpublished articles",
+  "Failed email this week" and "Media with no alt text" stop being something each person rebuilds
+  every morning.
+  - **Sharing that speaks this project's permissions.** Payload offers Only me, Everyone and Specific
+    users; `specificRoles` is added here as a relationship to the `roles` collection, because ADR 0011
+    already decides who may do what by role and picking editors one by one goes stale the day somebody
+    joins. The rule matches a user's role IDs whichever shape `req.user.roles` arrives in — IDs from a
+    token, populated documents from a database read — since comparing an ID to an object would quietly
+    match nothing.
+  - **Two guards worth naming.** Offering a view to *Everyone* is the only choice with a blast radius,
+    so `filterConstraints` leaves it to full-access users. And sharing is per view: an administrator
+    who does not hold the role a view was shared with does not see it, which is what document-level
+    access is for, not an oversight. Payload's own `preventLockout` covers the third case — sharing a
+    view with a role you do not hold fails validation instead of orphaning it.
+  - Collection-level access here *replaces* Payload's default rather than extending it, so it states
+    the signed-in requirement itself; a test compares `PRESET_COLLECTIONS` against the resolved config
+    so the documented list cannot drift from the real one; and `related_collection` is an enum
+    generated from the collections that opt in, which means a fourteenth one needs a migration —
+    recorded in the migration's own comment, next to `pnpm db:drift` as the check.
+  - `tests/int/query-presets.int.spec.ts` (14) exercises the wiring and the access behaviour through
+    the Local API, including that Payload normalizes a stored `where` into its canonical `or`/`and`
+    shape, so a saved view does not compare equal to the object that created it.
+
 - **An email system, built on Payload's adapter pattern** (`docs/email.md`, `/admin/email`,
   `src/email/`). Payload's API is a transport, a From address and `payload.sendEmail(message)`; what
   it does not have is a choice of provider that fails loudly, templates in the site's own voice, a

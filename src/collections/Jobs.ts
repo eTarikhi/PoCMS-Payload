@@ -23,6 +23,8 @@ export const Jobs: CollectionConfig = {
     useAsTitle: 'task',
     defaultColumns: ['task', 'status', 'trigger', 'createdAt', 'durationMs'],
   },
+  // Saved views: store and share this list view's filters, columns and sort order.
+  enableQueryPresets: true,
   access: {
     read: ({ req }) => hasCapability(req.user, 'manageJobs'),
     create: () => false,

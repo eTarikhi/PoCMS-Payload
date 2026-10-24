@@ -67,6 +67,10 @@ export const en = {
     folderActions: 'Folder actions',
     filePreview: 'File preview',
   },
+  savedViews: {
+    singular: 'Saved view',
+    plural: 'Saved views',
+  },
 }
 
 /** Every namespace this repository adds, for the test that keys resolve to strings. */
