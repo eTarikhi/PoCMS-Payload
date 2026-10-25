@@ -80,6 +80,7 @@ export interface Config {
     users: User;
     roles: Role;
     'audit-logs': AuditLog;
+    redirects: Redirect;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -104,6 +105,7 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     roles: RolesSelect<false> | RolesSelect<true>;
     'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
+    redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -212,6 +214,14 @@ export interface Article {
    * Optional external publication URL (LinkedIn, Medium, Dev.to, ...).
    */
   link?: string | null;
+  meta?: {
+    title?: string | null;
+    description?: string | null;
+    /**
+     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
+     */
+    image?: (number | null) | Media;
+  };
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -311,6 +321,14 @@ export interface Project {
    * Minutes ("{n} min"). Auto-calculated on save from the case-study body.
    */
   readTime?: number | null;
+  meta?: {
+    title?: string | null;
+    description?: string | null;
+    /**
+     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
+     */
+    image?: (number | null) | Media;
+  };
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -557,6 +575,7 @@ export interface Role {
     services?: ('none' | 'read' | 'edit' | 'full') | null;
     skills?: ('none' | 'read' | 'edit' | 'full') | null;
     header?: ('none' | 'read' | 'edit' | 'full') | null;
+    redirects?: ('none' | 'read' | 'edit' | 'full') | null;
     siteSettings?: ('none' | 'read' | 'edit') | null;
     navigation?: ('none' | 'read' | 'edit') | null;
     footer?: ('none' | 'read' | 'edit') | null;
@@ -638,6 +657,35 @@ export interface AuditLog {
   createdAt: string;
 }
 /**
+ * 301 and 302 URL redirects to articles, projects, or custom URLs.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "redirects".
+ */
+export interface Redirect {
+  id: number;
+  from: string;
+  to?: {
+    type?: ('reference' | 'custom') | null;
+    reference?:
+      | ({
+          relationTo: 'articles';
+          value: number | Article;
+        } | null)
+      | ({
+          relationTo: 'projects';
+          value: number | Project;
+        } | null);
+    url?: string | null;
+  };
+  /**
+   * 301 (Permanent) or 302 (Temporary) HTTP redirect.
+   */
+  type: '301' | '302';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -712,6 +760,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'audit-logs';
         value: number | AuditLog;
+      } | null)
+    | ({
+        relationTo: 'redirects';
+        value: number | Redirect;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -772,6 +824,13 @@ export interface ArticlesSelect<T extends boolean = true> {
   image?: T;
   imageUrl?: T;
   link?: T;
+  meta?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        image?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -797,6 +856,13 @@ export interface ProjectsSelect<T extends boolean = true> {
   categories?: T;
   techStack?: T;
   readTime?: T;
+  meta?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        image?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -1003,6 +1069,7 @@ export interface RolesSelect<T extends boolean = true> {
         services?: T;
         skills?: T;
         header?: T;
+        redirects?: T;
         siteSettings?: T;
         navigation?: T;
         footer?: T;
@@ -1040,6 +1107,23 @@ export interface AuditLogsSelect<T extends boolean = true> {
   ip?: T;
   userAgent?: T;
   meta?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "redirects_select".
+ */
+export interface RedirectsSelect<T extends boolean = true> {
+  from?: T;
+  to?:
+    | T
+    | {
+        type?: T;
+        reference?: T;
+        url?: T;
+      };
+  type?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1179,6 +1263,8 @@ export interface SiteSetting {
      * Label of the "show all" filter button.
      */
     allFilterLabel?: string | null;
+    archiveDescription?: string | null;
+    searchPlaceholder?: string | null;
     caseStudyLabel?: string | null;
     backToProjectsLabel?: string | null;
     liveProjectLabel?: string | null;
@@ -1459,6 +1545,8 @@ export interface SiteSettingsSelect<T extends boolean = true> {
     | {
         heading?: T;
         allFilterLabel?: T;
+        archiveDescription?: T;
+        searchPlaceholder?: T;
         caseStudyLabel?: T;
         backToProjectsLabel?: T;
         liveProjectLabel?: T;

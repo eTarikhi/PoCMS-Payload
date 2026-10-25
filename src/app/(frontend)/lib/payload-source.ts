@@ -9,7 +9,7 @@
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 
-import type { Article, Project } from '@/payload-types'
+import type { Article, Project, Redirect, SiteSetting } from '@/payload-types'
 
 import { hasArticlePage } from './article-page'
 import { mapPortfolioContent, type RawPortfolioDocs } from './mappers'
@@ -137,4 +137,38 @@ export const fetchPublishedProjectSlugs = async (): Promise<string[]> => {
     sort: '_order',
   })
   return res.docs.filter((doc) => hasProjectPage(doc)).map((doc) => doc.slug as string)
+}
+
+/**
+ * Fetches all CMS-configured URL redirects (`depth: 1` populates internal `articles`/`projects` references).
+ */
+export const fetchRedirects = async (): Promise<Redirect[]> => {
+  const payload = await getPayload({ config: configPromise })
+  const res = await payload.find({
+    collection: 'redirects',
+    pagination: false,
+    depth: 1,
+  })
+  return res.docs
+}
+
+/**
+ * Fetches raw articles, projects, and site settings for `/sitemap.xml` and `/feed.xml`.
+ */
+export const fetchFeedSourceDocs = async (): Promise<{
+  articles: Article[]
+  projects: Project[]
+  siteSettings: SiteSetting | null
+}> => {
+  const payload = await getPayload({ config: configPromise })
+  const [articles, projects, siteSettings] = await Promise.all([
+    payload
+      .find({ collection: 'articles', pagination: false, sort: '-publishedAt', depth: 0 })
+      .then((res) => res.docs),
+    payload
+      .find({ collection: 'projects', pagination: false, sort: '_order', depth: 0 })
+      .then((res) => res.docs),
+    payload.findGlobal({ slug: 'site-settings', depth: 1 }).catch(() => null),
+  ])
+  return { articles, projects, siteSettings }
 }

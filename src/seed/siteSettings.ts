@@ -46,6 +46,8 @@ export const siteSettingsData = (
   projectsSection: {
     heading: 'My Projects',
     allFilterLabel: 'All Projects',
+    archiveDescription: 'Selected projects, engineering case studies, and full-stack builds.',
+    searchPlaceholder: 'Search projects by title, tech stack, or role…',
     caseStudyLabel: 'Case study',
     backToProjectsLabel: 'Back to projects',
     liveProjectLabel: 'Visit live project',

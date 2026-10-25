@@ -1,13 +1,14 @@
 import '@/app/(frontend)/styles/article.css'
 
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
 
 import { SiteChrome } from '@/app/(frontend)/components/layout/SiteChrome'
 import { ProjectLayout } from '@/app/(frontend)/components/project/ProjectLayout'
 import { ProjectLivePreviewSwitch } from '@/app/(frontend)/components/project/ProjectLivePreviewSwitch'
 import { JsonLd } from '@/app/(frontend)/components/seo/JsonLd'
+import { PayloadRedirects } from '@/app/(frontend)/components/seo/PayloadRedirects'
 import { getCachedPortfolioContent } from '@/app/(frontend)/lib/cache'
+import { projectPagePath } from '@/app/(frontend)/lib/project-page'
 import { getCachedProjectBySlug, getCachedProjectSlugs } from '@/app/(frontend)/lib/projects'
 import { buildProjectJsonLd, buildProjectMetadata } from '@/app/(frontend)/lib/seo'
 
@@ -40,7 +41,9 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     getCachedPortfolioContent(),
   ])
 
-  if (!project) notFound()
+  if (!project) {
+    return <PayloadRedirects url={projectPagePath(slug)} />
+  }
 
   const { siteSettings } = content
   const projectLabels = {

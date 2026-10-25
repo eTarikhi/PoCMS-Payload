@@ -1,12 +1,13 @@
 import '@/app/(frontend)/styles/article.css'
 
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
 
 import { ArticleLayout } from '@/app/(frontend)/components/article/ArticleLayout'
 import { ArticleLivePreviewSwitch } from '@/app/(frontend)/components/article/ArticleLivePreviewSwitch'
-import { JsonLd } from '@/app/(frontend)/components/seo/JsonLd'
 import { SiteChrome } from '@/app/(frontend)/components/layout/SiteChrome'
+import { JsonLd } from '@/app/(frontend)/components/seo/JsonLd'
+import { PayloadRedirects } from '@/app/(frontend)/components/seo/PayloadRedirects'
+import { articlePagePath } from '@/app/(frontend)/lib/article-page'
 import { getCachedArticleBySlug, getCachedArticleSlugs } from '@/app/(frontend)/lib/articles'
 import { getCachedPortfolioContent } from '@/app/(frontend)/lib/cache'
 import { buildArticleMetadata, buildBlogPostingJsonLd } from '@/app/(frontend)/lib/seo'
@@ -44,7 +45,9 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     getCachedPortfolioContent(),
   ])
 
-  if (!article) notFound()
+  if (!article) {
+    return <PayloadRedirects url={articlePagePath(slug)} />
+  }
 
   const { siteSettings } = content
   const footerNavLabels = {

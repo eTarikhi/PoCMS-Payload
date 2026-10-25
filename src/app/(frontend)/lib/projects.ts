@@ -13,7 +13,7 @@ export const getCachedProjectBySlug = (slug: string): Promise<ProjectDetail | nu
       const doc = await fetchProjectBySlug(slug)
       return doc ? mapProjectDetail(doc) : null
     },
-    ['portfolio-project-v1', slug],
+    ['portfolio-project-v2', slug],
     { tags: [PORTFOLIO_CACHE_TAG] },
   )()
 

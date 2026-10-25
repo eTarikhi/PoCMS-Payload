@@ -53,6 +53,10 @@ type Query {
   AuditLogs(draft: Boolean, where: AuditLog_where, limit: Int, page: Int, pagination: Boolean, select: Boolean, sort: String, trash: Boolean): AuditLogs
   countAuditLogs(draft: Boolean, trash: Boolean, where: AuditLog_where): countAuditLogs
   docAccessAuditLog(id: Int!): audit_logsDocAccess
+  Redirect(id: Int!, draft: Boolean, select: Boolean, trash: Boolean): Redirect
+  Redirects(draft: Boolean, where: Redirect_where, limit: Int, page: Int, pagination: Boolean, select: Boolean, sort: String, trash: Boolean): Redirects
+  countRedirects(draft: Boolean, trash: Boolean, where: Redirect_where): countRedirects
+  docAccessRedirect(id: Int!): redirectsDocAccess
   PayloadKv(id: Int!, draft: Boolean, select: Boolean, trash: Boolean): PayloadKv
   PayloadKvs(draft: Boolean, where: PayloadKv_where, limit: Int, page: Int, pagination: Boolean, select: Boolean, sort: String, trash: Boolean): PayloadKvs
   countPayloadKvs(draft: Boolean, trash: Boolean, where: PayloadKv_where): countPayloadKvs
@@ -88,6 +92,7 @@ type Article {
   image: Media
   imageUrl: String
   link: String
+  meta: Article_Meta
   updatedAt: DateTime
   createdAt: DateTime
   deletedAt: DateTime
@@ -140,6 +145,12 @@ type Media_Sizes_Thumbnail {
   filename: String
 }
 
+type Article_Meta {
+  title: String
+  description: String
+  image: Media
+}
+
 type Articles {
   docs: [Article!]!
   hasNextPage: Boolean!
@@ -167,6 +178,9 @@ input Article_where {
   image: Article_image_operator
   imageUrl: Article_imageUrl_operator
   link: Article_link_operator
+  meta__title: Article_meta__title_operator
+  meta__description: Article_meta__description_operator
+  meta__image: Article_meta__image_operator
   updatedAt: Article_updatedAt_operator
   createdAt: Article_createdAt_operator
   deletedAt: Article_deletedAt_operator
@@ -290,6 +304,34 @@ input Article_link_operator {
   exists: Boolean
 }
 
+input Article_meta__title_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
+}
+
+input Article_meta__description_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  exists: Boolean
+}
+
+input Article_meta__image_operator {
+  equals: JSON
+  not_equals: JSON
+  in: [JSON]
+  not_in: [JSON]
+  all: [JSON]
+  exists: Boolean
+}
+
 input Article_updatedAt_operator {
   equals: DateTime
   not_equals: DateTime
@@ -346,6 +388,9 @@ input Article_where_and {
   image: Article_image_operator
   imageUrl: Article_imageUrl_operator
   link: Article_link_operator
+  meta__title: Article_meta__title_operator
+  meta__description: Article_meta__description_operator
+  meta__image: Article_meta__image_operator
   updatedAt: Article_updatedAt_operator
   createdAt: Article_createdAt_operator
   deletedAt: Article_deletedAt_operator
@@ -367,6 +412,9 @@ input Article_where_or {
   image: Article_image_operator
   imageUrl: Article_imageUrl_operator
   link: Article_link_operator
+  meta__title: Article_meta__title_operator
+  meta__description: Article_meta__description_operator
+  meta__image: Article_meta__image_operator
   updatedAt: Article_updatedAt_operator
   createdAt: Article_createdAt_operator
   deletedAt: Article_deletedAt_operator
@@ -400,6 +448,7 @@ type ArticlesDocAccessFields {
   image: ArticlesDocAccessFields_image
   imageUrl: ArticlesDocAccessFields_imageUrl
   link: ArticlesDocAccessFields_link
+  meta: ArticlesDocAccessFields_meta
   updatedAt: ArticlesDocAccessFields_updatedAt
   createdAt: ArticlesDocAccessFields_createdAt
   deletedAt: ArticlesDocAccessFields_deletedAt
@@ -681,6 +730,105 @@ type ArticlesDocAccessFields_link_Delete {
   permission: Boolean!
 }
 
+type ArticlesDocAccessFields_meta {
+  create: ArticlesDocAccessFields_meta_Create
+  read: ArticlesDocAccessFields_meta_Read
+  update: ArticlesDocAccessFields_meta_Update
+  delete: ArticlesDocAccessFields_meta_Delete
+  fields: ArticlesDocAccessFields_meta_Fields
+}
+
+type ArticlesDocAccessFields_meta_Create {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_Read {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_Update {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_Delete {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_Fields {
+  title: ArticlesDocAccessFields_meta_title
+  description: ArticlesDocAccessFields_meta_description
+  image: ArticlesDocAccessFields_meta_image
+}
+
+type ArticlesDocAccessFields_meta_title {
+  create: ArticlesDocAccessFields_meta_title_Create
+  read: ArticlesDocAccessFields_meta_title_Read
+  update: ArticlesDocAccessFields_meta_title_Update
+  delete: ArticlesDocAccessFields_meta_title_Delete
+}
+
+type ArticlesDocAccessFields_meta_title_Create {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_title_Read {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_title_Update {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_title_Delete {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_description {
+  create: ArticlesDocAccessFields_meta_description_Create
+  read: ArticlesDocAccessFields_meta_description_Read
+  update: ArticlesDocAccessFields_meta_description_Update
+  delete: ArticlesDocAccessFields_meta_description_Delete
+}
+
+type ArticlesDocAccessFields_meta_description_Create {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_description_Read {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_description_Update {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_description_Delete {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_image {
+  create: ArticlesDocAccessFields_meta_image_Create
+  read: ArticlesDocAccessFields_meta_image_Read
+  update: ArticlesDocAccessFields_meta_image_Update
+  delete: ArticlesDocAccessFields_meta_image_Delete
+}
+
+type ArticlesDocAccessFields_meta_image_Create {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_image_Read {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_image_Update {
+  permission: Boolean!
+}
+
+type ArticlesDocAccessFields_meta_image_Delete {
+  permission: Boolean!
+}
+
 type ArticlesDocAccessFields_updatedAt {
   create: ArticlesDocAccessFields_updatedAt_Create
   read: ArticlesDocAccessFields_updatedAt_Read
@@ -793,6 +941,7 @@ type Project {
   categories: [Project_categories!]!
   techStack: [String!]
   readTime: Float
+  meta: Project_Meta
   updatedAt: DateTime
   createdAt: DateTime
   deletedAt: DateTime
@@ -802,6 +951,12 @@ enum Project_categories {
   front_end
   back_end
   cms_crm
+}
+
+type Project_Meta {
+  title: String
+  description: String
+  image: Media
 }
 
 type Projects {
@@ -835,6 +990,9 @@ input Project_where {
   categories: Project_categories_operator
   techStack: Project_techStack_operator
   readTime: Project_readTime_operator
+  meta__title: Project_meta__title_operator
+  meta__description: Project_meta__description_operator
+  meta__image: Project_meta__image_operator
   updatedAt: Project_updatedAt_operator
   createdAt: Project_createdAt_operator
   deletedAt: Project_deletedAt_operator
@@ -1012,6 +1170,34 @@ input Project_readTime_operator {
   exists: Boolean
 }
 
+input Project_meta__title_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
+}
+
+input Project_meta__description_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  exists: Boolean
+}
+
+input Project_meta__image_operator {
+  equals: JSON
+  not_equals: JSON
+  in: [JSON]
+  not_in: [JSON]
+  all: [JSON]
+  exists: Boolean
+}
+
 input Project_updatedAt_operator {
   equals: DateTime
   not_equals: DateTime
@@ -1072,6 +1258,9 @@ input Project_where_and {
   categories: Project_categories_operator
   techStack: Project_techStack_operator
   readTime: Project_readTime_operator
+  meta__title: Project_meta__title_operator
+  meta__description: Project_meta__description_operator
+  meta__image: Project_meta__image_operator
   updatedAt: Project_updatedAt_operator
   createdAt: Project_createdAt_operator
   deletedAt: Project_deletedAt_operator
@@ -1097,6 +1286,9 @@ input Project_where_or {
   categories: Project_categories_operator
   techStack: Project_techStack_operator
   readTime: Project_readTime_operator
+  meta__title: Project_meta__title_operator
+  meta__description: Project_meta__description_operator
+  meta__image: Project_meta__image_operator
   updatedAt: Project_updatedAt_operator
   createdAt: Project_createdAt_operator
   deletedAt: Project_deletedAt_operator
@@ -1134,6 +1326,7 @@ type ProjectsDocAccessFields {
   categories: ProjectsDocAccessFields_categories
   techStack: ProjectsDocAccessFields_techStack
   readTime: ProjectsDocAccessFields_readTime
+  meta: ProjectsDocAccessFields_meta
   updatedAt: ProjectsDocAccessFields_updatedAt
   createdAt: ProjectsDocAccessFields_createdAt
   deletedAt: ProjectsDocAccessFields_deletedAt
@@ -1504,6 +1697,105 @@ type ProjectsDocAccessFields_readTime_Update {
 }
 
 type ProjectsDocAccessFields_readTime_Delete {
+  permission: Boolean!
+}
+
+type ProjectsDocAccessFields_meta {
+  create: ProjectsDocAccessFields_meta_Create
+  read: ProjectsDocAccessFields_meta_Read
+  update: ProjectsDocAccessFields_meta_Update
+  delete: ProjectsDocAccessFields_meta_Delete
+  fields: ProjectsDocAccessFields_meta_Fields
+}
+
+type ProjectsDocAccessFields_meta_Create {
+  permission: Boolean!
+}
+
+type ProjectsDocAccessFields_meta_Read {
+  permission: Boolean!
+}
+
+type ProjectsDocAccessFields_meta_Update {
+  permission: Boolean!
+}
+
+type ProjectsDocAccessFields_meta_Delete {
+  permission: Boolean!
+}
+
+type ProjectsDocAccessFields_meta_Fields {
+  title: ProjectsDocAccessFields_meta_title
+  description: ProjectsDocAccessFields_meta_description
+  image: ProjectsDocAccessFields_meta_image
+}
+
+type ProjectsDocAccessFields_meta_title {
+  create: ProjectsDocAccessFields_meta_title_Create
+  read: ProjectsDocAccessFields_meta_title_Read
+  update: ProjectsDocAccessFields_meta_title_Update
+  delete: ProjectsDocAccessFields_meta_title_Delete
+}
+
+type ProjectsDocAccessFields_meta_title_Create {
+  permission: Boolean!
+}
+
+type ProjectsDocAccessFields_meta_title_Read {
+  permission: Boolean!
+}
+
+type ProjectsDocAccessFields_meta_title_Update {
+  permission: Boolean!
+}
+
+type ProjectsDocAccessFields_meta_title_Delete {
+  permission: Boolean!
+}
+
+type ProjectsDocAccessFields_meta_description {
+  create: ProjectsDocAccessFields_meta_description_Create
+  read: ProjectsDocAccessFields_meta_description_Read
+  update: ProjectsDocAccessFields_meta_description_Update
+  delete: ProjectsDocAccessFields_meta_description_Delete
+}
+
+type ProjectsDocAccessFields_meta_description_Create {
+  permission: Boolean!
+}
+
+type ProjectsDocAccessFields_meta_description_Read {
+  permission: Boolean!
+}
+
+type ProjectsDocAccessFields_meta_description_Update {
+  permission: Boolean!
+}
+
+type ProjectsDocAccessFields_meta_description_Delete {
+  permission: Boolean!
+}
+
+type ProjectsDocAccessFields_meta_image {
+  create: ProjectsDocAccessFields_meta_image_Create
+  read: ProjectsDocAccessFields_meta_image_Read
+  update: ProjectsDocAccessFields_meta_image_Update
+  delete: ProjectsDocAccessFields_meta_image_Delete
+}
+
+type ProjectsDocAccessFields_meta_image_Create {
+  permission: Boolean!
+}
+
+type ProjectsDocAccessFields_meta_image_Read {
+  permission: Boolean!
+}
+
+type ProjectsDocAccessFields_meta_image_Update {
+  permission: Boolean!
+}
+
+type ProjectsDocAccessFields_meta_image_Delete {
   permission: Boolean!
 }
 
@@ -5552,6 +5844,7 @@ type Role_Levels {
   services: Role_Levels_services
   skills: Role_Levels_skills
   header: Role_Levels_header
+  redirects: Role_Levels_redirects
   siteSettings: Role_Levels_siteSettings
   navigation: Role_Levels_navigation
   footer: Role_Levels_footer
@@ -5621,6 +5914,13 @@ enum Role_Levels_skills {
 }
 
 enum Role_Levels_header {
+  none
+  read
+  edit
+  full
+}
+
+enum Role_Levels_redirects {
   none
   read
   edit
@@ -6203,6 +6503,7 @@ input Role_where {
   levels__services: Role_levels__services_operator
   levels__skills: Role_levels__skills_operator
   levels__header: Role_levels__header_operator
+  levels__redirects: Role_levels__redirects_operator
   levels__siteSettings: Role_levels__siteSettings_operator
   levels__navigation: Role_levels__navigation_operator
   levels__footer: Role_levels__footer_operator
@@ -6406,6 +6707,21 @@ enum Role_levels__header_Input {
   full
 }
 
+input Role_levels__redirects_operator {
+  equals: Role_levels__redirects_Input
+  not_equals: Role_levels__redirects_Input
+  like: Role_levels__redirects_Input
+  contains: Role_levels__redirects_Input
+  exists: Boolean
+}
+
+enum Role_levels__redirects_Input {
+  none
+  read
+  edit
+  full
+}
+
 input Role_levels__siteSettings_operator {
   equals: Role_levels__siteSettings_Input
   not_equals: Role_levels__siteSettings_Input
@@ -6538,6 +6854,7 @@ input Role_where_and {
   levels__services: Role_levels__services_operator
   levels__skills: Role_levels__skills_operator
   levels__header: Role_levels__header_operator
+  levels__redirects: Role_levels__redirects_operator
   levels__siteSettings: Role_levels__siteSettings_operator
   levels__navigation: Role_levels__navigation_operator
   levels__footer: Role_levels__footer_operator
@@ -6571,6 +6888,7 @@ input Role_where_or {
   levels__services: Role_levels__services_operator
   levels__skills: Role_levels__skills_operator
   levels__header: Role_levels__header_operator
+  levels__redirects: Role_levels__redirects_operator
   levels__siteSettings: Role_levels__siteSettings_operator
   levels__navigation: Role_levels__navigation_operator
   levels__footer: Role_levels__footer_operator
@@ -6763,6 +7081,7 @@ type RolesDocAccessFields_levels_Fields {
   services: RolesDocAccessFields_levels_services
   skills: RolesDocAccessFields_levels_skills
   header: RolesDocAccessFields_levels_header
+  redirects: RolesDocAccessFields_levels_redirects
   siteSettings: RolesDocAccessFields_levels_siteSettings
   navigation: RolesDocAccessFields_levels_navigation
   footer: RolesDocAccessFields_levels_footer
@@ -6995,6 +7314,29 @@ type RolesDocAccessFields_levels_header_Update {
 }
 
 type RolesDocAccessFields_levels_header_Delete {
+  permission: Boolean!
+}
+
+type RolesDocAccessFields_levels_redirects {
+  create: RolesDocAccessFields_levels_redirects_Create
+  read: RolesDocAccessFields_levels_redirects_Read
+  update: RolesDocAccessFields_levels_redirects_Update
+  delete: RolesDocAccessFields_levels_redirects_Delete
+}
+
+type RolesDocAccessFields_levels_redirects_Create {
+  permission: Boolean!
+}
+
+type RolesDocAccessFields_levels_redirects_Read {
+  permission: Boolean!
+}
+
+type RolesDocAccessFields_levels_redirects_Update {
+  permission: Boolean!
+}
+
+type RolesDocAccessFields_levels_redirects_Delete {
   permission: Boolean!
 }
 
@@ -8036,6 +8378,415 @@ type AuditLogsDeleteDocAccess {
   where: JSONObject
 }
 
+type Redirect {
+  id: Int!
+  from: String!
+  to: Redirect_To
+  type: Redirect_type!
+  updatedAt: DateTime
+  createdAt: DateTime
+}
+
+type Redirect_To {
+  type: Redirect_To_type
+  reference: Redirect_To_Reference_Relationship
+  url: String
+}
+
+enum Redirect_To_type {
+  reference
+  custom
+}
+
+type Redirect_To_Reference_Relationship {
+  relationTo: Redirect_To_Reference_RelationTo
+  value: Redirect_To_Reference
+}
+
+enum Redirect_To_Reference_RelationTo {
+  articles
+  projects
+}
+
+union Redirect_To_Reference = Article | Project
+
+enum Redirect_type {
+  _301
+  _302
+}
+
+type Redirects {
+  docs: [Redirect!]!
+  hasNextPage: Boolean!
+  hasPrevPage: Boolean!
+  limit: Int!
+  nextPage: Int
+  offset: Int
+  page: Int!
+  pagingCounter: Int!
+  prevPage: Int
+  totalDocs: Int!
+  totalPages: Int!
+}
+
+input Redirect_where {
+  from: Redirect_from_operator
+  to__type: Redirect_to__type_operator
+  to__reference: Redirect_to__reference_Relation
+  to__url: Redirect_to__url_operator
+  type: Redirect_type_operator
+  updatedAt: Redirect_updatedAt_operator
+  createdAt: Redirect_createdAt_operator
+  id: Redirect_id_operator
+  AND: [Redirect_where_and]
+  OR: [Redirect_where_or]
+}
+
+input Redirect_from_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+}
+
+input Redirect_to__type_operator {
+  equals: Redirect_to__type_Input
+  not_equals: Redirect_to__type_Input
+  like: Redirect_to__type_Input
+  contains: Redirect_to__type_Input
+  exists: Boolean
+}
+
+enum Redirect_to__type_Input {
+  reference
+  custom
+}
+
+input Redirect_to__reference_Relation {
+  relationTo: Redirect_to__reference_Relation_RelationTo
+  value: JSON
+}
+
+enum Redirect_to__reference_Relation_RelationTo {
+  articles
+  projects
+}
+
+input Redirect_to__url_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+}
+
+input Redirect_type_operator {
+  equals: Redirect_type_Input
+  not_equals: Redirect_type_Input
+  in: [Redirect_type_Input]
+  not_in: [Redirect_type_Input]
+  all: [Redirect_type_Input]
+}
+
+enum Redirect_type_Input {
+  _301
+  _302
+}
+
+input Redirect_updatedAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+  exists: Boolean
+}
+
+input Redirect_createdAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+  exists: Boolean
+}
+
+input Redirect_id_operator {
+  equals: Int
+  not_equals: Int
+  greater_than_equal: Int
+  greater_than: Int
+  less_than_equal: Int
+  less_than: Int
+  exists: Boolean
+}
+
+input Redirect_where_and {
+  from: Redirect_from_operator
+  to__type: Redirect_to__type_operator
+  to__reference: Redirect_to__reference_Relation
+  to__url: Redirect_to__url_operator
+  type: Redirect_type_operator
+  updatedAt: Redirect_updatedAt_operator
+  createdAt: Redirect_createdAt_operator
+  id: Redirect_id_operator
+  AND: [Redirect_where_and]
+  OR: [Redirect_where_or]
+}
+
+input Redirect_where_or {
+  from: Redirect_from_operator
+  to__type: Redirect_to__type_operator
+  to__reference: Redirect_to__reference_Relation
+  to__url: Redirect_to__url_operator
+  type: Redirect_type_operator
+  updatedAt: Redirect_updatedAt_operator
+  createdAt: Redirect_createdAt_operator
+  id: Redirect_id_operator
+  AND: [Redirect_where_and]
+  OR: [Redirect_where_or]
+}
+
+type countRedirects {
+  totalDocs: Int
+}
+
+type redirectsDocAccess {
+  fields: RedirectsDocAccessFields
+  create: RedirectsCreateDocAccess
+  read: RedirectsReadDocAccess
+  update: RedirectsUpdateDocAccess
+  delete: RedirectsDeleteDocAccess
+}
+
+type RedirectsDocAccessFields {
+  from: RedirectsDocAccessFields_from
+  to: RedirectsDocAccessFields_to
+  type: RedirectsDocAccessFields_type
+  updatedAt: RedirectsDocAccessFields_updatedAt
+  createdAt: RedirectsDocAccessFields_createdAt
+}
+
+type RedirectsDocAccessFields_from {
+  create: RedirectsDocAccessFields_from_Create
+  read: RedirectsDocAccessFields_from_Read
+  update: RedirectsDocAccessFields_from_Update
+  delete: RedirectsDocAccessFields_from_Delete
+}
+
+type RedirectsDocAccessFields_from_Create {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_from_Read {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_from_Update {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_from_Delete {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_to {
+  create: RedirectsDocAccessFields_to_Create
+  read: RedirectsDocAccessFields_to_Read
+  update: RedirectsDocAccessFields_to_Update
+  delete: RedirectsDocAccessFields_to_Delete
+  fields: RedirectsDocAccessFields_to_Fields
+}
+
+type RedirectsDocAccessFields_to_Create {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_to_Read {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_to_Update {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_to_Delete {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_to_Fields {
+  type: RedirectsDocAccessFields_to_type
+  reference: RedirectsDocAccessFields_to_reference
+  url: RedirectsDocAccessFields_to_url
+}
+
+type RedirectsDocAccessFields_to_type {
+  create: RedirectsDocAccessFields_to_type_Create
+  read: RedirectsDocAccessFields_to_type_Read
+  update: RedirectsDocAccessFields_to_type_Update
+  delete: RedirectsDocAccessFields_to_type_Delete
+}
+
+type RedirectsDocAccessFields_to_type_Create {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_to_type_Read {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_to_type_Update {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_to_type_Delete {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_to_reference {
+  create: RedirectsDocAccessFields_to_reference_Create
+  read: RedirectsDocAccessFields_to_reference_Read
+  update: RedirectsDocAccessFields_to_reference_Update
+  delete: RedirectsDocAccessFields_to_reference_Delete
+}
+
+type RedirectsDocAccessFields_to_reference_Create {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_to_reference_Read {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_to_reference_Update {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_to_reference_Delete {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_to_url {
+  create: RedirectsDocAccessFields_to_url_Create
+  read: RedirectsDocAccessFields_to_url_Read
+  update: RedirectsDocAccessFields_to_url_Update
+  delete: RedirectsDocAccessFields_to_url_Delete
+}
+
+type RedirectsDocAccessFields_to_url_Create {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_to_url_Read {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_to_url_Update {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_to_url_Delete {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_type {
+  create: RedirectsDocAccessFields_type_Create
+  read: RedirectsDocAccessFields_type_Read
+  update: RedirectsDocAccessFields_type_Update
+  delete: RedirectsDocAccessFields_type_Delete
+}
+
+type RedirectsDocAccessFields_type_Create {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_type_Read {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_type_Update {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_type_Delete {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_updatedAt {
+  create: RedirectsDocAccessFields_updatedAt_Create
+  read: RedirectsDocAccessFields_updatedAt_Read
+  update: RedirectsDocAccessFields_updatedAt_Update
+  delete: RedirectsDocAccessFields_updatedAt_Delete
+}
+
+type RedirectsDocAccessFields_updatedAt_Create {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_updatedAt_Read {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_updatedAt_Update {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_updatedAt_Delete {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_createdAt {
+  create: RedirectsDocAccessFields_createdAt_Create
+  read: RedirectsDocAccessFields_createdAt_Read
+  update: RedirectsDocAccessFields_createdAt_Update
+  delete: RedirectsDocAccessFields_createdAt_Delete
+}
+
+type RedirectsDocAccessFields_createdAt_Create {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_createdAt_Read {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_createdAt_Update {
+  permission: Boolean!
+}
+
+type RedirectsDocAccessFields_createdAt_Delete {
+  permission: Boolean!
+}
+
+type RedirectsCreateDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type RedirectsReadDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type RedirectsUpdateDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type RedirectsDeleteDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
 type PayloadKv {
   id: Int!
   key: String!
@@ -8220,9 +8971,10 @@ enum PayloadLockedDocument_Document_RelationTo {
   users
   roles
   audit_logs
+  redirects
 }
 
-union PayloadLockedDocument_Document = Article | Project | Media | About | Experience | Education | Certificate | Service | Skill | Header | User | Role | AuditLog
+union PayloadLockedDocument_Document = Article | Project | Media | About | Experience | Education | Certificate | Service | Skill | Header | User | Role | AuditLog | Redirect
 
 type PayloadLockedDocument_User_Relationship {
   relationTo: PayloadLockedDocument_User_RelationTo
@@ -8279,6 +9031,7 @@ enum PayloadLockedDocument_document_Relation_RelationTo {
   users
   roles
   audit_logs
+  redirects
 }
 
 input PayloadLockedDocument_globalSlug_operator {
@@ -8852,6 +9605,8 @@ type SiteSetting_CertificatesSection {
 type SiteSetting_ProjectsSection {
   heading: String
   allFilterLabel: String
+  archiveDescription: String
+  searchPlaceholder: String
   caseStudyLabel: String
   backToProjectsLabel: String
   liveProjectLabel: String
@@ -9708,6 +10463,8 @@ type SiteSettingsDocAccessFields_projectsSection_Delete {
 type SiteSettingsDocAccessFields_projectsSection_Fields {
   heading: SiteSettingsDocAccessFields_projectsSection_heading
   allFilterLabel: SiteSettingsDocAccessFields_projectsSection_allFilterLabel
+  archiveDescription: SiteSettingsDocAccessFields_projectsSection_archiveDescription
+  searchPlaceholder: SiteSettingsDocAccessFields_projectsSection_searchPlaceholder
   caseStudyLabel: SiteSettingsDocAccessFields_projectsSection_caseStudyLabel
   backToProjectsLabel: SiteSettingsDocAccessFields_projectsSection_backToProjectsLabel
   liveProjectLabel: SiteSettingsDocAccessFields_projectsSection_liveProjectLabel
@@ -9758,6 +10515,52 @@ type SiteSettingsDocAccessFields_projectsSection_allFilterLabel_Update {
 }
 
 type SiteSettingsDocAccessFields_projectsSection_allFilterLabel_Delete {
+  permission: Boolean!
+}
+
+type SiteSettingsDocAccessFields_projectsSection_archiveDescription {
+  create: SiteSettingsDocAccessFields_projectsSection_archiveDescription_Create
+  read: SiteSettingsDocAccessFields_projectsSection_archiveDescription_Read
+  update: SiteSettingsDocAccessFields_projectsSection_archiveDescription_Update
+  delete: SiteSettingsDocAccessFields_projectsSection_archiveDescription_Delete
+}
+
+type SiteSettingsDocAccessFields_projectsSection_archiveDescription_Create {
+  permission: Boolean!
+}
+
+type SiteSettingsDocAccessFields_projectsSection_archiveDescription_Read {
+  permission: Boolean!
+}
+
+type SiteSettingsDocAccessFields_projectsSection_archiveDescription_Update {
+  permission: Boolean!
+}
+
+type SiteSettingsDocAccessFields_projectsSection_archiveDescription_Delete {
+  permission: Boolean!
+}
+
+type SiteSettingsDocAccessFields_projectsSection_searchPlaceholder {
+  create: SiteSettingsDocAccessFields_projectsSection_searchPlaceholder_Create
+  read: SiteSettingsDocAccessFields_projectsSection_searchPlaceholder_Read
+  update: SiteSettingsDocAccessFields_projectsSection_searchPlaceholder_Update
+  delete: SiteSettingsDocAccessFields_projectsSection_searchPlaceholder_Delete
+}
+
+type SiteSettingsDocAccessFields_projectsSection_searchPlaceholder_Create {
+  permission: Boolean!
+}
+
+type SiteSettingsDocAccessFields_projectsSection_searchPlaceholder_Read {
+  permission: Boolean!
+}
+
+type SiteSettingsDocAccessFields_projectsSection_searchPlaceholder_Update {
+  permission: Boolean!
+}
+
+type SiteSettingsDocAccessFields_projectsSection_searchPlaceholder_Delete {
   permission: Boolean!
 }
 
@@ -11571,6 +12374,7 @@ type Access {
   users: usersAccess
   roles: rolesAccess
   audit_logs: audit_logsAccess
+  redirects: redirectsAccess
   payload_kv: payload_kvAccess
   payload_locked_documents: payload_locked_documentsAccess
   payload_preferences: payload_preferencesAccess
@@ -11600,6 +12404,7 @@ type ArticlesFields {
   image: ArticlesFields_image
   imageUrl: ArticlesFields_imageUrl
   link: ArticlesFields_link
+  meta: ArticlesFields_meta
   updatedAt: ArticlesFields_updatedAt
   createdAt: ArticlesFields_createdAt
   deletedAt: ArticlesFields_deletedAt
@@ -11881,6 +12686,105 @@ type ArticlesFields_link_Delete {
   permission: Boolean!
 }
 
+type ArticlesFields_meta {
+  create: ArticlesFields_meta_Create
+  read: ArticlesFields_meta_Read
+  update: ArticlesFields_meta_Update
+  delete: ArticlesFields_meta_Delete
+  fields: ArticlesFields_meta_Fields
+}
+
+type ArticlesFields_meta_Create {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_Read {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_Update {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_Delete {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_Fields {
+  title: ArticlesFields_meta_title
+  description: ArticlesFields_meta_description
+  image: ArticlesFields_meta_image
+}
+
+type ArticlesFields_meta_title {
+  create: ArticlesFields_meta_title_Create
+  read: ArticlesFields_meta_title_Read
+  update: ArticlesFields_meta_title_Update
+  delete: ArticlesFields_meta_title_Delete
+}
+
+type ArticlesFields_meta_title_Create {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_title_Read {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_title_Update {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_title_Delete {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_description {
+  create: ArticlesFields_meta_description_Create
+  read: ArticlesFields_meta_description_Read
+  update: ArticlesFields_meta_description_Update
+  delete: ArticlesFields_meta_description_Delete
+}
+
+type ArticlesFields_meta_description_Create {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_description_Read {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_description_Update {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_description_Delete {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_image {
+  create: ArticlesFields_meta_image_Create
+  read: ArticlesFields_meta_image_Read
+  update: ArticlesFields_meta_image_Update
+  delete: ArticlesFields_meta_image_Delete
+}
+
+type ArticlesFields_meta_image_Create {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_image_Read {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_image_Update {
+  permission: Boolean!
+}
+
+type ArticlesFields_meta_image_Delete {
+  permission: Boolean!
+}
+
 type ArticlesFields_updatedAt {
   create: ArticlesFields_updatedAt_Create
   read: ArticlesFields_updatedAt_Read
@@ -11995,6 +12899,7 @@ type ProjectsFields {
   categories: ProjectsFields_categories
   techStack: ProjectsFields_techStack
   readTime: ProjectsFields_readTime
+  meta: ProjectsFields_meta
   updatedAt: ProjectsFields_updatedAt
   createdAt: ProjectsFields_createdAt
   deletedAt: ProjectsFields_deletedAt
@@ -12365,6 +13270,105 @@ type ProjectsFields_readTime_Update {
 }
 
 type ProjectsFields_readTime_Delete {
+  permission: Boolean!
+}
+
+type ProjectsFields_meta {
+  create: ProjectsFields_meta_Create
+  read: ProjectsFields_meta_Read
+  update: ProjectsFields_meta_Update
+  delete: ProjectsFields_meta_Delete
+  fields: ProjectsFields_meta_Fields
+}
+
+type ProjectsFields_meta_Create {
+  permission: Boolean!
+}
+
+type ProjectsFields_meta_Read {
+  permission: Boolean!
+}
+
+type ProjectsFields_meta_Update {
+  permission: Boolean!
+}
+
+type ProjectsFields_meta_Delete {
+  permission: Boolean!
+}
+
+type ProjectsFields_meta_Fields {
+  title: ProjectsFields_meta_title
+  description: ProjectsFields_meta_description
+  image: ProjectsFields_meta_image
+}
+
+type ProjectsFields_meta_title {
+  create: ProjectsFields_meta_title_Create
+  read: ProjectsFields_meta_title_Read
+  update: ProjectsFields_meta_title_Update
+  delete: ProjectsFields_meta_title_Delete
+}
+
+type ProjectsFields_meta_title_Create {
+  permission: Boolean!
+}
+
+type ProjectsFields_meta_title_Read {
+  permission: Boolean!
+}
+
+type ProjectsFields_meta_title_Update {
+  permission: Boolean!
+}
+
+type ProjectsFields_meta_title_Delete {
+  permission: Boolean!
+}
+
+type ProjectsFields_meta_description {
+  create: ProjectsFields_meta_description_Create
+  read: ProjectsFields_meta_description_Read
+  update: ProjectsFields_meta_description_Update
+  delete: ProjectsFields_meta_description_Delete
+}
+
+type ProjectsFields_meta_description_Create {
+  permission: Boolean!
+}
+
+type ProjectsFields_meta_description_Read {
+  permission: Boolean!
+}
+
+type ProjectsFields_meta_description_Update {
+  permission: Boolean!
+}
+
+type ProjectsFields_meta_description_Delete {
+  permission: Boolean!
+}
+
+type ProjectsFields_meta_image {
+  create: ProjectsFields_meta_image_Create
+  read: ProjectsFields_meta_image_Read
+  update: ProjectsFields_meta_image_Update
+  delete: ProjectsFields_meta_image_Delete
+}
+
+type ProjectsFields_meta_image_Create {
+  permission: Boolean!
+}
+
+type ProjectsFields_meta_image_Read {
+  permission: Boolean!
+}
+
+type ProjectsFields_meta_image_Update {
+  permission: Boolean!
+}
+
+type ProjectsFields_meta_image_Delete {
   permission: Boolean!
 }
 
@@ -15269,6 +16273,7 @@ type RolesFields_levels_Fields {
   services: RolesFields_levels_services
   skills: RolesFields_levels_skills
   header: RolesFields_levels_header
+  redirects: RolesFields_levels_redirects
   siteSettings: RolesFields_levels_siteSettings
   navigation: RolesFields_levels_navigation
   footer: RolesFields_levels_footer
@@ -15501,6 +16506,29 @@ type RolesFields_levels_header_Update {
 }
 
 type RolesFields_levels_header_Delete {
+  permission: Boolean!
+}
+
+type RolesFields_levels_redirects {
+  create: RolesFields_levels_redirects_Create
+  read: RolesFields_levels_redirects_Read
+  update: RolesFields_levels_redirects_Update
+  delete: RolesFields_levels_redirects_Delete
+}
+
+type RolesFields_levels_redirects_Create {
+  permission: Boolean!
+}
+
+type RolesFields_levels_redirects_Read {
+  permission: Boolean!
+}
+
+type RolesFields_levels_redirects_Update {
+  permission: Boolean!
+}
+
+type RolesFields_levels_redirects_Delete {
   permission: Boolean!
 }
 
@@ -16244,6 +17272,233 @@ type AuditLogsUpdateAccess {
 }
 
 type AuditLogsDeleteAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type redirectsAccess {
+  fields: RedirectsFields
+  create: RedirectsCreateAccess
+  read: RedirectsReadAccess
+  update: RedirectsUpdateAccess
+  delete: RedirectsDeleteAccess
+}
+
+type RedirectsFields {
+  from: RedirectsFields_from
+  to: RedirectsFields_to
+  type: RedirectsFields_type
+  updatedAt: RedirectsFields_updatedAt
+  createdAt: RedirectsFields_createdAt
+}
+
+type RedirectsFields_from {
+  create: RedirectsFields_from_Create
+  read: RedirectsFields_from_Read
+  update: RedirectsFields_from_Update
+  delete: RedirectsFields_from_Delete
+}
+
+type RedirectsFields_from_Create {
+  permission: Boolean!
+}
+
+type RedirectsFields_from_Read {
+  permission: Boolean!
+}
+
+type RedirectsFields_from_Update {
+  permission: Boolean!
+}
+
+type RedirectsFields_from_Delete {
+  permission: Boolean!
+}
+
+type RedirectsFields_to {
+  create: RedirectsFields_to_Create
+  read: RedirectsFields_to_Read
+  update: RedirectsFields_to_Update
+  delete: RedirectsFields_to_Delete
+  fields: RedirectsFields_to_Fields
+}
+
+type RedirectsFields_to_Create {
+  permission: Boolean!
+}
+
+type RedirectsFields_to_Read {
+  permission: Boolean!
+}
+
+type RedirectsFields_to_Update {
+  permission: Boolean!
+}
+
+type RedirectsFields_to_Delete {
+  permission: Boolean!
+}
+
+type RedirectsFields_to_Fields {
+  type: RedirectsFields_to_type
+  reference: RedirectsFields_to_reference
+  url: RedirectsFields_to_url
+}
+
+type RedirectsFields_to_type {
+  create: RedirectsFields_to_type_Create
+  read: RedirectsFields_to_type_Read
+  update: RedirectsFields_to_type_Update
+  delete: RedirectsFields_to_type_Delete
+}
+
+type RedirectsFields_to_type_Create {
+  permission: Boolean!
+}
+
+type RedirectsFields_to_type_Read {
+  permission: Boolean!
+}
+
+type RedirectsFields_to_type_Update {
+  permission: Boolean!
+}
+
+type RedirectsFields_to_type_Delete {
+  permission: Boolean!
+}
+
+type RedirectsFields_to_reference {
+  create: RedirectsFields_to_reference_Create
+  read: RedirectsFields_to_reference_Read
+  update: RedirectsFields_to_reference_Update
+  delete: RedirectsFields_to_reference_Delete
+}
+
+type RedirectsFields_to_reference_Create {
+  permission: Boolean!
+}
+
+type RedirectsFields_to_reference_Read {
+  permission: Boolean!
+}
+
+type RedirectsFields_to_reference_Update {
+  permission: Boolean!
+}
+
+type RedirectsFields_to_reference_Delete {
+  permission: Boolean!
+}
+
+type RedirectsFields_to_url {
+  create: RedirectsFields_to_url_Create
+  read: RedirectsFields_to_url_Read
+  update: RedirectsFields_to_url_Update
+  delete: RedirectsFields_to_url_Delete
+}
+
+type RedirectsFields_to_url_Create {
+  permission: Boolean!
+}
+
+type RedirectsFields_to_url_Read {
+  permission: Boolean!
+}
+
+type RedirectsFields_to_url_Update {
+  permission: Boolean!
+}
+
+type RedirectsFields_to_url_Delete {
+  permission: Boolean!
+}
+
+type RedirectsFields_type {
+  create: RedirectsFields_type_Create
+  read: RedirectsFields_type_Read
+  update: RedirectsFields_type_Update
+  delete: RedirectsFields_type_Delete
+}
+
+type RedirectsFields_type_Create {
+  permission: Boolean!
+}
+
+type RedirectsFields_type_Read {
+  permission: Boolean!
+}
+
+type RedirectsFields_type_Update {
+  permission: Boolean!
+}
+
+type RedirectsFields_type_Delete {
+  permission: Boolean!
+}
+
+type RedirectsFields_updatedAt {
+  create: RedirectsFields_updatedAt_Create
+  read: RedirectsFields_updatedAt_Read
+  update: RedirectsFields_updatedAt_Update
+  delete: RedirectsFields_updatedAt_Delete
+}
+
+type RedirectsFields_updatedAt_Create {
+  permission: Boolean!
+}
+
+type RedirectsFields_updatedAt_Read {
+  permission: Boolean!
+}
+
+type RedirectsFields_updatedAt_Update {
+  permission: Boolean!
+}
+
+type RedirectsFields_updatedAt_Delete {
+  permission: Boolean!
+}
+
+type RedirectsFields_createdAt {
+  create: RedirectsFields_createdAt_Create
+  read: RedirectsFields_createdAt_Read
+  update: RedirectsFields_createdAt_Update
+  delete: RedirectsFields_createdAt_Delete
+}
+
+type RedirectsFields_createdAt_Create {
+  permission: Boolean!
+}
+
+type RedirectsFields_createdAt_Read {
+  permission: Boolean!
+}
+
+type RedirectsFields_createdAt_Update {
+  permission: Boolean!
+}
+
+type RedirectsFields_createdAt_Delete {
+  permission: Boolean!
+}
+
+type RedirectsCreateAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type RedirectsReadAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type RedirectsUpdateAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type RedirectsDeleteAccess {
   permission: Boolean!
   where: JSONObject
 }
@@ -17458,6 +18713,8 @@ type SiteSettingsFields_projectsSection_Delete {
 type SiteSettingsFields_projectsSection_Fields {
   heading: SiteSettingsFields_projectsSection_heading
   allFilterLabel: SiteSettingsFields_projectsSection_allFilterLabel
+  archiveDescription: SiteSettingsFields_projectsSection_archiveDescription
+  searchPlaceholder: SiteSettingsFields_projectsSection_searchPlaceholder
   caseStudyLabel: SiteSettingsFields_projectsSection_caseStudyLabel
   backToProjectsLabel: SiteSettingsFields_projectsSection_backToProjectsLabel
   liveProjectLabel: SiteSettingsFields_projectsSection_liveProjectLabel
@@ -17508,6 +18765,52 @@ type SiteSettingsFields_projectsSection_allFilterLabel_Update {
 }
 
 type SiteSettingsFields_projectsSection_allFilterLabel_Delete {
+  permission: Boolean!
+}
+
+type SiteSettingsFields_projectsSection_archiveDescription {
+  create: SiteSettingsFields_projectsSection_archiveDescription_Create
+  read: SiteSettingsFields_projectsSection_archiveDescription_Read
+  update: SiteSettingsFields_projectsSection_archiveDescription_Update
+  delete: SiteSettingsFields_projectsSection_archiveDescription_Delete
+}
+
+type SiteSettingsFields_projectsSection_archiveDescription_Create {
+  permission: Boolean!
+}
+
+type SiteSettingsFields_projectsSection_archiveDescription_Read {
+  permission: Boolean!
+}
+
+type SiteSettingsFields_projectsSection_archiveDescription_Update {
+  permission: Boolean!
+}
+
+type SiteSettingsFields_projectsSection_archiveDescription_Delete {
+  permission: Boolean!
+}
+
+type SiteSettingsFields_projectsSection_searchPlaceholder {
+  create: SiteSettingsFields_projectsSection_searchPlaceholder_Create
+  read: SiteSettingsFields_projectsSection_searchPlaceholder_Read
+  update: SiteSettingsFields_projectsSection_searchPlaceholder_Update
+  delete: SiteSettingsFields_projectsSection_searchPlaceholder_Delete
+}
+
+type SiteSettingsFields_projectsSection_searchPlaceholder_Create {
+  permission: Boolean!
+}
+
+type SiteSettingsFields_projectsSection_searchPlaceholder_Read {
+  permission: Boolean!
+}
+
+type SiteSettingsFields_projectsSection_searchPlaceholder_Update {
+  permission: Boolean!
+}
+
+type SiteSettingsFields_projectsSection_searchPlaceholder_Delete {
   permission: Boolean!
 }
 
@@ -19233,6 +20536,10 @@ type Mutation {
   updateAuditLog(id: Int!, autosave: Boolean, data: mutationAuditLogUpdateInput!, draft: Boolean, trash: Boolean): AuditLog
   deleteAuditLog(id: Int!, trash: Boolean): AuditLog
   duplicateAuditLog(id: Int!, data: mutationAuditLogInput!): AuditLog
+  createRedirect(data: mutationRedirectInput!, draft: Boolean): Redirect
+  updateRedirect(id: Int!, autosave: Boolean, data: mutationRedirectUpdateInput!, draft: Boolean, trash: Boolean): Redirect
+  deleteRedirect(id: Int!, trash: Boolean): Redirect
+  duplicateRedirect(id: Int!, data: mutationRedirectInput!): Redirect
   createPayloadKv(data: mutationPayloadKvInput!, draft: Boolean): PayloadKv
   updatePayloadKv(id: Int!, autosave: Boolean, data: mutationPayloadKvUpdateInput!, draft: Boolean, trash: Boolean): PayloadKv
   deletePayloadKv(id: Int!, trash: Boolean): PayloadKv
@@ -19263,6 +20570,7 @@ input mutationArticleInput {
   image: Int
   imageUrl: String
   link: String
+  meta: mutationArticle_MetaInput
   updatedAt: String
   createdAt: String
   deletedAt: String
@@ -19271,6 +20579,12 @@ input mutationArticleInput {
 enum Article_category_MutationInput {
   articles
   others
+}
+
+input mutationArticle_MetaInput {
+  title: String
+  description: String
+  image: Int
 }
 
 input mutationArticleUpdateInput {
@@ -19286,6 +20600,7 @@ input mutationArticleUpdateInput {
   image: Int
   imageUrl: String
   link: String
+  meta: mutationArticleUpdate_MetaInput
   updatedAt: String
   createdAt: String
   deletedAt: String
@@ -19294,6 +20609,12 @@ input mutationArticleUpdateInput {
 enum ArticleUpdate_category_MutationInput {
   articles
   others
+}
+
+input mutationArticleUpdate_MetaInput {
+  title: String
+  description: String
+  image: Int
 }
 
 input mutationProjectInput {
@@ -19313,6 +20634,7 @@ input mutationProjectInput {
   categories: [Project_categories_MutationInput]!
   techStack: [String]
   readTime: Float
+  meta: mutationProject_MetaInput
   updatedAt: String
   createdAt: String
   deletedAt: String
@@ -19322,6 +20644,12 @@ enum Project_categories_MutationInput {
   front_end
   back_end
   cms_crm
+}
+
+input mutationProject_MetaInput {
+  title: String
+  description: String
+  image: Int
 }
 
 input mutationProjectUpdateInput {
@@ -19341,6 +20669,7 @@ input mutationProjectUpdateInput {
   categories: [ProjectUpdate_categories_MutationInput]
   techStack: [String]
   readTime: Float
+  meta: mutationProjectUpdate_MetaInput
   updatedAt: String
   createdAt: String
   deletedAt: String
@@ -19350,6 +20679,12 @@ enum ProjectUpdate_categories_MutationInput {
   front_end
   back_end
   cms_crm
+}
+
+input mutationProjectUpdate_MetaInput {
+  title: String
+  description: String
+  image: Int
 }
 
 input mutationMediaInput {
@@ -19756,6 +21091,7 @@ input mutationRole_LevelsInput {
   services: String
   skills: String
   header: String
+  redirects: String
   siteSettings: String
   navigation: String
   footer: String
@@ -19794,6 +21130,7 @@ input mutationRoleUpdate_LevelsInput {
   services: String
   skills: String
   header: String
+  redirects: String
   siteSettings: String
   navigation: String
   footer: String
@@ -19875,6 +21212,64 @@ enum AuditLogUpdate_entityKind_MutationInput {
   auth
 }
 
+input mutationRedirectInput {
+  from: String!
+  to: mutationRedirect_ToInput!
+  type: Redirect_type_MutationInput!
+  updatedAt: String
+  createdAt: String
+}
+
+input mutationRedirect_ToInput {
+  type: String
+  reference: Redirect_To_ReferenceRelationshipInput
+  url: String
+}
+
+input Redirect_To_ReferenceRelationshipInput {
+  relationTo: Redirect_To_ReferenceRelationshipInputRelationTo
+  value: JSON
+}
+
+enum Redirect_To_ReferenceRelationshipInputRelationTo {
+  articles
+  projects
+}
+
+enum Redirect_type_MutationInput {
+  _301
+  _302
+}
+
+input mutationRedirectUpdateInput {
+  from: String
+  to: mutationRedirectUpdate_ToInput!
+  type: RedirectUpdate_type_MutationInput
+  updatedAt: String
+  createdAt: String
+}
+
+input mutationRedirectUpdate_ToInput {
+  type: String
+  reference: RedirectUpdate_To_ReferenceRelationshipInput
+  url: String
+}
+
+input RedirectUpdate_To_ReferenceRelationshipInput {
+  relationTo: RedirectUpdate_To_ReferenceRelationshipInputRelationTo
+  value: JSON
+}
+
+enum RedirectUpdate_To_ReferenceRelationshipInputRelationTo {
+  articles
+  projects
+}
+
+enum RedirectUpdate_type_MutationInput {
+  _301
+  _302
+}
+
 input mutationPayloadKvInput {
   key: String!
   data: JSON!
@@ -19912,6 +21307,7 @@ enum PayloadLockedDocument_DocumentRelationshipInputRelationTo {
   users
   roles
   audit_logs
+  redirects
 }
 
 input PayloadLockedDocument_UserRelationshipInput {
@@ -19950,6 +21346,7 @@ enum PayloadLockedDocumentUpdate_DocumentRelationshipInputRelationTo {
   users
   roles
   audit_logs
+  redirects
 }
 
 input PayloadLockedDocumentUpdate_UserRelationshipInput {
@@ -20053,6 +21450,8 @@ input mutationSiteSetting_CertificatesSectionInput {
 input mutationSiteSetting_ProjectsSectionInput {
   heading: String
   allFilterLabel: String
+  archiveDescription: String
+  searchPlaceholder: String
   caseStudyLabel: String
   backToProjectsLabel: String
   liveProjectLabel: String

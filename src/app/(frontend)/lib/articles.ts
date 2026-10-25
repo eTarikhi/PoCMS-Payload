@@ -15,8 +15,8 @@ export const getCachedArticleBySlug = (slug: string): Promise<ArticleDetail | nu
       const doc = await fetchArticleBySlug(slug)
       return doc ? mapArticleDetail(doc) : null
     },
-    // v2: the view model gained `id` (Live Preview); old cache entries lack it.
-    ['portfolio-article-v2', slug],
+    // v3: the view model gained `seo` overrides (`@payloadcms/plugin-seo`).
+    ['portfolio-article-v3', slug],
     { tags: [PORTFOLIO_CACHE_TAG] },
   )()
 

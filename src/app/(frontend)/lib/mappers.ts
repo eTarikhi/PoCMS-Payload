@@ -47,6 +47,7 @@ import type {
   ProjectItem,
   ProjectsContent,
   SectionCta,
+  SeoOverride,
   ServiceItem,
   ServicesContent,
   SiteSettingsContent,
@@ -144,6 +145,8 @@ export const DEFAULT_SITE_SETTINGS: SiteSettingsContent = {
   projectsSection: {
     heading: 'My Projects',
     allFilterLabel: 'All Projects',
+    archiveDescription: 'Selected projects, engineering case studies, and full-stack builds.',
+    searchPlaceholder: 'Search projects by title, tech stack, or role…',
     caseStudyLabel: 'Case study',
     backToProjectsLabel: 'Back to projects',
     liveProjectLabel: 'Visit live project',
@@ -195,6 +198,23 @@ export const resolveMediaUrl = (media: number | Media | null | undefined): strin
   if (!media || typeof media !== 'object') return null
   return media.url ?? null
 }
+
+/** Extracts clean per-document SEO overrides from `@payloadcms/plugin-seo`'s `meta` group. */
+export const mapSeoOverride = (
+  meta?: {
+    title?: string | null
+    description?: string | null
+    image?: (number | null) | Media
+  } | null,
+): SeoOverride => ({
+  title: meta?.title?.trim() || null,
+  description: meta?.description?.trim() || null,
+  imageUrl: resolveMediaUrl(meta?.image),
+  imageAlt:
+    meta?.image && typeof meta.image === 'object' && meta.image.alt?.trim()
+      ? meta.image.alt.trim()
+      : null,
+})
 
 const idToString = (id: number | string): string => String(id)
 
@@ -361,6 +381,14 @@ export const mapSiteSettings = (
       allFilterLabel: withFallback(
         doc.projectsSection?.allFilterLabel,
         DEFAULT_SITE_SETTINGS.projectsSection.allFilterLabel,
+      ),
+      archiveDescription: withFallback(
+        doc.projectsSection?.archiveDescription,
+        DEFAULT_SITE_SETTINGS.projectsSection.archiveDescription,
+      ),
+      searchPlaceholder: withFallback(
+        doc.projectsSection?.searchPlaceholder,
+        DEFAULT_SITE_SETTINGS.projectsSection.searchPlaceholder,
       ),
       caseStudyLabel: withFallback(
         doc.projectsSection?.caseStudyLabel,
@@ -563,11 +591,18 @@ export const mapProjects = (
   items: docs.map((doc): ProjectItem => {
     const uploadUrl = resolveMediaUrl(doc.image)
     const caseStudyPath = doc.slug && hasProjectPage(doc) ? projectPagePath(doc.slug) : null
+    const minutes = caseStudyPath
+      ? calculateReadTimeMinutes({ content: doc.content, fallbackReadTime: doc.readTime })
+      : (doc.readTime ?? null)
     return {
       id: idToString(doc.id),
       title: doc.title,
       excerpt: doc.excerpt?.trim() || null,
       categories: doc.categories ?? [],
+      techStack: (doc.techStack ?? []).map((item) => item.trim()).filter(Boolean),
+      role: doc.role?.trim() || null,
+      year: doc.year?.trim() || null,
+      readTime: minutes ? formatReadTime(minutes) : null,
       thumbnailUrl: withFallback(doc.placeHolder, uploadUrl ?? ''),
       imageUrl: uploadUrl ?? withFallback(doc.src, ''),
       url: withFallback(doc.url, caseStudyPath ?? '#'),

@@ -32,6 +32,7 @@ const NAV_ICONS = {
   'nav-global-site-settings': ['SlidersHorizontal', 'violet'],
   'nav-global-navigation': ['Compass', 'blue'],
   'nav-global-footer': ['PanelBottom', 'slate'],
+  'nav-redirects': ['ArrowRightLeft', 'teal'],
   'nav-users': ['Users', 'teal'],
   'nav-roles': ['KeyRound', 'orange'],
   'nav-audit-logs': ['ScrollText', 'amber'],

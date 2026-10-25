@@ -4,17 +4,26 @@ import type { ArticleDetail } from './article-mappers'
 import { articlePagePath, ARTICLES_HUB_PATH } from './article-page'
 import { DEFAULT_PROFILE_IMAGE_PATH, DEFAULT_SITE_SETTINGS } from './mappers'
 import type { ProjectDetail } from './project-mappers'
-import { projectPagePath } from './project-page'
-import type { ArticleItem, FooterContent, HeaderContent, SiteSettingsContent } from './types'
+import { projectPagePath, PROJECTS_HUB_PATH } from './project-page'
+import type {
+  ArticleItem,
+  FooterContent,
+  HeaderContent,
+  ProjectItem,
+  SiteSettingsContent,
+} from './types'
 
 /**
- * SEO, viewport, and JSON-LD builders for the site, backed by the `site-settings` global.
+ * SEO, viewport, and JSON-LD builders for the site, backed by the `site-settings` global
+ * and per-document `@payloadcms/plugin-seo` overrides (`seo`).
  * This module does not import React or Payload.
  */
 
 export const DEFAULT_SITE_URL = 'https://vtarikhi.com'
 
 export const PROFILE_IMAGE_PATH = DEFAULT_PROFILE_IMAGE_PATH
+
+export const RSS_FEED_PATH = '/feed.xml'
 
 export const siteUrl = (): string => {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim()
@@ -42,6 +51,12 @@ export const buildPortfolioMetadata = (
     title: settings.siteTitle,
     description: settings.metaDescription,
     ...(settings.keywords ? { keywords: settings.keywords } : {}),
+    alternates: {
+      canonical: site,
+      types: {
+        'application/rss+xml': `${site}${RSS_FEED_PATH}`,
+      },
+    },
     robots: 'index, follow',
     manifest: '/images/favicon/site.webmanifest',
     icons: {
@@ -155,7 +170,12 @@ export const buildArticlesHubMetadata = (
   return {
     title,
     description,
-    alternates: { canonical: url },
+    alternates: {
+      canonical: url,
+      types: {
+        'application/rss+xml': `${site}${RSS_FEED_PATH}`,
+      },
+    },
     openGraph: {
       type: 'website',
       siteName: settings.siteName,
@@ -212,8 +232,12 @@ export const buildArticleMetadata = (
   site: string = siteUrl(),
 ): Metadata => {
   const url = articleCanonicalUrl(article.slug, site)
-  const image = article.coverUrl
-    ? { url: absoluteUrl(article.coverUrl, site), alt: article.coverAlt, width: 1140, height: 600 }
+  const effectiveTitle = article.seo?.title || article.title
+  const effectiveDescription = article.seo?.description || article.excerpt || undefined
+  const customImageUrl = article.seo?.imageUrl || article.coverUrl
+  const customImageAlt = article.seo?.imageAlt || article.coverAlt
+  const image = customImageUrl
+    ? { url: absoluteUrl(customImageUrl, site), alt: customImageAlt, width: 1140, height: 600 }
     : {
         url: absoluteUrl(settings.ogImage.url, site),
         alt: settings.ogImage.alt || settings.ownerName,
@@ -222,23 +246,23 @@ export const buildArticleMetadata = (
       }
 
   return {
-    title: article.title,
-    ...(article.excerpt ? { description: article.excerpt } : {}),
+    title: effectiveTitle,
+    ...(effectiveDescription ? { description: effectiveDescription } : {}),
     alternates: { canonical: url },
     openGraph: {
       type: 'article',
       siteName: settings.siteName,
-      title: article.title,
-      ...(article.excerpt ? { description: article.excerpt } : {}),
+      title: effectiveTitle,
+      ...(effectiveDescription ? { description: effectiveDescription } : {}),
       url,
       locale: settings.locale,
       ...(article.publishedAt ? { publishedTime: article.publishedAt } : {}),
       images: [image],
     },
     twitter: {
-      card: article.coverUrl ? 'summary_large_image' : 'summary',
-      title: article.title,
-      ...(article.excerpt ? { description: article.excerpt } : {}),
+      card: customImageUrl ? 'summary_large_image' : 'summary',
+      title: effectiveTitle,
+      ...(effectiveDescription ? { description: effectiveDescription } : {}),
       images: [image.url],
     },
   }
@@ -253,15 +277,17 @@ export const buildBlogPostingJsonLd = (
 ): Record<string, unknown> => {
   const { '@context': _context, ...author } = buildPersonJsonLd(header, footer, settings, site)
   const url = articleCanonicalUrl(article.slug, site)
+  const description = article.seo?.description || article.excerpt
+  const imageUrl = article.seo?.imageUrl ?? article.coverUrl ?? settings.ogImage.url
 
   return {
     '@context': 'https://schema.org/',
     '@type': 'BlogPosting',
     headline: article.title,
-    ...(article.excerpt ? { description: article.excerpt } : {}),
+    ...(description ? { description } : {}),
     ...(article.publishedAt ? { datePublished: article.publishedAt } : {}),
     author,
-    image: absoluteUrl(article.coverUrl ?? settings.ogImage.url, site),
+    image: absoluteUrl(imageUrl, site),
     url,
     mainEntityOfPage: { '@type': 'WebPage', '@id': url },
   }
@@ -270,15 +296,95 @@ export const buildBlogPostingJsonLd = (
 export const projectCanonicalUrl = (slug: string, site: string = siteUrl()): string =>
   `${site}${projectPagePath(slug)}`
 
+export const projectsHubCanonicalUrl = (site: string = siteUrl()): string =>
+  `${site}${PROJECTS_HUB_PATH}`
+
+export const buildProjectsHubMetadata = (
+  settings: SiteSettingsContent = DEFAULT_SITE_SETTINGS,
+  site: string = siteUrl(),
+): Metadata => {
+  const url = projectsHubCanonicalUrl(site)
+  const title = `${settings.projectsSection.heading} | ${settings.siteName}`
+  const description = settings.projectsSection.archiveDescription || settings.metaDescription
+  const imageUrl = absoluteUrl(settings.ogImage.url, site)
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: url,
+      types: {
+        'application/rss+xml': `${site}${RSS_FEED_PATH}`,
+      },
+    },
+    openGraph: {
+      type: 'website',
+      siteName: settings.siteName,
+      title,
+      description,
+      url,
+      locale: settings.locale,
+      images: [
+        {
+          url: imageUrl,
+          alt: settings.ogImage.alt || settings.ownerName,
+          width: settings.ogImage.width,
+          height: settings.ogImage.height,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [imageUrl],
+    },
+  }
+}
+
+export const buildProjectsHubJsonLd = (
+  projects: ProjectItem[],
+  settings: SiteSettingsContent = DEFAULT_SITE_SETTINGS,
+  site: string = siteUrl(),
+): Record<string, unknown> => {
+  const url = projectsHubCanonicalUrl(site)
+  return {
+    '@context': 'https://schema.org/',
+    '@type': 'CollectionPage',
+    name: settings.projectsSection.heading,
+    description: settings.projectsSection.archiveDescription,
+    url,
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: projects.length,
+      itemListElement: projects.map((project, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        name: project.title,
+        url: project.pagePath
+          ? `${site}${project.pagePath}`
+          : project.url && project.url !== '#'
+            ? project.url
+            : url,
+      })),
+    },
+  }
+}
+
 export const buildProjectMetadata = (
   project: ProjectDetail,
   settings: SiteSettingsContent = DEFAULT_SITE_SETTINGS,
   site: string = siteUrl(),
 ): Metadata => {
   const url = projectCanonicalUrl(project.slug, site)
-  const description = project.excerpt || settings.metaDescription
-  const image = project.coverUrl
-    ? { url: absoluteUrl(project.coverUrl, site), alt: project.coverAlt, width: 1140, height: 600 }
+  const defaultTitle = `${project.title} — ${settings.projectsSection.caseStudyLabel}`
+  const effectiveTitle = project.seo?.title || defaultTitle
+  const ogTitle = project.seo?.title || project.title
+  const description = project.seo?.description || project.excerpt || settings.metaDescription
+  const customImageUrl = project.seo?.imageUrl || project.coverUrl
+  const customImageAlt = project.seo?.imageAlt || project.coverAlt
+  const image = customImageUrl
+    ? { url: absoluteUrl(customImageUrl, site), alt: customImageAlt, width: 1140, height: 600 }
     : {
         url: absoluteUrl(settings.ogImage.url, site),
         alt: settings.ogImage.alt || settings.ownerName,
@@ -287,21 +393,21 @@ export const buildProjectMetadata = (
       }
 
   return {
-    title: `${project.title} — ${settings.projectsSection.caseStudyLabel}`,
+    title: effectiveTitle,
     description,
     alternates: { canonical: url },
     openGraph: {
       type: 'article',
       siteName: settings.siteName,
-      title: project.title,
+      title: ogTitle,
       description,
       url,
       locale: settings.locale,
       images: [image],
     },
     twitter: {
-      card: project.coverUrl ? 'summary_large_image' : 'summary',
-      title: project.title,
+      card: customImageUrl ? 'summary_large_image' : 'summary',
+      title: ogTitle,
       description,
       images: [image.url],
     },
@@ -317,16 +423,18 @@ export const buildProjectJsonLd = (
 ): Record<string, unknown> => {
   const { '@context': _context, ...creator } = buildPersonJsonLd(header, footer, settings, site)
   const url = projectCanonicalUrl(project.slug, site)
+  const description = project.seo?.description || project.excerpt
+  const imageUrl = project.seo?.imageUrl ?? project.coverUrl ?? settings.ogImage.url
 
   return {
     '@context': 'https://schema.org/',
     '@type': 'CreativeWork',
     name: project.title,
-    ...(project.excerpt ? { description: project.excerpt } : {}),
+    ...(description ? { description } : {}),
     ...(project.year ? { dateCreated: project.year } : {}),
     ...(project.techStack.length > 0 ? { keywords: project.techStack.join(', ') } : {}),
     creator,
-    image: absoluteUrl(project.coverUrl ?? settings.ogImage.url, site),
+    image: absoluteUrl(imageUrl, site),
     url,
     ...(project.liveUrl ? { sameAs: project.liveUrl } : {}),
   }

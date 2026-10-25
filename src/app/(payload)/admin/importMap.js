@@ -25,6 +25,11 @@ import { UploadFeatureClient as UploadFeatureClient_e70f5e05f09f93e00b997edb1ef0
 import { HorizontalRuleFeatureClient as HorizontalRuleFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { InlineToolbarFeatureClient as InlineToolbarFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { BooleanCell as BooleanCell_c678ed40df2ca062937c6141559e58dc } from '../../../components/admin/fields/Checkbox/Cell'
+import { OverviewComponent as OverviewComponent_a8a977ebc872c5d5ea7ee689724c0860 } from '@payloadcms/plugin-seo/client'
+import { MetaTitleComponent as MetaTitleComponent_a8a977ebc872c5d5ea7ee689724c0860 } from '@payloadcms/plugin-seo/client'
+import { MetaDescriptionComponent as MetaDescriptionComponent_a8a977ebc872c5d5ea7ee689724c0860 } from '@payloadcms/plugin-seo/client'
+import { MetaImageComponent as MetaImageComponent_a8a977ebc872c5d5ea7ee689724c0860 } from '@payloadcms/plugin-seo/client'
+import { PreviewComponent as PreviewComponent_a8a977ebc872c5d5ea7ee689724c0860 } from '@payloadcms/plugin-seo/client'
 import { ListSummary as ListSummary_50f80f274e43b32ec92fdc1f4d460a7d } from '../../../components/admin/views/List/ListSummary'
 import { GraphQLDocumentView as GraphQLDocumentView_8745bff9ddc360092ecb4114962825db } from '../../../components/admin/views/GraphQL'
 import { TanStackListView as TanStackListView_75bec65592dc2da1b8ce75c1e9e94fc3 } from '../../../components/admin/views/List'
@@ -90,6 +95,11 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#HorizontalRuleFeatureClient": HorizontalRuleFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#InlineToolbarFeatureClient": InlineToolbarFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "/components/admin/fields/Checkbox/Cell#BooleanCell": BooleanCell_c678ed40df2ca062937c6141559e58dc,
+  "@payloadcms/plugin-seo/client#OverviewComponent": OverviewComponent_a8a977ebc872c5d5ea7ee689724c0860,
+  "@payloadcms/plugin-seo/client#MetaTitleComponent": MetaTitleComponent_a8a977ebc872c5d5ea7ee689724c0860,
+  "@payloadcms/plugin-seo/client#MetaDescriptionComponent": MetaDescriptionComponent_a8a977ebc872c5d5ea7ee689724c0860,
+  "@payloadcms/plugin-seo/client#MetaImageComponent": MetaImageComponent_a8a977ebc872c5d5ea7ee689724c0860,
+  "@payloadcms/plugin-seo/client#PreviewComponent": PreviewComponent_a8a977ebc872c5d5ea7ee689724c0860,
   "/components/admin/views/List/ListSummary#ListSummary": ListSummary_50f80f274e43b32ec92fdc1f4d460a7d,
   "/components/admin/views/GraphQL#GraphQLDocumentView": GraphQLDocumentView_8745bff9ddc360092ecb4114962825db,
   "/components/admin/views/List#TanStackListView": TanStackListView_75bec65592dc2da1b8ce75c1e9e94fc3,

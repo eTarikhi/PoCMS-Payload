@@ -2,6 +2,7 @@ import Link from 'next/link'
 
 import { DEFAULT_SITE_SETTINGS } from '@/app/(frontend)/lib/mappers'
 import type { ProjectDetail } from '@/app/(frontend)/lib/project-mappers'
+import { PROJECTS_HUB_PATH } from '@/app/(frontend)/lib/project-page'
 import { ArticleCover } from '../article/ArticleCover'
 import { ReadingProgress } from '../article/ReadingProgress'
 import { RichTextContent } from '../richtext/RichTextContent'
@@ -123,7 +124,7 @@ export function ProjectLayout({
         ) : null}
 
         <div className="article-footer-nav">
-          <Link href="/#project">{labels.backToProjectsLabel}</Link>
+          <Link href={PROJECTS_HUB_PATH}>{labels.backToProjectsLabel}</Link>
           {project.liveUrl ? (
             <a href={project.liveUrl} target="_blank" rel="noopener noreferrer">
               {labels.liveProjectLabel}

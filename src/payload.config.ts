@@ -43,6 +43,11 @@ import { Media } from './collections/Media'
 import { dashboard } from './components/admin/widgets/config'
 import { adminUIPlugin } from './plugins/adminUI'
 import { auditLogPlugin } from './plugins/auditLog'
+import {
+  portfolioRedirectsPlugin,
+  portfolioSeoPlugin,
+  REDIRECTS_COLLECTION,
+} from './plugins/seoAndRedirects'
 
 // import { MediaWithPrefix } from './collections/MediaWithPrefix'
 
@@ -64,6 +69,16 @@ const contentCollections = [
 ]
 
 const globals = [SiteSettings, Navigation, Footer]
+
+/** Includes plugin-registered collections (`redirects`) so RBAC role fields match `payload.config`. */
+const roleGovernedCollections = [
+  ...contentCollections,
+  {
+    slug: REDIRECTS_COLLECTION,
+    labels: { plural: 'Redirects' },
+    admin: { group: 'Site settings' },
+  },
+]
 
 export default buildConfig({
   admin: {
@@ -156,7 +171,7 @@ export default buildConfig({
   collections: [
     ...contentCollections,
     Users,
-    createRoles(governedEntities({ collections: contentCollections, globals })),
+    createRoles(governedEntities({ collections: roleGovernedCollections, globals })),
     AuditLogs,
   ],
   globals,
@@ -209,6 +224,8 @@ export default buildConfig({
       },
       token: process.env.BLOB_READ_WRITE_TOKEN || '',
     }),
+    portfolioSeoPlugin(),
+    portfolioRedirectsPlugin(),
     auditLogPlugin(),
     // Last, so it sees every field other plugins add: TanStack list views, boolean cells (ADR 0007).
     adminUIPlugin(),

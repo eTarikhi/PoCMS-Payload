@@ -36,6 +36,13 @@ export type SectionCta = {
   url: string
 }
 
+export type SeoOverride = {
+  title: string | null
+  description: string | null
+  imageUrl: string | null
+  imageAlt: string | null
+}
+
 export type SiteSettingsContent = {
   siteName: string
   ownerName: string
@@ -76,6 +83,8 @@ export type SiteSettingsContent = {
   projectsSection: {
     heading: string
     allFilterLabel: string
+    archiveDescription: string
+    searchPlaceholder: string
     caseStudyLabel: string
     backToProjectsLabel: string
     liveProjectLabel: string
@@ -220,6 +229,11 @@ export type ProjectItem = {
   title: string
   excerpt?: string | null
   categories: string[]
+  /** Technologies used in the project (e.g. ["Next.js", "Payload CMS"]). */
+  techStack?: string[]
+  role?: string | null
+  year?: string | null
+  readTime?: string | null
   /** Small image shown in the grid. */
   thumbnailUrl: string
   /** Full-size image. */

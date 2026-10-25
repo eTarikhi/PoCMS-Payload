@@ -104,6 +104,12 @@ export const enum_roles_levels_header = pgEnum('enum_roles_levels_header', [
   'edit',
   'full',
 ])
+export const enum_roles_levels_redirects = pgEnum('enum_roles_levels_redirects', [
+  'none',
+  'read',
+  'edit',
+  'full',
+])
 export const enum_roles_levels_site_settings = pgEnum('enum_roles_levels_site_settings', [
   'none',
   'read',
@@ -128,6 +134,8 @@ export const enum_audit_logs_entity_kind = pgEnum('enum_audit_logs_entity_kind',
   'global',
   'auth',
 ])
+export const enum_redirects_to_type = pgEnum('enum_redirects_to_type', ['reference', 'custom'])
+export const enum_redirects_type = pgEnum('enum_redirects_type', ['301', '302'])
 export const enum_navigation_items_position = pgEnum('enum_navigation_items_position', [
   'left',
   'right',
@@ -204,6 +212,11 @@ export const articles = pgTable(
     }),
     imageUrl: varchar('image_url'),
     link: varchar('link'),
+    meta_title: varchar('meta_title'),
+    meta_description: varchar('meta_description'),
+    meta_image: integer('meta_image_id').references(() => media.id, {
+      onDelete: 'set null',
+    }),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
@@ -217,6 +230,7 @@ export const articles = pgTable(
     index('articles_category_idx').on(columns.category),
     index('articles_published_at_idx').on(columns.publishedAt),
     index('articles_image_idx').on(columns.image),
+    index('articles_meta_meta_image_idx').on(columns.meta_image),
     index('articles_updated_at_idx').on(columns.updatedAt),
     index('articles_created_at_idx').on(columns.createdAt),
     index('articles_deleted_at_idx').on(columns.deletedAt),
@@ -262,6 +276,11 @@ export const projects = pgTable(
     url: varchar('url'),
     readMoreUrl: varchar('read_more_url'),
     readTime: numeric('read_time', { mode: 'number' }),
+    meta_title: varchar('meta_title'),
+    meta_description: varchar('meta_description'),
+    meta_image: integer('meta_image_id').references(() => media.id, {
+      onDelete: 'set null',
+    }),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
@@ -274,6 +293,7 @@ export const projects = pgTable(
     index('projects__order_idx').on(columns._order),
     uniqueIndex('projects_slug_idx').on(columns.slug),
     index('projects_image_idx').on(columns.image),
+    index('projects_meta_meta_image_idx').on(columns.meta_image),
     index('projects_updated_at_idx').on(columns.updatedAt),
     index('projects_created_at_idx').on(columns.createdAt),
     index('projects_deleted_at_idx').on(columns.deletedAt),
@@ -746,6 +766,7 @@ export const roles = pgTable(
     levels_services: enum_roles_levels_services('levels_services').default('none'),
     levels_skills: enum_roles_levels_skills('levels_skills').default('none'),
     levels_header: enum_roles_levels_header('levels_header').default('none'),
+    levels_redirects: enum_roles_levels_redirects('levels_redirects').default('none'),
     levels_siteSettings: enum_roles_levels_site_settings('levels_site_settings').default('none'),
     levels_navigation: enum_roles_levels_navigation('levels_navigation').default('none'),
     levels_footer: enum_roles_levels_footer('levels_footer').default('none'),
@@ -806,6 +827,62 @@ export const audit_logs = pgTable(
   ],
 )
 
+export const redirects = pgTable(
+  'redirects',
+  {
+    id: serial('id').primaryKey(),
+    from: varchar('from').notNull(),
+    to_type: enum_redirects_to_type('to_type').default('reference'),
+    to_url: varchar('to_url'),
+    type: enum_redirects_type('type').notNull().default('301'),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    uniqueIndex('redirects_from_idx').on(columns.from),
+    index('redirects_updated_at_idx').on(columns.updatedAt),
+    index('redirects_created_at_idx').on(columns.createdAt),
+  ],
+)
+
+export const redirects_rels = pgTable(
+  'redirects_rels',
+  {
+    id: serial('id').primaryKey(),
+    order: integer('order'),
+    parent: integer('parent_id').notNull(),
+    path: varchar('path').notNull(),
+    articlesID: integer('articles_id'),
+    projectsID: integer('projects_id'),
+  },
+  (columns) => [
+    index('redirects_rels_order_idx').on(columns.order),
+    index('redirects_rels_parent_idx').on(columns.parent),
+    index('redirects_rels_path_idx').on(columns.path),
+    index('redirects_rels_articles_id_idx').on(columns.articlesID),
+    index('redirects_rels_projects_id_idx').on(columns.projectsID),
+    foreignKey({
+      columns: [columns['parent']],
+      foreignColumns: [redirects.id],
+      name: 'redirects_rels_parent_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [columns['articlesID']],
+      foreignColumns: [articles.id],
+      name: 'redirects_rels_articles_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [columns['projectsID']],
+      foreignColumns: [projects.id],
+      name: 'redirects_rels_projects_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
 export const payload_kv = pgTable(
   'payload_kv',
   {
@@ -855,6 +932,7 @@ export const payload_locked_documents_rels = pgTable(
     usersID: integer('users_id'),
     rolesID: integer('roles_id'),
     'audit-logsID': integer('audit_logs_id'),
+    redirectsID: integer('redirects_id'),
   },
   (columns) => [
     index('payload_locked_documents_rels_order_idx').on(columns.order),
@@ -873,6 +951,7 @@ export const payload_locked_documents_rels = pgTable(
     index('payload_locked_documents_rels_users_id_idx').on(columns.usersID),
     index('payload_locked_documents_rels_roles_id_idx').on(columns.rolesID),
     index('payload_locked_documents_rels_audit_logs_id_idx').on(columns['audit-logsID']),
+    index('payload_locked_documents_rels_redirects_id_idx').on(columns.redirectsID),
     foreignKey({
       columns: [columns['parent']],
       foreignColumns: [payload_locked_documents.id],
@@ -942,6 +1021,11 @@ export const payload_locked_documents_rels = pgTable(
       columns: [columns['audit-logsID']],
       foreignColumns: [audit_logs.id],
       name: 'payload_locked_documents_rels_audit_logs_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [columns['redirectsID']],
+      foreignColumns: [redirects.id],
+      name: 'payload_locked_documents_rels_redirects_fk',
     }).onDelete('cascade'),
   ],
 )
@@ -1076,6 +1160,12 @@ export const site_settings = pgTable(
     projectsSection_heading: varchar('projects_section_heading').default('My Projects'),
     projectsSection_allFilterLabel: varchar('projects_section_all_filter_label').default(
       'All Projects',
+    ),
+    projectsSection_archiveDescription: varchar('projects_section_archive_description').default(
+      'Selected projects, engineering case studies, and full-stack builds.',
+    ),
+    projectsSection_searchPlaceholder: varchar('projects_section_search_placeholder').default(
+      'Search projects by title, tech stack, or role…',
     ),
     projectsSection_caseStudyLabel: varchar('projects_section_case_study_label').default(
       'Case study',
@@ -1265,6 +1355,11 @@ export const relations_articles = relations(articles, ({ one }) => ({
     references: [media.id],
     relationName: 'image',
   }),
+  meta_image: one(media, {
+    fields: [articles.meta_image],
+    references: [media.id],
+    relationName: 'meta_image',
+  }),
 }))
 export const relations_projects_categories = relations(projects_categories, ({ one }) => ({
   parent: one(projects, {
@@ -1288,6 +1383,11 @@ export const relations_projects = relations(projects, ({ one, many }) => ({
   }),
   categories: many(projects_categories, {
     relationName: 'categories',
+  }),
+  meta_image: one(media, {
+    fields: [projects.meta_image],
+    references: [media.id],
+    relationName: 'meta_image',
   }),
   _texts: many(projects_texts, {
     relationName: '_texts',
@@ -1415,6 +1515,28 @@ export const relations_audit_logs = relations(audit_logs, ({ one }) => ({
     relationName: 'actor',
   }),
 }))
+export const relations_redirects_rels = relations(redirects_rels, ({ one }) => ({
+  parent: one(redirects, {
+    fields: [redirects_rels.parent],
+    references: [redirects.id],
+    relationName: '_rels',
+  }),
+  articlesID: one(articles, {
+    fields: [redirects_rels.articlesID],
+    references: [articles.id],
+    relationName: 'articles',
+  }),
+  projectsID: one(projects, {
+    fields: [redirects_rels.projectsID],
+    references: [projects.id],
+    relationName: 'projects',
+  }),
+}))
+export const relations_redirects = relations(redirects, ({ many }) => ({
+  _rels: many(redirects_rels, {
+    relationName: '_rels',
+  }),
+}))
 export const relations_payload_kv = relations(payload_kv, () => ({}))
 export const relations_payload_locked_documents_rels = relations(
   payload_locked_documents_rels,
@@ -1488,6 +1610,11 @@ export const relations_payload_locked_documents_rels = relations(
       fields: [payload_locked_documents_rels['audit-logsID']],
       references: [audit_logs.id],
       relationName: 'audit-logs',
+    }),
+    redirectsID: one(redirects, {
+      fields: [payload_locked_documents_rels.redirectsID],
+      references: [redirects.id],
+      relationName: 'redirects',
     }),
   }),
 )
@@ -1599,11 +1726,14 @@ type DatabaseSchema = {
   enum_roles_levels_services: typeof enum_roles_levels_services
   enum_roles_levels_skills: typeof enum_roles_levels_skills
   enum_roles_levels_header: typeof enum_roles_levels_header
+  enum_roles_levels_redirects: typeof enum_roles_levels_redirects
   enum_roles_levels_site_settings: typeof enum_roles_levels_site_settings
   enum_roles_levels_navigation: typeof enum_roles_levels_navigation
   enum_roles_levels_footer: typeof enum_roles_levels_footer
   enum_audit_logs_action: typeof enum_audit_logs_action
   enum_audit_logs_entity_kind: typeof enum_audit_logs_entity_kind
+  enum_redirects_to_type: typeof enum_redirects_to_type
+  enum_redirects_type: typeof enum_redirects_type
   enum_navigation_items_position: typeof enum_navigation_items_position
   enum_footer_social_links_platform: typeof enum_footer_social_links_platform
   enum_footer_social_links_icon_name: typeof enum_footer_social_links_icon_name
@@ -1633,6 +1763,8 @@ type DatabaseSchema = {
   users_rels: typeof users_rels
   roles: typeof roles
   audit_logs: typeof audit_logs
+  redirects: typeof redirects
+  redirects_rels: typeof redirects_rels
   payload_kv: typeof payload_kv
   payload_locked_documents: typeof payload_locked_documents
   payload_locked_documents_rels: typeof payload_locked_documents_rels
@@ -1670,6 +1802,8 @@ type DatabaseSchema = {
   relations_users: typeof relations_users
   relations_roles: typeof relations_roles
   relations_audit_logs: typeof relations_audit_logs
+  relations_redirects_rels: typeof relations_redirects_rels
+  relations_redirects: typeof relations_redirects
   relations_payload_kv: typeof relations_payload_kv
   relations_payload_locked_documents_rels: typeof relations_payload_locked_documents_rels
   relations_payload_locked_documents: typeof relations_payload_locked_documents

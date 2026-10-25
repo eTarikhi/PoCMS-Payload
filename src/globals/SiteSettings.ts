@@ -357,6 +357,24 @@ export const SiteSettings: GlobalConfig = {
                   type: 'row',
                   fields: [
                     {
+                      name: 'archiveDescription',
+                      type: 'text',
+                      defaultValue:
+                        'Selected projects, engineering case studies, and full-stack builds.',
+                      admin: { width: '50%' },
+                    },
+                    {
+                      name: 'searchPlaceholder',
+                      type: 'text',
+                      defaultValue: 'Search projects by title, tech stack, or role…',
+                      admin: { width: '50%' },
+                    },
+                  ],
+                },
+                {
+                  type: 'row',
+                  fields: [
+                    {
                       name: 'caseStudyLabel',
                       type: 'text',
                       defaultValue: 'Case study',

@@ -6,8 +6,9 @@ import {
   extractTableOfContents,
   type TocItem,
 } from './lexical'
-import { resolveMediaUrl } from './mappers'
+import { mapSeoOverride, resolveMediaUrl } from './mappers'
 import { hasProjectPage } from './project-page'
+import type { SeoOverride } from './types'
 
 const CATEGORY_LABELS: Record<string, string> = {
   'front-end': 'Front-End',
@@ -33,6 +34,8 @@ export type ProjectDetail = {
   readMoreUrl: string | null
   content: Project['content']
   toc: TocItem[]
+  /** Optional per-document SEO overrides from `@payloadcms/plugin-seo`. */
+  seo?: SeoOverride
 }
 
 /**
@@ -67,5 +70,6 @@ export const mapProjectDetail = (doc: Project): ProjectDetail | null => {
     readMoreUrl: doc.readMoreUrl?.trim() || null,
     content: doc.content,
     toc: extractTableOfContents(doc.content),
+    seo: mapSeoOverride(doc.meta),
   }
 }

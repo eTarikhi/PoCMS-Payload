@@ -10,7 +10,8 @@ import {
   plainTextToLexical,
   type TocItem,
 } from './lexical'
-import { resolveMediaUrl } from './mappers'
+import { mapSeoOverride, resolveMediaUrl } from './mappers'
+import type { SeoOverride } from './types'
 
 /** The view model for one article page. Components receive only this, never the Payload document. */
 export type ArticleDetail = {
@@ -38,6 +39,8 @@ export type ArticleDetail = {
   toc?: TocItem[]
   /** Where the article is also published (LinkedIn, Medium). */
   externalLink: string | null
+  /** Optional per-document SEO overrides from `@payloadcms/plugin-seo`. */
+  seo?: SeoOverride
 }
 
 /**
@@ -78,5 +81,6 @@ export const mapArticleDetail = (doc: Article): ArticleDetail | null => {
     paragraphs,
     toc: extractTableOfContents(effectiveContent),
     externalLink: doc.link || null,
+    seo: mapSeoOverride(doc.meta),
   }
 }

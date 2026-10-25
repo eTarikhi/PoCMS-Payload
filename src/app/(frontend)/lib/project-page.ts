@@ -14,4 +14,6 @@ export type ProjectBodyFields = {
 export const hasProjectPage = (doc: ProjectBodyFields): boolean =>
   Boolean(doc.slug) && hasLexicalContent(doc.content)
 
-export const projectPagePath = (slug: string): string => `/projects/${slug}`
+export const PROJECTS_HUB_PATH = '/projects'
+
+export const projectPagePath = (slug: string): string => `${PROJECTS_HUB_PATH}/${slug}`
