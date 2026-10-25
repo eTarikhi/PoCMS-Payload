@@ -23,13 +23,17 @@ import { Navigation } from './globals/Navigation'
 import { SiteSettings } from './globals/SiteSettings'
 
 import { Users } from './collections/Users'
+import { adminJobsEndpoints } from './endpoints/adminJobs'
 import { devGenerateEndpoint } from './endpoints/devGenerate'
 import { devMigrateEndpoint } from './endpoints/devMigrate'
 import { devRestartEndpoint } from './endpoints/devRestart'
+import { devTerminalEndpoint } from './endpoints/devTerminal'
 import { migrationStatusEndpoint } from './endpoints/migrationStatus'
 import { purgePagesEndpoint } from './endpoints/purgePages'
 import { resetBundlerCacheEndpoint } from './endpoints/resetBundlerCache'
 import { revalidateSiteEndpoint } from './endpoints/revalidateSite'
+import { systemInfoEndpoint } from './endpoints/systemInfo'
+import { createJobsConfig } from './jobs/config'
 import { About } from './collections/About'
 import { Header } from './collections/Header'
 import { Articles } from './collections/Articles'
@@ -134,6 +138,21 @@ export default buildConfig({
           path: '/gallery',
           meta: { title: 'Component gallery' },
         },
+        system: {
+          Component: '/components/admin/views/System#SystemView',
+          path: '/system',
+          meta: { title: 'System information' },
+        },
+        jobs: {
+          Component: '/components/admin/views/Jobs#JobsView',
+          path: '/jobs',
+          meta: { title: 'Scheduled jobs' },
+        },
+        terminal: {
+          Component: '/components/admin/views/Terminal#TerminalView',
+          path: '/terminal',
+          meta: { title: 'Dev terminal' },
+        },
       },
     },
     // Dashboard widgets (P4): welcome, content health, counts, publishing chart, recent changes.
@@ -197,16 +216,20 @@ export default buildConfig({
   //   }),
   // ],
   sharp,
+  jobs: createJobsConfig(),
   // Custom REST endpoints (under /api).
   endpoints: [
     revalidateSiteEndpoint,
     purgePagesEndpoint,
     migrationStatusEndpoint,
+    systemInfoEndpoint,
+    ...adminJobsEndpoints,
     // Development only (they return 404 in production).
     resetBundlerCacheEndpoint,
     devGenerateEndpoint,
     devMigrateEndpoint,
     devRestartEndpoint,
+    devTerminalEndpoint,
   ],
   // Roles (ADR 0011) and orderable collections: built-in roles, legacy migration, and _order keys.
   onInit: async (payload) => {

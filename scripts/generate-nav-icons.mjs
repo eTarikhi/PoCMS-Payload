@@ -37,6 +37,9 @@ const NAV_ICONS = {
   'nav-roles': ['KeyRound', 'orange'],
   'nav-audit-logs': ['ScrollText', 'amber'],
   'nav-view-site': ['ExternalLink', 'slate'],
+  'nav-system': ['Activity', 'teal'],
+  'nav-jobs': ['CalendarClock', 'blue'],
+  'nav-terminal': ['Terminal', 'amber'],
   'nav-gallery': ['Component', 'rose'],
 }
 /** Sidebar group (admin.group label) -> [Lucide component name, tone]; matched by Payload's group id. */

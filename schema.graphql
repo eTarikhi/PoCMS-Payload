@@ -61,6 +61,10 @@ type Query {
   PayloadKvs(draft: Boolean, where: PayloadKv_where, limit: Int, page: Int, pagination: Boolean, select: Boolean, sort: String, trash: Boolean): PayloadKvs
   countPayloadKvs(draft: Boolean, trash: Boolean, where: PayloadKv_where): countPayloadKvs
   docAccessPayloadKv(id: Int!): payload_kvDocAccess
+  PayloadJob(id: Int!, draft: Boolean, select: Boolean, trash: Boolean): PayloadJob
+  PayloadJobs(draft: Boolean, where: PayloadJob_where, limit: Int, page: Int, pagination: Boolean, select: Boolean, sort: String, trash: Boolean): PayloadJobs
+  countPayloadJobs(draft: Boolean, trash: Boolean, where: PayloadJob_where): countPayloadJobs
+  docAccessPayloadJob(id: Int!): payload_jobsDocAccess
   PayloadLockedDocument(id: Int!, draft: Boolean, select: Boolean, trash: Boolean): PayloadLockedDocument
   PayloadLockedDocuments(draft: Boolean, where: PayloadLockedDocument_where, limit: Int, page: Int, pagination: Boolean, select: Boolean, sort: String, trash: Boolean): PayloadLockedDocuments
   countPayloadLockedDocuments(draft: Boolean, trash: Boolean, where: PayloadLockedDocument_where): countPayloadLockedDocuments
@@ -8943,6 +8947,1068 @@ type PayloadKvDeleteDocAccess {
   where: JSONObject
 }
 
+type PayloadJob {
+  id: Int!
+  input: JSON
+  taskStatus: JSON
+  completedAt: DateTime
+  totalTried: Float
+  hasError: Boolean
+  error: JSON
+  log: [PayloadJob_Log!]
+  taskSlug: PayloadJob_taskSlug
+  queue: String
+  waitUntil: DateTime
+  processing: Boolean
+  updatedAt: DateTime
+  createdAt: DateTime
+}
+
+type PayloadJob_Log {
+  executedAt: DateTime
+  completedAt: DateTime
+  taskSlug: PayloadJob_Log_taskSlug
+  taskID: String
+  input: JSON
+  output: JSON
+  state: PayloadJob_Log_state
+  error: JSON
+  parent: PayloadJob_Log_Parent
+  id: String
+}
+
+enum PayloadJob_Log_taskSlug {
+  inline
+  refreshSiteCache
+  verifyContentHealth
+  purgeCompletedJobs
+}
+
+enum PayloadJob_Log_state {
+  failed
+  succeeded
+}
+
+type PayloadJob_Log_Parent {
+  taskSlug: PayloadJob_Log_Parent_taskSlug
+  taskID: String
+}
+
+enum PayloadJob_Log_Parent_taskSlug {
+  inline
+  refreshSiteCache
+  verifyContentHealth
+  purgeCompletedJobs
+}
+
+enum PayloadJob_taskSlug {
+  inline
+  refreshSiteCache
+  verifyContentHealth
+  purgeCompletedJobs
+}
+
+type PayloadJobs {
+  docs: [PayloadJob!]!
+  hasNextPage: Boolean!
+  hasPrevPage: Boolean!
+  limit: Int!
+  nextPage: Int
+  offset: Int
+  page: Int!
+  pagingCounter: Int!
+  prevPage: Int
+  totalDocs: Int!
+  totalPages: Int!
+}
+
+input PayloadJob_where {
+  input: PayloadJob_input_operator
+  taskStatus: PayloadJob_taskStatus_operator
+  completedAt: PayloadJob_completedAt_operator
+  totalTried: PayloadJob_totalTried_operator
+  hasError: PayloadJob_hasError_operator
+  error: PayloadJob_error_operator
+  log__executedAt: PayloadJob_log__executedAt_operator
+  log__completedAt: PayloadJob_log__completedAt_operator
+  log__taskSlug: PayloadJob_log__taskSlug_operator
+  log__taskID: PayloadJob_log__taskID_operator
+  log__input: PayloadJob_log__input_operator
+  log__output: PayloadJob_log__output_operator
+  log__state: PayloadJob_log__state_operator
+  log__error: PayloadJob_log__error_operator
+  log__parent__taskSlug: PayloadJob_log__parent__taskSlug_operator
+  log__parent__taskID: PayloadJob_log__parent__taskID_operator
+  log__id: PayloadJob_log__id_operator
+  taskSlug: PayloadJob_taskSlug_operator
+  queue: PayloadJob_queue_operator
+  waitUntil: PayloadJob_waitUntil_operator
+  processing: PayloadJob_processing_operator
+  updatedAt: PayloadJob_updatedAt_operator
+  createdAt: PayloadJob_createdAt_operator
+  id: PayloadJob_id_operator
+  AND: [PayloadJob_where_and]
+  OR: [PayloadJob_where_or]
+}
+
+input PayloadJob_input_operator {
+  equals: JSON
+  not_equals: JSON
+  like: JSON
+  contains: JSON
+  within: JSON
+  intersects: JSON
+  exists: Boolean
+}
+
+input PayloadJob_taskStatus_operator {
+  equals: JSON
+  not_equals: JSON
+  like: JSON
+  contains: JSON
+  within: JSON
+  intersects: JSON
+  exists: Boolean
+}
+
+input PayloadJob_completedAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+  exists: Boolean
+}
+
+input PayloadJob_totalTried_operator {
+  equals: Float
+  not_equals: Float
+  greater_than_equal: Float
+  greater_than: Float
+  less_than_equal: Float
+  less_than: Float
+  exists: Boolean
+}
+
+input PayloadJob_hasError_operator {
+  equals: Boolean
+  not_equals: Boolean
+  exists: Boolean
+}
+
+input PayloadJob_error_operator {
+  equals: JSON
+  not_equals: JSON
+  like: JSON
+  contains: JSON
+  within: JSON
+  intersects: JSON
+  exists: Boolean
+}
+
+input PayloadJob_log__executedAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+}
+
+input PayloadJob_log__completedAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+}
+
+input PayloadJob_log__taskSlug_operator {
+  equals: PayloadJob_log__taskSlug_Input
+  not_equals: PayloadJob_log__taskSlug_Input
+  in: [PayloadJob_log__taskSlug_Input]
+  not_in: [PayloadJob_log__taskSlug_Input]
+  all: [PayloadJob_log__taskSlug_Input]
+}
+
+enum PayloadJob_log__taskSlug_Input {
+  inline
+  refreshSiteCache
+  verifyContentHealth
+  purgeCompletedJobs
+}
+
+input PayloadJob_log__taskID_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+}
+
+input PayloadJob_log__input_operator {
+  equals: JSON
+  not_equals: JSON
+  like: JSON
+  contains: JSON
+  within: JSON
+  intersects: JSON
+  exists: Boolean
+}
+
+input PayloadJob_log__output_operator {
+  equals: JSON
+  not_equals: JSON
+  like: JSON
+  contains: JSON
+  within: JSON
+  intersects: JSON
+  exists: Boolean
+}
+
+input PayloadJob_log__state_operator {
+  equals: PayloadJob_log__state_Input
+  not_equals: PayloadJob_log__state_Input
+  like: PayloadJob_log__state_Input
+  contains: PayloadJob_log__state_Input
+}
+
+enum PayloadJob_log__state_Input {
+  failed
+  succeeded
+}
+
+input PayloadJob_log__error_operator {
+  equals: JSON
+  not_equals: JSON
+  like: JSON
+  contains: JSON
+  within: JSON
+  intersects: JSON
+}
+
+input PayloadJob_log__parent__taskSlug_operator {
+  equals: PayloadJob_log__parent__taskSlug_Input
+  not_equals: PayloadJob_log__parent__taskSlug_Input
+  in: [PayloadJob_log__parent__taskSlug_Input]
+  not_in: [PayloadJob_log__parent__taskSlug_Input]
+  all: [PayloadJob_log__parent__taskSlug_Input]
+  exists: Boolean
+}
+
+enum PayloadJob_log__parent__taskSlug_Input {
+  inline
+  refreshSiteCache
+  verifyContentHealth
+  purgeCompletedJobs
+}
+
+input PayloadJob_log__parent__taskID_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
+}
+
+input PayloadJob_log__id_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
+}
+
+input PayloadJob_taskSlug_operator {
+  equals: PayloadJob_taskSlug_Input
+  not_equals: PayloadJob_taskSlug_Input
+  in: [PayloadJob_taskSlug_Input]
+  not_in: [PayloadJob_taskSlug_Input]
+  all: [PayloadJob_taskSlug_Input]
+  exists: Boolean
+}
+
+enum PayloadJob_taskSlug_Input {
+  inline
+  refreshSiteCache
+  verifyContentHealth
+  purgeCompletedJobs
+}
+
+input PayloadJob_queue_operator {
+  equals: String
+  not_equals: String
+  like: String
+  contains: String
+  in: [String]
+  not_in: [String]
+  all: [String]
+  exists: Boolean
+}
+
+input PayloadJob_waitUntil_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+  exists: Boolean
+}
+
+input PayloadJob_processing_operator {
+  equals: Boolean
+  not_equals: Boolean
+  exists: Boolean
+}
+
+input PayloadJob_updatedAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+  exists: Boolean
+}
+
+input PayloadJob_createdAt_operator {
+  equals: DateTime
+  not_equals: DateTime
+  greater_than_equal: DateTime
+  greater_than: DateTime
+  less_than_equal: DateTime
+  less_than: DateTime
+  like: DateTime
+  exists: Boolean
+}
+
+input PayloadJob_id_operator {
+  equals: Int
+  not_equals: Int
+  greater_than_equal: Int
+  greater_than: Int
+  less_than_equal: Int
+  less_than: Int
+  exists: Boolean
+}
+
+input PayloadJob_where_and {
+  input: PayloadJob_input_operator
+  taskStatus: PayloadJob_taskStatus_operator
+  completedAt: PayloadJob_completedAt_operator
+  totalTried: PayloadJob_totalTried_operator
+  hasError: PayloadJob_hasError_operator
+  error: PayloadJob_error_operator
+  log__executedAt: PayloadJob_log__executedAt_operator
+  log__completedAt: PayloadJob_log__completedAt_operator
+  log__taskSlug: PayloadJob_log__taskSlug_operator
+  log__taskID: PayloadJob_log__taskID_operator
+  log__input: PayloadJob_log__input_operator
+  log__output: PayloadJob_log__output_operator
+  log__state: PayloadJob_log__state_operator
+  log__error: PayloadJob_log__error_operator
+  log__parent__taskSlug: PayloadJob_log__parent__taskSlug_operator
+  log__parent__taskID: PayloadJob_log__parent__taskID_operator
+  log__id: PayloadJob_log__id_operator
+  taskSlug: PayloadJob_taskSlug_operator
+  queue: PayloadJob_queue_operator
+  waitUntil: PayloadJob_waitUntil_operator
+  processing: PayloadJob_processing_operator
+  updatedAt: PayloadJob_updatedAt_operator
+  createdAt: PayloadJob_createdAt_operator
+  id: PayloadJob_id_operator
+  AND: [PayloadJob_where_and]
+  OR: [PayloadJob_where_or]
+}
+
+input PayloadJob_where_or {
+  input: PayloadJob_input_operator
+  taskStatus: PayloadJob_taskStatus_operator
+  completedAt: PayloadJob_completedAt_operator
+  totalTried: PayloadJob_totalTried_operator
+  hasError: PayloadJob_hasError_operator
+  error: PayloadJob_error_operator
+  log__executedAt: PayloadJob_log__executedAt_operator
+  log__completedAt: PayloadJob_log__completedAt_operator
+  log__taskSlug: PayloadJob_log__taskSlug_operator
+  log__taskID: PayloadJob_log__taskID_operator
+  log__input: PayloadJob_log__input_operator
+  log__output: PayloadJob_log__output_operator
+  log__state: PayloadJob_log__state_operator
+  log__error: PayloadJob_log__error_operator
+  log__parent__taskSlug: PayloadJob_log__parent__taskSlug_operator
+  log__parent__taskID: PayloadJob_log__parent__taskID_operator
+  log__id: PayloadJob_log__id_operator
+  taskSlug: PayloadJob_taskSlug_operator
+  queue: PayloadJob_queue_operator
+  waitUntil: PayloadJob_waitUntil_operator
+  processing: PayloadJob_processing_operator
+  updatedAt: PayloadJob_updatedAt_operator
+  createdAt: PayloadJob_createdAt_operator
+  id: PayloadJob_id_operator
+  AND: [PayloadJob_where_and]
+  OR: [PayloadJob_where_or]
+}
+
+type countPayloadJobs {
+  totalDocs: Int
+}
+
+type payload_jobsDocAccess {
+  fields: PayloadJobsDocAccessFields
+  create: PayloadJobsCreateDocAccess
+  read: PayloadJobsReadDocAccess
+  update: PayloadJobsUpdateDocAccess
+  delete: PayloadJobsDeleteDocAccess
+}
+
+type PayloadJobsDocAccessFields {
+  input: PayloadJobsDocAccessFields_input
+  taskStatus: PayloadJobsDocAccessFields_taskStatus
+  completedAt: PayloadJobsDocAccessFields_completedAt
+  totalTried: PayloadJobsDocAccessFields_totalTried
+  hasError: PayloadJobsDocAccessFields_hasError
+  error: PayloadJobsDocAccessFields_error
+  log: PayloadJobsDocAccessFields_log
+  taskSlug: PayloadJobsDocAccessFields_taskSlug
+  queue: PayloadJobsDocAccessFields_queue
+  waitUntil: PayloadJobsDocAccessFields_waitUntil
+  processing: PayloadJobsDocAccessFields_processing
+  updatedAt: PayloadJobsDocAccessFields_updatedAt
+  createdAt: PayloadJobsDocAccessFields_createdAt
+}
+
+type PayloadJobsDocAccessFields_input {
+  create: PayloadJobsDocAccessFields_input_Create
+  read: PayloadJobsDocAccessFields_input_Read
+  update: PayloadJobsDocAccessFields_input_Update
+  delete: PayloadJobsDocAccessFields_input_Delete
+}
+
+type PayloadJobsDocAccessFields_input_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_input_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_input_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_input_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_taskStatus {
+  create: PayloadJobsDocAccessFields_taskStatus_Create
+  read: PayloadJobsDocAccessFields_taskStatus_Read
+  update: PayloadJobsDocAccessFields_taskStatus_Update
+  delete: PayloadJobsDocAccessFields_taskStatus_Delete
+}
+
+type PayloadJobsDocAccessFields_taskStatus_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_taskStatus_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_taskStatus_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_taskStatus_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_completedAt {
+  create: PayloadJobsDocAccessFields_completedAt_Create
+  read: PayloadJobsDocAccessFields_completedAt_Read
+  update: PayloadJobsDocAccessFields_completedAt_Update
+  delete: PayloadJobsDocAccessFields_completedAt_Delete
+}
+
+type PayloadJobsDocAccessFields_completedAt_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_completedAt_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_completedAt_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_completedAt_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_totalTried {
+  create: PayloadJobsDocAccessFields_totalTried_Create
+  read: PayloadJobsDocAccessFields_totalTried_Read
+  update: PayloadJobsDocAccessFields_totalTried_Update
+  delete: PayloadJobsDocAccessFields_totalTried_Delete
+}
+
+type PayloadJobsDocAccessFields_totalTried_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_totalTried_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_totalTried_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_totalTried_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_hasError {
+  create: PayloadJobsDocAccessFields_hasError_Create
+  read: PayloadJobsDocAccessFields_hasError_Read
+  update: PayloadJobsDocAccessFields_hasError_Update
+  delete: PayloadJobsDocAccessFields_hasError_Delete
+}
+
+type PayloadJobsDocAccessFields_hasError_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_hasError_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_hasError_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_hasError_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_error {
+  create: PayloadJobsDocAccessFields_error_Create
+  read: PayloadJobsDocAccessFields_error_Read
+  update: PayloadJobsDocAccessFields_error_Update
+  delete: PayloadJobsDocAccessFields_error_Delete
+}
+
+type PayloadJobsDocAccessFields_error_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_error_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_error_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_error_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log {
+  create: PayloadJobsDocAccessFields_log_Create
+  read: PayloadJobsDocAccessFields_log_Read
+  update: PayloadJobsDocAccessFields_log_Update
+  delete: PayloadJobsDocAccessFields_log_Delete
+  fields: PayloadJobsDocAccessFields_log_Fields
+}
+
+type PayloadJobsDocAccessFields_log_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_Fields {
+  executedAt: PayloadJobsDocAccessFields_log_executedAt
+  completedAt: PayloadJobsDocAccessFields_log_completedAt
+  taskSlug: PayloadJobsDocAccessFields_log_taskSlug
+  taskID: PayloadJobsDocAccessFields_log_taskID
+  input: PayloadJobsDocAccessFields_log_input
+  output: PayloadJobsDocAccessFields_log_output
+  state: PayloadJobsDocAccessFields_log_state
+  error: PayloadJobsDocAccessFields_log_error
+  parent: PayloadJobsDocAccessFields_log_parent
+  id: PayloadJobsDocAccessFields_log_id
+}
+
+type PayloadJobsDocAccessFields_log_executedAt {
+  create: PayloadJobsDocAccessFields_log_executedAt_Create
+  read: PayloadJobsDocAccessFields_log_executedAt_Read
+  update: PayloadJobsDocAccessFields_log_executedAt_Update
+  delete: PayloadJobsDocAccessFields_log_executedAt_Delete
+}
+
+type PayloadJobsDocAccessFields_log_executedAt_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_executedAt_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_executedAt_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_executedAt_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_completedAt {
+  create: PayloadJobsDocAccessFields_log_completedAt_Create
+  read: PayloadJobsDocAccessFields_log_completedAt_Read
+  update: PayloadJobsDocAccessFields_log_completedAt_Update
+  delete: PayloadJobsDocAccessFields_log_completedAt_Delete
+}
+
+type PayloadJobsDocAccessFields_log_completedAt_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_completedAt_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_completedAt_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_completedAt_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_taskSlug {
+  create: PayloadJobsDocAccessFields_log_taskSlug_Create
+  read: PayloadJobsDocAccessFields_log_taskSlug_Read
+  update: PayloadJobsDocAccessFields_log_taskSlug_Update
+  delete: PayloadJobsDocAccessFields_log_taskSlug_Delete
+}
+
+type PayloadJobsDocAccessFields_log_taskSlug_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_taskSlug_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_taskSlug_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_taskSlug_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_taskID {
+  create: PayloadJobsDocAccessFields_log_taskID_Create
+  read: PayloadJobsDocAccessFields_log_taskID_Read
+  update: PayloadJobsDocAccessFields_log_taskID_Update
+  delete: PayloadJobsDocAccessFields_log_taskID_Delete
+}
+
+type PayloadJobsDocAccessFields_log_taskID_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_taskID_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_taskID_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_taskID_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_input {
+  create: PayloadJobsDocAccessFields_log_input_Create
+  read: PayloadJobsDocAccessFields_log_input_Read
+  update: PayloadJobsDocAccessFields_log_input_Update
+  delete: PayloadJobsDocAccessFields_log_input_Delete
+}
+
+type PayloadJobsDocAccessFields_log_input_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_input_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_input_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_input_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_output {
+  create: PayloadJobsDocAccessFields_log_output_Create
+  read: PayloadJobsDocAccessFields_log_output_Read
+  update: PayloadJobsDocAccessFields_log_output_Update
+  delete: PayloadJobsDocAccessFields_log_output_Delete
+}
+
+type PayloadJobsDocAccessFields_log_output_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_output_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_output_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_output_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_state {
+  create: PayloadJobsDocAccessFields_log_state_Create
+  read: PayloadJobsDocAccessFields_log_state_Read
+  update: PayloadJobsDocAccessFields_log_state_Update
+  delete: PayloadJobsDocAccessFields_log_state_Delete
+}
+
+type PayloadJobsDocAccessFields_log_state_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_state_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_state_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_state_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_error {
+  create: PayloadJobsDocAccessFields_log_error_Create
+  read: PayloadJobsDocAccessFields_log_error_Read
+  update: PayloadJobsDocAccessFields_log_error_Update
+  delete: PayloadJobsDocAccessFields_log_error_Delete
+}
+
+type PayloadJobsDocAccessFields_log_error_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_error_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_error_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_error_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_parent {
+  create: PayloadJobsDocAccessFields_log_parent_Create
+  read: PayloadJobsDocAccessFields_log_parent_Read
+  update: PayloadJobsDocAccessFields_log_parent_Update
+  delete: PayloadJobsDocAccessFields_log_parent_Delete
+  fields: PayloadJobsDocAccessFields_log_parent_Fields
+}
+
+type PayloadJobsDocAccessFields_log_parent_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_parent_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_parent_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_parent_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_parent_Fields {
+  taskSlug: PayloadJobsDocAccessFields_log_parent_taskSlug
+  taskID: PayloadJobsDocAccessFields_log_parent_taskID
+}
+
+type PayloadJobsDocAccessFields_log_parent_taskSlug {
+  create: PayloadJobsDocAccessFields_log_parent_taskSlug_Create
+  read: PayloadJobsDocAccessFields_log_parent_taskSlug_Read
+  update: PayloadJobsDocAccessFields_log_parent_taskSlug_Update
+  delete: PayloadJobsDocAccessFields_log_parent_taskSlug_Delete
+}
+
+type PayloadJobsDocAccessFields_log_parent_taskSlug_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_parent_taskSlug_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_parent_taskSlug_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_parent_taskSlug_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_parent_taskID {
+  create: PayloadJobsDocAccessFields_log_parent_taskID_Create
+  read: PayloadJobsDocAccessFields_log_parent_taskID_Read
+  update: PayloadJobsDocAccessFields_log_parent_taskID_Update
+  delete: PayloadJobsDocAccessFields_log_parent_taskID_Delete
+}
+
+type PayloadJobsDocAccessFields_log_parent_taskID_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_parent_taskID_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_parent_taskID_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_parent_taskID_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_id {
+  create: PayloadJobsDocAccessFields_log_id_Create
+  read: PayloadJobsDocAccessFields_log_id_Read
+  update: PayloadJobsDocAccessFields_log_id_Update
+  delete: PayloadJobsDocAccessFields_log_id_Delete
+}
+
+type PayloadJobsDocAccessFields_log_id_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_id_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_id_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_log_id_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_taskSlug {
+  create: PayloadJobsDocAccessFields_taskSlug_Create
+  read: PayloadJobsDocAccessFields_taskSlug_Read
+  update: PayloadJobsDocAccessFields_taskSlug_Update
+  delete: PayloadJobsDocAccessFields_taskSlug_Delete
+}
+
+type PayloadJobsDocAccessFields_taskSlug_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_taskSlug_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_taskSlug_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_taskSlug_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_queue {
+  create: PayloadJobsDocAccessFields_queue_Create
+  read: PayloadJobsDocAccessFields_queue_Read
+  update: PayloadJobsDocAccessFields_queue_Update
+  delete: PayloadJobsDocAccessFields_queue_Delete
+}
+
+type PayloadJobsDocAccessFields_queue_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_queue_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_queue_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_queue_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_waitUntil {
+  create: PayloadJobsDocAccessFields_waitUntil_Create
+  read: PayloadJobsDocAccessFields_waitUntil_Read
+  update: PayloadJobsDocAccessFields_waitUntil_Update
+  delete: PayloadJobsDocAccessFields_waitUntil_Delete
+}
+
+type PayloadJobsDocAccessFields_waitUntil_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_waitUntil_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_waitUntil_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_waitUntil_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_processing {
+  create: PayloadJobsDocAccessFields_processing_Create
+  read: PayloadJobsDocAccessFields_processing_Read
+  update: PayloadJobsDocAccessFields_processing_Update
+  delete: PayloadJobsDocAccessFields_processing_Delete
+}
+
+type PayloadJobsDocAccessFields_processing_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_processing_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_processing_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_processing_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_updatedAt {
+  create: PayloadJobsDocAccessFields_updatedAt_Create
+  read: PayloadJobsDocAccessFields_updatedAt_Read
+  update: PayloadJobsDocAccessFields_updatedAt_Update
+  delete: PayloadJobsDocAccessFields_updatedAt_Delete
+}
+
+type PayloadJobsDocAccessFields_updatedAt_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_updatedAt_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_updatedAt_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_updatedAt_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_createdAt {
+  create: PayloadJobsDocAccessFields_createdAt_Create
+  read: PayloadJobsDocAccessFields_createdAt_Read
+  update: PayloadJobsDocAccessFields_createdAt_Update
+  delete: PayloadJobsDocAccessFields_createdAt_Delete
+}
+
+type PayloadJobsDocAccessFields_createdAt_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_createdAt_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_createdAt_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsDocAccessFields_createdAt_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsCreateDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type PayloadJobsReadDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type PayloadJobsUpdateDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type PayloadJobsDeleteDocAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
 type PayloadLockedDocument {
   id: Int!
   document: PayloadLockedDocument_Document_Relationship
@@ -12376,6 +13442,7 @@ type Access {
   audit_logs: audit_logsAccess
   redirects: redirectsAccess
   payload_kv: payload_kvAccess
+  payload_jobs: payload_jobsAccess
   payload_locked_documents: payload_locked_documentsAccess
   payload_preferences: payload_preferencesAccess
   site_settings: site_settingsAccess
@@ -17582,6 +18649,645 @@ type PayloadKvDeleteAccess {
   where: JSONObject
 }
 
+type payload_jobsAccess {
+  fields: PayloadJobsFields
+  create: PayloadJobsCreateAccess
+  read: PayloadJobsReadAccess
+  update: PayloadJobsUpdateAccess
+  delete: PayloadJobsDeleteAccess
+}
+
+type PayloadJobsFields {
+  input: PayloadJobsFields_input
+  taskStatus: PayloadJobsFields_taskStatus
+  completedAt: PayloadJobsFields_completedAt
+  totalTried: PayloadJobsFields_totalTried
+  hasError: PayloadJobsFields_hasError
+  error: PayloadJobsFields_error
+  log: PayloadJobsFields_log
+  taskSlug: PayloadJobsFields_taskSlug
+  queue: PayloadJobsFields_queue
+  waitUntil: PayloadJobsFields_waitUntil
+  processing: PayloadJobsFields_processing
+  updatedAt: PayloadJobsFields_updatedAt
+  createdAt: PayloadJobsFields_createdAt
+}
+
+type PayloadJobsFields_input {
+  create: PayloadJobsFields_input_Create
+  read: PayloadJobsFields_input_Read
+  update: PayloadJobsFields_input_Update
+  delete: PayloadJobsFields_input_Delete
+}
+
+type PayloadJobsFields_input_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_input_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_input_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_input_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_taskStatus {
+  create: PayloadJobsFields_taskStatus_Create
+  read: PayloadJobsFields_taskStatus_Read
+  update: PayloadJobsFields_taskStatus_Update
+  delete: PayloadJobsFields_taskStatus_Delete
+}
+
+type PayloadJobsFields_taskStatus_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_taskStatus_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_taskStatus_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_taskStatus_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_completedAt {
+  create: PayloadJobsFields_completedAt_Create
+  read: PayloadJobsFields_completedAt_Read
+  update: PayloadJobsFields_completedAt_Update
+  delete: PayloadJobsFields_completedAt_Delete
+}
+
+type PayloadJobsFields_completedAt_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_completedAt_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_completedAt_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_completedAt_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_totalTried {
+  create: PayloadJobsFields_totalTried_Create
+  read: PayloadJobsFields_totalTried_Read
+  update: PayloadJobsFields_totalTried_Update
+  delete: PayloadJobsFields_totalTried_Delete
+}
+
+type PayloadJobsFields_totalTried_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_totalTried_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_totalTried_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_totalTried_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_hasError {
+  create: PayloadJobsFields_hasError_Create
+  read: PayloadJobsFields_hasError_Read
+  update: PayloadJobsFields_hasError_Update
+  delete: PayloadJobsFields_hasError_Delete
+}
+
+type PayloadJobsFields_hasError_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_hasError_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_hasError_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_hasError_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_error {
+  create: PayloadJobsFields_error_Create
+  read: PayloadJobsFields_error_Read
+  update: PayloadJobsFields_error_Update
+  delete: PayloadJobsFields_error_Delete
+}
+
+type PayloadJobsFields_error_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_error_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_error_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_error_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log {
+  create: PayloadJobsFields_log_Create
+  read: PayloadJobsFields_log_Read
+  update: PayloadJobsFields_log_Update
+  delete: PayloadJobsFields_log_Delete
+  fields: PayloadJobsFields_log_Fields
+}
+
+type PayloadJobsFields_log_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_Fields {
+  executedAt: PayloadJobsFields_log_executedAt
+  completedAt: PayloadJobsFields_log_completedAt
+  taskSlug: PayloadJobsFields_log_taskSlug
+  taskID: PayloadJobsFields_log_taskID
+  input: PayloadJobsFields_log_input
+  output: PayloadJobsFields_log_output
+  state: PayloadJobsFields_log_state
+  error: PayloadJobsFields_log_error
+  parent: PayloadJobsFields_log_parent
+  id: PayloadJobsFields_log_id
+}
+
+type PayloadJobsFields_log_executedAt {
+  create: PayloadJobsFields_log_executedAt_Create
+  read: PayloadJobsFields_log_executedAt_Read
+  update: PayloadJobsFields_log_executedAt_Update
+  delete: PayloadJobsFields_log_executedAt_Delete
+}
+
+type PayloadJobsFields_log_executedAt_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_executedAt_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_executedAt_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_executedAt_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_completedAt {
+  create: PayloadJobsFields_log_completedAt_Create
+  read: PayloadJobsFields_log_completedAt_Read
+  update: PayloadJobsFields_log_completedAt_Update
+  delete: PayloadJobsFields_log_completedAt_Delete
+}
+
+type PayloadJobsFields_log_completedAt_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_completedAt_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_completedAt_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_completedAt_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_taskSlug {
+  create: PayloadJobsFields_log_taskSlug_Create
+  read: PayloadJobsFields_log_taskSlug_Read
+  update: PayloadJobsFields_log_taskSlug_Update
+  delete: PayloadJobsFields_log_taskSlug_Delete
+}
+
+type PayloadJobsFields_log_taskSlug_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_taskSlug_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_taskSlug_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_taskSlug_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_taskID {
+  create: PayloadJobsFields_log_taskID_Create
+  read: PayloadJobsFields_log_taskID_Read
+  update: PayloadJobsFields_log_taskID_Update
+  delete: PayloadJobsFields_log_taskID_Delete
+}
+
+type PayloadJobsFields_log_taskID_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_taskID_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_taskID_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_taskID_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_input {
+  create: PayloadJobsFields_log_input_Create
+  read: PayloadJobsFields_log_input_Read
+  update: PayloadJobsFields_log_input_Update
+  delete: PayloadJobsFields_log_input_Delete
+}
+
+type PayloadJobsFields_log_input_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_input_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_input_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_input_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_output {
+  create: PayloadJobsFields_log_output_Create
+  read: PayloadJobsFields_log_output_Read
+  update: PayloadJobsFields_log_output_Update
+  delete: PayloadJobsFields_log_output_Delete
+}
+
+type PayloadJobsFields_log_output_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_output_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_output_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_output_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_state {
+  create: PayloadJobsFields_log_state_Create
+  read: PayloadJobsFields_log_state_Read
+  update: PayloadJobsFields_log_state_Update
+  delete: PayloadJobsFields_log_state_Delete
+}
+
+type PayloadJobsFields_log_state_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_state_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_state_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_state_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_error {
+  create: PayloadJobsFields_log_error_Create
+  read: PayloadJobsFields_log_error_Read
+  update: PayloadJobsFields_log_error_Update
+  delete: PayloadJobsFields_log_error_Delete
+}
+
+type PayloadJobsFields_log_error_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_error_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_error_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_error_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_parent {
+  create: PayloadJobsFields_log_parent_Create
+  read: PayloadJobsFields_log_parent_Read
+  update: PayloadJobsFields_log_parent_Update
+  delete: PayloadJobsFields_log_parent_Delete
+  fields: PayloadJobsFields_log_parent_Fields
+}
+
+type PayloadJobsFields_log_parent_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_parent_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_parent_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_parent_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_parent_Fields {
+  taskSlug: PayloadJobsFields_log_parent_taskSlug
+  taskID: PayloadJobsFields_log_parent_taskID
+}
+
+type PayloadJobsFields_log_parent_taskSlug {
+  create: PayloadJobsFields_log_parent_taskSlug_Create
+  read: PayloadJobsFields_log_parent_taskSlug_Read
+  update: PayloadJobsFields_log_parent_taskSlug_Update
+  delete: PayloadJobsFields_log_parent_taskSlug_Delete
+}
+
+type PayloadJobsFields_log_parent_taskSlug_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_parent_taskSlug_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_parent_taskSlug_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_parent_taskSlug_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_parent_taskID {
+  create: PayloadJobsFields_log_parent_taskID_Create
+  read: PayloadJobsFields_log_parent_taskID_Read
+  update: PayloadJobsFields_log_parent_taskID_Update
+  delete: PayloadJobsFields_log_parent_taskID_Delete
+}
+
+type PayloadJobsFields_log_parent_taskID_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_parent_taskID_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_parent_taskID_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_parent_taskID_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_id {
+  create: PayloadJobsFields_log_id_Create
+  read: PayloadJobsFields_log_id_Read
+  update: PayloadJobsFields_log_id_Update
+  delete: PayloadJobsFields_log_id_Delete
+}
+
+type PayloadJobsFields_log_id_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_id_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_id_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_log_id_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_taskSlug {
+  create: PayloadJobsFields_taskSlug_Create
+  read: PayloadJobsFields_taskSlug_Read
+  update: PayloadJobsFields_taskSlug_Update
+  delete: PayloadJobsFields_taskSlug_Delete
+}
+
+type PayloadJobsFields_taskSlug_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_taskSlug_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_taskSlug_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_taskSlug_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_queue {
+  create: PayloadJobsFields_queue_Create
+  read: PayloadJobsFields_queue_Read
+  update: PayloadJobsFields_queue_Update
+  delete: PayloadJobsFields_queue_Delete
+}
+
+type PayloadJobsFields_queue_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_queue_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_queue_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_queue_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_waitUntil {
+  create: PayloadJobsFields_waitUntil_Create
+  read: PayloadJobsFields_waitUntil_Read
+  update: PayloadJobsFields_waitUntil_Update
+  delete: PayloadJobsFields_waitUntil_Delete
+}
+
+type PayloadJobsFields_waitUntil_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_waitUntil_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_waitUntil_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_waitUntil_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_processing {
+  create: PayloadJobsFields_processing_Create
+  read: PayloadJobsFields_processing_Read
+  update: PayloadJobsFields_processing_Update
+  delete: PayloadJobsFields_processing_Delete
+}
+
+type PayloadJobsFields_processing_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_processing_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_processing_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_processing_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_updatedAt {
+  create: PayloadJobsFields_updatedAt_Create
+  read: PayloadJobsFields_updatedAt_Read
+  update: PayloadJobsFields_updatedAt_Update
+  delete: PayloadJobsFields_updatedAt_Delete
+}
+
+type PayloadJobsFields_updatedAt_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_updatedAt_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_updatedAt_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_updatedAt_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_createdAt {
+  create: PayloadJobsFields_createdAt_Create
+  read: PayloadJobsFields_createdAt_Read
+  update: PayloadJobsFields_createdAt_Update
+  delete: PayloadJobsFields_createdAt_Delete
+}
+
+type PayloadJobsFields_createdAt_Create {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_createdAt_Read {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_createdAt_Update {
+  permission: Boolean!
+}
+
+type PayloadJobsFields_createdAt_Delete {
+  permission: Boolean!
+}
+
+type PayloadJobsCreateAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type PayloadJobsReadAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type PayloadJobsUpdateAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
+type PayloadJobsDeleteAccess {
+  permission: Boolean!
+  where: JSONObject
+}
+
 type payload_locked_documentsAccess {
   fields: PayloadLockedDocumentsFields
   create: PayloadLockedDocumentsCreateAccess
@@ -20544,6 +22250,10 @@ type Mutation {
   updatePayloadKv(id: Int!, autosave: Boolean, data: mutationPayloadKvUpdateInput!, draft: Boolean, trash: Boolean): PayloadKv
   deletePayloadKv(id: Int!, trash: Boolean): PayloadKv
   duplicatePayloadKv(id: Int!, data: mutationPayloadKvInput!): PayloadKv
+  createPayloadJob(data: mutationPayloadJobInput!, draft: Boolean): PayloadJob
+  updatePayloadJob(id: Int!, autosave: Boolean, data: mutationPayloadJobUpdateInput!, draft: Boolean, trash: Boolean): PayloadJob
+  deletePayloadJob(id: Int!, trash: Boolean): PayloadJob
+  duplicatePayloadJob(id: Int!, data: mutationPayloadJobInput!): PayloadJob
   createPayloadLockedDocument(data: mutationPayloadLockedDocumentInput!, draft: Boolean): PayloadLockedDocument
   updatePayloadLockedDocument(id: Int!, autosave: Boolean, data: mutationPayloadLockedDocumentUpdateInput!, draft: Boolean, trash: Boolean): PayloadLockedDocument
   deletePayloadLockedDocument(id: Int!, trash: Boolean): PayloadLockedDocument
@@ -21278,6 +22988,116 @@ input mutationPayloadKvInput {
 input mutationPayloadKvUpdateInput {
   key: String
   data: JSON
+}
+
+input mutationPayloadJobInput {
+  input: JSON
+  taskStatus: JSON
+  completedAt: String
+  totalTried: Float
+  hasError: Boolean
+  error: JSON
+  log: [mutationPayloadJob_LogInput]
+  taskSlug: PayloadJob_taskSlug_MutationInput
+  queue: String
+  waitUntil: String
+  processing: Boolean
+  updatedAt: String
+  createdAt: String
+}
+
+input mutationPayloadJob_LogInput {
+  executedAt: String!
+  completedAt: String!
+  taskSlug: PayloadJob_Log_taskSlug_MutationInput!
+  taskID: String!
+  input: JSON
+  output: JSON
+  state: String!
+  error: JSON
+  parent: mutationPayloadJob_Log_ParentInput
+  id: String
+}
+
+enum PayloadJob_Log_taskSlug_MutationInput {
+  inline
+  refreshSiteCache
+  verifyContentHealth
+  purgeCompletedJobs
+}
+
+input mutationPayloadJob_Log_ParentInput {
+  taskSlug: PayloadJob_Log_Parent_taskSlug_MutationInput
+  taskID: String
+}
+
+enum PayloadJob_Log_Parent_taskSlug_MutationInput {
+  inline
+  refreshSiteCache
+  verifyContentHealth
+  purgeCompletedJobs
+}
+
+enum PayloadJob_taskSlug_MutationInput {
+  inline
+  refreshSiteCache
+  verifyContentHealth
+  purgeCompletedJobs
+}
+
+input mutationPayloadJobUpdateInput {
+  input: JSON
+  taskStatus: JSON
+  completedAt: String
+  totalTried: Float
+  hasError: Boolean
+  error: JSON
+  log: [mutationPayloadJobUpdate_LogInput]
+  taskSlug: PayloadJobUpdate_taskSlug_MutationInput
+  queue: String
+  waitUntil: String
+  processing: Boolean
+  updatedAt: String
+  createdAt: String
+}
+
+input mutationPayloadJobUpdate_LogInput {
+  executedAt: String!
+  completedAt: String!
+  taskSlug: PayloadJobUpdate_Log_taskSlug_MutationInput!
+  taskID: String!
+  input: JSON
+  output: JSON
+  state: String!
+  error: JSON
+  parent: mutationPayloadJobUpdate_Log_ParentInput
+  id: String
+}
+
+enum PayloadJobUpdate_Log_taskSlug_MutationInput {
+  inline
+  refreshSiteCache
+  verifyContentHealth
+  purgeCompletedJobs
+}
+
+input mutationPayloadJobUpdate_Log_ParentInput {
+  taskSlug: PayloadJobUpdate_Log_Parent_taskSlug_MutationInput
+  taskID: String
+}
+
+enum PayloadJobUpdate_Log_Parent_taskSlug_MutationInput {
+  inline
+  refreshSiteCache
+  verifyContentHealth
+  purgeCompletedJobs
+}
+
+enum PayloadJobUpdate_taskSlug_MutationInput {
+  inline
+  refreshSiteCache
+  verifyContentHealth
+  purgeCompletedJobs
 }
 
 input mutationPayloadLockedDocumentInput {

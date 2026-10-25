@@ -399,6 +399,7 @@ export const auditLogPlugin = (): Plugin => (config) => ({
     }
   }),
   globals: (config.globals ?? []).map((globalConfig) => {
+    if (globalConfig.slug.startsWith('payload-')) return globalConfig
     if (globalConfig.custom?.auditLog === false) return globalConfig
     return {
       ...globalConfig,
