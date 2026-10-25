@@ -152,14 +152,6 @@ function ProjectCard({
           ) : null}
         </div>
       </div>
-      {item.pagePath ? (
-        <div className="mt-2 d-flex justify-content-between align-items-center px-1">
-          <span className="small fw-semibold text-white">{item.title}</span>
-          <Link href={item.pagePath} className="small text-secondary text-decoration-none">
-            {caseStudyLabel} →
-          </Link>
-        </div>
-      ) : null}
     </motion.div>
   )
 }

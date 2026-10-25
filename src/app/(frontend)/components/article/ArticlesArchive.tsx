@@ -41,7 +41,7 @@ export function ArticlesArchive({
 
   const filtered = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
-    return articles.filter((article) => {
+    const matches = articles.filter((article) => {
       if (category === 'articles' && article.category !== 'articles') return false
       if (category === 'others' && article.category !== 'others') return false
       if (category === 'on-site' && !article.pagePath) return false
@@ -50,11 +50,11 @@ export function ArticlesArchive({
       const haystack = `${article.title} ${article.excerpt} ${article.category ?? ''}`.toLowerCase()
       return haystack.includes(normalizedQuery)
     })
-  }, [articles, category, query])
 
-  const featuredItems = filtered.filter((article) => article.featured)
-  const regularItems =
-    featuredItems.length > 0 ? filtered.filter((article) => !article.featured) : filtered
+    return [...matches].sort(
+      (a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)),
+    )
+  }, [articles, category, query])
 
   return (
     <div className="articles-hub">
@@ -109,107 +109,18 @@ export function ArticlesArchive({
           </button>
         </div>
       ) : (
-        <>
-          {featuredItems.length > 0 ? (
-            <div className="row g-4 mb-4" data-testid="archive-featured-articles">
-              {featuredItems.map((article) => (
-                <FeaturedArchiveCard
-                  key={article.id}
-                  article={article}
-                  featuredBadgeLabel={labels.featuredBadgeLabel}
-                  readOnSiteLabel={labels.readOnSiteLabel}
-                />
-              ))}
-            </div>
-          ) : null}
-
-          <div className="row g-4">
-            {regularItems.map((article) => (
-              <ArchiveArticleCard
-                key={article.id}
-                article={article}
-                featuredBadgeLabel={labels.featuredBadgeLabel}
-                readOnSiteLabel={labels.readOnSiteLabel}
-              />
-            ))}
-          </div>
-        </>
+        <div className="row gy-1 gx-4 align-items-center">
+          {filtered.map((article) => (
+            <ArchiveArticleCard
+              key={article.id}
+              article={article}
+              featuredBadgeLabel={labels.featuredBadgeLabel}
+              readOnSiteLabel={labels.readOnSiteLabel}
+            />
+          ))}
+        </div>
       )}
     </div>
-  )
-}
-
-function FeaturedArchiveCard({
-  article,
-  featuredBadgeLabel,
-  readOnSiteLabel,
-}: {
-  article: ArticleItem
-  featuredBadgeLabel: string
-  readOnSiteLabel: string
-}) {
-  const primaryHref = article.pagePath ?? (article.link || '#')
-  const isInternal = primaryHref.startsWith('/')
-
-  return (
-    <article className="col-12">
-      <div className="service-item rounded p-3 p-md-4">
-        <div className="row g-4 align-items-center">
-          <div className="col-lg-5">
-            <Link
-              href={primaryHref}
-              {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
-              className="d-block rounded overflow-hidden"
-            >
-              <CoverImage
-                src={article.imageUrl}
-                alt={article.title}
-                fallbackSrc="/placeholder.svg"
-                sizes="(max-width: 992px) 100vw, 45vw"
-                width={520}
-                height={320}
-                className="img-fluid w-100"
-              />
-            </Link>
-          </div>
-          <div className="col-lg-7">
-            <div className="mb-2 d-flex flex-wrap align-items-center gap-2">
-              <span className="featured-badge">{featuredBadgeLabel}</span>
-              <span className="small text-secondary">
-                Issued: {article.author} • {article.readTime} read
-              </span>
-            </div>
-            <h2 className="h3 mb-2">
-              <Link
-                href={primaryHref}
-                {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
-                className="text-white text-decoration-none"
-              >
-                {article.title}
-              </Link>
-            </h2>
-            <p className="article-text mb-3">{article.excerpt}</p>
-            <div className="d-flex flex-wrap gap-3 align-items-center">
-              {article.pagePath ? (
-                <Link href={article.pagePath} className="project-cta-primary">
-                  {readOnSiteLabel}
-                </Link>
-              ) : null}
-              {article.link ? (
-                <a
-                  href={article.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="small"
-                >
-                  External link ↗
-                </a>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      </div>
-    </article>
   )
 }
 
@@ -226,8 +137,11 @@ function ArchiveArticleCard({
   const isInternal = primaryHref.startsWith('/')
 
   return (
-    <article className="col-lg-4 col-md-6">
-      <div className="service-item rounded h-100 p-2 d-flex flex-column">
+    <article
+      className="col-lg-4 col-md-6"
+      data-featured={article.featured ? 'true' : undefined}
+    >
+      <div className="service-item rounded h-100 p-1 my-2 d-flex flex-column">
         <Link
           href={primaryHref}
           {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
@@ -248,12 +162,12 @@ function ArchiveArticleCard({
             {article.featured ? (
               <span className="featured-badge mb-2">{featuredBadgeLabel}</span>
             ) : null}
-            <h2 className="h5 my-2 text-white">{article.title}</h2>
+            <h2 className="h5 my-2 article-title text-white">{article.title}</h2>
             <p className="article-text">{article.excerpt}</p>
           </div>
         </Link>
-        <div className="px-2 pb-2 mt-auto">
-          <p className="small text-secondary mb-1">
+        <div className="px-4 pb-4 mt-auto">
+          <p className="text-xs text-muted-foreground mb-1">
             Issued: {article.author} • {article.readTime} read
           </p>
           <div className="d-flex flex-wrap gap-3">

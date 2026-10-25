@@ -309,19 +309,28 @@ describe('Feature 2: Project Case Studies (/projects/[slug]), /articles Hub & Fe
     const hubLd = buildArticlesHubJsonLd(mapped, undefined, 'https://vtarikhi.com')
     expect(hubLd['@type']).toBe('CollectionPage')
 
-    // Home-page ArticlesSection renders featured article in featured slot
-    const homeRender = render(React.createElement(ArticlesSection, { articles: mapped }))
-    const featuredSlot = homeRender.getByTestId('featured-articles-slot')
-    expect(featuredSlot.textContent).toContain('Featured')
-    expect(featuredSlot.textContent).toContain('Zero-Downtime Postgres Upgrades')
+    // Home-page ArticlesSection keeps the 3-column grid (no col-12 list banner) and sorts featured first
+    const reversedOrder = [mapped[1], mapped[0]]
+    const homeRender = render(React.createElement(ArticlesSection, { articles: reversedOrder }))
+    const homeCards = homeRender.container.querySelectorAll('article')
+    expect(homeCards).toHaveLength(2)
+    expect(
+      Array.from(homeCards).every((card) => card.classList.contains('col-lg-4')),
+    ).toBe(true)
+    expect(homeRender.container.querySelector('article.col-12')).toBeNull()
+    expect(homeCards[0].getAttribute('data-featured')).toBe('true')
+    expect(homeCards[0].textContent).toContain('Zero-Downtime Postgres Upgrades')
     homeRender.unmount()
 
-    // /articles Archive hub supports live search & category filtering
-    render(React.createElement(ArticlesArchive, { articles: mapped }))
+    // /articles Archive hub keeps the 3-column grid and supports live search & category filtering
+    const archiveRender = render(React.createElement(ArticlesArchive, { articles: reversedOrder }))
     expect(screen.getByText('Showing 2 of 2 articles')).toBeTruthy()
-    expect(screen.getByTestId('archive-featured-articles').textContent).toContain(
-      'Zero-Downtime Postgres Upgrades',
-    )
+    const archiveCards = archiveRender.container.querySelectorAll('article')
+    expect(
+      Array.from(archiveCards).every((card) => card.classList.contains('col-lg-4')),
+    ).toBe(true)
+    expect(archiveCards[0].getAttribute('data-featured')).toBe('true')
+    expect(archiveCards[0].textContent).toContain('Zero-Downtime Postgres Upgrades')
 
     // Filter by category "Others"
     fireEvent.click(screen.getByRole('button', { name: 'Others' }))

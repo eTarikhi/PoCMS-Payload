@@ -4,6 +4,9 @@ import { DEFAULT_SITE_SETTINGS } from '@/app/(frontend)/lib/mappers'
 import type { ArticleItem, SiteSettingsContent } from '@/app/(frontend)/lib/types'
 import { CoverImage } from '../ui/CoverImage'
 
+// Ported from vTarikhi/components/sections/articles.tsx. All articles are shown in the 3-column grid (D-12);
+// articles marked `featured` appear first in the grid while preserving the original home-page card layout.
+
 export type ArticlesSectionProps = {
   articles: ArticleItem[]
   labels?: SiteSettingsContent['articlesSection']
@@ -13,9 +16,9 @@ export function ArticlesSection({
   articles,
   labels = DEFAULT_SITE_SETTINGS.articlesSection,
 }: ArticlesSectionProps) {
-  const featuredArticles = articles.filter((article) => article.featured)
-  const regularArticles =
-    featuredArticles.length > 0 ? articles.filter((article) => !article.featured) : articles
+  const orderedArticles = [...articles].sort(
+    (a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)),
+  )
   const ctaIsInternal = Boolean(labels.cta?.url.startsWith('/'))
 
   return (
@@ -39,22 +42,8 @@ export function ArticlesSection({
                 ) : null}
               </div>
             </div>
-
-            {featuredArticles.length > 0 ? (
-              <div className="row g-4 mb-4" data-testid="featured-articles-slot">
-                {featuredArticles.map((article) => (
-                  <FeaturedArticleCard
-                    key={article.id}
-                    article={article}
-                    featuredBadgeLabel={labels.featuredBadgeLabel}
-                    readOnSiteLabel={labels.readOnSiteLabel}
-                  />
-                ))}
-              </div>
-            ) : null}
-
-            <div className="row gy-1 gx-4 align-items-stretch">
-              {regularArticles.map((article) => (
+            <div className="row gy-1 gx-4 align-items-center">
+              {orderedArticles.map((article) => (
                 <ArticleCard
                   key={article.id}
                   article={article}
@@ -69,82 +58,6 @@ export function ArticlesSection({
   )
 }
 
-function FeaturedArticleCard({
-  article,
-  featuredBadgeLabel,
-  readOnSiteLabel,
-}: {
-  article: ArticleItem
-  featuredBadgeLabel: string
-  readOnSiteLabel: string
-}) {
-  const primaryHref = article.pagePath ?? (article.link || '#')
-  const isInternal = primaryHref.startsWith('/')
-
-  return (
-    <article className="col-12" data-featured="true">
-      <div className="service-item rounded p-3 p-md-4 wow fadeInUp">
-        <div className="row g-4 align-items-center">
-          <div className="col-lg-5">
-            <Link
-              href={primaryHref}
-              {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
-              className="d-block rounded overflow-hidden"
-            >
-              <CoverImage
-                src={article.imageUrl}
-                alt={article.title}
-                fallbackSrc="/placeholder.svg"
-                sizes="(max-width: 992px) 100vw, 45vw"
-                width={520}
-                height={320}
-                className="img-fluid w-100"
-              />
-            </Link>
-          </div>
-          <div className="col-lg-7">
-            <div className="mb-2 d-flex flex-wrap align-items-center gap-2">
-              <span className="badge bg-primary text-dark text-uppercase">
-                {featuredBadgeLabel}
-              </span>
-              <span className="small text-secondary">
-                Issued: {article.author} • {article.readTime} read
-              </span>
-            </div>
-            <h3 className="h4 my-2">
-              <Link
-                href={primaryHref}
-                {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
-                className="text-white text-decoration-none"
-              >
-                {article.title}
-              </Link>
-            </h3>
-            <p className="article-text mb-3">{article.excerpt}</p>
-            <div className="d-flex flex-wrap gap-3 align-items-center">
-              {article.pagePath ? (
-                <Link href={article.pagePath} className="btn btn-primary btn-sm px-3 py-2">
-                  {readOnSiteLabel}
-                </Link>
-              ) : null}
-              {article.link ? (
-                <a
-                  href={article.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="small text-secondary"
-                >
-                  External ↗
-                </a>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      </div>
-    </article>
-  )
-}
-
 function ArticleCard({
   article,
   readOnSiteLabel,
@@ -156,12 +69,15 @@ function ArticleCard({
   const isInternal = primaryHref.startsWith('/')
 
   return (
-    <article className="col-lg-4 col-md-6">
-      <div className="service-item rounded h-100 p-1 my-2 wow fadeInUp d-flex flex-column">
+    <article
+      className="col-lg-4 col-md-6"
+      data-featured={article.featured ? 'true' : undefined}
+    >
+      <div className="service-item rounded h-100 p-1 my-2 wow fadeInUp">
         <Link
           href={primaryHref}
           {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
-          className="text-decoration-none"
+          className=""
         >
           <div className="rounded overflow-hidden">
             <CoverImage
