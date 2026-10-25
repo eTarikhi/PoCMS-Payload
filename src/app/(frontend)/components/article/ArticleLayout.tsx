@@ -4,6 +4,7 @@ import { ArticleCover } from './ArticleCover'
 import { ArticleFooterNav } from './ArticleFooterNav'
 import { ArticleHeader } from './ArticleHeader'
 import { ReadingProgress } from './ReadingProgress'
+import { RichText } from './RichText'
 
 // The article, in reading order (article page spec §5.2). The text column is 68ch wide (§8).
 // The article page composes this inside SiteChrome, so navigation and footer are not repeated here.
@@ -21,7 +22,7 @@ export function ArticleLayout({ article }: { article: ArticleDetail }) {
           readTimeDisplay={article.readTimeDisplay}
         />
         {article.coverUrl ? <ArticleCover src={article.coverUrl} alt={article.coverAlt} /> : null}
-        <ArticleBody paragraphs={article.paragraphs} />
+        {article.content ? <RichText value={article.content as never} /> : <ArticleBody paragraphs={article.paragraphs} />}
         <ArticleFooterNav externalLink={article.externalLink} />
       </article>
     </>

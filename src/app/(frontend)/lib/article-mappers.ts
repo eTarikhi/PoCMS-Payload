@@ -26,6 +26,7 @@ export type ArticleDetail = {
   coverAlt: string
   /** The body, split from `description` (§5.3). */
   paragraphs: string[]
+  content?: { root?: { children?: unknown[] } } | null
   /** Where the article is also published (LinkedIn, Medium). */
   externalLink: string | null
   /** Editor-written metadata (Payload's SEO plugin). Empty fields fall back to the fields above. */
@@ -53,6 +54,7 @@ export const mapArticleDetail = (doc: Article): ArticleDetail | null => {
     coverOg: resolveMediaSize(doc.image, 'og'),
     coverAlt: (typeof doc.image === 'object' && doc.image?.alt) || doc.title,
     paragraphs: splitArticleBody(doc.description ?? ''),
+    content: (doc as Article & { content?: { root?: { children?: unknown[] } } }).content ?? null,
     externalLink: doc.link || null,
     seo: mapSeoMeta(doc.meta),
   }

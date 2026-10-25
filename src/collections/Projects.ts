@@ -73,6 +73,18 @@ export const Projects: CollectionConfig = {
       ],
     },
     {
+      name: 'relatedArticles',
+      type: 'relationship',
+      relationTo: 'articles',
+      hasMany: true,
+      index: true,
+      filterOptions: ({ id }) => ({
+        _status: { equals: 'published' },
+        ...(id ? { id: { not_equals: id } } : {}),
+      }),
+      admin: { position: 'sidebar', description: 'Only published articles can be related.' },
+    },
+    {
       name: 'categories',
       type: 'select',
       hasMany: true,

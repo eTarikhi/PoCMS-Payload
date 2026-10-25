@@ -3,6 +3,7 @@ import { contentAccess, hiddenWithout } from '@/access/roles'
 import { imageSourceField } from './imageSource'
 import { articlePagePath, hasArticlePage } from '@/app/(frontend)/lib/article-page'
 import type { CollectionConfig } from 'payload'
+import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import {
   articleSlugBeforeValidate,
   portfolioAfterChange,
@@ -67,12 +68,17 @@ export const Articles: CollectionConfig = {
       },
     },
     {
+      name: 'content',
+      type: 'richText',
+      editor: lexicalEditor(),
+      admin: {
+        description: 'Structured article body. Supports headings, lists, quotes, links, and future custom blocks.',
+      },
+    },
+    {
       name: 'description',
       type: 'textarea',
-      admin: {
-        description:
-          'Article body, as plain text. Separate paragraphs with a blank line. Leave empty and the article links out only (no page).',
-      },
+      admin: { description: 'Legacy plain-text body; retained for existing articles during migration.' },
     },
     {
       name: 'featured',

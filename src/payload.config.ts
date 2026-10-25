@@ -55,6 +55,7 @@ import { Jobs } from './collections/Jobs'
 import { PageSpeedReports } from './collections/PageSpeedReports'
 import { Header } from './collections/Header'
 import { Articles } from './collections/Articles'
+import { Redirects } from './collections/Redirects'
 import { Certificates } from './collections/Certificates'
 import { Educations } from './collections/Educations'
 import { Experiences } from './collections/Experiences'
@@ -206,6 +207,7 @@ export default buildConfig({
   // Roles get an access-level row for every governed collection and global (ADR 0011).
   collections: [
     ...contentCollections,
+    Redirects,
     Users,
     createRoles(governedEntities({ collections: contentCollections, globals })),
     // Admin data with no document UI of its own: job runs (/admin/jobs) and the stored Lighthouse
