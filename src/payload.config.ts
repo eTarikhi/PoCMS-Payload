@@ -55,6 +55,8 @@ import { Jobs } from './collections/Jobs'
 import { PageSpeedReports } from './collections/PageSpeedReports'
 import { Header } from './collections/Header'
 import { Articles } from './collections/Articles'
+import { Categories } from './collections/Categories'
+import { Tags } from './collections/Tags'
 import { Redirects } from './collections/Redirects'
 import { Certificates } from './collections/Certificates'
 import { Educations } from './collections/Educations'
@@ -77,6 +79,8 @@ const dirname = path.dirname(filename)
 /** Collections that hold site content, in sidebar order (see `collections` below). */
 const contentCollections = [
   Articles,
+  Categories,
+  Tags,
   Projects,
   Media,
   About,

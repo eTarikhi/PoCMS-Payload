@@ -54,6 +54,9 @@ export const Media: CollectionConfig = {
       { name: 'card', width: 800, height: 500 },
       // Open Graph / Twitter cards. 1200x630 is the size every scraper documents.
       { name: 'og', width: 1200, height: 630 },
+      { name: 'hero', width: 1920, height: 1080 },
+      { name: 'webp', width: 1600 },
+      { name: 'avif', width: 1600 },
     ],
     // Files uploaded before a size existed have no thumbnail: fall back to the original.
     adminThumbnail: ({ doc }) => {

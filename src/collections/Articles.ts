@@ -98,6 +98,22 @@ export const Articles: CollectionConfig = {
       ],
       admin: { position: 'sidebar' },
     },
+    { name: 'categories', type: 'relationship', relationTo: 'categories' as never, hasMany: true, index: true, admin: { position: 'sidebar' } },
+    { name: 'tags', type: 'relationship', relationTo: 'tags' as never, hasMany: true, index: true, admin: { position: 'sidebar' } },
+    {
+      name: 'workflowStatus',
+      type: 'select',
+      defaultValue: 'draft',
+      index: true,
+      options: [
+        { label: 'Draft', value: 'draft' },
+        { label: 'In review', value: 'review' },
+        { label: 'Approved', value: 'approved' },
+        { label: 'Published', value: 'published' },
+      ],
+      access: { update: ({ req }) => Boolean(req.user) },
+      admin: { position: 'sidebar', description: 'Editorial gate before the Payload draft is published.' },
+    },
     {
       name: 'publishedAt',
       type: 'date',
