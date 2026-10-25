@@ -79,7 +79,7 @@ export const articleSlugBeforeValidate: CollectionBeforeValidateHook = async ({
   })
 
   if (originalDoc?.slug && originalDoc.slug !== slug) {
-    await req.payload.create({ collection: 'redirects', data: { from: `/articles/${originalDoc.slug}`, to: `/articles/${slug}`, statusCode: 301, source: 'slug-history' }, req }).catch(() => undefined)
+    await req.payload.create({ collection: 'redirects', data: { from: `/articles/${originalDoc.slug}`, to: `/articles/${slug}`, statusCode: '301', source: 'slug-history' }, req }).catch(() => undefined)
   }
   return { ...data, slug }
 }

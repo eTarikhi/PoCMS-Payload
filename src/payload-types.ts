@@ -77,6 +77,7 @@ export interface Config {
     educations: Education;
     certificates: Certificate;
     header: Header;
+    redirects: Redirect;
     users: User;
     roles: Role;
     'job-runs': JobRun;
@@ -109,6 +110,7 @@ export interface Config {
     educations: EducationsSelect<false> | EducationsSelect<true>;
     certificates: CertificatesSelect<false> | CertificatesSelect<true>;
     header: HeaderSelect<false> | HeaderSelect<true>;
+    redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     roles: RolesSelect<false> | RolesSelect<true>;
     'job-runs': JobRunsSelect<false> | JobRunsSelect<true>;
@@ -189,7 +191,25 @@ export interface Article {
    */
   slug?: string | null;
   /**
-   * Article body, as plain text. Separate paragraphs with a blank line. Leave empty and the article links out only (no page).
+   * Structured article body. Supports headings, lists, quotes, links, and future custom blocks.
+   */
+  content?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Legacy plain-text body; retained for existing articles during migration.
    */
   description?: string | null;
   /**
@@ -332,6 +352,10 @@ export interface Project {
    * URL for the "Read More" link.
    */
   readMoreUrl?: string | null;
+  /**
+   * Only published articles can be related.
+   */
+  relatedArticles?: (number | Article)[] | null;
   categories: ('front-end' | 'back-end' | 'cms-crm')[];
   updatedAt: string;
   createdAt: string;
@@ -494,6 +518,21 @@ export interface Header {
    * Job titles shown in the hero section.
    */
   professionTexts: string[];
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Permanent and temporary redirects, including automatically preserved slug history.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "redirects".
+ */
+export interface Redirect {
+  id: number;
+  from: string;
+  to: string;
+  statusCode: '301' | '302';
+  source?: ('manual' | 'slug-history') | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -896,6 +935,10 @@ export interface PayloadLockedDocument {
         value: number | Header;
       } | null)
     | ({
+        relationTo: 'redirects';
+        value: number | Redirect;
+      } | null)
+    | ({
         relationTo: 'users';
         value: number | User;
       } | null)
@@ -1047,6 +1090,7 @@ export interface ArticlesSelect<T extends boolean = true> {
   title?: T;
   excerpt?: T;
   slug?: T;
+  content?: T;
   description?: T;
   featured?: T;
   category?: T;
@@ -1081,6 +1125,7 @@ export interface ProjectsSelect<T extends boolean = true> {
   placeHolder?: T;
   url?: T;
   readMoreUrl?: T;
+  relatedArticles?: T;
   categories?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -1256,6 +1301,18 @@ export interface HeaderSelect<T extends boolean = true> {
   imageUrl?: T;
   requestCV?: T;
   professionTexts?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "redirects_select".
+ */
+export interface RedirectsSelect<T extends boolean = true> {
+  from?: T;
+  to?: T;
+  statusCode?: T;
+  source?: T;
   updatedAt?: T;
   createdAt?: T;
 }

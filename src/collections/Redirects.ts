@@ -19,7 +19,7 @@ export const Redirects: CollectionConfig = {
   fields: [
     { name: 'from', type: 'text', required: true, unique: true, index: true },
     { name: 'to', type: 'text', required: true },
-    { name: 'statusCode', type: 'select', required: true, defaultValue: 301, options: [{ label: '301 Permanent', value: 301 }, { label: '302 Temporary', value: 302 }] },
+    { name: 'statusCode', type: 'select', required: true, defaultValue: '301', options: [{ label: '301 Permanent', value: '301' }, { label: '302 Temporary', value: '302' }] },
     { name: 'source', type: 'select', defaultValue: 'manual', options: [{ label: 'Manual', value: 'manual' }, { label: 'Slug history', value: 'slug-history' }] },
   ],
 }
