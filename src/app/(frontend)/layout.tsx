@@ -13,7 +13,12 @@ import '@/app/(frontend)/styles/bootstrap.min.css'
 import '@/app/(frontend)/styles/main.css'
 import '@fortawesome/fontawesome-svg-core/styles.css'
 
-import { portfolioMetadata } from '@/app/(frontend)/lib/seo'
+import { getCachedPortfolioContent } from '@/app/(frontend)/lib/cache'
+import {
+  buildPortfolioMetadata,
+  buildPortfolioViewport,
+  htmlLangFromLocale,
+} from '@/app/(frontend)/lib/seo'
 
 // The stylesheet is already loaded above, so icons must not inject their own CSS.
 // Client islands that render Font Awesome set this too (see ProjectsGrid.tsx).
@@ -26,25 +31,27 @@ const openSans = Open_Sans({
   display: 'swap',
 })
 
-// Title, description, icons, Open Graph, and the owner tag live in src/app/(frontend)/lib/seo.ts (D-5, D-7).
-// The Person JSON-LD is rendered by the home page, which has the content it needs (Set 6).
-export const metadata: Metadata = portfolioMetadata
-
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 10,
-  userScalable: true,
-  themeColor: '#da9100',
+// Site-wide metadata and viewport come from the `site-settings` global (cached via unstable_cache,
+// with no request-scoped APIs, so pages still prerender statically).
+export async function generateMetadata(): Promise<Metadata> {
+  const { siteSettings } = await getCachedPortfolioContent()
+  return buildPortfolioMetadata(siteSettings)
 }
 
-export default function FrontendLayout({ children }: { children: React.ReactNode }) {
+export async function generateViewport(): Promise<Viewport> {
+  const { siteSettings } = await getCachedPortfolioContent()
+  return buildPortfolioViewport(siteSettings)
+}
+
+export default async function FrontendLayout({ children }: { children: React.ReactNode }) {
   // Background images used by main.css; preloaded as in vTarikhi/components/head.jsx.
   preload('/images/bg-mobile.webp', { as: 'image' })
   preload('/images/bg-desktop.webp', { as: 'image' })
 
+  const { siteSettings } = await getCachedPortfolioContent()
+
   return (
-    <html lang="en" className={openSans.className}>
+    <html lang={htmlLangFromLocale(siteSettings.locale)} className={openSans.className}>
       <body>
         {children}
         <Analytics />

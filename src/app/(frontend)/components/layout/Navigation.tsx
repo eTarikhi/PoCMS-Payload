@@ -3,6 +3,9 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
+import { DEFAULT_NAVIGATION } from '@/app/(frontend)/lib/mappers'
+import type { NavigationContent, NavigationItem } from '@/app/(frontend)/lib/types'
+
 // Ported from vTarikhi/components/navigation.jsx. The original called require('bootstrap') inside the handler.
 // The Bootstrap module is loaded the same way (D-15). A module-scope import would run Bootstrap's `document`
 // setup while the server prerenders the page, and that fails.
@@ -16,7 +19,24 @@ const hideNavbarCollapse = async () => {
   }
 }
 
-export function Navigation() {
+export type NavigationProps = {
+  navigation?: NavigationContent
+}
+
+function NavLink({ item, isFirst }: { item: NavigationItem; isFirst: boolean }) {
+  return (
+    <Link
+      href={item.href}
+      className={`nav-item text-light nav-link${isFirst ? ' active' : ''}`}
+      onClick={hideNavbarCollapse}
+      {...(item.openInNewTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+    >
+      {item.label}
+    </Link>
+  )
+}
+
+export function Navigation({ navigation = DEFAULT_NAVIGATION }: NavigationProps) {
   const [isVisible, setIsVisible] = useState(false)
 
   // The bar gets the extra `d-flex` class once the page is scrolled past 300px.
@@ -29,13 +49,17 @@ export function Navigation() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  const leftItems = navigation.items.filter((item) => item.position === 'left')
+  const rightItems = navigation.items.filter((item) => item.position === 'right')
+  const firstId = navigation.items[0]?.id
+
   return (
     <nav
       className={`navbar navbar-expand-lg bg-dark navbar-dark fixed-top shadow py-lg-0 px-4 px-lg-5 wow fadeIn ${isVisible ? 'd-flex' : ''}`}
       data-wow-delay="0.1s"
     >
-      <Link href="/" className="navbar-brand d-block d-lg-none">
-        <h2 className="h1 text-primary fw-bold m-0">eTarikhi</h2>
+      <Link href={navigation.brand.href} className="navbar-brand d-block d-lg-none">
+        <h2 className="h1 text-primary fw-bold m-0">{navigation.brand.text}</h2>
       </Link>
       <button type="button" className="navbar-toggler" onClick={hideNavbarCollapse}>
         <span className="navbar-toggler-icon"></span>
@@ -45,45 +69,20 @@ export function Navigation() {
         id="navbarCollapse"
       >
         <div className="navbar-nav ms-auto py-0">
-          <Link
-            href="/#home"
-            className="nav-item text-light nav-link active"
-            onClick={hideNavbarCollapse}
-          >
-            Home
-          </Link>
-          <Link href="/#about" className="nav-item text-light nav-link" onClick={hideNavbarCollapse}>
-            About
-          </Link>
-          <Link href="/#skill" className="nav-item text-light nav-link" onClick={hideNavbarCollapse}>
-            Skills
-          </Link>
+          {leftItems.map((item) => (
+            <NavLink key={item.id} item={item} isFirst={item.id === firstId} />
+          ))}
         </div>
-        <Link href="/" className="navbar-brand bg-primary py-3 px-4 mx-3 d-none d-lg-block">
-          <h2 className="h1 text-white fw-bold m-0">eTarikhi</h2>
+        <Link
+          href={navigation.brand.href}
+          className="navbar-brand bg-primary py-3 px-4 mx-3 d-none d-lg-block"
+        >
+          <h2 className="h1 text-white fw-bold m-0">{navigation.brand.text}</h2>
         </Link>
         <div className="navbar-nav me-auto py-0">
-          <Link
-            href="/#service"
-            className="nav-item text-light nav-link"
-            onClick={hideNavbarCollapse}
-          >
-            Services
-          </Link>
-          <Link
-            href="/#project"
-            className="nav-item text-light nav-link"
-            onClick={hideNavbarCollapse}
-          >
-            Projects
-          </Link>
-          <Link
-            href="/#contact"
-            className="nav-item text-light nav-link"
-            onClick={hideNavbarCollapse}
-          >
-            Contact
-          </Link>
+          {rightItems.map((item) => (
+            <NavLink key={item.id} item={item} isFirst={item.id === firstId} />
+          ))}
         </div>
       </div>
     </nav>

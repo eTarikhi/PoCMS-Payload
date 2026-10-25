@@ -13,10 +13,14 @@ import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
+import { ensureOrderable } from './access/orderable'
 import { governedEntities } from './access/permissions'
 import { ensureRoles } from './access/roles'
+import { AuditLogs } from './collections/AuditLogs'
 import { createRoles } from './collections/Roles'
 import { Footer } from './globals/Footer'
+import { Navigation } from './globals/Navigation'
+import { SiteSettings } from './globals/SiteSettings'
 
 import { Users } from './collections/Users'
 import { devGenerateEndpoint } from './endpoints/devGenerate'
@@ -38,6 +42,7 @@ import { Skills } from './collections/Skills'
 import { Media } from './collections/Media'
 import { dashboard } from './components/admin/widgets/config'
 import { adminUIPlugin } from './plugins/adminUI'
+import { auditLogPlugin } from './plugins/auditLog'
 
 // import { MediaWithPrefix } from './collections/MediaWithPrefix'
 
@@ -58,7 +63,7 @@ const contentCollections = [
   Header,
 ]
 
-const globals = [Footer]
+const globals = [SiteSettings, Navigation, Footer]
 
 export default buildConfig({
   admin: {
@@ -152,6 +157,7 @@ export default buildConfig({
     ...contentCollections,
     Users,
     createRoles(governedEntities({ collections: contentCollections, globals })),
+    AuditLogs,
   ],
   globals,
   editor: lexicalEditor(),
@@ -187,9 +193,10 @@ export default buildConfig({
     devMigrateEndpoint,
     devRestartEndpoint,
   ],
-  // Roles (ADR 0011): built-in roles, the one-time move from the old select, never no admin.
+  // Roles (ADR 0011) and orderable collections: built-in roles, legacy migration, and _order keys.
   onInit: async (payload) => {
     await ensureRoles(payload)
+    await ensureOrderable(payload)
   },
   plugins: [
     vercelBlobStorage({
@@ -202,6 +209,7 @@ export default buildConfig({
       },
       token: process.env.BLOB_READ_WRITE_TOKEN || '',
     }),
+    auditLogPlugin(),
     // Last, so it sees every field other plugins add: TanStack list views, boolean cells (ADR 0007).
     adminUIPlugin(),
   ],

@@ -6,6 +6,7 @@ import type { ReactNode } from 'react'
 import { mapArticleDetail } from '@/app/(frontend)/lib/article-mappers'
 import type { Article } from '@/payload-types'
 
+import type { ArticleFooterNavLabels } from './ArticleFooterNav'
 import { ArticleLayout } from './ArticleLayout'
 
 /**
@@ -16,15 +17,16 @@ import { ArticleLayout } from './ArticleLayout'
 type ArticleLivePreviewProps = {
   /** The saved article's id: Payload resolves the draft's relations (cover image) for it. */
   id: number
+  labels?: ArticleFooterNavLabels
   fallback: ReactNode
 }
 
-export default function ArticleLivePreview({ id, fallback }: ArticleLivePreviewProps) {
+export default function ArticleLivePreview({ id, labels, fallback }: ArticleLivePreviewProps) {
   const { data, isLoading } = useLivePreview<Partial<Article>>({
     initialData: { id },
     serverURL: window.location.origin,
     depth: 1,
   })
   const article = !isLoading && data.title ? mapArticleDetail(data as Article) : null
-  return article ? <ArticleLayout article={article} /> : fallback
+  return article ? <ArticleLayout article={article} labels={labels} /> : fallback
 }

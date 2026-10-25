@@ -26,13 +26,19 @@ export async function ContentHealthWidget({ req }: WidgetServerProps) {
 
   // Not checked on purpose: an empty article `description` is the article body, and an article
   // without one is a valid link-out entry (see the field description), not a gap.
-  const [header, about, articlesNoImage, projectsNoImage, footer] = await Promise.all([
-    count('header'),
-    count('about'),
-    count('articles', noArticleImage),
-    count('projects', noProjectImage),
-    req.payload.findGlobal({ slug: 'footer', req, overrideAccess: false, depth: 0 }),
-  ])
+  const [header, about, articlesNoImage, projectsNoImage, siteSettings, navigation, footer] =
+    await Promise.all([
+      count('header'),
+      count('about'),
+      count('articles', noArticleImage),
+      count('projects', noProjectImage),
+      req.payload.findGlobal({ slug: 'site-settings', req, overrideAccess: false, depth: 0 }),
+      req.payload.findGlobal({ slug: 'navigation', req, overrideAccess: false, depth: 0 }),
+      req.payload.findGlobal({ slug: 'footer', req, overrideAccess: false, depth: 0 }),
+    ])
+  const hasSiteIdentity =
+    Boolean(siteSettings?.siteTitle?.trim()) && Boolean(siteSettings?.ownerName?.trim())
+  const navLinks = (navigation?.items ?? []).filter((item) => item.enabled !== false).length
   const socialLinks = footer?.socialLinks?.length ?? 0
 
   const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
@@ -48,6 +54,18 @@ export async function ContentHealthWidget({ req }: WidgetServerProps) {
       done: 'About section is set up',
       todo: 'Set up the About section',
       href: adminURL(req, 'about'),
+    },
+    {
+      ok: hasSiteIdentity,
+      done: 'Site settings (title & owner) are configured',
+      todo: 'Configure site title and owner in Site settings',
+      href: `${req.payload.config.routes.admin}/globals/site-settings`,
+    },
+    {
+      ok: navLinks > 0,
+      done: 'Navigation has menu links',
+      todo: 'Add visible menu links to Navigation',
+      href: `${req.payload.config.routes.admin}/globals/navigation`,
     },
     {
       ok: articlesNoImage === 0,

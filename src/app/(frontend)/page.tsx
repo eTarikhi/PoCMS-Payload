@@ -15,25 +15,34 @@ import { buildPersonJsonLd } from '@/app/(frontend)/lib/seo'
 // prerender it as static (roadmap §3.3). Editors refresh it by saving in /admin (hooks.ts).
 export default async function HomePage() {
   const content = await getCachedPortfolioContent()
+  const { siteSettings } = content
 
   return (
     <>
-      <SiteChrome footer={content.footer}>
-        {content.header ? <Hero header={content.header} /> : null}
+      <SiteChrome
+        navigation={content.navigation}
+        footer={content.footer}
+        footerLabels={siteSettings.footerLabels}
+      >
+        {content.header ? <Hero header={content.header} labels={siteSettings.hero} /> : null}
         <main id="main-content" data-bs-spy="scroll" data-bs-target=".navbar" data-bs-offset="51">
-          <AboutSection about={content.about} />
-          <ServicesSection services={content.services} />
+          <AboutSection about={content.about} ownerName={siteSettings.ownerName} />
+          <ServicesSection services={content.services} labels={siteSettings.servicesSection} />
           <SkillsSection
             skills={content.skills}
             experiences={content.experiences}
             educations={content.educations}
+            labels={siteSettings.skillsSection}
           />
-          <CertificatesSection certificates={content.certificates} />
+          <CertificatesSection
+            certificates={content.certificates}
+            labels={siteSettings.certificatesSection}
+          />
           <ProjectsSection projects={content.projects} />
-          <ArticlesSection articles={content.articles} />
+          <ArticlesSection articles={content.articles} labels={siteSettings.articlesSection} />
         </main>
       </SiteChrome>
-      <JsonLd data={buildPersonJsonLd(content.header, content.footer)} />
+      <JsonLd data={buildPersonJsonLd(content.header, content.footer, siteSettings)} />
     </>
   )
 }

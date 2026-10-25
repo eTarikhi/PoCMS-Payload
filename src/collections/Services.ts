@@ -1,10 +1,10 @@
 import { contentAccess, hiddenWithout } from '@/access/roles'
 import type { CollectionConfig } from 'payload'
 import { portfolioAfterChange, portfolioAfterDelete } from '../app/(frontend)/lib/hooks'
-import { orderField } from '../fields/order'
 
 export const Services: CollectionConfig = {
   slug: 'services',
+  orderable: true,
   hooks: {
     afterChange: [portfolioAfterChange],
     afterDelete: [portfolioAfterDelete],
@@ -12,17 +12,15 @@ export const Services: CollectionConfig = {
   admin: {
     hidden: hiddenWithout('services'),
     group: 'Profile',
-    description: 'Service categories shown on the home page.',
+    description: 'Service categories shown on the home page. Drag rows to reorder.',
     useAsTitle: 'category',
-    defaultColumns: ['category', 'iconFont', 'order'],
+    defaultColumns: ['category', 'iconFont', 'updatedAt'],
   },
-  defaultSort: 'order',
   // Deleting moves documents to the trash (restorable); deleting for good needs the Full level.
   trash: true,
   // Levels from the user's roles (ADR 0011): public read, edit and trash, full to delete for good.
   access: contentAccess('services'),
   fields: [
-    orderField,
     { name: 'category', type: 'text', required: true },
     {
       name: 'iconFont',

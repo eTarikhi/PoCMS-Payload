@@ -2,17 +2,104 @@
  * Framework-free view models for the portfolio site.
  *
  * These are the only shapes the presentational components in
- * `src/app/(frontend)/components/*` are allowed to depend on. They mirror the props
- * interfaces of the original `vTarikhi/` components, with the following changes:
- *
- * - Unused placeholder members (`map`, `filter`) are removed.
- * - Display strings are pre-formatted here (dates, "3 min", joined locations),
- *   so components render the same text as the original site.
- * - Image URLs are resolved to plain strings, whether they come from a Payload
- *   upload or from a legacy text URL.
+ * `src/app/(frontend)/components/*` are allowed to depend on.
  *
  * Nothing in this file imports Payload or React.
  */
+
+export type NavigationItem = {
+  id: string
+  label: string
+  href: string
+  position: 'left' | 'right'
+  openInNewTab: boolean
+}
+
+export type NavigationContent = {
+  brand: {
+    text: string
+    href: string
+  }
+  skipToContentLabel: string
+  items: NavigationItem[]
+}
+
+export type PostalAddressContent = {
+  streetAddress: string
+  addressLocality: string
+  addressRegion: string
+  postalCode: string
+}
+
+export type SectionCta = {
+  label: string
+  url: string
+}
+
+export type SiteSettingsContent = {
+  siteName: string
+  ownerName: string
+  locale: string
+  themeColor: string
+  siteTitle: string
+  metaDescription: string
+  keywords: string
+  ogDescription: string
+  ogImage: {
+    url: string
+    width: number
+    height: number
+    alt: string
+    mimeType?: string
+  }
+  jobTitle: string
+  address: PostalAddressContent
+  hero: {
+    greeting: string
+    requestCvLabel: string
+  }
+  servicesSection: {
+    heading: string
+  }
+  skillsSection: {
+    heading: string
+    intro: string
+    skillsSubheading: string
+    experienceTabLabel: string
+    educationTabLabel: string
+  }
+  certificatesSection: {
+    heading: string
+    cta: SectionCta | null
+    viewCertificateLabel: string
+  }
+  projectsSection: {
+    heading: string
+    allFilterLabel: string
+    caseStudyLabel: string
+    backToProjectsLabel: string
+    liveProjectLabel: string
+    notFoundTitle: string
+    notFoundDescription: string
+  }
+  articlesSection: {
+    heading: string
+    cta: SectionCta | null
+    readOnSiteLabel: string
+    featuredBadgeLabel: string
+    archiveDescription: string
+    searchPlaceholder: string
+    backToArticlesLabel: string
+    externalPublicationLabel: string
+    notFoundTitle: string
+    notFoundDescription: string
+  }
+  footerLabels: {
+    socialPrompt: string
+    profilesHeading: string
+    contactHeading: string
+  }
+}
 
 export type HeaderContent = {
   id: string
@@ -94,9 +181,14 @@ export type ArticleItem = {
   /** Display read time, e.g. "3 min". */
   readTime: string
   imageUrl: string
+  /** External publication URL (empty string when on-site only). */
   link: string
-  /** Internal page path, e.g. "/articles/devops-roadmap". Null when the article has no page (D-A10). */
+  /** Internal page path, e.g. "/articles/devops-roadmap". Null when the article has no page. */
   pagePath: string | null
+  /** Highlighted in the featured slot on the home page and `/articles`. */
+  featured?: boolean
+  /** Article category (`"articles"` | `"others"`). */
+  category?: 'articles' | 'others' | null
 }
 
 export type ServiceItem = {
@@ -126,16 +218,21 @@ export type ProjectFilter = {
 export type ProjectItem = {
   id: string
   title: string
+  excerpt?: string | null
   categories: string[]
   /** Small image shown in the grid. */
   thumbnailUrl: string
   /** Full-size image. */
   imageUrl: string
-  /** Live site or case-study URL. */
+  /** Live site or external project URL. */
   url: string
+  /** Internal case-study page path, e.g. "/projects/alyapanel". Null when the project has no case study. */
+  pagePath?: string | null
 }
 
 export type ProjectsContent = {
+  heading: string
+  caseStudyLabel?: string
   filters: ProjectFilter[]
   items: ProjectItem[]
 }
@@ -171,6 +268,8 @@ export type FooterContent = {
 
 /** Everything the home page renders. Singletons may be `null` when unseeded. */
 export type PortfolioContent = {
+  siteSettings: SiteSettingsContent
+  navigation: NavigationContent
   header: HeaderContent | null
   about: AboutContent | null
   skills: SkillsContent

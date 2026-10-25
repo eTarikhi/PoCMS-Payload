@@ -29,9 +29,12 @@ const NAV_ICONS = {
   'nav-educations': ['GraduationCap', 'blue'],
   'nav-skills': ['Gauge', 'green'],
   'nav-certificates': ['Award', 'amber'],
+  'nav-global-site-settings': ['SlidersHorizontal', 'violet'],
+  'nav-global-navigation': ['Compass', 'blue'],
   'nav-global-footer': ['PanelBottom', 'slate'],
   'nav-users': ['Users', 'teal'],
   'nav-roles': ['KeyRound', 'orange'],
+  'nav-audit-logs': ['ScrollText', 'amber'],
   'nav-view-site': ['ExternalLink', 'slate'],
   'nav-gallery': ['Component', 'rose'],
 }

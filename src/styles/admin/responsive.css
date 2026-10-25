@@ -104,14 +104,16 @@
     }
   }
 
-  /* Lists on phones: cells wrap (full titles), the table still scrolls sideways for more columns. */
+  /* Lists on phones: cells wrap (full titles), the table still scrolls sideways for more columns.
+     Orderable tables prepend `.cell-_dragHandle` before `.cell-_select`, so keep both compact. */
   @media (max-width: 768px) {
-    .collection-list .table td {
+    .collection-list .table td:not(.cell-_dragHandle, .cell-_select) {
       white-space: normal;
       min-width: 7rem;
     }
 
-    .collection-list .table td:nth-child(2) {
+    .collection-list .table tr:not(:has(.cell-_dragHandle)) > td:nth-child(2),
+    .collection-list .table tr:has(.cell-_dragHandle) > td:nth-child(3) {
       min-width: 11rem;
     }
   }

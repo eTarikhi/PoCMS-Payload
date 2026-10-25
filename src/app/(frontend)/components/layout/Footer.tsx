@@ -2,18 +2,19 @@ import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faGem } from '@fortawesome/free-solid-svg-icons'
 
-import type { FooterContent } from '@/app/(frontend)/lib/types'
+import { DEFAULT_SITE_SETTINGS } from '@/app/(frontend)/lib/mappers'
+import type { FooterContent, SiteSettingsContent } from '@/app/(frontend)/lib/types'
 import { getFooterIcon } from '../icons'
 import { EmailReveal } from '../ui/EmailReveal'
 
 // Ported from vTarikhi/components/footer.tsx. The copyright year comes from the CMS (D-6).
-// The original computed currentYear but never used it, so it is not ported.
 
 export type FooterProps = {
   footer: FooterContent
+  labels?: SiteSettingsContent['footerLabels']
 }
 
-export function Footer({ footer }: FooterProps) {
+export function Footer({ footer, labels = DEFAULT_SITE_SETTINGS.footerLabels }: FooterProps) {
   return (
     <footer className="text-center text-lg-start bg-dark text-white">
       {/* Section: Social media */}
@@ -21,7 +22,7 @@ export function Footer({ footer }: FooterProps) {
         <div className="container d-flex justify-content-center justify-content-lg-between p-4">
           {/* Left */}
           <div className="me-5 d-none d-lg-block">
-            <span>Get connected with me on social networks:</span>
+            <span>{labels.socialPrompt}</span>
           </div>
           {/* Right */}
           <div className="ml-4">
@@ -64,7 +65,7 @@ export function Footer({ footer }: FooterProps) {
 
             {/* Profiles Column */}
             <nav className="col-md-4 mx-auto mb-4">
-              <h2 className="h6 text-uppercase fw-bold mb-4">My Profiles</h2>
+              <h2 className="h6 text-uppercase fw-bold mb-4">{labels.profilesHeading}</h2>
               {footer.profiles.map((profile, index) => (
                 <p key={index}>
                   <Link
@@ -81,7 +82,7 @@ export function Footer({ footer }: FooterProps) {
 
             {/* Contact Column */}
             <nav className="col-md-3 mx-auto mb-md-0 mb-4" id="contact">
-              <h2 className="h6 text-uppercase fw-bold mb-4">Contact</h2>
+              <h2 className="h6 text-uppercase fw-bold mb-4">{labels.contactHeading}</h2>
               {footer.contactInfo.map((contact, index) => (
                 <p key={index}>
                   {getFooterIcon(contact.iconName)}

@@ -1,110 +1,104 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 
 import type { ArticleDetail } from './article-mappers'
-import { articlePagePath } from './article-page'
-import type { FooterContent, HeaderContent } from './types'
+import { articlePagePath, ARTICLES_HUB_PATH } from './article-page'
+import { DEFAULT_PROFILE_IMAGE_PATH, DEFAULT_SITE_SETTINGS } from './mappers'
+import type { ProjectDetail } from './project-mappers'
+import { projectPagePath } from './project-page'
+import type { ArticleItem, FooterContent, HeaderContent, SiteSettingsContent } from './types'
 
 /**
- * SEO values for the site, from `vTarikhi/components/head.jsx` and `schema.json`.
- *
- * Decision D-5: absolute URLs use the canonical site URL. `NEXT_PUBLIC_SITE_URL` overrides the default.
- * Decision D-7: the invalid `X-Content-Type-Options` tag and the empty `fb:*` / `ia:*` tags are dropped.
- *
+ * SEO, viewport, and JSON-LD builders for the site, backed by the `site-settings` global.
  * This module does not import React or Payload.
  */
 
 export const DEFAULT_SITE_URL = 'https://vtarikhi.com'
 
-/** The site origin with no trailing slash. */
+export const PROFILE_IMAGE_PATH = DEFAULT_PROFILE_IMAGE_PATH
+
 export const siteUrl = (): string => {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim()
   return (configured && configured.length > 0 ? configured : DEFAULT_SITE_URL).replace(/\/+$/, '')
 }
 
-/** Profile photo used for `og:image` and the JSON-LD `image`. Path under `public/`. */
-export const PROFILE_IMAGE_PATH = '/images/profile.webp'
-// Measured from public/images/profile.webp. The original tag said 400, which was wrong.
-const PROFILE_IMAGE_WIDTH = 668
-const PROFILE_IMAGE_HEIGHT = 689
+export const absoluteUrl = (value: string, site: string = siteUrl()): string =>
+  new URL(value, `${site}/`).toString()
 
-const TITLE = 'Amir v.Tarikhi Live Resume | Full-Stack Senior Web Developer'
-const DESCRIPTION =
-  'Senior PHP, JavaScript & MySQL, Mid. React & Next.js, Jr. Node.js & Laravel, E-Commerce CMS, WordPress, WooCommerce & Shopify Developer ..'
-const KEYWORDS =
-  'Senior Web Developer, Full-Stack Developer, PHP Developer, JavaScript Developer, Next.js Developer, React.js Developer, Shopify Developer, MySQL Developer, Full-Stack Senior PHP Developer, Automation Panel Developer, E-Commerce CMS Developer, SEO Manager and Consultant'
-const OG_SITE_NAME = 'Amir v.Tarikhi Live Resume'
-const OG_DESCRIPTION =
-  'Full-Stack Senior PHP Developer, Automation Panel Developer, E-Commerce CMS Developer, SEO Manager and Consultant'
-const OWNER = 'Amir v.Tarikhi'
-
-const SITE_URL = siteUrl()
-
-/** Site-wide metadata for the root layout. */
-export const portfolioMetadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
-  title: TITLE,
-  description: DESCRIPTION,
-  keywords: KEYWORDS,
-  robots: 'index, follow',
-  manifest: '/images/favicon/site.webmanifest',
-  icons: {
-    icon: [
-      { url: '/images/favicon/favicon.ico' },
-      { url: '/images/favicon/favicon.svg', type: 'image/svg+xml' },
-      { url: '/images/favicon/favicon-16x16.png', type: 'image/png', sizes: '16x16' },
-      { url: '/images/favicon/favicon-32x32.png', type: 'image/png', sizes: '32x32' },
-      { url: '/images/favicon/favicon-96x96.png', type: 'image/png', sizes: '96x96' },
-    ],
-    shortcut: '/images/favicon/favicon.ico',
-    apple: { url: '/images/favicon/apple-touch-icon.png', sizes: '180x180' },
-  },
-  openGraph: {
-    siteName: OG_SITE_NAME,
-    title: OG_SITE_NAME,
-    description: OG_DESCRIPTION,
-    url: SITE_URL,
-    locale: 'en_US',
-    images: [
-      {
-        url: `${SITE_URL}${PROFILE_IMAGE_PATH}`,
-        secureUrl: `${SITE_URL}${PROFILE_IMAGE_PATH}`,
-        type: 'image/webp',
-        width: PROFILE_IMAGE_WIDTH,
-        height: PROFILE_IMAGE_HEIGHT,
-        alt: 'Amir v.Tarikhi',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-  },
-  other: {
-    owner: OWNER,
-  },
+export const htmlLangFromLocale = (locale: string | null | undefined): string => {
+  const raw = (locale ?? '').trim()
+  if (!raw) return 'en'
+  const primary = raw.split(/[-_]/)[0]?.toLowerCase()
+  return primary && primary.length > 0 ? primary : 'en'
 }
 
-// Values from schema.json that the CMS does not hold yet. Kept as constants.
-const ADDRESS = {
-  '@type': 'PostalAddress',
-  addressLocality: 'Istanbul, Turkey',
-  addressRegion: 'Beykoz',
-  postalCode: '34805',
-  streetAddress: '34805, Beykoz, Istanbul, Turkey',
-} as const
-const JOB_TITLE = 'Senior Full-Stack Web Developer'
+export const buildPortfolioMetadata = (
+  settings: SiteSettingsContent = DEFAULT_SITE_SETTINGS,
+  site: string = siteUrl(),
+): Metadata => {
+  const ogImageUrl = absoluteUrl(settings.ogImage.url, site)
 
-// The WhatsApp link is a messaging link, not a profile, so it is left out of sameAs.
+  return {
+    metadataBase: new URL(site),
+    title: settings.siteTitle,
+    description: settings.metaDescription,
+    ...(settings.keywords ? { keywords: settings.keywords } : {}),
+    robots: 'index, follow',
+    manifest: '/images/favicon/site.webmanifest',
+    icons: {
+      icon: [
+        { url: '/images/favicon/favicon.ico' },
+        { url: '/images/favicon/favicon.svg', type: 'image/svg+xml' },
+        { url: '/images/favicon/favicon-16x16.png', type: 'image/png', sizes: '16x16' },
+        { url: '/images/favicon/favicon-32x32.png', type: 'image/png', sizes: '32x32' },
+        { url: '/images/favicon/favicon-96x96.png', type: 'image/png', sizes: '96x96' },
+      ],
+      shortcut: '/images/favicon/favicon.ico',
+      apple: { url: '/images/favicon/apple-touch-icon.png', sizes: '180x180' },
+    },
+    openGraph: {
+      siteName: settings.siteName,
+      title: settings.siteName,
+      description: settings.ogDescription || settings.metaDescription,
+      url: site,
+      locale: settings.locale,
+      images: [
+        {
+          url: ogImageUrl,
+          secureUrl: ogImageUrl,
+          ...(settings.ogImage.mimeType ? { type: settings.ogImage.mimeType } : {}),
+          width: settings.ogImage.width,
+          height: settings.ogImage.height,
+          alt: settings.ogImage.alt,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+    },
+    other: {
+      owner: settings.ownerName,
+    },
+  }
+}
+
+export const portfolioMetadata: Metadata = buildPortfolioMetadata(DEFAULT_SITE_SETTINGS)
+
+export const buildPortfolioViewport = (
+  settings: SiteSettingsContent = DEFAULT_SITE_SETTINGS,
+): Viewport => ({
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 10,
+  userScalable: true,
+  themeColor: settings.themeColor,
+})
+
 const NON_PROFILE_ICONS = new Set(['faWhatsapp'])
 
-/**
- * Person JSON-LD for the home page.
- *
- * Name, telephone, email, and social URLs come from the header and footer data (decision D-5).
- * The address and job title are constants.
- */
 export const buildPersonJsonLd = (
   header: HeaderContent | null,
   footer: FooterContent | null,
+  settings: SiteSettingsContent = DEFAULT_SITE_SETTINGS,
   site: string = siteUrl(),
 ): Record<string, unknown> => {
   const phone = footer?.contactInfo.find((item) => item.type === 'phone')?.content
@@ -113,48 +107,118 @@ export const buildPersonJsonLd = (
     .filter((link) => !NON_PROFILE_ICONS.has(link.iconName))
     .map((link) => link.url)
 
+  const addressFields = {
+    ...(settings.address.addressLocality
+      ? { addressLocality: settings.address.addressLocality }
+      : {}),
+    ...(settings.address.addressRegion ? { addressRegion: settings.address.addressRegion } : {}),
+    ...(settings.address.postalCode ? { postalCode: settings.address.postalCode } : {}),
+    ...(settings.address.streetAddress ? { streetAddress: settings.address.streetAddress } : {}),
+  }
+
   return {
     '@context': 'https://schema.org/',
     '@type': 'Person',
-    address: ADDRESS,
-    name: header?.sureName ?? footer?.fullName ?? '',
+    ...(Object.keys(addressFields).length > 0
+      ? {
+          address: {
+            '@type': 'PostalAddress',
+            ...addressFields,
+          },
+        }
+      : {}),
+    name: header?.sureName || footer?.fullName || settings.ownerName,
     ...(phone ? { telephone: phone } : {}),
     url: site,
     ...(email ? { email: `mailto:${email}` } : {}),
-    image: `${site}${PROFILE_IMAGE_PATH}`,
-    jobTitle: JOB_TITLE,
+    image: absoluteUrl(settings.ogImage.url, site),
+    ...(settings.jobTitle ? { jobTitle: settings.jobTitle } : {}),
     sameAs: [...profiles, site],
   }
 }
 
-/**
- * Absolute URL for a path or an absolute URL. Media can be either: an upload gives `/api/media/file/...`,
- * and Vercel Blob gives an absolute URL (article page spec §7).
- */
-export const absoluteUrl = (value: string, site: string = siteUrl()): string =>
-  new URL(value, `${site}/`).toString()
-
-/** Canonical URL of an article page (spec §7, D-5). */
 export const articleCanonicalUrl = (slug: string, site: string = siteUrl()): string =>
   `${site}${articlePagePath(slug)}`
 
-/**
- * Per-article metadata for `/articles/[slug]` (article page spec §7). The title is the article title. The
- * description is the excerpt. The image is the cover when there is one, and the profile photo otherwise.
- * Next replaces the root `openGraph` and `twitter` objects, so both are set here in full.
- */
+export const articlesHubCanonicalUrl = (site: string = siteUrl()): string =>
+  `${site}${ARTICLES_HUB_PATH}`
+
+export const buildArticlesHubMetadata = (
+  settings: SiteSettingsContent = DEFAULT_SITE_SETTINGS,
+  site: string = siteUrl(),
+): Metadata => {
+  const url = articlesHubCanonicalUrl(site)
+  const title = `${settings.articlesSection.heading} | ${settings.siteName}`
+  const description = settings.articlesSection.archiveDescription || settings.metaDescription
+  const imageUrl = absoluteUrl(settings.ogImage.url, site)
+
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: 'website',
+      siteName: settings.siteName,
+      title,
+      description,
+      url,
+      locale: settings.locale,
+      images: [
+        {
+          url: imageUrl,
+          alt: settings.ogImage.alt || settings.ownerName,
+          width: settings.ogImage.width,
+          height: settings.ogImage.height,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [imageUrl],
+    },
+  }
+}
+
+export const buildArticlesHubJsonLd = (
+  articles: ArticleItem[],
+  settings: SiteSettingsContent = DEFAULT_SITE_SETTINGS,
+  site: string = siteUrl(),
+): Record<string, unknown> => {
+  const url = articlesHubCanonicalUrl(site)
+  return {
+    '@context': 'https://schema.org/',
+    '@type': 'CollectionPage',
+    name: settings.articlesSection.heading,
+    description: settings.articlesSection.archiveDescription,
+    url,
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: articles.length,
+      itemListElement: articles.map((article, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        name: article.title,
+        url: article.pagePath ? `${site}${article.pagePath}` : article.link || url,
+      })),
+    },
+  }
+}
+
 export const buildArticleMetadata = (
   article: ArticleDetail,
+  settings: SiteSettingsContent = DEFAULT_SITE_SETTINGS,
   site: string = siteUrl(),
 ): Metadata => {
   const url = articleCanonicalUrl(article.slug, site)
   const image = article.coverUrl
     ? { url: absoluteUrl(article.coverUrl, site), alt: article.coverAlt, width: 1140, height: 600 }
     : {
-        url: `${site}${PROFILE_IMAGE_PATH}`,
-        alt: OWNER,
-        width: PROFILE_IMAGE_WIDTH,
-        height: PROFILE_IMAGE_HEIGHT,
+        url: absoluteUrl(settings.ogImage.url, site),
+        alt: settings.ogImage.alt || settings.ownerName,
+        width: settings.ogImage.width,
+        height: settings.ogImage.height,
       }
 
   return {
@@ -163,11 +227,11 @@ export const buildArticleMetadata = (
     alternates: { canonical: url },
     openGraph: {
       type: 'article',
-      siteName: OG_SITE_NAME,
+      siteName: settings.siteName,
       title: article.title,
       ...(article.excerpt ? { description: article.excerpt } : {}),
       url,
-      locale: 'en_US',
+      locale: settings.locale,
       ...(article.publishedAt ? { publishedTime: article.publishedAt } : {}),
       images: [image],
     },
@@ -180,17 +244,14 @@ export const buildArticleMetadata = (
   }
 }
 
-/**
- * `BlogPosting` JSON-LD for an article page (article page spec §7). The author is the same Person as the
- * home page, without its `@context` (it is nested). Every URL is absolute.
- */
 export const buildBlogPostingJsonLd = (
   article: ArticleDetail,
   header: HeaderContent | null,
   footer: FooterContent | null,
+  settings: SiteSettingsContent = DEFAULT_SITE_SETTINGS,
   site: string = siteUrl(),
 ): Record<string, unknown> => {
-  const { '@context': _context, ...author } = buildPersonJsonLd(header, footer, site)
+  const { '@context': _context, ...author } = buildPersonJsonLd(header, footer, settings, site)
   const url = articleCanonicalUrl(article.slug, site)
 
   return {
@@ -200,8 +261,73 @@ export const buildBlogPostingJsonLd = (
     ...(article.excerpt ? { description: article.excerpt } : {}),
     ...(article.publishedAt ? { datePublished: article.publishedAt } : {}),
     author,
-    image: absoluteUrl(article.coverUrl ?? PROFILE_IMAGE_PATH, site),
+    image: absoluteUrl(article.coverUrl ?? settings.ogImage.url, site),
     url,
     mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+  }
+}
+
+export const projectCanonicalUrl = (slug: string, site: string = siteUrl()): string =>
+  `${site}${projectPagePath(slug)}`
+
+export const buildProjectMetadata = (
+  project: ProjectDetail,
+  settings: SiteSettingsContent = DEFAULT_SITE_SETTINGS,
+  site: string = siteUrl(),
+): Metadata => {
+  const url = projectCanonicalUrl(project.slug, site)
+  const description = project.excerpt || settings.metaDescription
+  const image = project.coverUrl
+    ? { url: absoluteUrl(project.coverUrl, site), alt: project.coverAlt, width: 1140, height: 600 }
+    : {
+        url: absoluteUrl(settings.ogImage.url, site),
+        alt: settings.ogImage.alt || settings.ownerName,
+        width: settings.ogImage.width,
+        height: settings.ogImage.height,
+      }
+
+  return {
+    title: `${project.title} — ${settings.projectsSection.caseStudyLabel}`,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: 'article',
+      siteName: settings.siteName,
+      title: project.title,
+      description,
+      url,
+      locale: settings.locale,
+      images: [image],
+    },
+    twitter: {
+      card: project.coverUrl ? 'summary_large_image' : 'summary',
+      title: project.title,
+      description,
+      images: [image.url],
+    },
+  }
+}
+
+export const buildProjectJsonLd = (
+  project: ProjectDetail,
+  header: HeaderContent | null,
+  footer: FooterContent | null,
+  settings: SiteSettingsContent = DEFAULT_SITE_SETTINGS,
+  site: string = siteUrl(),
+): Record<string, unknown> => {
+  const { '@context': _context, ...creator } = buildPersonJsonLd(header, footer, settings, site)
+  const url = projectCanonicalUrl(project.slug, site)
+
+  return {
+    '@context': 'https://schema.org/',
+    '@type': 'CreativeWork',
+    name: project.title,
+    ...(project.excerpt ? { description: project.excerpt } : {}),
+    ...(project.year ? { dateCreated: project.year } : {}),
+    ...(project.techStack.length > 0 ? { keywords: project.techStack.join(', ') } : {}),
+    creator,
+    image: absoluteUrl(project.coverUrl ?? settings.ogImage.url, site),
+    url,
+    ...(project.liveUrl ? { sameAs: project.liveUrl } : {}),
   }
 }

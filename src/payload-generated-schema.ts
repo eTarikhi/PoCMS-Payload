@@ -14,11 +14,11 @@ import {
   foreignKey,
   serial,
   varchar,
+  jsonb,
   boolean,
   timestamp,
   numeric,
   integer,
-  jsonb,
   pgEnum,
 } from '@payloadcms/db-vercel-postgres/drizzle/pg-core'
 import { sql, relations } from '@payloadcms/db-vercel-postgres/drizzle'
@@ -104,7 +104,34 @@ export const enum_roles_levels_header = pgEnum('enum_roles_levels_header', [
   'edit',
   'full',
 ])
+export const enum_roles_levels_site_settings = pgEnum('enum_roles_levels_site_settings', [
+  'none',
+  'read',
+  'edit',
+])
+export const enum_roles_levels_navigation = pgEnum('enum_roles_levels_navigation', [
+  'none',
+  'read',
+  'edit',
+])
 export const enum_roles_levels_footer = pgEnum('enum_roles_levels_footer', ['none', 'read', 'edit'])
+export const enum_audit_logs_action = pgEnum('enum_audit_logs_action', [
+  'create',
+  'update',
+  'trash',
+  'restore',
+  'delete',
+  'login',
+])
+export const enum_audit_logs_entity_kind = pgEnum('enum_audit_logs_entity_kind', [
+  'collection',
+  'global',
+  'auth',
+])
+export const enum_navigation_items_position = pgEnum('enum_navigation_items_position', [
+  'left',
+  'right',
+])
 export const enum_footer_social_links_platform = pgEnum('enum_footer_social_links_platform', [
   'facebook',
   'twitter',
@@ -162,9 +189,10 @@ export const articles = pgTable(
     title: varchar('title').notNull(),
     excerpt: varchar('excerpt').notNull(),
     slug: varchar('slug'),
+    content: jsonb('content'),
     description: varchar('description'),
-    featured: boolean('featured'),
-    category: enum_articles_category('category'),
+    featured: boolean('featured').default(false),
+    category: enum_articles_category('category').default('articles'),
     publishedAt: timestamp('published_at', {
       mode: 'string',
       withTimezone: true,
@@ -175,7 +203,7 @@ export const articles = pgTable(
       onDelete: 'set null',
     }),
     imageUrl: varchar('image_url'),
-    link: varchar('link').notNull(),
+    link: varchar('link'),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
@@ -218,9 +246,14 @@ export const projects = pgTable(
   'projects',
   {
     id: serial('id').primaryKey(),
-    order: numeric('order', { mode: 'number' }).default(0),
+    _order: varchar('_order'),
     title: varchar('title').notNull(),
+    excerpt: varchar('excerpt'),
     slug: varchar('slug'),
+    role: varchar('role'),
+    client: varchar('client'),
+    year: varchar('year'),
+    content: jsonb('content'),
     image: integer('image_id').references(() => media.id, {
       onDelete: 'set null',
     }),
@@ -228,6 +261,7 @@ export const projects = pgTable(
     placeHolder: varchar('place_holder'),
     url: varchar('url'),
     readMoreUrl: varchar('read_more_url'),
+    readTime: numeric('read_time', { mode: 'number' }),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
@@ -237,12 +271,31 @@ export const projects = pgTable(
     deletedAt: timestamp('deleted_at', { mode: 'string', withTimezone: true, precision: 3 }),
   },
   (columns) => [
-    index('projects_order_idx').on(columns.order),
+    index('projects__order_idx').on(columns._order),
     uniqueIndex('projects_slug_idx').on(columns.slug),
     index('projects_image_idx').on(columns.image),
     index('projects_updated_at_idx').on(columns.updatedAt),
     index('projects_created_at_idx').on(columns.createdAt),
     index('projects_deleted_at_idx').on(columns.deletedAt),
+  ],
+)
+
+export const projects_texts = pgTable(
+  'projects_texts',
+  {
+    id: serial('id').primaryKey(),
+    order: integer('order').notNull(),
+    parent: integer('parent_id').notNull(),
+    path: varchar('path').notNull(),
+    text: varchar('text'),
+  },
+  (columns) => [
+    index('projects_texts_order_parent').on(columns.order, columns.parent),
+    foreignKey({
+      columns: [columns['parent']],
+      foreignColumns: [projects.id],
+      name: 'projects_texts_parent_fk',
+    }).onDelete('cascade'),
   ],
 )
 
@@ -380,7 +433,7 @@ export const experiences = pgTable(
   'experiences',
   {
     id: serial('id').primaryKey(),
-    order: numeric('order', { mode: 'number' }).default(0),
+    _order: varchar('_order'),
     title: varchar('title').notNull(),
     company: varchar('company').notNull(),
     date: varchar('date').notNull(),
@@ -393,7 +446,7 @@ export const experiences = pgTable(
     deletedAt: timestamp('deleted_at', { mode: 'string', withTimezone: true, precision: 3 }),
   },
   (columns) => [
-    index('experiences_order_idx').on(columns.order),
+    index('experiences__order_idx').on(columns._order),
     index('experiences_updated_at_idx').on(columns.updatedAt),
     index('experiences_created_at_idx').on(columns.createdAt),
     index('experiences_deleted_at_idx').on(columns.deletedAt),
@@ -404,7 +457,7 @@ export const educations = pgTable(
   'educations',
   {
     id: serial('id').primaryKey(),
-    order: numeric('order', { mode: 'number' }).default(0),
+    _order: varchar('_order'),
     title: varchar('title').notNull(),
     institution: varchar('institution').notNull(),
     location: varchar('location'),
@@ -418,7 +471,7 @@ export const educations = pgTable(
     deletedAt: timestamp('deleted_at', { mode: 'string', withTimezone: true, precision: 3 }),
   },
   (columns) => [
-    index('educations_order_idx').on(columns.order),
+    index('educations__order_idx').on(columns._order),
     index('educations_updated_at_idx').on(columns.updatedAt),
     index('educations_created_at_idx').on(columns.createdAt),
     index('educations_deleted_at_idx').on(columns.deletedAt),
@@ -462,7 +515,7 @@ export const services = pgTable(
   'services',
   {
     id: serial('id').primaryKey(),
-    order: numeric('order', { mode: 'number' }).default(0),
+    _order: varchar('_order'),
     category: varchar('category').notNull(),
     iconFont: enum_services_icon_font('icon_font'),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
@@ -474,7 +527,7 @@ export const services = pgTable(
     deletedAt: timestamp('deleted_at', { mode: 'string', withTimezone: true, precision: 3 }),
   },
   (columns) => [
-    index('services_order_idx').on(columns.order),
+    index('services__order_idx').on(columns._order),
     index('services_updated_at_idx').on(columns.updatedAt),
     index('services_created_at_idx').on(columns.createdAt),
     index('services_deleted_at_idx').on(columns.deletedAt),
@@ -504,7 +557,7 @@ export const skills = pgTable(
   'skills',
   {
     id: serial('id').primaryKey(),
-    order: numeric('order', { mode: 'number' }).default(0),
+    _order: varchar('_order'),
     label: varchar('label').notNull(),
     group: enum_skills_group('group').notNull().default('frontend'),
     value: numeric('value', { mode: 'number' }).notNull(),
@@ -518,7 +571,7 @@ export const skills = pgTable(
     deletedAt: timestamp('deleted_at', { mode: 'string', withTimezone: true, precision: 3 }),
   },
   (columns) => [
-    index('skills_order_idx').on(columns.order),
+    index('skills__order_idx').on(columns._order),
     index('skills_group_idx').on(columns.group),
     index('skills_updated_at_idx').on(columns.updatedAt),
     index('skills_created_at_idx').on(columns.createdAt),
@@ -693,6 +746,8 @@ export const roles = pgTable(
     levels_services: enum_roles_levels_services('levels_services').default('none'),
     levels_skills: enum_roles_levels_skills('levels_skills').default('none'),
     levels_header: enum_roles_levels_header('levels_header').default('none'),
+    levels_siteSettings: enum_roles_levels_site_settings('levels_site_settings').default('none'),
+    levels_navigation: enum_roles_levels_navigation('levels_navigation').default('none'),
     levels_footer: enum_roles_levels_footer('levels_footer').default('none'),
     capabilities_viewAnalytics: boolean('capabilities_view_analytics').default(false),
     capabilities_viewDeployments: boolean('capabilities_view_deployments').default(false),
@@ -712,6 +767,42 @@ export const roles = pgTable(
     uniqueIndex('roles_name_idx').on(columns.name),
     index('roles_updated_at_idx').on(columns.updatedAt),
     index('roles_created_at_idx').on(columns.createdAt),
+  ],
+)
+
+export const audit_logs = pgTable(
+  'audit_logs',
+  {
+    id: serial('id').primaryKey(),
+    action: enum_audit_logs_action('action').notNull(),
+    entityKind: enum_audit_logs_entity_kind('entity_kind').notNull().default('collection'),
+    entityType: varchar('entity_type').notNull(),
+    summary: varchar('summary').notNull(),
+    documentId: varchar('document_id'),
+    documentTitle: varchar('document_title'),
+    actor: integer('actor_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    actorName: varchar('actor_name'),
+    actorEmail: varchar('actor_email'),
+    actorLabel: varchar('actor_label'),
+    ip: varchar('ip'),
+    userAgent: varchar('user_agent'),
+    meta: jsonb('meta'),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (columns) => [
+    index('audit_logs_action_idx').on(columns.action),
+    index('audit_logs_entity_type_idx').on(columns.entityType),
+    index('audit_logs_document_id_idx').on(columns.documentId),
+    index('audit_logs_actor_idx').on(columns.actor),
+    index('audit_logs_updated_at_idx').on(columns.updatedAt),
+    index('audit_logs_created_at_idx').on(columns.createdAt),
   ],
 )
 
@@ -763,6 +854,7 @@ export const payload_locked_documents_rels = pgTable(
     headerID: integer('header_id'),
     usersID: integer('users_id'),
     rolesID: integer('roles_id'),
+    'audit-logsID': integer('audit_logs_id'),
   },
   (columns) => [
     index('payload_locked_documents_rels_order_idx').on(columns.order),
@@ -780,6 +872,7 @@ export const payload_locked_documents_rels = pgTable(
     index('payload_locked_documents_rels_header_id_idx').on(columns.headerID),
     index('payload_locked_documents_rels_users_id_idx').on(columns.usersID),
     index('payload_locked_documents_rels_roles_id_idx').on(columns.rolesID),
+    index('payload_locked_documents_rels_audit_logs_id_idx').on(columns['audit-logsID']),
     foreignKey({
       columns: [columns['parent']],
       foreignColumns: [payload_locked_documents.id],
@@ -844,6 +937,11 @@ export const payload_locked_documents_rels = pgTable(
       columns: [columns['rolesID']],
       foreignColumns: [roles.id],
       name: 'payload_locked_documents_rels_roles_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [columns['audit-logsID']],
+      foreignColumns: [audit_logs.id],
+      name: 'payload_locked_documents_rels_audit_logs_fk',
     }).onDelete('cascade'),
   ],
 )
@@ -913,6 +1011,156 @@ export const payload_migrations = pgTable(
     index('payload_migrations_created_at_idx').on(columns.createdAt),
   ],
 )
+
+export const site_settings = pgTable(
+  'site_settings',
+  {
+    id: serial('id').primaryKey(),
+    siteName: varchar('site_name').notNull().default('Amir v.Tarikhi Live Resume'),
+    ownerName: varchar('owner_name').notNull().default('Amir v.Tarikhi'),
+    locale: varchar('locale').default('en_US'),
+    themeColor: varchar('theme_color').default('#da9100'),
+    siteTitle: varchar('site_title')
+      .notNull()
+      .default('Amir v.Tarikhi Live Resume | Full-Stack Senior Web Developer'),
+    metaDescription: varchar('meta_description')
+      .notNull()
+      .default(
+        'Senior PHP, JavaScript & MySQL, Mid. React & Next.js, Jr. Node.js & Laravel, E-Commerce CMS, WordPress, WooCommerce & Shopify Developer ..',
+      ),
+    keywords: varchar('keywords').default(
+      'Senior Web Developer, Full-Stack Developer, PHP Developer, JavaScript Developer, Next.js Developer, React.js Developer, Shopify Developer, MySQL Developer, Full-Stack Senior PHP Developer, Automation Panel Developer, E-Commerce CMS Developer, SEO Manager and Consultant',
+    ),
+    ogDescription: varchar('og_description').default(
+      'Full-Stack Senior PHP Developer, Automation Panel Developer, E-Commerce CMS Developer, SEO Manager and Consultant',
+    ),
+    ogImage: integer('og_image_id').references(() => media.id, {
+      onDelete: 'set null',
+    }),
+    ogImageUrl: varchar('og_image_url').default('/images/profile.webp'),
+    jobTitle: varchar('job_title').default('Senior Full-Stack Web Developer'),
+    address_streetAddress: varchar('address_street_address').default(
+      '34805, Beykoz, Istanbul, Turkey',
+    ),
+    address_addressLocality: varchar('address_address_locality').default('Istanbul, Turkey'),
+    address_addressRegion: varchar('address_address_region').default('Beykoz'),
+    address_postalCode: varchar('address_postal_code').default('34805'),
+    hero_greeting: varchar('hero_greeting').default("I'm"),
+    hero_requestCvLabel: varchar('hero_request_cv_label').default('Request CV'),
+    servicesSection_heading: varchar('services_section_heading').default('My Services'),
+    skillsSection_heading: varchar('skills_section_heading').default('Skills & Experience'),
+    skillsSection_skillsSubheading: varchar('skills_section_skills_subheading').default(
+      'My Skills',
+    ),
+    skillsSection_intro: varchar('skills_section_intro').default(
+      'Some of my top skills listed as below.',
+    ),
+    skillsSection_experienceTabLabel: varchar('skills_section_experience_tab_label').default(
+      'Experience',
+    ),
+    skillsSection_educationTabLabel: varchar('skills_section_education_tab_label').default(
+      'Education',
+    ),
+    certificatesSection_heading: varchar('certificates_section_heading').default(
+      'Recent Certificates',
+    ),
+    certificatesSection_viewCertificateLabel: varchar(
+      'certificates_section_view_certificate_label',
+    ).default('View Certificate →'),
+    certificatesSection_ctaLabel: varchar('certificates_section_cta_label').default(
+      'All Certificates >',
+    ),
+    certificatesSection_ctaUrl: varchar('certificates_section_cta_url').default(
+      'https://www.linkedin.com/in/etarikhi/details/certifications/',
+    ),
+    projectsSection_heading: varchar('projects_section_heading').default('My Projects'),
+    projectsSection_allFilterLabel: varchar('projects_section_all_filter_label').default(
+      'All Projects',
+    ),
+    projectsSection_caseStudyLabel: varchar('projects_section_case_study_label').default(
+      'Case study',
+    ),
+    projectsSection_backToProjectsLabel: varchar('projects_section_back_to_projects_label').default(
+      'Back to projects',
+    ),
+    projectsSection_liveProjectLabel: varchar('projects_section_live_project_label').default(
+      'Visit live project',
+    ),
+    projectsSection_notFoundTitle: varchar('projects_section_not_found_title').default(
+      'Project not found',
+    ),
+    projectsSection_notFoundDescription: varchar('projects_section_not_found_description').default(
+      'This project does not exist, or it has no case-study page on this site.',
+    ),
+    articlesSection_heading: varchar('articles_section_heading').default('Latest Articles'),
+    articlesSection_readOnSiteLabel: varchar('articles_section_read_on_site_label').default(
+      'Read on this site',
+    ),
+    articlesSection_featuredBadgeLabel: varchar('articles_section_featured_badge_label').default(
+      'Featured',
+    ),
+    articlesSection_ctaLabel: varchar('articles_section_cta_label').default('All Articles >'),
+    articlesSection_ctaUrl: varchar('articles_section_cta_url').default('/articles'),
+    articlesSection_archiveDescription: varchar('articles_section_archive_description').default(
+      'Articles, engineering notes, and guides.',
+    ),
+    articlesSection_searchPlaceholder: varchar('articles_section_search_placeholder').default(
+      'Search articles by title or topic…',
+    ),
+    articlesSection_backToArticlesLabel: varchar('articles_section_back_to_articles_label').default(
+      'Back to articles',
+    ),
+    articlesSection_externalPublicationLabel: varchar(
+      'articles_section_external_publication_label',
+    ).default('Originally published at'),
+    articlesSection_notFoundTitle: varchar('articles_section_not_found_title').default(
+      'Article not found',
+    ),
+    articlesSection_notFoundDescription: varchar('articles_section_not_found_description').default(
+      'This article does not exist, or it has no page on this site.',
+    ),
+    footerLabels_socialPrompt: varchar('footer_labels_social_prompt').default(
+      'Get connected with me on social networks:',
+    ),
+    footerLabels_profilesHeading: varchar('footer_labels_profiles_heading').default('My Profiles'),
+    footerLabels_contactHeading: varchar('footer_labels_contact_heading').default('Contact'),
+    updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 }),
+    createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 }),
+  },
+  (columns) => [index('site_settings_og_image_idx').on(columns.ogImage)],
+)
+
+export const navigation_items = pgTable(
+  'navigation_items',
+  {
+    _order: integer('_order').notNull(),
+    _parentID: integer('_parent_id').notNull(),
+    id: varchar('id').primaryKey(),
+    label: varchar('label').notNull(),
+    href: varchar('href').notNull(),
+    position: enum_navigation_items_position('position').notNull().default('left'),
+    enabled: boolean('enabled').default(true),
+    openInNewTab: boolean('open_in_new_tab').default(false),
+  },
+  (columns) => [
+    index('navigation_items_order_idx').on(columns._order),
+    index('navigation_items_parent_id_idx').on(columns._parentID),
+    foreignKey({
+      columns: [columns['_parentID']],
+      foreignColumns: [navigation.id],
+      name: 'navigation_items_parent_id_fk',
+    }).onDelete('cascade'),
+  ],
+)
+
+export const navigation = pgTable('navigation', {
+  id: serial('id').primaryKey(),
+  brand_text: varchar('brand_text').notNull().default('eTarikhi'),
+  brand_href: varchar('brand_href').notNull().default('/'),
+  skipToContentLabel: varchar('skip_to_content_label').default('Skip to content'),
+  updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 }),
+  createdAt: timestamp('created_at', { mode: 'string', withTimezone: true, precision: 3 }),
+})
 
 export const footer_social_links = pgTable(
   'footer_social_links',
@@ -1025,6 +1273,13 @@ export const relations_projects_categories = relations(projects_categories, ({ o
     relationName: 'categories',
   }),
 }))
+export const relations_projects_texts = relations(projects_texts, ({ one }) => ({
+  parent: one(projects, {
+    fields: [projects_texts.parent],
+    references: [projects.id],
+    relationName: '_texts',
+  }),
+}))
 export const relations_projects = relations(projects, ({ one, many }) => ({
   image: one(media, {
     fields: [projects.image],
@@ -1033,6 +1288,9 @@ export const relations_projects = relations(projects, ({ one, many }) => ({
   }),
   categories: many(projects_categories, {
     relationName: 'categories',
+  }),
+  _texts: many(projects_texts, {
+    relationName: '_texts',
   }),
 }))
 export const relations_media = relations(media, () => ({}))
@@ -1150,6 +1408,13 @@ export const relations_users = relations(users, ({ many }) => ({
   }),
 }))
 export const relations_roles = relations(roles, () => ({}))
+export const relations_audit_logs = relations(audit_logs, ({ one }) => ({
+  actor: one(users, {
+    fields: [audit_logs.actor],
+    references: [users.id],
+    relationName: 'actor',
+  }),
+}))
 export const relations_payload_kv = relations(payload_kv, () => ({}))
 export const relations_payload_locked_documents_rels = relations(
   payload_locked_documents_rels,
@@ -1219,6 +1484,11 @@ export const relations_payload_locked_documents_rels = relations(
       references: [roles.id],
       relationName: 'roles',
     }),
+    'audit-logsID': one(audit_logs, {
+      fields: [payload_locked_documents_rels['audit-logsID']],
+      references: [audit_logs.id],
+      relationName: 'audit-logs',
+    }),
   }),
 )
 export const relations_payload_locked_documents = relations(
@@ -1250,6 +1520,25 @@ export const relations_payload_preferences = relations(payload_preferences, ({ m
   }),
 }))
 export const relations_payload_migrations = relations(payload_migrations, () => ({}))
+export const relations_site_settings = relations(site_settings, ({ one }) => ({
+  ogImage: one(media, {
+    fields: [site_settings.ogImage],
+    references: [media.id],
+    relationName: 'ogImage',
+  }),
+}))
+export const relations_navigation_items = relations(navigation_items, ({ one }) => ({
+  _parentID: one(navigation, {
+    fields: [navigation_items._parentID],
+    references: [navigation.id],
+    relationName: 'items',
+  }),
+}))
+export const relations_navigation = relations(navigation, ({ many }) => ({
+  items: many(navigation_items, {
+    relationName: 'items',
+  }),
+}))
 export const relations_footer_social_links = relations(footer_social_links, ({ one }) => ({
   _parentID: one(footer, {
     fields: [footer_social_links._parentID],
@@ -1310,7 +1599,12 @@ type DatabaseSchema = {
   enum_roles_levels_services: typeof enum_roles_levels_services
   enum_roles_levels_skills: typeof enum_roles_levels_skills
   enum_roles_levels_header: typeof enum_roles_levels_header
+  enum_roles_levels_site_settings: typeof enum_roles_levels_site_settings
+  enum_roles_levels_navigation: typeof enum_roles_levels_navigation
   enum_roles_levels_footer: typeof enum_roles_levels_footer
+  enum_audit_logs_action: typeof enum_audit_logs_action
+  enum_audit_logs_entity_kind: typeof enum_audit_logs_entity_kind
+  enum_navigation_items_position: typeof enum_navigation_items_position
   enum_footer_social_links_platform: typeof enum_footer_social_links_platform
   enum_footer_social_links_icon_name: typeof enum_footer_social_links_icon_name
   enum_footer_contact_info_type: typeof enum_footer_contact_info_type
@@ -1319,6 +1613,7 @@ type DatabaseSchema = {
   articles: typeof articles
   projects_categories: typeof projects_categories
   projects: typeof projects
+  projects_texts: typeof projects_texts
   media: typeof media
   about_images: typeof about_images
   about: typeof about
@@ -1337,12 +1632,16 @@ type DatabaseSchema = {
   users: typeof users
   users_rels: typeof users_rels
   roles: typeof roles
+  audit_logs: typeof audit_logs
   payload_kv: typeof payload_kv
   payload_locked_documents: typeof payload_locked_documents
   payload_locked_documents_rels: typeof payload_locked_documents_rels
   payload_preferences: typeof payload_preferences
   payload_preferences_rels: typeof payload_preferences_rels
   payload_migrations: typeof payload_migrations
+  site_settings: typeof site_settings
+  navigation_items: typeof navigation_items
+  navigation: typeof navigation
   footer_social_links: typeof footer_social_links
   footer_profiles: typeof footer_profiles
   footer_contact_info: typeof footer_contact_info
@@ -1350,6 +1649,7 @@ type DatabaseSchema = {
   footer_texts: typeof footer_texts
   relations_articles: typeof relations_articles
   relations_projects_categories: typeof relations_projects_categories
+  relations_projects_texts: typeof relations_projects_texts
   relations_projects: typeof relations_projects
   relations_media: typeof relations_media
   relations_about_images: typeof relations_about_images
@@ -1369,12 +1669,16 @@ type DatabaseSchema = {
   relations_users_rels: typeof relations_users_rels
   relations_users: typeof relations_users
   relations_roles: typeof relations_roles
+  relations_audit_logs: typeof relations_audit_logs
   relations_payload_kv: typeof relations_payload_kv
   relations_payload_locked_documents_rels: typeof relations_payload_locked_documents_rels
   relations_payload_locked_documents: typeof relations_payload_locked_documents
   relations_payload_preferences_rels: typeof relations_payload_preferences_rels
   relations_payload_preferences: typeof relations_payload_preferences
   relations_payload_migrations: typeof relations_payload_migrations
+  relations_site_settings: typeof relations_site_settings
+  relations_navigation_items: typeof relations_navigation_items
+  relations_navigation: typeof relations_navigation
   relations_footer_social_links: typeof relations_footer_social_links
   relations_footer_profiles: typeof relations_footer_profiles
   relations_footer_contact_info: typeof relations_footer_contact_info

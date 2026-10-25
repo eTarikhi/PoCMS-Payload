@@ -24,9 +24,17 @@ type ArticlePageProps = { params: Promise<{ slug: string }> }
 // Per-article metadata (article page spec §7). A missing article is marked noindex, so search engines drop it.
 export async function generateMetadata({ params }: ArticlePageProps): Promise<Metadata> {
   const { slug } = await params
-  const article = await getCachedArticleBySlug(slug)
-  if (!article) return { title: 'Article not found', robots: { index: false, follow: true } }
-  return buildArticleMetadata(article)
+  const [article, content] = await Promise.all([
+    getCachedArticleBySlug(slug),
+    getCachedPortfolioContent(),
+  ])
+  if (!article) {
+    return {
+      title: content.siteSettings.articlesSection.notFoundTitle,
+      robots: { index: false, follow: true },
+    }
+  }
+  return buildArticleMetadata(article, content.siteSettings)
 }
 
 export default async function ArticlePage({ params }: ArticlePageProps) {
@@ -38,17 +46,27 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
   if (!article) notFound()
 
+  const { siteSettings } = content
+  const footerNavLabels = {
+    backToArticlesLabel: siteSettings.articlesSection.backToArticlesLabel,
+    externalPublicationLabel: siteSettings.articlesSection.externalPublicationLabel,
+  }
+
   return (
     <>
-      <SiteChrome footer={content.footer}>
+      <SiteChrome
+        navigation={content.navigation}
+        footer={content.footer}
+        footerLabels={siteSettings.footerLabels}
+      >
         <main id="main-content" className="article-page">
           {/* In the admin's Live Preview iframe the article follows the editor's changes. */}
-          <ArticleLivePreviewSwitch id={article.id}>
-            <ArticleLayout article={article} />
+          <ArticleLivePreviewSwitch id={article.id} labels={footerNavLabels}>
+            <ArticleLayout article={article} labels={footerNavLabels} />
           </ArticleLivePreviewSwitch>
         </main>
       </SiteChrome>
-      <JsonLd data={buildBlogPostingJsonLd(article, content.header, content.footer)} />
+      <JsonLd data={buildBlogPostingJsonLd(article, content.header, content.footer, siteSettings)} />
     </>
   )
 }

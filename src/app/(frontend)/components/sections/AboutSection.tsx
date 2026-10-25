@@ -2,15 +2,20 @@ import Image from 'next/image'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCheck } from '@fortawesome/free-solid-svg-icons'
 
+import { DEFAULT_SITE_SETTINGS } from '@/app/(frontend)/lib/mappers'
 import type { AboutContent } from '@/app/(frontend)/lib/types'
 
 // Ported from vTarikhi/components/sections/about.tsx. Markup and copy are unchanged.
 
 export type AboutSectionProps = {
   about: AboutContent | null
+  ownerName?: string
 }
 
-export function AboutSection({ about }: AboutSectionProps) {
+export function AboutSection({
+  about,
+  ownerName = DEFAULT_SITE_SETTINGS.ownerName,
+}: AboutSectionProps) {
   if (!about) {
     return null
   }
@@ -51,7 +56,7 @@ export function AboutSection({ about }: AboutSectionProps) {
                     <Image
                       className="img-fluid rounded"
                       src={src}
-                      alt="About Amir v.Tarikhi"
+                      alt={`About ${ownerName}`}
                       width={400}
                       height={400}
                     />

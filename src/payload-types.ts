@@ -79,6 +79,7 @@ export interface Config {
     header: Header;
     users: User;
     roles: Role;
+    'audit-logs': AuditLog;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -102,6 +103,7 @@ export interface Config {
     header: HeaderSelect<false> | HeaderSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     roles: RolesSelect<false> | RolesSelect<true>;
+    'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -112,9 +114,13 @@ export interface Config {
   };
   fallbackLocale: null;
   globals: {
+    'site-settings': SiteSetting;
+    navigation: Navigation;
     footer: Footer;
   };
   globalsSelect: {
+    'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
+    navigation: NavigationSelect<false> | NavigationSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
   };
   locale: null;
@@ -155,7 +161,7 @@ export interface UserAuthOperations {
   };
 }
 /**
- * Blog posts, listed under /articles.
+ * Blog posts and technical articles, listed on the home page and under /articles.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "articles".
@@ -169,25 +175,43 @@ export interface Article {
    */
   slug?: string | null;
   /**
-   * Article body, as plain text. Separate paragraphs with a blank line. Leave empty and the article links out only (no page).
+   * Rich-text article body with headings (drives Table of Contents), Code, Callout, and Media blocks. Leave empty if the article only links out externally.
+   */
+  content?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Legacy plain-text body preserved from earlier versions. Prefer the Rich Text Article Body above.
    */
   description?: string | null;
   /**
-   * Show this article in the featured slot on the home page.
+   * Highlight this article in the featured spotlight on the home page and /articles.
    */
   featured?: boolean | null;
   category?: ('articles' | 'others') | null;
   publishedAt: string;
   /**
-   * Minutes. Shown as "{n} min" on the site.
+   * Minutes ("{n} min"). Auto-calculated on save from the article body (~200 words/min); enter manually only for external link-out articles.
    */
   readTime?: number | null;
   image?: (number | null) | Media;
   imageUrl?: string | null;
   /**
-   * Where the article is published (LinkedIn, Medium, ...).
+   * Optional external publication URL (LinkedIn, Medium, Dev.to, ...).
    */
-  link: string;
+  link?: string | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -226,22 +250,44 @@ export interface Media {
   };
 }
 /**
- * Portfolio projects, listed under /projects.
+ * Portfolio projects and case studies (/projects/{slug}). Drag rows to reorder.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "projects".
  */
 export interface Project {
   id: number;
-  /**
-   * Lower numbers appear first.
-   */
-  order?: number | null;
+  _order?: string | null;
   title: string;
+  /**
+   * Short overview shown at the top of the case study and in SEO metadata.
+   */
+  excerpt?: string | null;
   /**
    * URL key for /projects/{slug}. Made from the title when left empty. Keep it stable once the project is shared.
    */
   slug?: string | null;
+  role?: string | null;
+  client?: string | null;
+  year?: string | null;
+  /**
+   * Rich-text case study with headings (Table of Contents), Code, Callout, and Media blocks. Leave empty when the project only links out externally.
+   */
+  content?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   /**
    * Used as the full image when the Image URL below is empty. It is also the thumbnail when the Place Holder Image URL is empty.
    */
@@ -249,14 +295,22 @@ export interface Project {
   src?: string | null;
   placeHolder?: string | null;
   /**
-   * Live site or case-study URL.
+   * Live site or external project URL.
    */
   url?: string | null;
   /**
-   * URL for the "Read More" link.
+   * Optional secondary external link (repository or announcement).
    */
   readMoreUrl?: string | null;
   categories: ('front-end' | 'back-end' | 'cms-crm')[];
+  /**
+   * Technologies used (e.g. Next.js, Payload CMS, PostgreSQL).
+   */
+  techStack?: string[] | null;
+  /**
+   * Minutes ("{n} min"). Auto-calculated on save from the case-study body.
+   */
+  readTime?: number | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -295,17 +349,14 @@ export interface About {
   createdAt: string;
 }
 /**
- * Work history in the résumé section. Lower order shows first.
+ * Work history in the résumé section. Drag rows to reorder.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "experiences".
  */
 export interface Experience {
   id: number;
-  /**
-   * Lower numbers appear first.
-   */
-  order?: number | null;
+  _order?: string | null;
   title: string;
   company: string;
   /**
@@ -317,17 +368,14 @@ export interface Experience {
   deletedAt?: string | null;
 }
 /**
- * Education history in the résumé section. Lower order shows first.
+ * Education history in the résumé section. Drag rows to reorder.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "educations".
  */
 export interface Education {
   id: number;
-  /**
-   * Lower numbers appear first.
-   */
-  order?: number | null;
+  _order?: string | null;
   title: string;
   institution: string;
   location?: string | null;
@@ -361,17 +409,14 @@ export interface Certificate {
   deletedAt?: string | null;
 }
 /**
- * Service categories shown on the home page.
+ * Service categories shown on the home page. Drag rows to reorder.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "services".
  */
 export interface Service {
   id: number;
-  /**
-   * Lower numbers appear first.
-   */
-  order?: number | null;
+  _order?: string | null;
   category: string;
   /**
    * Icon shown next to the category. Only the icons the site has are listed.
@@ -386,17 +431,14 @@ export interface Service {
   deletedAt?: string | null;
 }
 /**
- * Skill bars in the résumé section, grouped by category.
+ * Skill bars in the résumé section, grouped by category. Drag rows to reorder.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "skills".
  */
 export interface Skill {
   id: number;
-  /**
-   * Lower numbers appear first.
-   */
-  order?: number | null;
+  _order?: string | null;
   label: string;
   group: 'frontend' | 'backend';
   /**
@@ -515,6 +557,8 @@ export interface Role {
     services?: ('none' | 'read' | 'edit' | 'full') | null;
     skills?: ('none' | 'read' | 'edit' | 'full') | null;
     header?: ('none' | 'read' | 'edit' | 'full') | null;
+    siteSettings?: ('none' | 'read' | 'edit') | null;
+    navigation?: ('none' | 'read' | 'edit') | null;
     footer?: ('none' | 'read' | 'edit') | null;
   };
   /**
@@ -558,6 +602,38 @@ export interface Role {
     hasNextPage?: boolean;
     totalDocs?: number;
   };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Immutable record of who created, edited, trashed, restored, deleted, or signed in.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-logs".
+ */
+export interface AuditLog {
+  id: number;
+  action: 'create' | 'update' | 'trash' | 'restore' | 'delete' | 'login';
+  entityKind: 'collection' | 'global' | 'auth';
+  entityType: string;
+  summary: string;
+  documentId?: string | null;
+  documentTitle?: string | null;
+  actor?: (number | null) | User;
+  actorName?: string | null;
+  actorEmail?: string | null;
+  actorLabel?: string | null;
+  ip?: string | null;
+  userAgent?: string | null;
+  meta?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -632,6 +708,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'roles';
         value: number | Role;
+      } | null)
+    | ({
+        relationTo: 'audit-logs';
+        value: number | AuditLog;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -683,6 +763,7 @@ export interface ArticlesSelect<T extends boolean = true> {
   title?: T;
   excerpt?: T;
   slug?: T;
+  content?: T;
   description?: T;
   featured?: T;
   category?: T;
@@ -700,15 +781,22 @@ export interface ArticlesSelect<T extends boolean = true> {
  * via the `definition` "projects_select".
  */
 export interface ProjectsSelect<T extends boolean = true> {
-  order?: T;
+  _order?: T;
   title?: T;
+  excerpt?: T;
   slug?: T;
+  role?: T;
+  client?: T;
+  year?: T;
+  content?: T;
   image?: T;
   src?: T;
   placeHolder?: T;
   url?: T;
   readMoreUrl?: T;
   categories?: T;
+  techStack?: T;
+  readTime?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -788,7 +876,7 @@ export interface AboutSelect<T extends boolean = true> {
  * via the `definition` "experiences_select".
  */
 export interface ExperiencesSelect<T extends boolean = true> {
-  order?: T;
+  _order?: T;
   title?: T;
   company?: T;
   date?: T;
@@ -801,7 +889,7 @@ export interface ExperiencesSelect<T extends boolean = true> {
  * via the `definition` "educations_select".
  */
 export interface EducationsSelect<T extends boolean = true> {
-  order?: T;
+  _order?: T;
   title?: T;
   institution?: T;
   location?: T;
@@ -830,7 +918,7 @@ export interface CertificatesSelect<T extends boolean = true> {
  * via the `definition` "services_select".
  */
 export interface ServicesSelect<T extends boolean = true> {
-  order?: T;
+  _order?: T;
   category?: T;
   iconFont?: T;
   descriptions?: T;
@@ -843,7 +931,7 @@ export interface ServicesSelect<T extends boolean = true> {
  * via the `definition` "skills_select".
  */
 export interface SkillsSelect<T extends boolean = true> {
-  order?: T;
+  _order?: T;
   label?: T;
   group?: T;
   value?: T;
@@ -915,6 +1003,8 @@ export interface RolesSelect<T extends boolean = true> {
         services?: T;
         skills?: T;
         header?: T;
+        siteSettings?: T;
+        navigation?: T;
         footer?: T;
       };
   capabilities?:
@@ -929,6 +1019,27 @@ export interface RolesSelect<T extends boolean = true> {
         useTerminal?: T;
       };
   members?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "audit-logs_select".
+ */
+export interface AuditLogsSelect<T extends boolean = true> {
+  action?: T;
+  entityKind?: T;
+  entityType?: T;
+  summary?: T;
+  documentId?: T;
+  documentTitle?: T;
+  actor?: T;
+  actorName?: T;
+  actorEmail?: T;
+  actorLabel?: T;
+  ip?: T;
+  userAgent?: T;
+  meta?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -971,6 +1082,188 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * Site-wide identity, SEO metadata, Open Graph, Schema.org Person structured data, and section headings & CTAs.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings".
+ */
+export interface SiteSetting {
+  id: number;
+  /**
+   * Used as Open Graph site_name across the site and articles.
+   */
+  siteName: string;
+  /**
+   * Portfolio owner name used in metadata, image alt fallbacks and structured data.
+   */
+  ownerName: string;
+  /**
+   * Open Graph locale (e.g. "en_US", "tr_TR"). Also sets the HTML lang attribute.
+   */
+  locale?: string | null;
+  /**
+   * Browser toolbar theme colour (hex, e.g. "#da9100").
+   */
+  themeColor?: string | null;
+  /**
+   * Default <title> of the home page.
+   */
+  siteTitle: string;
+  /**
+   * Default <meta name="description"> of the home page.
+   */
+  metaDescription: string;
+  /**
+   * Comma-separated meta keywords.
+   */
+  keywords?: string | null;
+  /**
+   * Open Graph description when sharing the home page. Falls back to Meta Description when empty.
+   */
+  ogDescription?: string | null;
+  /**
+   * Social preview image (and fallback cover for articles without an image). Falls back to Fallback Image URL below when empty.
+   */
+  ogImage?: (number | null) | Media;
+  /**
+   * Path or URL used for Open Graph and Person JSON-LD when no OG Image upload is selected.
+   */
+  ogImageUrl?: string | null;
+  /**
+   * Schema.org Person jobTitle.
+   */
+  jobTitle?: string | null;
+  address?: {
+    streetAddress?: string | null;
+    addressLocality?: string | null;
+    addressRegion?: string | null;
+    postalCode?: string | null;
+  };
+  hero?: {
+    /**
+     * Short greeting line above the name (e.g. "I'm").
+     */
+    greeting?: string | null;
+    /**
+     * Label on the primary hero button.
+     */
+    requestCvLabel?: string | null;
+  };
+  servicesSection?: {
+    heading?: string | null;
+  };
+  skillsSection?: {
+    heading?: string | null;
+    skillsSubheading?: string | null;
+    intro?: string | null;
+    experienceTabLabel?: string | null;
+    educationTabLabel?: string | null;
+  };
+  certificatesSection?: {
+    heading?: string | null;
+    viewCertificateLabel?: string | null;
+    /**
+     * Leave empty (or clear CTA URL) to hide the button.
+     */
+    ctaLabel?: string | null;
+    /**
+     * Target URL for the "All Certificates" button.
+     */
+    ctaUrl?: string | null;
+  };
+  projectsSection?: {
+    heading?: string | null;
+    /**
+     * Label of the "show all" filter button.
+     */
+    allFilterLabel?: string | null;
+    caseStudyLabel?: string | null;
+    backToProjectsLabel?: string | null;
+    liveProjectLabel?: string | null;
+    notFoundTitle?: string | null;
+    notFoundDescription?: string | null;
+  };
+  articlesSection?: {
+    heading?: string | null;
+    readOnSiteLabel?: string | null;
+    featuredBadgeLabel?: string | null;
+    /**
+     * Leave empty (or clear CTA URL) to hide the button.
+     */
+    ctaLabel?: string | null;
+    /**
+     * Target URL for the "All Articles" button (e.g. "/articles").
+     */
+    ctaUrl?: string | null;
+    archiveDescription?: string | null;
+    searchPlaceholder?: string | null;
+    backToArticlesLabel?: string | null;
+    externalPublicationLabel?: string | null;
+    notFoundTitle?: string | null;
+    notFoundDescription?: string | null;
+  };
+  footerLabels?: {
+    socialPrompt?: string | null;
+    profilesHeading?: string | null;
+    contactHeading?: string | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Top navigation bar: brand mark, skip-link text and drag-and-drop menu links shown across all public pages.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "navigation".
+ */
+export interface Navigation {
+  id: number;
+  brand: {
+    /**
+     * Brand title shown in the mobile bar and centered in the desktop navigation.
+     */
+    text: string;
+    /**
+     * Destination when clicking the brand mark (e.g. "/").
+     */
+    href: string;
+  };
+  /**
+   * Accessible keyboard skip-link label at the very top of every public page.
+   */
+  skipToContentLabel?: string | null;
+  /**
+   * Drag rows to reorder links. Desktop places "Left of brand" links before the centered brand badge and "Right of brand" links after it; mobile lists all visible links in order.
+   */
+  items?:
+    | {
+        /**
+         * Link label shown in the navbar.
+         */
+        label: string;
+        /**
+         * Anchor or path (e.g. "/#about", "/articles", or external URL).
+         */
+        href: string;
+        /**
+         * Side of the centered brand on desktop.
+         */
+        position: 'left' | 'right';
+        /**
+         * Uncheck to hide this link temporarily without removing it.
+         */
+        enabled?: boolean | null;
+        /**
+         * Adds target="_blank" and rel="noopener noreferrer".
+         */
+        openInNewTab?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
 }
 /**
  * Social links, roles and marketplace profiles shown in the site footer.
@@ -1108,6 +1401,121 @@ export interface Footer {
   };
   updatedAt?: string | null;
   createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings_select".
+ */
+export interface SiteSettingsSelect<T extends boolean = true> {
+  siteName?: T;
+  ownerName?: T;
+  locale?: T;
+  themeColor?: T;
+  siteTitle?: T;
+  metaDescription?: T;
+  keywords?: T;
+  ogDescription?: T;
+  ogImage?: T;
+  ogImageUrl?: T;
+  jobTitle?: T;
+  address?:
+    | T
+    | {
+        streetAddress?: T;
+        addressLocality?: T;
+        addressRegion?: T;
+        postalCode?: T;
+      };
+  hero?:
+    | T
+    | {
+        greeting?: T;
+        requestCvLabel?: T;
+      };
+  servicesSection?:
+    | T
+    | {
+        heading?: T;
+      };
+  skillsSection?:
+    | T
+    | {
+        heading?: T;
+        skillsSubheading?: T;
+        intro?: T;
+        experienceTabLabel?: T;
+        educationTabLabel?: T;
+      };
+  certificatesSection?:
+    | T
+    | {
+        heading?: T;
+        viewCertificateLabel?: T;
+        ctaLabel?: T;
+        ctaUrl?: T;
+      };
+  projectsSection?:
+    | T
+    | {
+        heading?: T;
+        allFilterLabel?: T;
+        caseStudyLabel?: T;
+        backToProjectsLabel?: T;
+        liveProjectLabel?: T;
+        notFoundTitle?: T;
+        notFoundDescription?: T;
+      };
+  articlesSection?:
+    | T
+    | {
+        heading?: T;
+        readOnSiteLabel?: T;
+        featuredBadgeLabel?: T;
+        ctaLabel?: T;
+        ctaUrl?: T;
+        archiveDescription?: T;
+        searchPlaceholder?: T;
+        backToArticlesLabel?: T;
+        externalPublicationLabel?: T;
+        notFoundTitle?: T;
+        notFoundDescription?: T;
+      };
+  footerLabels?:
+    | T
+    | {
+        socialPrompt?: T;
+        profilesHeading?: T;
+        contactHeading?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "navigation_select".
+ */
+export interface NavigationSelect<T extends boolean = true> {
+  brand?:
+    | T
+    | {
+        text?: T;
+        href?: T;
+      };
+  skipToContentLabel?: T;
+  items?:
+    | T
+    | {
+        label?: T;
+        href?: T;
+        position?: T;
+        enabled?: T;
+        openInNewTab?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1264,6 +1672,68 @@ export interface CollectionsWidget {
     [k: string]: unknown;
   };
   width: 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CodeBlockFields".
+ */
+export interface CodeBlockFields {
+  language:
+    | 'typescript'
+    | 'tsx'
+    | 'javascript'
+    | 'jsx'
+    | 'php'
+    | 'sql'
+    | 'bash'
+    | 'json'
+    | 'yaml'
+    | 'markup'
+    | 'css'
+    | 'python'
+    | 'go'
+    | 'rust'
+    | 'docker'
+    | 'plain';
+  filename?: string | null;
+  code: string;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'code';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CalloutBlockFields".
+ */
+export interface CalloutBlockFields {
+  variant: 'info' | 'tip' | 'warning' | 'danger';
+  title?: string | null;
+  /**
+   * Callout message rendered inside the highlighted box.
+   */
+  content: string;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'callout';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "MediaBlockFields".
+ */
+export interface MediaBlockFields {
+  /**
+   * Uploaded image from the Media library.
+   */
+  media?: (number | null) | Media;
+  /**
+   * Used when no uploaded Media item is selected above.
+   */
+  imageUrl?: string | null;
+  size?: ('normal' | 'wide') | null;
+  caption?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'mediaBlock';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
