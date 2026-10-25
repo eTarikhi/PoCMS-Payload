@@ -4,19 +4,13 @@ import React from 'react'
 
 import { hasCapability } from '@/access/permissions'
 import { IntegrationNotice } from '@/components/admin/elements/IntegrationNotice'
-import { RunStatus, type RunTone } from '@/components/admin/elements/RunStatus'
+import { RunStatus } from '@/components/admin/elements/RunStatus'
 import { WidgetCard } from '@/components/admin/elements/WidgetCard'
 import { relativeTime } from '@/components/admin/utilities/dates'
-import { collectJobsSnapshot, type JobRunState, type JobsSnapshot } from '@/jobs/config'
+import { collectJobsSnapshot } from '@/jobs/config'
+import { JOB_STATE_DISPLAY, type JobsSnapshot } from '@/jobs/shared'
 
-export const JOB_STATE_DISPLAY: Record<JobRunState, [RunTone, string]> = {
-  queued: ['running', 'Queued'],
-  scheduled: ['muted', 'Scheduled'],
-  running: ['running', 'Running'],
-  completed: ['good', 'Completed'],
-  failed: ['poor', 'Failed'],
-  canceled: ['muted', 'Canceled'],
-}
+export { JOB_STATE_DISPLAY }
 
 /**
  * Dashboard widget for `manageJobs`: summary counts + latest background/scheduled jobs.

@@ -17,9 +17,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/admin/elements/Table'
-import { JOB_STATE_DISPLAY } from '@/components/admin/widgets/ScheduledJobs'
 import { cn } from '@/components/admin/utilities/cn'
-import type { JobRunState, JobsSnapshot } from '@/jobs/config'
+import { JOB_STATE_DISPLAY, type JobRunState, type JobsSnapshot } from '@/jobs/shared'
 
 type FilterTab = 'all' | JobRunState
 

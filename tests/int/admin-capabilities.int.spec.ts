@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import React from 'react'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -125,6 +127,24 @@ describe('RBAC Capability 1: viewSystem (System Information)', () => {
 })
 
 describe('RBAC Capability 2: manageJobs (Payload Jobs Queue & Scheduled Jobs UI)', () => {
+  it('keeps client-side JobsClient and shared job helpers completely free of next/cache server imports', () => {
+    const sharedSrc = fs.readFileSync(
+      path.join(process.cwd(), 'src/jobs/shared.ts'),
+      'utf8',
+    )
+    const jobsClientSrc = fs.readFileSync(
+      path.join(process.cwd(), 'src/components/admin/views/Jobs/JobsClient.tsx'),
+      'utf8',
+    )
+
+    expect(sharedSrc).not.toMatch(/from\s+['"]next\/cache['"]/)
+    expect(jobsClientSrc).not.toMatch(/from\s+['"]@\/jobs\/config['"]/)
+    expect(jobsClientSrc).not.toMatch(
+      /from\s+['"]@\/components\/admin\/widgets\/ScheduledJobs['"]/,
+    )
+    expect(jobsClientSrc).not.toMatch(/from\s+['"]next\/cache['"]/)
+  })
+
   it('configures Payload jobs tasks & access control (manageJobs capability + CRON_SECRET Bearer)', async () => {
     const sanitized = await config
     expect(sanitized.admin.components?.views?.jobs).toBeDefined()
