@@ -195,6 +195,7 @@ export async function ensureAdministratorRole(
       data: { fullAccess: true, system: true },
       depth: 0,
       overrideAccess: true,
+      context: { skipAuditLog: true },
       req,
     })) as RoleDoc
   }
@@ -203,6 +204,7 @@ export async function ensureAdministratorRole(
     data: { ...ADMINISTRATOR, fullAccess: true, system: true },
     depth: 0,
     overrideAccess: true,
+    context: { skipAuditLog: true },
     req,
   })) as RoleDoc
 }
@@ -378,6 +380,7 @@ export async function ensureRoles(payload: Payload): Promise<void> {
         data: editorRole(entitiesFor(payload)),
         depth: 0,
         overrideAccess: true,
+        context: { skipAuditLog: true },
       })
       payload.logger.info('[roles] Created the Administrator and Editor roles.')
     }
