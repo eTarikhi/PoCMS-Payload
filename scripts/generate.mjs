@@ -23,6 +23,7 @@ const GENERATORS = {
 const env = {
   ...process.env,
   BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN || 'vercel_blob_rw_codegen0_placeholder0',
+  PAYLOAD_SECRET: process.env.PAYLOAD_SECRET || 'codegen-placeholder-secret',
   NODE_OPTIONS: [process.env.NODE_OPTIONS, '--no-deprecation'].filter(Boolean).join(' '),
   PAYLOAD_CONFIG_PATH: process.env.PAYLOAD_CONFIG_PATH || 'src/payload.config.ts',
 }
