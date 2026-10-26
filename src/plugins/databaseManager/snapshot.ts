@@ -1,21 +1,36 @@
 import type { Payload } from 'payload'
 
+import { collectDatabaseAdvisorReport } from './core/advisor'
 import {
   listCloudBackups,
   type BlobVaultDriver,
 } from './core/backup'
-import type { SqlExecutor } from './core/connection'
+import { inspectCodegenCatalog, isCodegenDiskWriteAllowed } from './core/codegen'
+import { createPayloadSqlExecutor, type SqlExecutor } from './core/connection'
 import { collectCorePostgresHealth } from './core/monitor'
 import {
   collectProviderStatuses,
   DEFAULT_PROVIDER_ADAPTERS,
 } from './providers/registry'
 import type { DatabaseProviderAdapter } from './providers/types'
-import type { DatabaseManagementSnapshot } from './shared'
+import type {
+  CodegenCatalog,
+  DatabaseAdvisorReport,
+  DatabaseManagementSnapshot,
+} from './shared'
+
+const EMPTY_ADVISOR_REPORT: DatabaseAdvisorReport = {
+  missingFkIndexes: [],
+  unusedIndexes: [],
+  pgStatStatementsAvailable: false,
+  slowQueries: [],
+  orphanedMediaCount: null,
+  recommendations: [],
+}
 
 /**
- * Orchestrates Tier-1 Core PostgreSQL telemetry, Vercel Blob Backup Vault listing,
- * and Tier-2 Pluggable Serverless Provider status in parallel.
+ * Orchestrates Tier-1 Core PostgreSQL telemetry, Advisor diagnostics, Codegen catalog,
+ * Vercel Blob Backup Vault listing, and Tier-2 Pluggable Serverless Provider status in parallel.
  */
 export async function collectDatabaseManagementSnapshot(
   payload: Payload,
@@ -28,17 +43,31 @@ export async function collectDatabaseManagementSnapshot(
 ): Promise<DatabaseManagementSnapshot> {
   const env = options.env ?? process.env
   const adapters = options.adapters ?? DEFAULT_PROVIDER_ADAPTERS
+  const executor =
+    options.executor !== undefined ? options.executor : createPayloadSqlExecutor(payload, env)
 
-  const corePromise = collectCorePostgresHealth(payload, {
-    executor: options.executor,
-    env,
-  })
-  const vaultPromise = listCloudBackups({
-    env,
-    driver: options.blobDriver,
-  })
+  const emptyCodegen: CodegenCatalog = {
+    canWriteToDisk: isCodegenDiskWriteAllowed(env),
+    migrationsDir: 'src/migrations',
+    seedsDir: 'src/seed/generated',
+    tables: [],
+    collections: [],
+    globals: [],
+    existingMigrations: [],
+    existingGeneratedSeeds: [],
+  }
 
-  const [core, vault] = await Promise.all([corePromise, vaultPromise])
+  const [core, vault, advisor, codegen] = await Promise.all([
+    collectCorePostgresHealth(payload, { executor, env }),
+    listCloudBackups({ env, driver: options.blobDriver }),
+    executor
+      ? collectDatabaseAdvisorReport(executor).catch(() => EMPTY_ADVISOR_REPORT)
+      : Promise.resolve(EMPTY_ADVISOR_REPORT),
+    executor
+      ? inspectCodegenCatalog(payload, executor, env).catch(() => emptyCodegen)
+      : Promise.resolve(emptyCodegen),
+  ])
+
   const providerData = await collectProviderStatuses(core.connection, {
     adapters,
     env,
@@ -51,6 +80,8 @@ export async function collectDatabaseManagementSnapshot(
     tables: core.tables,
     sequences: core.sequences,
     hygiene: core.hygiene,
+    advisor,
+    codegen,
     vault,
     activeProvider: providerData.activeProvider,
     providers: providerData.providers,

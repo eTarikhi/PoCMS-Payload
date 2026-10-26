@@ -4,13 +4,17 @@ import { toast } from '@payloadcms/ui'
 import {
   ActivityIcon,
   CloudUploadIcon,
+  Code2Icon,
+  CopyIcon,
   CpuIcon,
   DatabaseIcon,
   DownloadIcon,
+  FileCode2Icon,
   GitBranchIcon,
   HardDriveDownloadIcon,
   PlayIcon,
   RefreshCwIcon,
+  SearchCodeIcon,
   ShieldCheckIcon,
   SparklesIcon,
   Trash2Icon,
@@ -43,15 +47,25 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/admin/elements/Tabs'
 import { cn } from '@/components/admin/utilities/cn'
 import {
+  BACKUP_FORMAT_META,
   classifyDatabaseHealth,
+  DIAGNOSTIC_SQL_PRESETS,
   formatBytes,
+  inferBackupFormatFromFilename,
   REPAIR_ACTION_META,
+  type BackupContentMode,
+  type BackupExportFormat,
+  type CsvRestoreStrategy,
   type DatabaseManagementSnapshot,
+  type GeneratedArtifactPreview,
+  type MigrationGenMode,
   type ProviderSlug,
+  type ReadOnlyQueryResult,
   type RepairActionKind,
   type RepairOperationResult,
   type RestoreDryRunReport,
   type RestoreExecutionResult,
+  type SeedGenMode,
 } from '@/plugins/databaseManager/shared'
 
 const formatDateShort = (iso: string | null | undefined): string => {
@@ -75,16 +89,51 @@ export function DatabaseClient({
   const [busyKey, setBusyKey] = useState<string | null>(null)
 
   // Backup & Restore state
+  const [exportFormat, setExportFormat] = useState<BackupExportFormat>('sql')
+  const [exportContentMode, setExportContentMode] =
+    useState<BackupContentMode>('schema-and-data')
+  const [csvExportTable, setCsvExportTable] = useState<string>(
+    initialSnapshot.tables[0]?.tableName ?? 'articles',
+  )
+  const [selectedExportTables, setSelectedExportTables] = useState<string[]>([])
   const [redactDownload, setRedactDownload] = useState(false)
+  const [anonymizeExport, setAnonymizeExport] = useState(false)
   const [encryptDownload, setEncryptDownload] = useState(false)
+  const [compressExport, setCompressExport] = useState(false)
+  const [upsertSqlExport, setUpsertSqlExport] = useState(false)
   const [vaultLabel, setVaultLabel] = useState('manual')
+  const [vaultFormat, setVaultFormat] = useState<'json' | 'sql' | 'ndjson'>('json')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [selectedVaultPath, setSelectedVaultPath] = useState<string>('')
+  const [csvRestoreTable, setCsvRestoreTable] = useState<string>(
+    initialSnapshot.tables[0]?.tableName ?? 'articles',
+  )
+  const [csvRestoreStrategy, setCsvRestoreStrategy] =
+    useState<CsvRestoreStrategy>('upsert')
   const [dryRunReport, setDryRunReport] = useState<RestoreDryRunReport | null>(null)
   const [restoreConfirmText, setRestoreConfirmText] = useState('')
   const [createSafetySnapshot, setCreateSafetySnapshot] = useState(true)
   const [allowRedactedRestore, setAllowRedactedRestore] = useState(false)
   const [lastRestoreResult, setLastRestoreResult] = useState<RestoreExecutionResult | null>(null)
+
+  // Migrations & Seeds Codegen state
+  const [migrationName, setMigrationName] = useState('schema_baseline')
+  const [migrationMode, setMigrationMode] = useState<MigrationGenMode>('schema-baseline')
+  const [migrationTables, setMigrationTables] = useState<string[]>([])
+  const [migrationAnonymize, setMigrationAnonymize] = useState(false)
+  const [seedName, setSeedName] = useState('live_content_seed')
+  const [seedMode, setSeedMode] = useState<SeedGenMode>('payload-local-api')
+  const [seedCollections, setSeedCollections] = useState<string[]>([])
+  const [seedGlobals, setSeedGlobals] = useState<string[]>([])
+  const [seedAnonymize, setSeedAnonymize] = useState(true)
+  const [generatedArtifact, setGeneratedArtifact] =
+    useState<GeneratedArtifactPreview | null>(null)
+
+  // Read-only SQL Inspector state
+  const [sqlInput, setSqlInput] = useState<string>(
+    DIAGNOSTIC_SQL_PRESETS[0]?.sql ?? 'SELECT version();',
+  )
+  const [sqlResult, setSqlResult] = useState<ReadOnlyQueryResult | null>(null)
 
   // Repair state
   const [lastRepairResult, setLastRepairResult] = useState<RepairOperationResult | null>(null)
@@ -170,6 +219,8 @@ export function DatabaseClient({
         form.append('confirm', restoreConfirmText.trim())
         form.append('createSafetySnapshot', String(createSafetySnapshot))
         form.append('allowRedactedRestore', String(allowRedactedRestore))
+        if (csvRestoreTable) form.append('csvTable', csvRestoreTable)
+        form.append('csvStrategy', csvRestoreStrategy)
         res = await fetch(`${apiRoute}/admin-database/restore`, {
           method: 'POST',
           credentials: 'include',
@@ -187,6 +238,8 @@ export function DatabaseClient({
             confirm: restoreConfirmText.trim(),
             createSafetySnapshot,
             allowRedactedRestore,
+            csvTable: csvRestoreTable,
+            csvStrategy: csvRestoreStrategy,
           }),
         })
       } else {
@@ -222,7 +275,113 @@ export function DatabaseClient({
   const currentProviderDesc =
     snapshot.providers.find((p) => p.slug === selectedProvider) ?? snapshot.providers[0]
 
-  const downloadHref = `${apiRoute}/admin-database/export?source=live&redact=${redactDownload ? 'true' : 'false'}&encrypt=${encryptDownload ? 'true' : 'false'}`
+  const exportParams = new URLSearchParams({
+    source: 'live',
+    format: exportFormat,
+    contentMode: exportContentMode,
+    redact: String(redactDownload),
+    anonymize: String(anonymizeExport),
+    encrypt: String(encryptDownload),
+    compress: String(compressExport),
+    upsert: String(upsertSqlExport),
+  })
+  if (exportFormat === 'csv' && csvExportTable) {
+    exportParams.set('csvTable', csvExportTable)
+  } else if (selectedExportTables.length > 0) {
+    exportParams.set('tables', selectedExportTables.join(','))
+  }
+  const downloadHref = `${apiRoute}/admin-database/export?${exportParams.toString()}`
+
+  const isSelectedCsv =
+    (selectedFile && inferBackupFormatFromFilename(selectedFile.name) === 'csv') ||
+    (selectedVaultPath && inferBackupFormatFromFilename(selectedVaultPath) === 'csv')
+
+  const downloadTextArtifact = (filename: string, content: string, mime = 'text/plain;charset=utf-8') => {
+    const blob = new Blob([content], { type: mime })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  const runGenerateMigration = async (writeToDisk: boolean) => {
+    const data = await postAction<{ artifact: GeneratedArtifactPreview }>(
+      writeToDisk ? 'codegen:mig:write' : 'codegen:mig:preview',
+      {
+        action: 'generate-migration',
+        name: migrationName,
+        migrationMode,
+        tables: migrationTables.length > 0 ? migrationTables : undefined,
+        anonymizePii: migrationAnonymize,
+        writeToDisk,
+      },
+    )
+    if (data?.artifact) {
+      setGeneratedArtifact(data.artifact)
+      toast.success(
+        data.artifact.writtenToDisk
+          ? `Wrote migration ${data.artifact.relativePath}`
+          : `Generated migration preview (${data.artifact.filename})`,
+      )
+    }
+  }
+
+  const runGenerateSeed = async (writeToDisk: boolean) => {
+    const data = await postAction<{ artifact: GeneratedArtifactPreview }>(
+      writeToDisk ? 'codegen:seed:write' : 'codegen:seed:preview',
+      {
+        action: 'generate-seed',
+        name: seedName,
+        seedMode,
+        collections: seedCollections.length > 0 ? seedCollections : undefined,
+        globals: seedGlobals.length > 0 ? seedGlobals : undefined,
+        tables: migrationTables.length > 0 ? migrationTables : undefined,
+        anonymizePii: seedAnonymize,
+        writeToDisk,
+      },
+    )
+    if (data?.artifact) {
+      setGeneratedArtifact(data.artifact)
+      toast.success(
+        data.artifact.writtenToDisk
+          ? `Wrote seed file ${data.artifact.relativePath}`
+          : `Generated seed preview (${data.artifact.filename})`,
+      )
+    }
+  }
+
+  const runSqlInspector = async (explain: boolean) => {
+    const data = await postAction<{ queryResult: ReadOnlyQueryResult }>(
+      explain ? 'sql:explain' : 'sql:run',
+      {
+        action: 'sql-query',
+        sql: sqlInput,
+        explain,
+        maxRows: 250,
+      },
+    )
+    if (data?.queryResult) {
+      setSqlResult(data.queryResult)
+    }
+  }
+
+  const exportSqlResultAsCsv = () => {
+    if (!sqlResult || sqlResult.columns.length === 0) return
+    const esc = (v: unknown) => {
+      if (v === null || v === undefined) return ''
+      const s = typeof v === 'object' ? JSON.stringify(v) : String(v)
+      return s.includes('"') || s.includes(',') || s.includes('\n')
+        ? `"${s.replace(/"/g, '""')}"`
+        : s
+    }
+    const header = sqlResult.columns.map(esc).join(',')
+    const rows = sqlResult.rows.map((r) => sqlResult.columns.map((c) => esc(r[c])).join(','))
+    downloadTextArtifact('query-result.csv', [header, ...rows].join('\r\n') + '\r\n', 'text/csv;charset=utf-8')
+  }
 
   return (
     <div data-testid="database-view" className="acn:space-y-8 acn:pt-6 acn:pb-16">
@@ -326,14 +485,22 @@ export function DatabaseClient({
       ) : null}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="acn:space-y-6">
-        <TabsList>
+        <TabsList className="acn:flex-wrap">
           <TabsTrigger value="health">
             <ActivityIcon aria-hidden className="acn:size-4" />
-            Health &amp; Tables ({snapshot.tables.length})
+            Health &amp; Advisor ({snapshot.tables.length})
           </TabsTrigger>
           <TabsTrigger value="backup">
             <HardDriveDownloadIcon aria-hidden className="acn:size-4" />
             Backup &amp; Restore
+          </TabsTrigger>
+          <TabsTrigger value="codegen">
+            <FileCode2Icon aria-hidden className="acn:size-4" />
+            Migrations &amp; Seeds
+          </TabsTrigger>
+          <TabsTrigger value="sql">
+            <SearchCodeIcon aria-hidden className="acn:size-4" />
+            SQL Inspector
           </TabsTrigger>
           <TabsTrigger value="repair">
             <WrenchIcon aria-hidden className="acn:size-4" />
@@ -345,7 +512,7 @@ export function DatabaseClient({
           </TabsTrigger>
         </TabsList>
 
-        {/* TAB 1: HEALTH & TABLES */}
+        {/* TAB 1: HEALTH & ADVISOR */}
         <TabsContent value="health" className="acn:space-y-6">
           <Card>
             <CardHeader>
@@ -430,35 +597,264 @@ export function DatabaseClient({
               )}
             </CardContent>
           </Card>
+
+          {/* Schema & Query Performance Advisor */}
+          <Card>
+            <CardHeader>
+              <div className="acn:flex acn:flex-wrap acn:items-center acn:justify-between acn:gap-2">
+                <div>
+                  <CardTitle>Schema &amp; query performance advisor</CardTitle>
+                  <CardDescription>
+                    Detects unindexed foreign keys, zero-scan indexes, orphaned media records, and{' '}
+                    <code>pg_stat_statements</code> query hotspots.
+                  </CardDescription>
+                </div>
+                {(snapshot.advisor?.missingFkIndexes.length ?? 0) > 0 ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={busyKey !== null}
+                    onClick={() => void runRepair('create-missing-fk-indexes')}
+                  >
+                    Create {snapshot.advisor?.missingFkIndexes.length} missing FK index(es)
+                  </Button>
+                ) : null}
+              </div>
+            </CardHeader>
+            <CardContent className="acn:space-y-4">
+              <div className="acn:flex acn:flex-wrap acn:gap-2">
+                <Badge variant="outline">
+                  Missing FK indexes: {snapshot.advisor?.missingFkIndexes.length ?? 0}
+                </Badge>
+                <Badge variant="outline">
+                  Unused indexes: {snapshot.advisor?.unusedIndexes.length ?? 0}
+                </Badge>
+                <Badge variant="outline">
+                  Unreferenced media:{' '}
+                  {snapshot.advisor?.orphanedMediaCount !== null &&
+                  snapshot.advisor?.orphanedMediaCount !== undefined
+                    ? snapshot.advisor.orphanedMediaCount
+                    : '—'}
+                </Badge>
+                <Badge variant="outline">
+                  pg_stat_statements:{' '}
+                  {snapshot.advisor?.pgStatStatementsAvailable ? 'Active' : 'Not enabled'}
+                </Badge>
+              </div>
+
+              {(snapshot.advisor?.recommendations.length ?? 0) > 0 ? (
+                <ul className="acn:m-0 acn:list-disc acn:space-y-1 acn:pl-5 acn:text-xs acn:text-muted-foreground">
+                  {snapshot.advisor?.recommendations.map((rec) => (
+                    <li key={rec}>{rec}</li>
+                  ))}
+                </ul>
+              ) : null}
+
+              {(snapshot.advisor?.missingFkIndexes.length ?? 0) > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Table.Column</TableHead>
+                      <TableHead>References</TableHead>
+                      <TableHead>Suggested DDL</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {snapshot.advisor?.missingFkIndexes.slice(0, 12).map((fk) => (
+                      <TableRow key={`${fk.tableName}.${fk.columnName}`}>
+                        <TableCell className="acn:font-mono acn:text-xs">
+                          {fk.tableName}.{fk.columnName}
+                        </TableCell>
+                        <TableCell className="acn:font-mono acn:text-xs acn:text-muted-foreground">
+                          {fk.referencedTable}
+                        </TableCell>
+                        <TableCell className="acn:font-mono acn:text-[11px] acn:text-muted-foreground">
+                          {fk.suggestedSql}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : null}
+
+              {(snapshot.advisor?.slowQueries.length ?? 0) > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Top query (pg_stat_statements)</TableHead>
+                      <TableHead className="acn:text-right">Calls</TableHead>
+                      <TableHead className="acn:text-right">Mean (ms)</TableHead>
+                      <TableHead className="acn:text-right">Total (ms)</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {snapshot.advisor?.slowQueries.map((sq, idx) => (
+                      <TableRow key={`${idx}-${sq.calls}`}>
+                        <TableCell className="acn:max-w-md acn:truncate acn:font-mono acn:text-xs">
+                          {sq.query}
+                        </TableCell>
+                        <TableCell className="acn:text-right acn:font-mono acn:text-xs">
+                          {sq.calls.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="acn:text-right acn:font-mono acn:text-xs">
+                          {sq.meanTimeMs}
+                        </TableCell>
+                        <TableCell className="acn:text-right acn:font-mono acn:text-xs">
+                          {sq.totalTimeMs}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : null}
+            </CardContent>
+          </Card>
         </TabsContent>
 
-        {/* TAB 2: BACKUP & RESTORE */}
+        {/* TAB 2: MULTI-FORMAT BACKUP & RESTORE */}
         <TabsContent value="backup" className="acn:space-y-6">
           <div className="acn:grid acn:gap-6 acn:lg:grid-cols-2">
-            {/* Portable Browser Download */}
+            {/* Multi-Format Browser Export */}
             <Card>
               <CardHeader>
-                <CardTitle>Portable logical backup (Browser download)</CardTitle>
+                <CardTitle>Multi-format portable backup (Browser download)</CardTitle>
                 <CardDescription>
-                  Pure-TypeScript schema, rows, FK graph, and sequence dump — runs natively on
-                  Vercel Serverless without requiring <code>pg_dump</code>.
+                  Export standard PostgreSQL <code>.sql</code> (compatible with <code>psql</code>{' '}
+                  &amp; Neon SQL Editor), structured <code>.json</code>, streaming{' '}
+                  <code>.ndjson</code>, or per-table RFC-4180 <code>.csv</code> — 100% pure
+                  TypeScript on Vercel Serverless.
                 </CardDescription>
               </CardHeader>
               <CardContent className="acn:space-y-4">
-                <div className="acn:space-y-2.5">
-                  <label className="acn:flex acn:items-center acn:gap-2 acn:text-sm">
+                <div className="acn:grid acn:gap-2 acn:sm:grid-cols-2">
+                  {BACKUP_FORMAT_META.map((meta) => {
+                    const selected = exportFormat === meta.format
+                    return (
+                      <button
+                        key={meta.format}
+                        type="button"
+                        onClick={() => setExportFormat(meta.format)}
+                        className={cn(
+                          'acn:rounded-lg acn:border acn:p-2.5 acn:text-left acn:transition-colors',
+                          selected
+                            ? 'acn:border-primary acn:bg-primary/5'
+                            : 'acn:border-border acn:bg-transparent acn:hover:bg-muted/40',
+                        )}
+                      >
+                        <div className="acn:flex acn:items-center acn:justify-between acn:gap-1">
+                          <span className="acn:text-xs acn:font-semibold">{meta.label}</span>
+                          <Badge variant={selected ? 'default' : 'outline'}>{meta.extension}</Badge>
+                        </div>
+                        <p className="acn:m-0 acn:mt-1 acn:text-[11px] acn:text-muted-foreground">
+                          {meta.description}
+                        </p>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {exportFormat === 'csv' ? (
+                  <div className="acn:space-y-1.5">
+                    <Label htmlFor="csv-export-table">Target table for CSV export</Label>
+                    <select
+                      id="csv-export-table"
+                      value={csvExportTable}
+                      onChange={(e) => setCsvExportTable(e.target.value)}
+                      className="acn:h-9 acn:w-full acn:rounded-md acn:border acn:border-input acn:bg-background acn:px-3 acn:text-sm"
+                    >
+                      {(snapshot.codegen?.tables.length
+                        ? snapshot.codegen.tables
+                        : snapshot.tables.map((t) => ({
+                            name: t.tableName,
+                            rowCount: t.estimatedLiveRows,
+                          }))
+                      ).map((tbl) => (
+                        <option key={tbl.name} value={tbl.name}>
+                          {tbl.name} ({tbl.rowCount} rows)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="acn:grid acn:gap-3 acn:sm:grid-cols-2">
+                    <div className="acn:space-y-1">
+                      <Label htmlFor="export-content-mode">Content mode</Label>
+                      <select
+                        id="export-content-mode"
+                        value={exportContentMode}
+                        onChange={(e) =>
+                          setExportContentMode(e.target.value as BackupContentMode)
+                        }
+                        className="acn:h-9 acn:w-full acn:rounded-md acn:border acn:border-input acn:bg-background acn:px-3 acn:text-sm"
+                      >
+                        <option value="schema-and-data">Schema + Data (Full dump)</option>
+                        <option value="data-only">Data only (INSERTs / rows)</option>
+                        <option value="schema-only">Schema only (DDL / structure)</option>
+                      </select>
+                    </div>
+                    <div className="acn:space-y-1">
+                      <Label htmlFor="export-table-filter">
+                        Selective tables ({selectedExportTables.length || 'All'})
+                      </Label>
+                      <Input
+                        id="export-table-filter"
+                        value={selectedExportTables.join(', ')}
+                        onChange={(e) =>
+                          setSelectedExportTables(
+                            e.target.value
+                              .split(',')
+                              .map((s) => s.trim())
+                              .filter(Boolean),
+                          )
+                        }
+                        placeholder="Leave blank for all public tables"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="acn:space-y-2">
+                  <label className="acn:flex acn:items-center acn:gap-2 acn:text-xs">
                     <Checkbox
                       checked={redactDownload}
                       onCheckedChange={(v) => setRedactDownload(Boolean(v))}
                     />
                     <span>Redact user auth secrets (strip password hashes &amp; sessions)</span>
                   </label>
-                  <label className="acn:flex acn:items-center acn:gap-2 acn:text-sm">
+                  <label className="acn:flex acn:items-center acn:gap-2 acn:text-xs">
+                    <Checkbox
+                      checked={anonymizeExport}
+                      onCheckedChange={(v) => setAnonymizeExport(Boolean(v))}
+                    />
+                    <span>Anonymize PII (mask emails &amp; audit IPs for staging/dev)</span>
+                  </label>
+                  {exportFormat === 'sql' && exportContentMode !== 'schema-only' ? (
+                    <label className="acn:flex acn:items-center acn:gap-2 acn:text-xs">
+                      <Checkbox
+                        checked={upsertSqlExport}
+                        onCheckedChange={(v) => setUpsertSqlExport(Boolean(v))}
+                      />
+                      <span>
+                        Idempotent SQL (<code>ON CONFLICT DO UPDATE</code> instead of{' '}
+                        <code>TRUNCATE</code>)
+                      </span>
+                    </label>
+                  ) : null}
+                  <label className="acn:flex acn:items-center acn:gap-2 acn:text-xs">
+                    <Checkbox
+                      checked={compressExport}
+                      onCheckedChange={(v) => setCompressExport(Boolean(v))}
+                    />
+                    <span>Gzip-compress download (`.gz`)</span>
+                  </label>
+                  <label className="acn:flex acn:items-center acn:gap-2 acn:text-xs">
                     <Checkbox
                       checked={encryptDownload}
                       onCheckedChange={(v) => setEncryptDownload(Boolean(v))}
                     />
-                    <span>Encrypt archive with AES-256-GCM (`DATABASE_BACKUP_SECRET` / `PAYLOAD_SECRET`)</span>
+                    <span>
+                      Encrypt with AES-256-GCM (`DATABASE_BACKUP_SECRET` / `PAYLOAD_SECRET`)
+                    </span>
                   </label>
                 </div>
 
@@ -467,7 +863,7 @@ export function DatabaseClient({
                   className="acn:inline-flex acn:h-9 acn:items-center acn:justify-center acn:gap-2 acn:rounded-md acn:bg-primary acn:px-4 acn:text-sm acn:font-medium acn:text-primary-foreground acn:no-underline acn:hover:opacity-90"
                 >
                   <DownloadIcon aria-hidden className="acn:size-4" />
-                  Download compressed backup
+                  Download {exportFormat.toUpperCase()} backup
                 </a>
               </CardContent>
             </Card>
@@ -475,9 +871,10 @@ export function DatabaseClient({
             {/* Encrypted Vercel Blob Vault */}
             <Card>
               <CardHeader>
-                <CardTitle>Encrypted Cloud Vault (Vercel Blob)</CardTitle>
+                <CardTitle>Encrypted Cloud Vault &amp; Scheduled Jobs (Vercel Blob)</CardTitle>
                 <CardDescription>
-                  Off-database disaster recovery archives encrypted with AES-256-GCM and automatic
+                  Off-database disaster recovery archives encrypted with AES-256-GCM in{' '}
+                  <code>JSON</code>, <code>SQL</code>, or <code>NDJSON</code> format with automatic
                   retention pruning.
                 </CardDescription>
               </CardHeader>
@@ -492,7 +889,7 @@ export function DatabaseClient({
                 ) : (
                   <>
                     <div className="acn:flex acn:flex-wrap acn:items-end acn:gap-2">
-                      <div className="acn:min-w-44 acn:flex-1 acn:space-y-1">
+                      <div className="acn:min-w-36 acn:flex-1 acn:space-y-1">
                         <Label htmlFor="vault-label">Backup tag</Label>
                         <Input
                           id="vault-label"
@@ -501,14 +898,34 @@ export function DatabaseClient({
                           placeholder="pre-deploy"
                         />
                       </div>
+                      <div className="acn:w-28 acn:space-y-1">
+                        <Label htmlFor="vault-format">Format</Label>
+                        <select
+                          id="vault-format"
+                          value={vaultFormat}
+                          onChange={(e) =>
+                            setVaultFormat(e.target.value as 'json' | 'sql' | 'ndjson')
+                          }
+                          className="acn:h-9 acn:w-full acn:rounded-md acn:border acn:border-input acn:bg-background acn:px-2 acn:text-xs"
+                        >
+                          <option value="json">JSON</option>
+                          <option value="sql">SQL</option>
+                          <option value="ndjson">NDJSON</option>
+                        </select>
+                      </div>
                       <Button
                         type="button"
                         disabled={busyKey !== null || !snapshot.vault.encryptionConfigured}
                         onClick={() =>
                           void postAction(
                             'vault-save',
-                            { action: 'vault-save', label: vaultLabel, retentionCount: 10 },
-                            'Encrypted backup uploaded to Vercel Blob.',
+                            {
+                              action: 'vault-save',
+                              label: vaultLabel,
+                              format: vaultFormat,
+                              retentionCount: 10,
+                            },
+                            `Encrypted ${vaultFormat.toUpperCase()} backup uploaded to Vercel Blob.`,
                           )
                         }
                       >
@@ -522,7 +939,12 @@ export function DatabaseClient({
                         onClick={() =>
                           void postAction(
                             'schedule-backup',
-                            { action: 'schedule-backup', label: 'queued-vault', retentionCount: 10 },
+                            {
+                              action: 'schedule-backup',
+                              label: 'queued-vault',
+                              format: vaultFormat,
+                              retentionCount: 10,
+                            },
                             'Queued background backup job in Payload Jobs.',
                           )
                         }
@@ -540,6 +962,7 @@ export function DatabaseClient({
                         <TableHeader>
                           <TableRow>
                             <TableHead>Archive</TableHead>
+                            <TableHead>Format</TableHead>
                             <TableHead className="acn:text-right">Size</TableHead>
                             <TableHead className="acn:text-right">Actions</TableHead>
                           </TableRow>
@@ -552,6 +975,11 @@ export function DatabaseClient({
                                 <div className="acn:text-[11px] acn:text-muted-foreground">
                                   {formatDateShort(item.uploadedAt)}
                                 </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline">
+                                  {(item.format ?? 'json').toUpperCase()}
+                                </Badge>
                               </TableCell>
                               <TableCell className="acn:text-right acn:font-mono acn:text-xs">
                                 {formatBytes(item.sizeBytes)}
@@ -605,24 +1033,29 @@ export function DatabaseClient({
             </Card>
           </div>
 
-          {/* Safe Transactional Restore */}
+          {/* Universal Atomic Transactional Restore */}
           <Card>
             <CardHeader>
-              <CardTitle>Atomic transactional restore (Dry-run &amp; FK-ordered)</CardTitle>
+              <CardTitle>
+                Universal atomic restore (SQL · JSON · NDJSON · CSV — Dry-run &amp; Transactional)
+              </CardTitle>
               <CardDescription>
-                Validates SHA-256 checksums, column compatibility, and Payload migrations first.
-                Executes inside a single <code>BEGIN … COMMIT</code> transaction with advisory lock
+                Auto-detects plain, gzipped, or AES-256-GCM encrypted <code>.sql</code>,{' '}
+                <code>.json</code>, <code>.ndjson</code>, and <code>.csv</code> backups. Executes
+                inside a single <code>BEGIN … COMMIT</code> transaction with advisory lock
                 protection — rolling back 100% cleanly on any error.
               </CardDescription>
             </CardHeader>
             <CardContent className="acn:space-y-4">
               <div className="acn:grid acn:gap-4 acn:md:grid-cols-2">
                 <div className="acn:space-y-1.5">
-                  <Label htmlFor="restore-file">Upload backup file (`.json`, `.json.gz`, `.enc.json.gz`)</Label>
+                  <Label htmlFor="restore-file">
+                    Upload backup file (`.sql`, `.json`, `.ndjson`, `.csv`, `.gz`, `.enc.*`)
+                  </Label>
                   <Input
                     id="restore-file"
                     type="file"
-                    accept=".json,.gz,.enc"
+                    accept=".sql,.json,.ndjson,.jsonl,.csv,.gz,.enc"
                     onChange={(e) => {
                       const f = e.target.files?.[0] ?? null
                       setSelectedFile(f)
@@ -645,6 +1078,40 @@ export function DatabaseClient({
                   />
                 </div>
               </div>
+
+              {isSelectedCsv ? (
+                <div className="acn:grid acn:gap-3 acn:rounded-lg acn:border acn:border-border acn:bg-muted/20 acn:p-3 acn:sm:grid-cols-2">
+                  <div className="acn:space-y-1">
+                    <Label htmlFor="csv-restore-table">CSV target PostgreSQL table</Label>
+                    <select
+                      id="csv-restore-table"
+                      value={csvRestoreTable}
+                      onChange={(e) => setCsvRestoreTable(e.target.value)}
+                      className="acn:h-9 acn:w-full acn:rounded-md acn:border acn:border-input acn:bg-background acn:px-3 acn:text-sm"
+                    >
+                      {snapshot.tables.map((t) => (
+                        <option key={t.tableName} value={t.tableName}>
+                          {t.tableName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="acn:space-y-1">
+                    <Label htmlFor="csv-restore-strategy">CSV import strategy</Label>
+                    <select
+                      id="csv-restore-strategy"
+                      value={csvRestoreStrategy}
+                      onChange={(e) =>
+                        setCsvRestoreStrategy(e.target.value as CsvRestoreStrategy)
+                      }
+                      className="acn:h-9 acn:w-full acn:rounded-md acn:border acn:border-input acn:bg-background acn:px-3 acn:text-sm"
+                    >
+                      <option value="upsert">Upsert rows (ON CONFLICT DO UPDATE)</option>
+                      <option value="replace">Replace table (TRUNCATE + INSERT)</option>
+                    </select>
+                  </div>
+                </div>
+              ) : null}
 
               <div className="acn:flex acn:flex-wrap acn:items-center acn:gap-4">
                 <Button
@@ -681,11 +1148,16 @@ export function DatabaseClient({
                       tone={dryRunReport.valid ? 'good' : 'poor'}
                       label={dryRunReport.valid ? 'Dry-run passed' : 'Incompatible archive'}
                     />
+                    {dryRunReport.detectedFormat ? (
+                      <Badge>{dryRunReport.detectedFormat.toUpperCase()}</Badge>
+                    ) : null}
                     <Badge variant="outline">
                       {dryRunReport.matchedTables.length} / {dryRunReport.totalTables} tables matched
                     </Badge>
                     <Badge variant="outline">
-                      {dryRunReport.totalRows.toLocaleString()} total rows
+                      {dryRunReport.sqlStatementCount !== undefined
+                        ? `${dryRunReport.sqlStatementCount} SQL statements`
+                        : `${dryRunReport.totalRows.toLocaleString()} total rows`}
                     </Badge>
                     {dryRunReport.encrypted ? <Badge>AES-256-GCM verified</Badge> : null}
                   </div>
@@ -732,9 +1204,10 @@ export function DatabaseClient({
 
               {lastRestoreResult ? (
                 <p className="acn:m-0 acn:text-xs acn:text-muted-foreground">
-                  Last restore: {lastRestoreResult.restoredRows} row(s) across{' '}
-                  {lastRestoreResult.restoredTables} table(s), {lastRestoreResult.syncedSequences}{' '}
-                  sequence(s) synced in {lastRestoreResult.durationMs}ms
+                  Last restore ({(lastRestoreResult.detectedFormat ?? 'json').toUpperCase()}):{' '}
+                  {lastRestoreResult.restoredRows} row(s) across {lastRestoreResult.restoredTables}{' '}
+                  table(s), {lastRestoreResult.syncedSequences} sequence(s) synced in{' '}
+                  {lastRestoreResult.durationMs}ms
                   {lastRestoreResult.safetySnapshotName
                     ? ` (Safety snapshot: ${lastRestoreResult.safetySnapshotName})`
                     : ''}
@@ -745,7 +1218,435 @@ export function DatabaseClient({
           </Card>
         </TabsContent>
 
-        {/* TAB 3: REPAIR & MAINTENANCE */}
+        {/* TAB 3: DIRECT DATABASE -> MIGRATION & SEED GENERATORS */}
+        <TabsContent value="codegen" className="acn:space-y-6">
+          <div className="acn:grid acn:gap-6 acn:lg:grid-cols-2">
+            {/* Database -> Migration File */}
+            <Card>
+              <CardHeader>
+                <div className="acn:flex acn:items-center acn:justify-between acn:gap-2">
+                  <CardTitle>Generate Migration from Live Database</CardTitle>
+                  <Badge variant="outline">
+                    {snapshot.codegen?.canWriteToDisk ? 'Disk write ready' : 'Download mode'}
+                  </Badge>
+                </div>
+                <CardDescription>
+                  Introspects live PostgreSQL enums, sequences, tables, foreign keys, and rows to
+                  generate a Payload v3 <code>@payloadcms/db-vercel-postgres</code> migration (
+                  <code>up</code> / <code>down</code>) or standalone <code>.sql</code> file.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="acn:space-y-4">
+                <div className="acn:grid acn:gap-3 acn:sm:grid-cols-2">
+                  <div className="acn:space-y-1">
+                    <Label htmlFor="mig-name">Migration slug</Label>
+                    <Input
+                      id="mig-name"
+                      value={migrationName}
+                      onChange={(e) => setMigrationName(e.target.value)}
+                      placeholder="schema_baseline"
+                    />
+                  </div>
+                  <div className="acn:space-y-1">
+                    <Label htmlFor="mig-mode">Migration type</Label>
+                    <select
+                      id="mig-mode"
+                      value={migrationMode}
+                      onChange={(e) => setMigrationMode(e.target.value as MigrationGenMode)}
+                      className="acn:h-9 acn:w-full acn:rounded-md acn:border acn:border-input acn:bg-background acn:px-3 acn:text-sm"
+                    >
+                      <option value="schema-baseline">Payload TS — Schema baseline (DDL)</option>
+                      <option value="data-upsert">Payload TS — Data upsert (ON CONFLICT)</option>
+                      <option value="raw-sql">Standalone PostgreSQL .sql migration</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="acn:space-y-1">
+                  <Label htmlFor="mig-tables">
+                    Filter tables (comma-separated, leave blank for all)
+                  </Label>
+                  <Input
+                    id="mig-tables"
+                    value={migrationTables.join(', ')}
+                    onChange={(e) =>
+                      setMigrationTables(
+                        e.target.value
+                          .split(',')
+                          .map((s) => s.trim())
+                          .filter(Boolean),
+                      )
+                    }
+                    placeholder="articles, projects, skills"
+                  />
+                </div>
+
+                {migrationMode !== 'schema-baseline' ? (
+                  <label className="acn:flex acn:items-center acn:gap-2 acn:text-xs">
+                    <Checkbox
+                      checked={migrationAnonymize}
+                      onCheckedChange={(v) => setMigrationAnonymize(Boolean(v))}
+                    />
+                    <span>Anonymize PII in data rows (emails &amp; audit IPs)</span>
+                  </label>
+                ) : null}
+
+                <div className="acn:flex acn:flex-wrap acn:gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={busyKey !== null}
+                    onClick={() => void runGenerateMigration(false)}
+                  >
+                    <Code2Icon aria-hidden className="acn:size-4" />
+                    Preview migration
+                  </Button>
+                  {snapshot.codegen?.canWriteToDisk ? (
+                    <Button
+                      type="button"
+                      disabled={busyKey !== null}
+                      onClick={() => void runGenerateMigration(true)}
+                    >
+                      Write to src/migrations/
+                    </Button>
+                  ) : null}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Database -> Seed File */}
+            <Card>
+              <CardHeader>
+                <div className="acn:flex acn:items-center acn:justify-between acn:gap-2">
+                  <CardTitle>Generate Seed File from Live Database</CardTitle>
+                  <Badge variant="outline">Portable Local API / SQL</Badge>
+                </div>
+                <CardDescription>
+                  Captures live Payload collections &amp; globals into a replayable TypeScript seed
+                  script (resolving <code>media</code> IDs by filename and preserving{' '}
+                  <code>_order</code> ranks) or an idempotent SQL seed.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="acn:space-y-4">
+                <div className="acn:grid acn:gap-3 acn:sm:grid-cols-2">
+                  <div className="acn:space-y-1">
+                    <Label htmlFor="seed-name">Seed filename slug</Label>
+                    <Input
+                      id="seed-name"
+                      value={seedName}
+                      onChange={(e) => setSeedName(e.target.value)}
+                      placeholder="live_content_seed"
+                    />
+                  </div>
+                  <div className="acn:space-y-1">
+                    <Label htmlFor="seed-mode">Seed format</Label>
+                    <select
+                      id="seed-mode"
+                      value={seedMode}
+                      onChange={(e) => setSeedMode(e.target.value as SeedGenMode)}
+                      className="acn:h-9 acn:w-full acn:rounded-md acn:border acn:border-input acn:bg-background acn:px-3 acn:text-sm"
+                    >
+                      <option value="payload-local-api">
+                        Payload Local API TypeScript (.ts)
+                      </option>
+                      <option value="raw-sql-seed">
+                        Idempotent PostgreSQL Seed (.seed.sql)
+                      </option>
+                    </select>
+                  </div>
+                </div>
+
+                {seedMode === 'payload-local-api' &&
+                (snapshot.codegen?.collections.length ?? 0) > 0 ? (
+                  <div className="acn:space-y-1.5">
+                    <Label>
+                      Collections ({seedCollections.length || 'All seedable collections'})
+                    </Label>
+                    <div className="acn:flex acn:flex-wrap acn:gap-2">
+                      {snapshot.codegen?.collections.map((col) => {
+                        const checked = seedCollections.includes(col.slug)
+                        return (
+                          <button
+                            key={col.slug}
+                            type="button"
+                            onClick={() =>
+                              setSeedCollections((prev) =>
+                                prev.includes(col.slug)
+                                  ? prev.filter((x) => x !== col.slug)
+                                  : [...prev, col.slug],
+                              )
+                            }
+                            className={cn(
+                              'acn:rounded-md acn:border acn:px-2 acn:py-1 acn:font-mono acn:text-xs',
+                              checked
+                                ? 'acn:border-primary acn:bg-primary/10 acn:font-semibold'
+                                : 'acn:border-border acn:text-muted-foreground',
+                            )}
+                          >
+                            {col.slug} ({col.rowCount})
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+
+                {seedMode === 'payload-local-api' &&
+                (snapshot.codegen?.globals.length ?? 0) > 0 ? (
+                  <div className="acn:space-y-1.5">
+                    <Label>Globals ({seedGlobals.length || 'All globals'})</Label>
+                    <div className="acn:flex acn:flex-wrap acn:gap-2">
+                      {snapshot.codegen?.globals.map((g) => {
+                        const checked = seedGlobals.includes(g.slug)
+                        return (
+                          <button
+                            key={g.slug}
+                            type="button"
+                            onClick={() =>
+                              setSeedGlobals((prev) =>
+                                prev.includes(g.slug)
+                                  ? prev.filter((x) => x !== g.slug)
+                                  : [...prev, g.slug],
+                              )
+                            }
+                            className={cn(
+                              'acn:rounded-md acn:border acn:px-2 acn:py-1 acn:font-mono acn:text-xs',
+                              checked
+                                ? 'acn:border-primary acn:bg-primary/10 acn:font-semibold'
+                                : 'acn:border-border acn:text-muted-foreground',
+                            )}
+                          >
+                            {g.slug}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+
+                <label className="acn:flex acn:items-center acn:gap-2 acn:text-xs">
+                  <Checkbox
+                    checked={seedAnonymize}
+                    onCheckedChange={(v) => setSeedAnonymize(Boolean(v))}
+                  />
+                  <span>Anonymize user PII &amp; strip auth hashes in generated seed</span>
+                </label>
+
+                <div className="acn:flex acn:flex-wrap acn:gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={busyKey !== null}
+                    onClick={() => void runGenerateSeed(false)}
+                  >
+                    <Code2Icon aria-hidden className="acn:size-4" />
+                    Preview seed
+                  </Button>
+                  {snapshot.codegen?.canWriteToDisk ? (
+                    <Button
+                      type="button"
+                      disabled={busyKey !== null}
+                      onClick={() => void runGenerateSeed(true)}
+                    >
+                      Write to src/seed/generated/
+                    </Button>
+                  ) : null}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Generated Code Preview & Download */}
+          {generatedArtifact ? (
+            <Card>
+              <CardHeader>
+                <div className="acn:flex acn:flex-wrap acn:items-center acn:justify-between acn:gap-2">
+                  <div className="acn:space-y-1">
+                    <CardTitle className="acn:font-mono acn:text-base">
+                      {generatedArtifact.relativePath}
+                    </CardTitle>
+                    <CardDescription>
+                      {generatedArtifact.tableCount} entities · {generatedArtifact.rowCount} records
+                      · {formatBytes(generatedArtifact.sizeBytes)}
+                      {generatedArtifact.writtenToDisk ? ' · Saved to workspace disk' : ''}
+                    </CardDescription>
+                  </div>
+                  <div className="acn:flex acn:gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        void navigator.clipboard?.writeText(generatedArtifact.content)
+                        toast.success('Copied generated code to clipboard.')
+                      }}
+                    >
+                      <CopyIcon aria-hidden className="acn:size-3.5" />
+                      Copy
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() =>
+                        downloadTextArtifact(generatedArtifact.filename, generatedArtifact.content)
+                      }
+                    >
+                      <DownloadIcon aria-hidden className="acn:size-3.5" />
+                      Download {generatedArtifact.filename}
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <pre className="acn:max-h-96 acn:overflow-auto acn:rounded-lg acn:border acn:border-border acn:bg-muted/40 acn:p-4 acn:font-mono acn:text-xs">
+                  <code>{generatedArtifact.content}</code>
+                </pre>
+              </CardContent>
+            </Card>
+          ) : null}
+        </TabsContent>
+
+        {/* TAB 4: SAFE READ-ONLY SQL & EXPLAIN INSPECTOR */}
+        <TabsContent value="sql" className="acn:space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Safe Read-Only SQL &amp; EXPLAIN Inspector</CardTitle>
+              <CardDescription>
+                Protected by 3 independent layers: single-statement AST allowlist, PostgreSQL{' '}
+                <code>BEGIN READ ONLY</code> kernel transaction + <code>statement_timeout = 8s</code>
+                , and automatic password-hash redaction.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="acn:space-y-4">
+              <div className="acn:flex acn:flex-wrap acn:gap-1.5">
+                {DIAGNOSTIC_SQL_PRESETS.map((preset) => (
+                  <Button
+                    key={preset.id}
+                    type="button"
+                    size="xs"
+                    variant="outline"
+                    onClick={() => setSqlInput(preset.sql)}
+                    title={preset.description}
+                  >
+                    {preset.label}
+                  </Button>
+                ))}
+              </div>
+
+              <div className="acn:space-y-1.5">
+                <Label htmlFor="readonly-sql-editor">Read-only SQL statement</Label>
+                <textarea
+                  id="readonly-sql-editor"
+                  rows={5}
+                  value={sqlInput}
+                  onChange={(e) => setSqlInput(e.target.value)}
+                  className="acn:w-full acn:rounded-md acn:border acn:border-input acn:bg-background acn:p-3 acn:font-mono acn:text-xs"
+                  placeholder="SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';"
+                />
+              </div>
+
+              <div className="acn:flex acn:flex-wrap acn:items-center acn:justify-between acn:gap-2">
+                <div className="acn:flex acn:gap-2">
+                  <Button
+                    type="button"
+                    disabled={busyKey !== null || !sqlInput.trim()}
+                    onClick={() => void runSqlInspector(false)}
+                  >
+                    <PlayIcon aria-hidden className="acn:size-4" />
+                    Run read-only query
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={busyKey !== null || !sqlInput.trim()}
+                    onClick={() => void runSqlInspector(true)}
+                  >
+                    EXPLAIN plan
+                  </Button>
+                </div>
+
+                {sqlResult ? (
+                  <div className="acn:flex acn:items-center acn:gap-2">
+                    <Badge variant="outline">
+                      {sqlResult.rowCount} row(s){sqlResult.truncated ? ' (capped at 250)' : ''} ·{' '}
+                      {sqlResult.durationMs} ms
+                    </Badge>
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant="outline"
+                      onClick={exportSqlResultAsCsv}
+                    >
+                      Export CSV
+                    </Button>
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant="outline"
+                      onClick={() =>
+                        downloadTextArtifact(
+                          'query-result.json',
+                          JSON.stringify(sqlResult.rows, null, 2),
+                          'application/json;charset=utf-8',
+                        )
+                      }
+                    >
+                      Export JSON
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+
+              {sqlResult ? (
+                sqlResult.columns.length === 0 ? (
+                  <p className="acn:m-0 acn:text-xs acn:text-muted-foreground">
+                    Query completed in {sqlResult.durationMs} ms and returned 0 rows.
+                  </p>
+                ) : (
+                  <div className="acn:max-h-96 acn:overflow-auto acn:rounded-lg acn:border acn:border-border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          {sqlResult.columns.map((col) => (
+                            <TableHead key={col} className="acn:font-mono acn:text-xs">
+                              {col}
+                            </TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sqlResult.rows.map((row, rIdx) => (
+                          <TableRow key={rIdx}>
+                            {sqlResult.columns.map((col) => {
+                              const val = row[col]
+                              const formatted =
+                                val === null || val === undefined
+                                  ? 'NULL'
+                                  : typeof val === 'object'
+                                    ? JSON.stringify(val)
+                                    : String(val)
+                              return (
+                                <TableCell
+                                  key={col}
+                                  className="acn:max-w-xs acn:truncate acn:font-mono acn:text-xs"
+                                  title={formatted}
+                                >
+                                  {formatted}
+                                </TableCell>
+                              )
+                            })}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )
+              ) : null}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* TAB 5: REPAIR & MAINTENANCE */}
         <TabsContent value="repair" className="acn:space-y-6">
           <div className="acn:grid acn:gap-4 acn:md:grid-cols-2 acn:lg:grid-cols-3">
             {REPAIR_ACTION_META.map((item) => {

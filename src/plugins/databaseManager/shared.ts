@@ -3,8 +3,9 @@ import type { IntegrationResult } from '@/integrations/result'
 
 /**
  * Pure isomorphic types and deterministic helpers for the Two-Tier Database Management Plugin:
- *   - Tier 1 (Pilot Core): Provider-agnostic PostgreSQL monitoring, portable logical backups,
- *     transactional restore, and sequence / bloat / Payload hygiene repair.
+ *   - Tier 1 (Pilot Core): Provider-agnostic PostgreSQL monitoring, performance/index advisor,
+ *     multi-format backup & restore (SQL, JSON, NDJSON, CSV), database-to-migration & seed
+ *     code generation, read-only SQL/EXPLAIN inspector, and sequence/bloat/FK-index repair.
  *   - Tier 2 (Serverless Provider Adapters): Pluggable cloud API adapters (Neon `@neon/sdk`,
  *     Supabase Management API, Prisma Postgres API) unlocked via optional API keys.
  *
@@ -96,17 +97,89 @@ export type PayloadHygieneReport = {
   bloatedTablesCount: number
 }
 
+/* -------------------------------------------------------------------------- */
+/* Multi-Format Backup & Restore DTOs (SQL, JSON, NDJSON, CSV)                */
+/* -------------------------------------------------------------------------- */
+
+export type BackupExportFormat = 'sql' | 'json' | 'ndjson' | 'csv'
+
+export type BackupContentMode = 'schema-and-data' | 'data-only' | 'schema-only'
+
+export type CsvRestoreStrategy = 'upsert' | 'replace'
+
+export const BACKUP_FORMAT_META: readonly {
+  format: BackupExportFormat
+  extension: string
+  label: string
+  badge: string
+  description: string
+  supportsCloudVault: boolean
+  requiresSingleTable: boolean
+}[] = [
+  {
+    format: 'sql',
+    extension: '.sql',
+    label: 'PostgreSQL SQL Script (.sql)',
+    badge: 'psql / Neon SQL ready',
+    description:
+      'Standard PostgreSQL DDL + batched INSERTs + sequence setval(). Directly runnable in psql, pgAdmin, DBeaver, or Neon SQL Editor.',
+    supportsCloudVault: true,
+    requiresSingleTable: false,
+  },
+  {
+    format: 'json',
+    extension: '.json',
+    label: 'Structured Logical Archive (.json)',
+    badge: 'Lossless + SHA-256',
+    description:
+      'Self-verifying schema manifest, FK dependency graph, rows, migrations, and sequence counters with SHA-256 integrity hash.',
+    supportsCloudVault: true,
+    requiresSingleTable: false,
+  },
+  {
+    format: 'ndjson',
+    extension: '.ndjson',
+    label: 'Streaming JSON Lines (.ndjson)',
+    badge: 'Stream / Warehouse',
+    description:
+      'Line-delimited JSON stream (header, table metadata, row records, sequences, checksum footer) ideal for large tables, DuckDB, or ClickHouse.',
+    supportsCloudVault: true,
+    requiresSingleTable: false,
+  },
+  {
+    format: 'csv',
+    extension: '.csv',
+    label: 'Table Spreadsheet Export (.csv)',
+    badge: 'RFC-4180 CSV',
+    description:
+      'Exports any single PostgreSQL table to RFC-4180 CSV for Excel, Google Sheets, Pandas, or table-level Upsert/Replace import.',
+    supportsCloudVault: false,
+    requiresSingleTable: true,
+  },
+] as const
+
 export type BackupColumnMeta = {
   name: string
   dataType: string
   udtName: string
   isNullable: boolean
+  columnDefault?: string | null
+  characterMaximumLength?: number | null
+  numericPrecision?: number | null
+  numericScale?: number | null
 }
 
 export type BackupForeignKeyMeta = {
   column: string
   refTable: string
   refColumn: string
+  constraintName?: string
+  onDelete?: string
+}
+
+export type BackupEnumMeta = {
+  name: string
+  values: string[]
 }
 
 export type BackupTableDump = {
@@ -119,6 +192,7 @@ export type BackupTableDump = {
 }
 
 export const LOGICAL_BACKUP_FORMAT = 'pocms-pg-logical-v1' as const
+export const NDJSON_BACKUP_FORMAT = 'pocms-pg-ndjson-v1' as const
 
 export type LogicalBackupArchive = {
   format: typeof LOGICAL_BACKUP_FORMAT
@@ -128,6 +202,9 @@ export type LogicalBackupArchive = {
   serverVersion: string | null
   databaseName: string | null
   redactedSecrets: boolean
+  anonymizedPii?: boolean
+  contentMode?: BackupContentMode
+  enums?: BackupEnumMeta[]
   migrations: Array<{ name: string; batch: number | null }>
   tables: BackupTableDump[]
   sequences: Array<{
@@ -145,6 +222,7 @@ export type CloudBackupItem = {
   sizeBytes: number
   uploadedAt: string
   encrypted: boolean
+  format?: BackupExportFormat
 }
 
 export type BackupVaultStatus = {
@@ -158,10 +236,14 @@ export type BackupVaultStatus = {
 export type RestoreDryRunReport = {
   valid: boolean
   format: string
+  detectedFormat?: BackupExportFormat
   createdAt: string | null
   encrypted: boolean
   redactedSecrets: boolean
   checksumVerified: boolean
+  sqlStatementCount?: number
+  csvTargetTable?: string | null
+  csvStrategy?: CsvRestoreStrategy
   totalTables: number
   totalRows: number
   matchedTables: string[]
@@ -180,9 +262,11 @@ export type RestoreDryRunReport = {
 
 export type RestoreExecutionResult = {
   ok: boolean
+  detectedFormat?: BackupExportFormat
   restoredTables: number
   restoredRows: number
   syncedSequences: number
+  executedStatements?: number
   usedUnpooledConnection: boolean
   safetySnapshotId: string | null
   safetySnapshotName: string | null
@@ -190,8 +274,193 @@ export type RestoreExecutionResult = {
   warnings: string[]
 }
 
+/* -------------------------------------------------------------------------- */
+/* Database -> Migration & Seed Code Generation DTOs                          */
+/* -------------------------------------------------------------------------- */
+
+export type MigrationGenMode = 'schema-baseline' | 'data-upsert' | 'raw-sql'
+
+export type SeedGenMode = 'payload-local-api' | 'raw-sql-seed'
+
+export type GeneratedArtifactPreview = {
+  kind: 'migration' | 'seed'
+  mode: MigrationGenMode | SeedGenMode
+  filename: string
+  relativePath: string
+  language: 'typescript' | 'sql'
+  content: string
+  sizeBytes: number
+  tableCount: number
+  rowCount: number
+  writtenToDisk: boolean
+  warnings: string[]
+}
+
+export type CodegenCatalog = {
+  canWriteToDisk: boolean
+  migrationsDir: string
+  seedsDir: string
+  tables: Array<{ name: string; rowCount: number }>
+  collections: Array<{ slug: string; label: string; rowCount: number }>
+  globals: Array<{ slug: string; label: string }>
+  existingMigrations: string[]
+  existingGeneratedSeeds: string[]
+}
+
+/* -------------------------------------------------------------------------- */
+/* Performance, Foreign-Key Index & Schema Advisor DTOs                       */
+/* -------------------------------------------------------------------------- */
+
+export type MissingFkIndexItem = {
+  constraintName: string
+  tableName: string
+  columnName: string
+  referencedTable: string
+  tableRowEstimate: number
+  suggestedIndexName: string
+  suggestedSql: string
+}
+
+export type UnusedIndexItem = {
+  tableName: string
+  indexName: string
+  indexScans: number
+  sizeBytes: number
+}
+
+export type SlowQueryItem = {
+  query: string
+  calls: number
+  totalTimeMs: number
+  meanTimeMs: number
+  rows: number
+}
+
+export type DatabaseAdvisorReport = {
+  missingFkIndexes: MissingFkIndexItem[]
+  unusedIndexes: UnusedIndexItem[]
+  pgStatStatementsAvailable: boolean
+  slowQueries: SlowQueryItem[]
+  orphanedMediaCount: number | null
+  recommendations: string[]
+}
+
+/* -------------------------------------------------------------------------- */
+/* Read-Only SQL & EXPLAIN Diagnostics Inspector                              */
+/* -------------------------------------------------------------------------- */
+
+export const DIAGNOSTIC_SQL_PRESETS: readonly {
+  id: string
+  label: string
+  description: string
+  sql: string
+}[] = [
+  {
+    id: 'table-sizes',
+    label: 'Largest tables & indexes',
+    description: 'Top 20 public tables ranked by total heap + TOAST + index bytes.',
+    sql: `SELECT
+  relname AS table_name,
+  n_live_tup AS live_rows,
+  n_dead_tup AS dead_tuples,
+  pg_size_pretty(pg_table_size(relid)) AS heap_size,
+  pg_size_pretty(pg_indexes_size(relid)) AS index_size,
+  pg_size_pretty(pg_total_relation_size(relid)) AS total_size
+FROM pg_stat_user_tables
+WHERE schemaname = 'public'
+ORDER BY pg_total_relation_size(relid) DESC
+LIMIT 20`,
+  },
+  {
+    id: 'index-efficiency',
+    label: 'Index scan efficiency',
+    description: 'Compares index scans vs sequential scans and index disk footprint.',
+    sql: `SELECT
+  relname AS table_name,
+  indexrelname AS index_name,
+  idx_scan AS scans,
+  idx_tup_read AS tuples_read,
+  pg_size_pretty(pg_relation_size(indexrelid)) AS index_size
+FROM pg_stat_user_indexes
+WHERE schemaname = 'public'
+ORDER BY pg_relation_size(indexrelid) DESC, idx_scan ASC
+LIMIT 25`,
+  },
+  {
+    id: 'cache-by-table',
+    label: 'Buffer cache hit ratio by table',
+    description: 'Shared-buffer memory hit % per table from pg_statio_user_tables.',
+    sql: `SELECT
+  relname AS table_name,
+  heap_blks_hit AS buffer_hits,
+  heap_blks_read AS disk_reads,
+  CASE
+    WHEN (heap_blks_hit + heap_blks_read) > 0
+      THEN ROUND((heap_blks_hit::numeric / (heap_blks_hit + heap_blks_read)) * 100, 2)
+    ELSE 100
+  END AS hit_ratio_pct
+FROM pg_statio_user_tables
+WHERE schemaname = 'public'
+ORDER BY (heap_blks_hit + heap_blks_read) DESC
+LIMIT 20`,
+  },
+  {
+    id: 'active-queries',
+    label: 'Active sessions & wait events',
+    description: 'Current database backends, states, wait event types, and running durations.',
+    sql: `SELECT
+  pid,
+  usename AS role,
+  state,
+  wait_event_type,
+  wait_event,
+  EXTRACT(EPOCH FROM (NOW() - state_change))::numeric(10,2) AS state_seconds,
+  LEFT(query, 140) AS query_preview
+FROM pg_stat_activity
+WHERE datname = current_database()
+ORDER BY state_change ASC
+LIMIT 25`,
+  },
+  {
+    id: 'foreign-keys',
+    label: 'Foreign key dependency map',
+    description: 'Lists every foreign key relationship across public tables.',
+    sql: `SELECT
+  tc.table_name AS child_table,
+  kcu.column_name AS fk_column,
+  ccu.table_name AS parent_table,
+  ccu.column_name AS parent_column,
+  tc.constraint_name
+FROM information_schema.table_constraints tc
+JOIN information_schema.key_column_usage kcu
+  ON tc.constraint_name = kcu.constraint_name
+ AND tc.table_schema = kcu.table_schema
+JOIN information_schema.constraint_column_usage ccu
+  ON ccu.constraint_name = tc.constraint_name
+ AND ccu.table_schema = tc.table_schema
+WHERE tc.table_schema = 'public'
+  AND tc.constraint_type = 'FOREIGN KEY'
+ORDER BY tc.table_name, kcu.column_name`,
+  },
+] as const
+
+export type ReadOnlyQueryResult = {
+  columns: string[]
+  rows: Array<Record<string, unknown>>
+  rowCount: number
+  truncated: boolean
+  durationMs: number
+  explainMode: boolean
+  executedSql: string
+}
+
+/* -------------------------------------------------------------------------- */
+/* Repair & Maintenance Actions                                               */
+/* -------------------------------------------------------------------------- */
+
 export type RepairActionKind =
   | 'sync-sequences'
+  | 'create-missing-fk-indexes'
   | 'analyze-all'
   | 'vacuum-analyze'
   | 'reindex-public'
@@ -211,6 +480,14 @@ export const REPAIR_ACTION_META: readonly {
     description:
       'Aligns every serial/identity sequence with COALESCE(MAX(id), 1) to prevent duplicate-key insert errors after seeds or manual imports.',
     prefersUnpooled: false,
+    destructive: false,
+  },
+  {
+    action: 'create-missing-fk-indexes',
+    label: 'Create missing FK indexes',
+    description:
+      'Builds B-tree indexes (CONCURRENTLY when unpooled) on any foreign-key columns lacking an index to eliminate join & cascade scan bottlenecks.',
+    prefersUnpooled: true,
     destructive: false,
   },
   {
@@ -265,7 +542,7 @@ export type RepairOperationResult = {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Tier 2: Pluggable Serverless Provider Adapter DTOs                          */
+/* Tier 2: Pluggable Serverless Provider Adapter DTOs                         */
 /* -------------------------------------------------------------------------- */
 
 export type ProviderSlug = 'neon' | 'supabase' | 'prisma-postgres'
@@ -347,6 +624,8 @@ export type DatabaseManagementSnapshot = {
   tables: TableHealthRow[]
   sequences: SequenceHealthRow[]
   hygiene: PayloadHygieneReport
+  advisor: DatabaseAdvisorReport
+  codegen: CodegenCatalog
   vault: BackupVaultStatus
   activeProvider: ProviderSlug | null
   providers: ProviderStatusDescriptor[]
@@ -364,6 +643,15 @@ export function formatBytes(bytes: number | null | undefined): string {
   const exp = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1)
   const val = bytes / 1024 ** exp
   return `${exp === 0 ? Math.round(val) : val.toFixed(val >= 100 ? 0 : 1)} ${units[exp]}`
+}
+
+/** Infers backup format from a filename or cloud vault pathname. */
+export function inferBackupFormatFromFilename(name: string | null | undefined): BackupExportFormat {
+  const lower = (name ?? '').toLowerCase()
+  if (lower.includes('.ndjson') || lower.includes('.jsonl')) return 'ndjson'
+  if (lower.includes('.sql')) return 'sql'
+  if (lower.includes('.csv')) return 'csv'
+  return 'json'
 }
 
 /**
@@ -390,7 +678,6 @@ export function extractSupabaseProjectRefFromHost(
     if (directMatch?.[1]) return directMatch[1]
   }
   if (username) {
-    // Supavisor pooler format: `postgres.<project-ref>`
     const parts = username.trim().split('.')
     if (parts.length === 2 && parts[1]) return parts[1]
   }
@@ -528,7 +815,6 @@ export function topologicalSortTables(
   for (const table of tables) {
     const parentSet = new Set<string>()
     for (const fk of table.foreignKeys) {
-      // Ignore self-references and external tables outside the dump set.
       if (fk.refTable === table.name || !known.has(fk.refTable)) continue
       parentSet.add(fk.refTable)
     }
@@ -577,6 +863,7 @@ export function topologicalSortTables(
 export function classifyDatabaseHealth(
   vitals: DatabaseVitalStats,
   hygiene: PayloadHygieneReport,
+  advisor?: DatabaseAdvisorReport,
 ): { tone: RunTone; label: string; issues: string[] } {
   if (vitals.status === 'not-configured') {
     return { tone: 'muted', label: 'Not configured', issues: [] }
@@ -591,9 +878,7 @@ export function classifyDatabaseHealth(
 
   const issues: string[] = []
   if (hygiene.outOfSyncSequencesCount > 0) {
-    issues.push(
-      `${hygiene.outOfSyncSequencesCount} primary-key sequence(s) out of sync`,
-    )
+    issues.push(`${hygiene.outOfSyncSequencesCount} primary-key sequence(s) out of sync`)
   }
   if (hygiene.bloatedTablesCount > 0) {
     issues.push(`${hygiene.bloatedTablesCount} table(s) have high dead-tuple bloat`)
@@ -604,6 +889,9 @@ export function classifyDatabaseHealth(
   const missingOrders = hygiene.missingOrderRanks.reduce((sum, item) => sum + item.missingCount, 0)
   if (missingOrders > 0) {
     issues.push(`${missingOrders} document(s) missing _order rank`)
+  }
+  if (advisor && advisor.missingFkIndexes.length > 0) {
+    issues.push(`${advisor.missingFkIndexes.length} unindexed foreign-key column(s)`)
   }
   if (vitals.cacheHitRatio !== null && vitals.cacheHitRatio < 90) {
     issues.push(`Low buffer cache hit ratio (${vitals.cacheHitRatio}%)`)

@@ -1992,9 +1992,11 @@ export interface TaskCreateDatabaseBackup {
   input: {
     retentionCount?: number | null;
     label?: string | null;
+    format?: string | null;
   };
   output: {
     pathname?: string | null;
+    format?: string | null;
     sizeBytes?: number | null;
     tables?: number | null;
     rows?: number | null;

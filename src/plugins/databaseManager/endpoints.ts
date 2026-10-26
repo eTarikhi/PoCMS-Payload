@@ -6,29 +6,45 @@ import { recordDatabaseAuditLog } from '@/plugins/auditLog'
 import {
   deleteCloudBackup,
   downloadCloudBackupBytes,
-  exportLogicalBackupArchive,
+  exportFormattedDatabaseBackup,
   saveEncryptedBackupToVault,
   type BlobVaultDriver,
 } from './core/backup'
+import {
+  generateMigrationFromDatabase,
+  generateSeedFromDatabase,
+} from './core/codegen'
 import {
   createPayloadSqlExecutor,
   resolvePostgresUrls,
   type DirectClientRunner,
   type SqlExecutor,
 } from './core/connection'
-import { packLogicalBackup, resolveBackupEncryptionSecret } from './core/crypto'
+import { resolveBackupEncryptionSecret } from './core/crypto'
+import { executeReadOnlyDiagnosticQuery } from './core/queryRunner'
 import { runDatabaseRepairAction } from './core/repair'
 import { dryRunLogicalRestore, executeLogicalRestore } from './core/restore'
 import { DEFAULT_PROVIDER_ADAPTERS, getProviderAdapterBySlug } from './providers/registry'
 import type { DatabaseProviderAdapter } from './providers/types'
 import {
   REPAIR_ACTION_META,
+  type BackupContentMode,
+  type BackupExportFormat,
+  type CsvRestoreStrategy,
+  type MigrationGenMode,
   type ProviderSlug,
   type RepairActionKind,
+  type SeedGenMode,
 } from './shared'
 import { collectDatabaseManagementSnapshot } from './snapshot'
 
 const VALID_REPAIR_ACTIONS = new Set<string>(REPAIR_ACTION_META.map((m) => m.action))
+const VALID_BACKUP_FORMATS = new Set<BackupExportFormat>(['sql', 'json', 'ndjson', 'csv'])
+const VALID_CONTENT_MODES = new Set<BackupContentMode>([
+  'schema-and-data',
+  'data-only',
+  'schema-only',
+])
 
 export type DatabaseEndpointsDeps = {
   executor?: SqlExecutor | null
@@ -45,6 +61,20 @@ function forbiddenResponse() {
   )
 }
 
+function parseFormatParam(raw: string | null | undefined): BackupExportFormat {
+  if (raw && VALID_BACKUP_FORMATS.has(raw as BackupExportFormat)) {
+    return raw as BackupExportFormat
+  }
+  return 'json'
+}
+
+function parseContentModeParam(raw: string | null | undefined): BackupContentMode {
+  if (raw && VALID_CONTENT_MODES.has(raw as BackupContentMode)) {
+    return raw as BackupContentMode
+  }
+  return 'schema-and-data'
+}
+
 async function parseBackupBytesFromRestoreRequest(
   req: PayloadRequest,
   deps: DatabaseEndpointsDeps,
@@ -55,6 +85,9 @@ async function parseBackupBytesFromRestoreRequest(
   createSafetySnapshot: boolean
   allowRedactedRestore: boolean
   sourceLabel: string
+  formatHint: BackupExportFormat | null
+  csvTable: string | null
+  csvStrategy: CsvRestoreStrategy
 }> {
   const env = deps.env ?? process.env
   const contentType = req.headers?.get?.('content-type')?.toLowerCase() ?? ''
@@ -67,6 +100,13 @@ async function parseBackupBytesFromRestoreRequest(
     const confirm = String(form.get('confirm') ?? '')
     const createSafetySnapshot = String(form.get('createSafetySnapshot') ?? 'true') !== 'false'
     const allowRedactedRestore = String(form.get('allowRedactedRestore') ?? 'false') === 'true'
+    const rawFormat = String(form.get('format') ?? '').trim()
+    const formatHint = VALID_BACKUP_FORMATS.has(rawFormat as BackupExportFormat)
+      ? (rawFormat as BackupExportFormat)
+      : null
+    const csvTable = String(form.get('csvTable') ?? '').trim() || null
+    const csvStrategy: CsvRestoreStrategy =
+      String(form.get('csvStrategy') ?? 'upsert') === 'replace' ? 'replace' : 'upsert'
 
     if (!fileEntry || typeof (fileEntry as Blob).arrayBuffer !== 'function') {
       throw new Error('Missing uploaded backup file.')
@@ -84,6 +124,9 @@ async function parseBackupBytesFromRestoreRequest(
       createSafetySnapshot,
       allowRedactedRestore,
       sourceLabel: name,
+      formatHint,
+      csvTable,
+      csvStrategy,
     }
   }
 
@@ -91,7 +134,11 @@ async function parseBackupBytesFromRestoreRequest(
     source?: 'vault' | 'inline'
     pathname?: string
     base64?: string
+    text?: string
     filename?: string
+    format?: string
+    csvTable?: string
+    csvStrategy?: CsvRestoreStrategy
     mode?: 'dry-run' | 'execute'
     confirm?: string
     createSafetySnapshot?: boolean
@@ -102,6 +149,12 @@ async function parseBackupBytesFromRestoreRequest(
   const confirm = body.confirm ?? ''
   const createSafetySnapshot = body.createSafetySnapshot !== false
   const allowRedactedRestore = Boolean(body.allowRedactedRestore)
+  const formatHint =
+    body.format && VALID_BACKUP_FORMATS.has(body.format as BackupExportFormat)
+      ? (body.format as BackupExportFormat)
+      : null
+  const csvTable = body.csvTable?.trim() || null
+  const csvStrategy: CsvRestoreStrategy = body.csvStrategy === 'replace' ? 'replace' : 'upsert'
 
   if (body.source === 'vault' || body.pathname) {
     if (!body.pathname?.trim()) {
@@ -118,6 +171,9 @@ async function parseBackupBytesFromRestoreRequest(
       createSafetySnapshot,
       allowRedactedRestore,
       sourceLabel: body.pathname.trim(),
+      formatHint,
+      csvTable,
+      csvStrategy,
     }
   }
 
@@ -129,6 +185,23 @@ async function parseBackupBytesFromRestoreRequest(
       createSafetySnapshot,
       allowRedactedRestore,
       sourceLabel: body.filename?.trim() || 'inline-archive',
+      formatHint,
+      csvTable,
+      csvStrategy,
+    }
+  }
+
+  if (typeof body.text === 'string' && body.text.length > 0) {
+    return {
+      bytes: Buffer.from(body.text, 'utf8'),
+      mode,
+      confirm,
+      createSafetySnapshot,
+      allowRedactedRestore,
+      sourceLabel: body.filename?.trim() || 'inline-script',
+      formatHint,
+      csvTable,
+      csvStrategy,
     }
   }
 
@@ -168,11 +241,13 @@ export function createDatabaseManagementEndpoints(
 
         try {
           const url = req.url ? new URL(req.url, 'http://localhost') : null
-          const source = url?.searchParams.get('source') ?? req.searchParams?.get('source') ?? 'live'
+          const getParam = (key: string) =>
+            url?.searchParams.get(key) ?? req.searchParams?.get(key) ?? null
+
+          const source = getParam('source') ?? 'live'
 
           if (source === 'vault') {
-            const pathname =
-              url?.searchParams.get('pathname') ?? req.searchParams?.get('pathname') ?? ''
+            const pathname = getParam('pathname') ?? ''
             if (!pathname) {
               return Response.json({ error: 'Missing vault pathname.' }, { status: 400 })
             }
@@ -191,10 +266,27 @@ export function createDatabaseManagementEndpoints(
             })
           }
 
-          const redactSecrets =
-            (url?.searchParams.get('redact') ?? req.searchParams?.get('redact')) === 'true'
-          const encrypt =
-            (url?.searchParams.get('encrypt') ?? req.searchParams?.get('encrypt')) === 'true'
+          const format = parseFormatParam(getParam('format'))
+          const contentMode = parseContentModeParam(getParam('contentMode'))
+          const redactSecrets = getParam('redact') === 'true'
+          const anonymizePii = getParam('anonymize') === 'true'
+          const encrypt = getParam('encrypt') === 'true'
+          const upsertSql = getParam('upsert') === 'true'
+          const rawCompress = getParam('compress')
+          const compress =
+            rawCompress === 'true'
+              ? true
+              : rawCompress === 'false'
+                ? false
+                : format === 'json' || format === 'ndjson'
+          const csvTable = getParam('csvTable') ?? undefined
+          const rawTables = getParam('tables')
+          const tables = rawTables
+            ? rawTables
+                .split(',')
+                .map((t) => t.trim())
+                .filter(Boolean)
+            : undefined
 
           const executor =
             deps.executor !== undefined
@@ -204,11 +296,6 @@ export function createDatabaseManagementEndpoints(
             return Response.json({ error: 'POSTGRES_URL is not configured.' }, { status: 400 })
           }
 
-          const { diagnostics } = resolvePostgresUrls(env)
-          const archive = await exportLogicalBackupArchive(executor, {
-            redactSecrets,
-            databaseName: diagnostics.database,
-          })
           const encryptionSecret = encrypt ? resolveBackupEncryptionSecret(env) : null
           if (encrypt && !encryptionSecret) {
             return Response.json(
@@ -220,33 +307,43 @@ export function createDatabaseManagementEndpoints(
             )
           }
 
-          const packed = packLogicalBackup(archive, {
-            compress: true,
+          const { diagnostics } = resolvePostgresUrls(env)
+          const exported = await exportFormattedDatabaseBackup(executor, {
+            format,
+            contentMode,
+            tables,
+            csvTable,
+            redactSecrets,
+            anonymizePii,
+            compress,
             encryptionSecret,
+            upsertSql,
+            databaseName: diagnostics.database,
           })
-
-          const stamp = archive.createdAt.slice(0, 19).replace(/[:T]/g, '-')
-          const filename = `pocms-db-${stamp}${redactSecrets ? '-redacted' : ''}${packed.extension}`
 
           await recordDatabaseAuditLog(req, {
             action: 'backup',
-            entityType: 'postgresql-backup',
-            documentTitle: filename,
+            entityType: `postgresql-backup-${format}`,
+            documentTitle: exported.filename,
             meta: {
               delivery: 'browser-download',
-              encrypted: packed.encrypted,
+              format,
+              contentMode,
+              encrypted: exported.encrypted,
+              compressed: exported.compressed,
               redactedSecrets: redactSecrets,
-              tables: archive.tables.length,
-              rows: archive.tables.reduce((s, t) => s + t.rowCount, 0),
-              sizeBytes: packed.bytes.length,
+              anonymizePii,
+              tables: exported.tableCount,
+              rows: exported.rowCount,
+              sizeBytes: exported.bytes.length,
             },
           })
 
-          return new Response(new Uint8Array(packed.bytes), {
+          return new Response(new Uint8Array(exported.bytes), {
             status: 200,
             headers: {
-              'Content-Type': packed.contentType,
-              'Content-Disposition': `attachment; filename="${filename}"`,
+              'Content-Type': exported.contentType,
+              'Content-Disposition': `attachment; filename="${exported.filename}"`,
               'Cache-Control': 'no-store',
             },
           })
@@ -277,7 +374,13 @@ export function createDatabaseManagementEndpoints(
           }
 
           if (parsed.mode === 'dry-run') {
-            const report = await dryRunLogicalRestore(executor, parsed.bytes, { env })
+            const report = await dryRunLogicalRestore(executor, parsed.bytes, {
+              env,
+              filename: parsed.sourceLabel,
+              formatHint: parsed.formatHint,
+              csvTable: parsed.csvTable,
+              csvStrategy: parsed.csvStrategy,
+            })
             return Response.json({ ok: true, mode: 'dry-run', report })
           }
 
@@ -302,6 +405,10 @@ export function createDatabaseManagementEndpoints(
           const result = await executeLogicalRestore(req.payload, parsed.bytes, {
             env,
             directRunner: deps.directRunner,
+            filename: parsed.sourceLabel,
+            formatHint: parsed.formatHint,
+            csvTable: parsed.csvTable,
+            csvStrategy: parsed.csvStrategy,
             allowRedactedRestore: parsed.allowRedactedRestore,
             onBeforeRestoreSafetySnapshot:
               parsed.createSafetySnapshot && activeAdapter?.createSnapshot
@@ -323,9 +430,10 @@ export function createDatabaseManagementEndpoints(
 
           await recordDatabaseAuditLog(req, {
             action: 'restore',
-            entityType: 'postgresql-restore',
+            entityType: `postgresql-restore-${result.detectedFormat ?? 'json'}`,
             documentTitle: parsed.sourceLabel,
             meta: {
+              detectedFormat: result.detectedFormat,
               restoredTables: result.restoredTables,
               restoredRows: result.restoredRows,
               syncedSequences: result.syncedSequences,
@@ -367,12 +475,25 @@ export function createDatabaseManagementEndpoints(
         const body = (await req.json?.().catch(() => ({}))) as {
           action?: string
           label?: string
+          format?: string
+          contentMode?: string
+          tables?: string[]
+          collections?: string[]
+          globals?: string[]
           retentionCount?: number
           pathname?: string
           waitUntil?: string
           repairAction?: string
           tableName?: string
           forceAllLocks?: boolean
+          migrationMode?: MigrationGenMode
+          seedMode?: SeedGenMode
+          anonymizePii?: boolean
+          includeDrafts?: boolean
+          writeToDisk?: boolean
+          sql?: string
+          explain?: boolean
+          maxRows?: number
           provider?: ProviderSlug
           name?: string
           expiresInDays?: number
@@ -402,21 +523,30 @@ export function createDatabaseManagementEndpoints(
             env,
           })
 
+        const getExecutor = () =>
+          deps.executor !== undefined
+            ? deps.executor
+            : createPayloadSqlExecutor(req.payload, env)
+
         try {
           const { diagnostics } = resolvePostgresUrls(env)
 
           if (action === 'vault-save') {
-            const executor =
-              deps.executor !== undefined
-                ? deps.executor
-                : createPayloadSqlExecutor(req.payload, env)
+            const executor = getExecutor()
             if (!executor) {
               return Response.json({ error: 'POSTGRES_URL is not configured.' }, { status: 400 })
             }
+            const vaultFormat =
+              body.format === 'sql' || body.format === 'ndjson' ? body.format : 'json'
+            const contentMode = parseContentModeParam(body.contentMode)
+
             const saved = await saveEncryptedBackupToVault(executor, {
               env,
               driver: deps.blobDriver,
               label: body.label,
+              format: vaultFormat,
+              contentMode,
+              tables: Array.isArray(body.tables) && body.tables.length > 0 ? body.tables : undefined,
               retentionCount: body.retentionCount,
               databaseName: diagnostics.database,
             })
@@ -428,6 +558,8 @@ export function createDatabaseManagementEndpoints(
               documentTitle: saved.item.filename,
               meta: {
                 encrypted: true,
+                format: vaultFormat,
+                contentMode,
                 sizeBytes: saved.item.sizeBytes,
                 tables: saved.tableCount,
                 rows: saved.rowCount,
@@ -474,6 +606,9 @@ export function createDatabaseManagementEndpoints(
               waitUntilDate = parsed
             }
 
+            const scheduledFormat =
+              body.format === 'sql' || body.format === 'ndjson' ? body.format : 'json'
+
             const queued = await req.payload.jobs.queue({
               task: 'createDatabaseBackup',
               input: {
@@ -482,6 +617,7 @@ export function createDatabaseManagementEndpoints(
                     ? body.retentionCount
                     : 10,
                 label: body.label?.trim() || 'scheduled',
+                format: scheduledFormat,
               },
               queue: 'default',
               ...(waitUntilDate ? { waitUntil: waitUntilDate } : {}),
@@ -494,6 +630,7 @@ export function createDatabaseManagementEndpoints(
               documentId: String(queued.id),
               documentTitle: body.label?.trim() || 'scheduled',
               meta: {
+                format: scheduledFormat,
                 waitUntil: waitUntilDate ? waitUntilDate.toISOString() : null,
                 retentionCount: body.retentionCount ?? 10,
               },
@@ -503,6 +640,105 @@ export function createDatabaseManagementEndpoints(
               ok: true,
               jobId: queued.id,
               snapshot: await refreshSnapshot(),
+            })
+          }
+
+          if (action === 'generate-migration') {
+            const executor = getExecutor()
+            if (!executor) {
+              return Response.json({ error: 'POSTGRES_URL is not configured.' }, { status: 400 })
+            }
+
+            const artifact = await generateMigrationFromDatabase(executor, {
+              name: body.name,
+              mode: body.migrationMode ?? 'schema-baseline',
+              tables: Array.isArray(body.tables) && body.tables.length > 0 ? body.tables : undefined,
+              anonymizePii: Boolean(body.anonymizePii),
+              redactSecrets: true,
+              writeToDisk: Boolean(body.writeToDisk),
+              env,
+            })
+
+            await recordDatabaseAuditLog(req, {
+              action: 'backup',
+              entityType: 'postgresql-migration-codegen',
+              documentId: artifact.relativePath,
+              documentTitle: artifact.filename,
+              meta: {
+                mode: artifact.mode,
+                language: artifact.language,
+                tables: artifact.tableCount,
+                rows: artifact.rowCount,
+                writtenToDisk: artifact.writtenToDisk,
+                sizeBytes: artifact.sizeBytes,
+              },
+            })
+
+            return Response.json({
+              ok: true,
+              artifact,
+              ...(artifact.writtenToDisk ? { snapshot: await refreshSnapshot() } : {}),
+            })
+          }
+
+          if (action === 'generate-seed') {
+            const executor = getExecutor()
+            if (!executor) {
+              return Response.json({ error: 'POSTGRES_URL is not configured.' }, { status: 400 })
+            }
+
+            const artifact = await generateSeedFromDatabase(req.payload, executor, {
+              name: body.name,
+              mode: body.seedMode ?? 'payload-local-api',
+              collections:
+                Array.isArray(body.collections) && body.collections.length > 0
+                  ? body.collections
+                  : undefined,
+              globals:
+                Array.isArray(body.globals) && body.globals.length > 0
+                  ? body.globals
+                  : undefined,
+              tables:
+                Array.isArray(body.tables) && body.tables.length > 0 ? body.tables : undefined,
+              anonymizePii: body.anonymizePii !== false,
+              includeDrafts: body.includeDrafts !== false,
+              writeToDisk: Boolean(body.writeToDisk),
+              env,
+            })
+
+            await recordDatabaseAuditLog(req, {
+              action: 'backup',
+              entityType: 'postgresql-seed-codegen',
+              documentId: artifact.relativePath,
+              documentTitle: artifact.filename,
+              meta: {
+                mode: artifact.mode,
+                language: artifact.language,
+                entities: artifact.tableCount,
+                records: artifact.rowCount,
+                writtenToDisk: artifact.writtenToDisk,
+                sizeBytes: artifact.sizeBytes,
+              },
+            })
+
+            return Response.json({
+              ok: true,
+              artifact,
+              ...(artifact.writtenToDisk ? { snapshot: await refreshSnapshot() } : {}),
+            })
+          }
+
+          if (action === 'sql-query') {
+            const queryResult = await executeReadOnlyDiagnosticQuery(body.sql ?? '', {
+              explain: Boolean(body.explain),
+              maxRows: body.maxRows,
+              env,
+              executor: deps.executor,
+              directRunner: deps.directRunner,
+            })
+            return Response.json({
+              ok: true,
+              queryResult,
             })
           }
 
@@ -716,10 +952,13 @@ export function createDatabaseManagementEndpoints(
             if (action === 'provider-compute') {
               if (
                 !adapter.controlCompute ||
-                !body.endpointId?.trim() ||
-                !body.operation ||
-                !['start', 'suspend', 'restart'].includes(body.operation)
-              ) {
+                !body.endpointId?.trim()) {
+                return Response.json(
+                  { error: 'Invalid compute endpoint control parameters.' },
+                  { status: 400 },
+                )
+              }
+              if (!body.operation || !['start', 'suspend', 'restart'].includes(body.operation)) {
                 return Response.json(
                   { error: 'Invalid compute endpoint control parameters.' },
                   { status: 400 },

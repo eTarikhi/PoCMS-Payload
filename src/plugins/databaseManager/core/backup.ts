@@ -7,8 +7,12 @@ import {
 } from '@vercel/blob'
 
 import {
+  inferBackupFormatFromFilename,
   LOGICAL_BACKUP_FORMAT,
   type BackupColumnMeta,
+  type BackupContentMode,
+  type BackupEnumMeta,
+  type BackupExportFormat,
   type BackupForeignKeyMeta,
   type BackupTableDump,
   type BackupVaultStatus,
@@ -19,9 +23,15 @@ import {
 import { quoteIdent, type SqlExecutor } from './connection'
 import {
   computeArchiveChecksum,
-  packLogicalBackup,
+  packBackupDocument,
   resolveBackupEncryptionSecret,
 } from './crypto'
+import {
+  anonymizeTableRowPii,
+  serializeArchiveToNdjson,
+  serializeArchiveToSql,
+  serializeTableToCsv,
+} from './formats'
 import { inspectSequences } from './monitor'
 
 export const CLOUD_BACKUP_PREFIX = 'backups/database/' as const
@@ -61,12 +71,15 @@ function normalizeValueForJson(value: unknown): unknown {
 
 /**
  * Pure-TypeScript logical database backup engine (works on Vercel Serverless without `pg_dump`).
- * Exports public user tables, column metadata, PK/FK constraints, sequence positions, and migrations.
+ * Exports public user tables, enums, column metadata, PK/FK constraints, sequence positions, and migrations.
  */
 export async function exportLogicalBackupArchive(
   executor: SqlExecutor,
   options: {
     redactSecrets?: boolean
+    anonymizePii?: boolean
+    contentMode?: BackupContentMode
+    tables?: readonly string[]
     includeTransientTables?: boolean
     appVersion?: string
     payloadVersion?: string
@@ -75,13 +88,16 @@ export async function exportLogicalBackupArchive(
 ): Promise<LogicalBackupArchive> {
   const {
     redactSecrets = false,
+    anonymizePii = false,
+    contentMode = 'schema-and-data',
+    tables: requestedTables,
     includeTransientTables = false,
     appVersion = '1.0.0',
     payloadVersion = '3.90.2',
     databaseName = null,
   } = options
 
-  const [versionRes, tablesRes, columnsRes, pkRes, fkRes] = await Promise.all([
+  const [versionRes, tablesRes, columnsRes, pkRes, fkRes, enumsRes] = await Promise.all([
     executor
       .query<{ version: string }>(`SELECT version() AS version`)
       .catch(() => ({ rows: [] as Array<{ version: string }> })),
@@ -98,13 +114,21 @@ export async function exportLogicalBackupArchive(
       data_type: string
       udt_name: string
       is_nullable: string
+      column_default?: string | null
+      character_maximum_length?: number | null
+      numeric_precision?: number | null
+      numeric_scale?: number | null
     }>(`
       SELECT
         table_name,
         column_name,
         data_type,
         udt_name,
-        is_nullable
+        is_nullable,
+        column_default,
+        character_maximum_length,
+        numeric_precision,
+        numeric_scale
       FROM information_schema.columns
       WHERE table_schema = 'public'
       ORDER BY table_name ASC, ordinal_position ASC
@@ -126,12 +150,14 @@ export async function exportLogicalBackupArchive(
       column_name: string
       ref_table: string
       ref_column: string
+      constraint_name?: string
     }>(`
       SELECT
         tc.table_name,
         kcu.column_name,
         ccu.table_name AS ref_table,
-        ccu.column_name AS ref_column
+        ccu.column_name AS ref_column,
+        tc.constraint_name
       FROM information_schema.table_constraints tc
       JOIN information_schema.key_column_usage kcu
         ON tc.constraint_name = kcu.constraint_name
@@ -143,7 +169,30 @@ export async function exportLogicalBackupArchive(
         AND tc.constraint_type = 'FOREIGN KEY'
       ORDER BY tc.table_name ASC, kcu.ordinal_position ASC
     `),
+    executor
+      .query<{ enum_name: string; enum_label: string }>(`
+        SELECT
+          t.typname AS enum_name,
+          e.enumlabel AS enum_label
+        FROM pg_type t
+        JOIN pg_enum e ON t.oid = e.enumtypid
+        JOIN pg_namespace n ON n.oid = t.typnamespace
+        WHERE n.nspname = 'public'
+        ORDER BY t.typname ASC, e.enumsortorder ASC
+      `)
+      .catch(() => ({ rows: [] as Array<{ enum_name: string; enum_label: string }> })),
   ])
+
+  const enumsMap = new Map<string, string[]>()
+  for (const row of enumsRes.rows) {
+    const arr = enumsMap.get(row.enum_name) ?? []
+    arr.push(row.enum_label)
+    enumsMap.set(row.enum_name, arr)
+  }
+  const enums: BackupEnumMeta[] = [...enumsMap.entries()].map(([name, values]) => ({
+    name,
+    values,
+  }))
 
   const columnsByTable = new Map<string, BackupColumnMeta[]>()
   for (const col of columnsRes.rows) {
@@ -153,6 +202,12 @@ export async function exportLogicalBackupArchive(
       dataType: col.data_type,
       udtName: col.udt_name,
       isNullable: col.is_nullable === 'YES',
+      ...(col.column_default !== undefined ? { columnDefault: col.column_default } : {}),
+      ...(col.character_maximum_length !== undefined
+        ? { characterMaximumLength: col.character_maximum_length }
+        : {}),
+      ...(col.numeric_precision !== undefined ? { numericPrecision: col.numeric_precision } : {}),
+      ...(col.numeric_scale !== undefined ? { numericScale: col.numeric_scale } : {}),
     })
     columnsByTable.set(col.table_name, arr)
   }
@@ -179,18 +234,25 @@ export async function exportLogicalBackupArchive(
         column: fk.column_name,
         refTable: fk.ref_table,
         refColumn: fk.ref_column,
+        ...(fk.constraint_name ? { constraintName: fk.constraint_name } : {}),
       })
     }
     fkByTable.set(fk.table_name, arr)
   }
 
+  const filterSet =
+    requestedTables && requestedTables.length > 0 ? new Set(requestedTables) : null
+
   const targetTableNames = tablesRes.rows
     .map((r) => r.table_name)
-    .filter((name) => includeTransientTables || !DEFAULT_EXCLUDED_TABLES.has(name))
+    .filter((name) => {
+      if (filterSet) return filterSet.has(name)
+      return includeTransientTables || !DEFAULT_EXCLUDED_TABLES.has(name)
+    })
 
   const tables: BackupTableDump[] = []
   for (const tableName of targetTableNames) {
-    if (redactSecrets && tableName === 'users_sessions') {
+    if (contentMode === 'schema-only' || (redactSecrets && tableName === 'users_sessions')) {
       tables.push({
         name: tableName,
         columns: columnsByTable.get(tableName) ?? [],
@@ -212,7 +274,7 @@ export async function exportLogicalBackupArchive(
     )
 
     const shouldRedactTable = redactSecrets && AUTH_RELATED_TABLES.has(tableName)
-    const normalizedRows = rowsRes.rows.map((rawRow) => {
+    const normalizedRows = rowsRes.rows.map((rawRow, rowIdx) => {
       const clean: Record<string, unknown> = {}
       for (const [key, val] of Object.entries(rawRow)) {
         if (shouldRedactTable && REDACTED_AUTH_COLUMNS.has(key)) {
@@ -221,7 +283,7 @@ export async function exportLogicalBackupArchive(
           clean[key] = normalizeValueForJson(val)
         }
       }
-      return clean
+      return anonymizePii ? anonymizeTableRowPii(tableName, clean, rowIdx) : clean
     })
 
     tables.push({
@@ -236,12 +298,15 @@ export async function exportLogicalBackupArchive(
 
   const seqHealth = await inspectSequences(executor).catch(() => [])
   const sequences: LogicalBackupArchive['sequences'] = seqHealth
-    .filter((s) => includeTransientTables || !DEFAULT_EXCLUDED_TABLES.has(s.tableName))
+    .filter((s) => {
+      if (filterSet) return filterSet.has(s.tableName)
+      return includeTransientTables || !DEFAULT_EXCLUDED_TABLES.has(s.tableName)
+    })
     .map((s) => ({
       tableName: s.tableName,
       columnName: s.columnName,
       sequenceName: s.sequenceName,
-      maxId: s.maxId,
+      maxId: contentMode === 'schema-only' ? 0 : s.maxId,
     }))
 
   let migrations: LogicalBackupArchive['migrations'] = []
@@ -267,10 +332,128 @@ export async function exportLogicalBackupArchive(
     serverVersion,
     databaseName,
     redactedSecrets: redactSecrets,
+    anonymizedPii: anonymizePii,
+    contentMode,
+    enums,
     migrations,
     tables,
     sequences,
     checksumSha256,
+  }
+}
+
+/**
+ * Exports a database backup in any supported format (`sql`, `json`, `ndjson`, `csv`),
+ * with optional secret redaction, PII anonymization, gzip compression, and AES-256-GCM encryption.
+ */
+export async function exportFormattedDatabaseBackup(
+  executor: SqlExecutor,
+  options: {
+    format?: BackupExportFormat
+    contentMode?: BackupContentMode
+    tables?: readonly string[]
+    csvTable?: string
+    redactSecrets?: boolean
+    anonymizePii?: boolean
+    compress?: boolean
+    encryptionSecret?: string | null
+    upsertSql?: boolean
+    databaseName?: string | null
+  } = {},
+): Promise<{
+  bytes: Buffer
+  contentType: string
+  extension: string
+  filename: string
+  format: BackupExportFormat
+  encrypted: boolean
+  compressed: boolean
+  tableCount: number
+  rowCount: number
+  createdAt: string
+}> {
+  const format: BackupExportFormat = options.format ?? 'json'
+  const contentMode: BackupContentMode = options.contentMode ?? 'schema-and-data'
+  const compress = options.compress ?? format !== 'csv'
+
+  if (format === 'csv') {
+    const csvTable = options.csvTable?.trim() || options.tables?.[0]?.trim()
+    if (!csvTable) {
+      throw new Error('Select a target table when exporting in CSV format.')
+    }
+    const archive = await exportLogicalBackupArchive(executor, {
+      tables: [csvTable],
+      contentMode: 'data-only',
+      redactSecrets: options.redactSecrets,
+      anonymizePii: options.anonymizePii,
+      includeTransientTables: true,
+      databaseName: options.databaseName,
+    })
+    const dump = archive.tables.find((t) => t.name === csvTable)
+    if (!dump) {
+      throw new Error(`Table "${csvTable}" was not found in schema public.`)
+    }
+    const csvText = serializeTableToCsv(dump)
+    const packed = packBackupDocument(csvText, {
+      format: 'csv',
+      createdAt: archive.createdAt,
+      compress,
+      encryptionSecret: options.encryptionSecret ?? null,
+    })
+    const stamp = archive.createdAt.slice(0, 19).replace(/[:T]/g, '-')
+    const filename = `pocms-${csvTable}-${stamp}${packed.extension}`
+    return {
+      ...packed,
+      filename,
+      format: 'csv',
+      tableCount: 1,
+      rowCount: dump.rowCount,
+      createdAt: archive.createdAt,
+    }
+  }
+
+  const archive = await exportLogicalBackupArchive(executor, {
+    contentMode,
+    tables: options.tables,
+    redactSecrets: options.redactSecrets,
+    anonymizePii: options.anonymizePii,
+    databaseName: options.databaseName,
+  })
+
+  let serializedText: string
+  if (format === 'sql') {
+    serializedText = serializeArchiveToSql(archive, {
+      contentMode,
+      includeTransaction: true,
+      includeTruncate: !options.upsertSql,
+      upsertOnConflict: Boolean(options.upsertSql),
+    })
+  } else if (format === 'ndjson') {
+    serializedText = serializeArchiveToNdjson(archive)
+  } else {
+    serializedText = JSON.stringify(archive)
+  }
+
+  const packed = packBackupDocument(serializedText, {
+    format,
+    createdAt: archive.createdAt,
+    compress,
+    encryptionSecret: options.encryptionSecret ?? null,
+  })
+
+  const stamp = archive.createdAt.slice(0, 19).replace(/[:T]/g, '-')
+  const modeTag = contentMode === 'schema-and-data' ? '' : `-${contentMode}`
+  const redactTag = options.redactSecrets ? '-redacted' : ''
+  const anonTag = options.anonymizePii ? '-anon' : ''
+  const filename = `pocms-db-${stamp}${modeTag}${redactTag}${anonTag}${packed.extension}`
+
+  return {
+    ...packed,
+    filename,
+    format,
+    tableCount: archive.tables.length,
+    rowCount: archive.tables.reduce((s, t) => s + t.rowCount, 0),
+    createdAt: archive.createdAt,
   }
 }
 
@@ -311,7 +494,6 @@ const defaultBlobDriver: BlobVaultDriver = {
   put: (pathname, body, options) => vercelBlobPut(pathname, body, options),
   del: (urlOrPathname, options) => vercelBlobDel(urlOrPathname, options),
   async readBytes(pathname, blobUrl, token) {
-    // Try private store access first, then public fetch fallback so both private and public Blob stores work.
     try {
       const priv = await vercelBlobGet(pathname, { access: 'private', token, useCache: false })
       if (priv && priv.statusCode === 200 && priv.stream) {
@@ -384,6 +566,7 @@ export async function listCloudBackups(options: {
           sizeBytes: blob.size,
           uploadedAt,
           encrypted: blob.pathname.includes('.enc.'),
+          format: inferBackupFormatFromFilename(filename),
         }
       })
       .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt))
@@ -407,8 +590,8 @@ export async function listCloudBackups(options: {
 }
 
 /**
- * Exports a full logical PostgreSQL backup, encrypts it with AES-256-GCM, stores it in Vercel Blob,
- * and prunes older archives beyond `retentionCount`.
+ * Exports a database backup (`json`, `sql`, or `ndjson`), encrypts it with AES-256-GCM,
+ * stores it in Vercel Blob, and prunes older archives beyond `retentionCount`.
  */
 export async function saveEncryptedBackupToVault(
   executor: SqlExecutor,
@@ -417,6 +600,9 @@ export async function saveEncryptedBackupToVault(
     driver?: BlobVaultDriver
     retentionCount?: number
     label?: string
+    format?: Exclude<BackupExportFormat, 'csv'>
+    contentMode?: BackupContentMode
+    tables?: readonly string[]
     databaseName?: string | null
   } = {},
 ): Promise<{
@@ -428,6 +614,7 @@ export async function saveEncryptedBackupToVault(
   const env = options.env ?? process.env
   const driver = options.driver ?? defaultBlobDriver
   const retentionCount = Math.max(1, options.retentionCount ?? 10)
+  const format = options.format ?? 'json'
 
   const token = resolveBlobToken(env)
   if (!token) {
@@ -443,22 +630,24 @@ export async function saveEncryptedBackupToVault(
     )
   }
 
-  const archive = await exportLogicalBackupArchive(executor, {
+  const exported = await exportFormattedDatabaseBackup(executor, {
+    format,
+    contentMode: options.contentMode ?? 'schema-and-data',
+    tables: options.tables,
     redactSecrets: false,
-    databaseName: options.databaseName ?? null,
-  })
-  const packed = packLogicalBackup(archive, {
     compress: true,
     encryptionSecret: secret,
+    databaseName: options.databaseName ?? null,
   })
 
-  const safeSlug = (options.label ?? 'backup')
-    .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 32) || 'backup'
-  const stamp = archive.createdAt.replace(/[:.]/g, '-')
-  const targetPathname = `${CLOUD_BACKUP_PREFIX}pocms-${safeSlug}-${stamp}${packed.extension}`
+  const safeSlug =
+    (options.label ?? 'backup')
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 32) || 'backup'
+  const stamp = exported.createdAt.replace(/[:.]/g, '-')
+  const targetPathname = `${CLOUD_BACKUP_PREFIX}pocms-${safeSlug}-${stamp}${exported.extension}`
 
   const preferredAccess: 'private' | 'public' =
     env.DATABASE_BLOB_ACCESS === 'private' || Boolean(env.DATABASE_BLOB_READ_WRITE_TOKEN)
@@ -467,19 +656,18 @@ export async function saveEncryptedBackupToVault(
 
   let uploaded: { pathname: string; url: string; downloadUrl: string }
   try {
-    uploaded = await driver.put(targetPathname, packed.bytes, {
+    uploaded = await driver.put(targetPathname, exported.bytes, {
       access: preferredAccess,
       addRandomSuffix: true,
-      contentType: packed.contentType,
+      contentType: exported.contentType,
       token,
     })
   } catch (error) {
     if (preferredAccess === 'private' && error instanceof BlobAccessError) {
-      // Store is configured as public; ciphertext is AES-256-GCM encrypted with random suffix.
-      uploaded = await driver.put(targetPathname, packed.bytes, {
+      uploaded = await driver.put(targetPathname, exported.bytes, {
         access: 'public',
         addRandomSuffix: true,
-        contentType: packed.contentType,
+        contentType: exported.contentType,
         token,
       })
     } else {
@@ -487,7 +675,6 @@ export async function saveEncryptedBackupToVault(
     }
   }
 
-  // Retention pruning
   let prunedCount = 0
   try {
     const listed = await driver.list({
@@ -512,18 +699,18 @@ export async function saveEncryptedBackupToVault(
     // Non-fatal if list/del fails after upload succeeded.
   }
 
-  const totalRows = archive.tables.reduce((sum, t) => sum + t.rowCount, 0)
   return {
     item: {
       pathname: uploaded.pathname,
       filename: uploaded.pathname.slice(CLOUD_BACKUP_PREFIX.length),
-      sizeBytes: packed.bytes.length,
-      uploadedAt: archive.createdAt,
+      sizeBytes: exported.bytes.length,
+      uploadedAt: exported.createdAt,
       encrypted: true,
+      format,
     },
     prunedCount,
-    tableCount: archive.tables.length,
-    rowCount: totalRows,
+    tableCount: exported.tableCount,
+    rowCount: exported.rowCount,
   }
 }
 

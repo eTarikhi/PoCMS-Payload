@@ -4,6 +4,7 @@ import { ensureOrderable } from '@/access/orderable'
 
 import type { RepairActionKind, RepairOperationResult } from '../shared'
 
+import { findMissingForeignKeyIndexes } from './advisor'
 import {
   createPayloadSqlExecutor,
   quoteIdent,
@@ -199,6 +200,34 @@ export async function runDatabaseRepairAction(
       durationMs: Date.now() - startedAt,
       summary: `Cleared ${cleared} ${options.forceAllLocks ? '' : 'stale '}document lock(s).`,
       details: { cleared, forceAllLocks: Boolean(options.forceAllLocks) },
+    }
+  }
+
+  if (action === 'create-missing-fk-indexes') {
+    const missing = await findMissingForeignKeyIndexes(executor)
+    const targets = options.tableName
+      ? missing.filter((m) => m.tableName === options.tableName)
+      : missing
+
+    const created: string[] = []
+    for (const item of targets) {
+      await executor.query(item.suggestedSql)
+      created.push(item.suggestedIndexName)
+    }
+
+    return {
+      action,
+      ok: true,
+      usedUnpooledConnection: false,
+      durationMs: Date.now() - startedAt,
+      summary:
+        created.length > 0
+          ? `Created ${created.length} missing foreign-key index(es) (${created.slice(0, 4).join(', ')}).`
+          : 'All foreign-key columns already have valid leading indexes.',
+      details: {
+        createdCount: created.length,
+        createdIndexes: created,
+      },
     }
   }
 

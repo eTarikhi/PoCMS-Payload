@@ -21,13 +21,33 @@ import { DatabaseClient } from '@/components/admin/views/Database/DatabaseClient
 import { DatabaseHealthSummaryView } from '@/components/admin/widgets/DatabaseHealth'
 import {
   assertSafeBackupPathname,
+  exportFormattedDatabaseBackup,
   exportLogicalBackupArchive,
   saveEncryptedBackupToVault,
   type BlobVaultDriver,
 } from '@/plugins/databaseManager/core/backup'
+import {
+  generateMigrationFromDatabase,
+  generateSeedFromDatabase,
+} from '@/plugins/databaseManager/core/codegen'
 import { quoteIdent, type DirectClientRunner, type SqlExecutor } from '@/plugins/databaseManager/core/connection'
-import { packLogicalBackup, unpackLogicalBackup } from '@/plugins/databaseManager/core/crypto'
+import {
+  packBackupDocument,
+  packLogicalBackup,
+  unpackBackupDocument,
+  unpackLogicalBackup,
+} from '@/plugins/databaseManager/core/crypto'
+import {
+  analyzeSqlRestoreStatements,
+  parseCsvRecords,
+  parseNdjsonToArchive,
+  serializeArchiveToNdjson,
+  serializeArchiveToSql,
+  serializeTableToCsv,
+  splitSqlStatements,
+} from '@/plugins/databaseManager/core/formats'
 import { collectCorePostgresHealth } from '@/plugins/databaseManager/core/monitor'
+import { executeReadOnlyDiagnosticQuery } from '@/plugins/databaseManager/core/queryRunner'
 import { runDatabaseRepairAction } from '@/plugins/databaseManager/core/repair'
 import { dryRunLogicalRestore, executeLogicalRestore } from '@/plugins/databaseManager/core/restore'
 import { createDatabaseManagementEndpoints } from '@/plugins/databaseManager/endpoints'
@@ -283,13 +303,37 @@ function createMockPostgresCatalog() {
       }
 
       if (normalized.includes("tc.constraint_type = 'PRIMARY KEY'")) {
+        const allPks = [
+          { table_name: 'media', column_name: 'id' },
+          { table_name: 'articles', column_name: 'id' },
+          { table_name: 'users', column_name: 'id' },
+          { table_name: 'payload_migrations', column_name: 'id' },
+        ]
+        if (normalized.includes('tc.table_name = $1') && values?.[0]) {
+          return {
+            rows: allPks.filter((p) => p.table_name === values[0]) as unknown as T[],
+          }
+        }
+        return { rows: allPks as unknown as T[] }
+      }
+
+      if (normalized.includes('FROM pg_constraint c') && normalized.includes("c.contype = 'f'")) {
         return {
           rows: [
-            { table_name: 'media', column_name: 'id' },
-            { table_name: 'articles', column_name: 'id' },
-            { table_name: 'users', column_name: 'id' },
-            { table_name: 'payload_migrations', column_name: 'id' },
+            {
+              constraint_name: 'articles_featured_image_id_fk',
+              table_name: 'articles',
+              column_name: 'featured_image_id',
+              ref_table: 'media',
+              row_estimate: 120,
+            },
           ] as unknown as T[],
+        }
+      }
+
+      if (normalized.startsWith('EXPLAIN ')) {
+        return {
+          rows: [{ 'QUERY PLAN': 'Seq Scan on articles  (cost=0.00..12.40 rows=240 width=64)' }] as unknown as T[],
         }
       }
 
@@ -1008,3 +1052,356 @@ describe('Phase 2 (Advanced Tier): Pluggable Serverless Provider Adapters & Admi
     expect(screen.getByText('pocms-production')).toBeDefined()
   })
 })
+
+describe('Database Management Plugin — Multi-Format Backup/Restore, Codegen, Advisor & Read-Only SQL', () => {
+  it('serializes & restores PostgreSQL .sql dumps (DDL + DML + dollar-quote parser + safety blocks)', async () => {
+    const mockDb = createMockPostgresCatalog()
+    const fakePayload = { config: await config, db: {} } as unknown as Payload
+
+    const archive = await exportLogicalBackupArchive(mockDb.executor, {
+      anonymizePii: true,
+      redactSecrets: true,
+    })
+
+    // PII anonymization & secret redaction verified
+    const usersDump = archive.tables.find((t) => t.name === 'users')!
+    expect(usersDump.rows[0]?.email).toBe('user-1@example.local')
+    expect(usersDump.rows[0]?.hash).toBeNull()
+
+    const fullSql = serializeArchiveToSql(archive, {
+      contentMode: 'schema-and-data',
+      includeTransaction: true,
+    })
+    expect(fullSql).toContain('CREATE TABLE IF NOT EXISTS public."media"')
+    expect(fullSql).toContain('CREATE TABLE IF NOT EXISTS public."articles"')
+    expect(fullSql).toContain('INSERT INTO public."articles"')
+    expect(fullSql).toContain('SELECT setval(')
+
+    // Dollar-quoted PL/pgSQL DO $$ ... $$; blocks with internal semicolons must NOT split mid-block
+    const stmts = splitSqlStatements(fullSql)
+    const doBlocks = stmts.filter((s) => s.startsWith('DO $$'))
+    expect(doBlocks.length).toBeGreaterThan(0)
+    for (const block of doBlocks) {
+      expect(block.endsWith('END $$')).toBe(true)
+    }
+
+    // Forbidden superuser commands are blocked before touching PostgreSQL
+    expect(() => analyzeSqlRestoreStatements('DROP DATABASE pocms;')).toThrow(/DROP DATABASE/i)
+    expect(() => analyzeSqlRestoreStatements('ALTER SYSTEM SET work_mem = 0;')).toThrow(
+      /ALTER SYSTEM/i,
+    )
+
+    // Encrypted .enc.sql.gz pack + auto-detected dry-run + transactional restore
+    const packedSql = packBackupDocument(fullSql, {
+      format: 'sql',
+      compress: true,
+      encryptionSecret: 'super-secret-backup-key-12345',
+    })
+    const env = { DATABASE_BACKUP_SECRET: 'super-secret-backup-key-12345' } as unknown as NodeJS.ProcessEnv
+
+    const dryRun = await dryRunLogicalRestore(mockDb.executor, packedSql.bytes, { env })
+    expect(dryRun.valid).toBe(true)
+    expect(dryRun.detectedFormat).toBe('sql')
+    expect(dryRun.encrypted).toBe(true)
+    expect(dryRun.matchedTables).toContain('articles')
+
+    mockDb.executedSql.length = 0
+    const restored = await executeLogicalRestore(fakePayload, packedSql.bytes, {
+      env,
+      directRunner: mockDb.directRunner,
+    })
+    expect(restored.ok).toBe(true)
+    expect(restored.detectedFormat).toBe('sql')
+    expect(mockDb.executedSql[0]?.text).toBe('BEGIN')
+    expect(mockDb.executedSql.some((q) => q.text === 'COMMIT')).toBe(true)
+  })
+
+  it('round-trips streaming NDJSON (.ndjson) and RFC-4180 CSV (.csv upsert & replace) backups', async () => {
+    const mockDb = createMockPostgresCatalog()
+    const fakePayload = { config: await config, db: {} } as unknown as Payload
+    const env = { PAYLOAD_SECRET: 'payload-secret-key-987654321' } as unknown as NodeJS.ProcessEnv
+
+    // 1. Streaming NDJSON export -> unpack -> SHA-256 verify -> atomic restore
+    const rawArchive = await exportLogicalBackupArchive(mockDb.executor)
+    const directNdjson = serializeArchiveToNdjson(rawArchive)
+    expect(directNdjson.split('\n')[0]).toContain('"format":"pocms-pg-ndjson-v1"')
+
+    const ndjsonExport = await exportFormattedDatabaseBackup(mockDb.executor, {
+      format: 'ndjson',
+      compress: true,
+      encryptionSecret: 'payload-secret-key-987654321',
+    })
+    expect(ndjsonExport.filename).toMatch(/\.enc\.ndjson\.gz$/)
+
+    const unpackedNdjson = unpackBackupDocument(ndjsonExport.bytes, {
+      encryptionSecret: 'payload-secret-key-987654321',
+    })
+    expect(unpackedNdjson.detectedFormat).toBe('ndjson')
+    const parsedArchive = parseNdjsonToArchive(unpackedNdjson.text)
+    expect(parsedArchive.tables.map((t) => t.name)).toContain('articles')
+
+    const ndjsonRestore = await executeLogicalRestore(fakePayload, ndjsonExport.bytes, {
+      env,
+      directRunner: mockDb.directRunner,
+    })
+    expect(ndjsonRestore.ok).toBe(true)
+    expect(ndjsonRestore.detectedFormat).toBe('ndjson')
+
+    // 2. RFC-4180 CSV export + quoted comma/newline/JSONB round-trip + Upsert restore
+    const csvExport = await exportFormattedDatabaseBackup(mockDb.executor, {
+      format: 'csv',
+      csvTable: 'articles',
+      compress: false,
+    })
+    expect(csvExport.filename).toMatch(/^pocms-articles-.*\.csv$/)
+    const csvText = csvExport.bytes.toString('utf8')
+    const parsedCsv = parseCsvRecords(csvText)
+    expect(parsedCsv.headers).toEqual(['id', 'title', 'featured_image_id', 'parent_id', 'content'])
+    expect(parsedCsv.rows).toHaveLength(2)
+
+    const csvDryRun = await dryRunLogicalRestore(mockDb.executor, csvText, {
+      env,
+      formatHint: 'csv',
+      csvTable: 'articles',
+      csvStrategy: 'upsert',
+    })
+    expect(csvDryRun.valid).toBe(true)
+    expect(csvDryRun.detectedFormat).toBe('csv')
+    expect(csvDryRun.totalRows).toBe(2)
+
+    mockDb.executedSql.length = 0
+    const csvExec = await executeLogicalRestore(fakePayload, csvText, {
+      env,
+      directRunner: mockDb.directRunner,
+      formatHint: 'csv',
+      csvTable: 'articles',
+      csvStrategy: 'upsert',
+    })
+    expect(csvExec.ok).toBe(true)
+    expect(csvExec.detectedFormat).toBe('csv')
+    expect(csvExec.restoredRows).toBe(2)
+    expect(
+      mockDb.executedSql.some((q) =>
+        q.text.includes('INSERT INTO public."articles"') &&
+        q.text.includes('ON CONFLICT ("id") DO UPDATE SET'),
+      ),
+    ).toBe(true)
+
+    // Verify serializeTableToCsv handles embedded quotes & newlines per RFC-4180
+    const trickyCsv = serializeTableToCsv({
+      name: 'articles',
+      columns: [
+        { name: 'id', dataType: 'integer', udtName: 'int4', isNullable: false },
+        { name: 'title', dataType: 'text', udtName: 'text', isNullable: false },
+      ],
+      primaryKey: ['id'],
+      foreignKeys: [],
+      rowCount: 1,
+      rows: [{ id: 99, title: 'Hello, "World"\nLine 2' }],
+    })
+    const reParsed = parseCsvRecords(trickyCsv)
+    expect(reParsed.rows[0]?.title).toBe('Hello, "World"\nLine 2')
+  })
+
+  it('generates Payload v3 TypeScript migrations & portable Local API seeds directly from live database', async () => {
+    const mockDb = createMockPostgresCatalog()
+    // Include backticks & ${...} inside article content to prove template-literal escaping is bulletproof
+    mockDb.state.rows.get('articles')!.push({
+      id: 30,
+      title: 'Code Block `test` ${injected}',
+      featured_image_id: 1,
+      parent_id: null,
+      content: { code: 'const x = `${hello}`' },
+    })
+
+    // 1. Schema baseline migration (.ts)
+    const schemaMig = await generateMigrationFromDatabase(mockDb.executor, {
+      name: 'initial_baseline',
+      mode: 'schema-baseline',
+      writeToDisk: false,
+    })
+    expect(schemaMig.language).toBe('typescript')
+    expect(schemaMig.filename).toMatch(/^\d{8}_\d{6}_initial_baseline\.ts$/)
+    expect(schemaMig.content).toContain("from '@payloadcms/db-vercel-postgres'")
+    expect(schemaMig.content).toContain('export async function up({ db }: MigrateUpArgs)')
+    expect(schemaMig.content).toContain('export async function down({ db }: MigrateDownArgs)')
+    expect(schemaMig.content).toContain('CREATE TABLE IF NOT EXISTS public."articles"')
+    expect(schemaMig.content).toContain('DROP TABLE IF EXISTS public."articles" CASCADE;')
+
+    // 2. Data upsert migration (.ts) — escapes backticks and `${` safely
+    const dataMig = await generateMigrationFromDatabase(mockDb.executor, {
+      name: 'content_snapshot',
+      mode: 'data-upsert',
+      tables: ['articles'],
+      writeToDisk: false,
+    })
+    expect(dataMig.content).toContain('ON CONFLICT ("id") DO UPDATE SET')
+    expect(dataMig.content).toContain('\\`test\\` \\${injected}')
+
+    // 3. Portable Payload Local API Seed (.ts) — resolves media IDs -> filenames & strips timestamps
+    const sanitized = await config
+    const fakePayload = {
+      config: sanitized,
+      find: vi.fn(async ({ collection }: { collection: string }) => {
+        if (collection === 'media') {
+          return { docs: [{ id: 1, filename: 'hero-cover.webp' }], totalDocs: 1 }
+        }
+        if (collection === 'articles') {
+          return {
+            docs: [
+              {
+                id: 10,
+                title: 'Distributed Systems',
+                slug: 'distributed-systems',
+                _order: 'a0',
+                featuredImage: 1,
+                createdAt: '2026-10-01T00:00:00.000Z',
+                updatedAt: '2026-10-01T00:00:00.000Z',
+              },
+            ],
+            totalDocs: 1,
+          }
+        }
+        return { docs: [], totalDocs: 0 }
+      }),
+      findGlobal: vi.fn(async ({ slug }: { slug: string }) => ({
+        id: 1,
+        globalType: slug,
+        siteTitle: 'PoCMS Portfolio',
+        ogImage: 1,
+      })),
+    } as unknown as Payload
+
+    const seedArtifact = await generateSeedFromDatabase(fakePayload, mockDb.executor, {
+      name: 'portfolio_seed',
+      mode: 'payload-local-api',
+      collections: ['articles'],
+      globals: ['site-settings'],
+      anonymizePii: true,
+      writeToDisk: false,
+    })
+
+    expect(seedArtifact.language).toBe('typescript')
+    expect(seedArtifact.filename).toMatch(/^\d{8}_\d{6}_portfolio_seed\.ts$/)
+    expect(seedArtifact.content).toContain('export async function seedDatabaseSnapshot(payload: Payload)')
+    expect(seedArtifact.content).toContain('"featuredImage": "hero-cover.webp"')
+    expect(seedArtifact.content).toContain('"ogImage": "hero-cover.webp"')
+    expect(seedArtifact.content).toContain('"_order": "a0"')
+    expect(seedArtifact.content).not.toContain('"createdAt"')
+  })
+
+  it('detects missing FK indexes in Advisor, creates them via Repair, and enforces 3-layer Read-Only SQL Inspector', async () => {
+    const mockDb = createMockPostgresCatalog()
+    const sanitized = await config
+    const auditCreateSpy = vi.fn().mockResolvedValue({ id: 901 })
+    const fakePayload = {
+      config: sanitized,
+      db: {},
+      count: vi.fn().mockResolvedValue({ totalDocs: 2 }),
+      create: auditCreateSpy,
+      logger: { error: vi.fn(), info: vi.fn() },
+    } as unknown as Payload
+
+    const env = {
+      POSTGRES_URL: 'postgresql://user:pw@ep-cool-morning-a2bc-pooler.eu-central-1.aws.neon.tech/pocms',
+      PAYLOAD_SECRET: 'secret-1234567890',
+    } as unknown as NodeJS.ProcessEnv
+
+    const snap = await collectDatabaseManagementSnapshot(fakePayload, {
+      executor: mockDb.executor,
+      env,
+    })
+    expect(snap.advisor.missingFkIndexes).toHaveLength(1)
+    expect(snap.advisor.missingFkIndexes[0]?.suggestedIndexName).toBe(
+      'idx_articles_featured_image_id',
+    )
+
+    // 1-click Repair creates the missing FK index
+    const idxRepair = await runDatabaseRepairAction(fakePayload, 'create-missing-fk-indexes', {
+      executor: mockDb.executor,
+      env,
+    })
+    expect(idxRepair.ok).toBe(true)
+    expect(
+      mockDb.executedSql.some((q) =>
+        q.text.includes(
+          'CREATE INDEX IF NOT EXISTS "idx_articles_featured_image_id" ON public."articles" ("featured_image_id")',
+        ),
+      ),
+    ).toBe(true)
+
+    // Read-Only SQL Inspector blocks multi-statement, DDL, DML, and CTE writes
+    await expect(
+      executeReadOnlyDiagnosticQuery('SELECT 1; DROP TABLE articles;', {
+        executor: mockDb.executor,
+      }),
+    ).rejects.toThrow(/single read-only SQL statement/i)
+
+    await expect(
+      executeReadOnlyDiagnosticQuery('DELETE FROM public."articles"', {
+        executor: mockDb.executor,
+      }),
+    ).rejects.toThrow(/Only read-only SELECT/i)
+
+    await expect(
+      executeReadOnlyDiagnosticQuery(
+        'WITH doomed AS (DELETE FROM public."articles" RETURNING *) SELECT * FROM doomed',
+        { executor: mockDb.executor },
+      ),
+    ).rejects.toThrow(/Mutating or administrative SQL keywords/i)
+
+    // Valid SELECT executes inside BEGIN READ ONLY ... ROLLBACK and redacts password hashes
+    mockDb.executedSql.length = 0
+    const userQuery = await executeReadOnlyDiagnosticQuery('SELECT * FROM public."users"', {
+      executor: mockDb.executor,
+    })
+    expect(userQuery.rowCount).toBe(1)
+    expect(userQuery.rows[0]?.hash).toBe('[REDACTED]')
+    expect(userQuery.rows[0]?.salt).toBe('[REDACTED]')
+    expect(mockDb.executedSql[0]?.text).toBe('BEGIN READ ONLY')
+    expect(mockDb.executedSql[1]?.text).toContain('SET LOCAL statement_timeout')
+    expect(mockDb.executedSql[mockDb.executedSql.length - 1]?.text).toBe('ROLLBACK')
+
+    // EXPLAIN mode wraps SELECT automatically
+    const explainRes = await executeReadOnlyDiagnosticQuery('SELECT * FROM public."articles"', {
+      explain: true,
+      executor: mockDb.executor,
+    })
+    expect(explainRes.explainMode).toBe(true)
+    expect(explainRes.rows[0]?.['QUERY PLAN']).toContain('Seq Scan on articles')
+
+    // Endpoints end-to-end: multi-format export + generate-migration + sql-query
+    const endpoints = createDatabaseManagementEndpoints({
+      executor: mockDb.executor,
+      directRunner: mockDb.directRunner,
+      env,
+    })
+    const exportEp = endpoints.find((e) => e.path === '/admin-database/export')!
+    const sqlDownloadRes = await exportEp.handler({
+      user: userWithCapabilities(['manageDatabase']),
+      payload: fakePayload,
+      url: 'http://localhost:3000/api/admin-database/export?format=sql&contentMode=schema-only&compress=false',
+      headers: new Headers(),
+    } as unknown as PayloadRequest)
+    expect(sqlDownloadRes.status).toBe(200)
+    const sqlText = await sqlDownloadRes.text()
+    expect(sqlText).toContain('CREATE TABLE IF NOT EXISTS public."articles"')
+    expect(sqlText).not.toContain('INSERT INTO public."articles"')
+
+    // Render all 6 tabs in DatabaseClient
+    render(
+      React.createElement(DatabaseClient, {
+        initialSnapshot: snap,
+        apiRoute: '/api',
+        isAdminUser: true,
+      }),
+    )
+    fireEvent.click(screen.getByRole('tab', { name: /Migrations & Seeds/i }))
+    expect(screen.getByText('Generate Migration from Live Database')).toBeDefined()
+    expect(screen.getByText('Generate Seed File from Live Database')).toBeDefined()
+
+    fireEvent.click(screen.getByRole('tab', { name: /SQL Inspector/i }))
+    expect(screen.getByText('Safe Read-Only SQL & EXPLAIN Inspector')).toBeDefined()
+  })
+})
+

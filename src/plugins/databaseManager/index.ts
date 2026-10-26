@@ -22,9 +22,11 @@ export function createDatabaseBackupJobTask(
     inputSchema: [
       { name: 'retentionCount', type: 'number', defaultValue: defaultRetentionCount },
       { name: 'label', type: 'text', defaultValue: 'scheduled' },
+      { name: 'format', type: 'text', defaultValue: 'json' },
     ],
     outputSchema: [
       { name: 'pathname', type: 'text' },
+      { name: 'format', type: 'text' },
       { name: 'sizeBytes', type: 'number' },
       { name: 'tables', type: 'number' },
       { name: 'rows', type: 'number' },
@@ -45,16 +47,22 @@ export function createDatabaseBackupJobTask(
         typeof input?.label === 'string' && input.label.trim().length > 0
           ? input.label.trim()
           : 'scheduled'
+      const rawFmt = typeof (input as { format?: unknown })?.format === 'string'
+        ? (input as { format: string }).format
+        : 'json'
+      const format = rawFmt === 'sql' || rawFmt === 'ndjson' ? rawFmt : 'json'
 
       const saved = await saveEncryptedBackupToVault(executor, {
         retentionCount,
         label,
+        format,
         databaseName: diagnostics.database,
       })
 
       return {
         output: {
           pathname: saved.item.pathname,
+          format: saved.item.format,
           sizeBytes: saved.item.sizeBytes,
           tables: saved.tableCount,
           rows: saved.rowCount,
