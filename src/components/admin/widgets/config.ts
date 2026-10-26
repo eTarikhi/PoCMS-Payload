@@ -135,6 +135,7 @@ export const dashboard: DashboardConfig = {
     const analytics = hasCapability(req.user, 'viewAnalytics')
     const deployments = hasCapability(req.user, 'viewDeployments')
     const viewSystem = hasCapability(req.user, 'viewSystem')
+    const manageDatabase = hasCapability(req.user, 'manageDatabase')
     const manageJobs = hasCapability(req.user, 'manageJobs')
     const layout: WidgetInstance[] = [
       { widgetSlug: 'welcome', width: 'full' },
@@ -157,6 +158,9 @@ export const dashboard: DashboardConfig = {
           ] as WidgetInstance[])
         : []),
       ...(viewSystem ? ([{ widgetSlug: 'system-info', width: 'medium' }] as WidgetInstance[]) : []),
+      ...(manageDatabase
+        ? ([{ widgetSlug: 'database-health', width: 'medium' }] as WidgetInstance[])
+        : []),
       ...(manageJobs
         ? ([{ widgetSlug: 'scheduled-jobs', width: 'medium' }] as WidgetInstance[])
         : []),

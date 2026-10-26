@@ -60,6 +60,12 @@ export const CAPABILITIES = [
     description: 'Versions, environment, database and configured integrations.',
   },
   {
+    name: 'manageDatabase',
+    label: 'Database management',
+    description:
+      'PostgreSQL health & bloat monitoring, portable backups, transactional restore, repair tools, and serverless provider snapshots/branches.',
+  },
+  {
     name: 'useDeveloperTools',
     label: 'Developer tools',
     description:

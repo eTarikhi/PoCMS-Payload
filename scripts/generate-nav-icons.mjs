@@ -38,6 +38,7 @@ const NAV_ICONS = {
   'nav-audit-logs': ['ScrollText', 'amber'],
   'nav-view-site': ['ExternalLink', 'slate'],
   'nav-system': ['Activity', 'teal'],
+  'nav-database': ['Database', 'green'],
   'nav-jobs': ['CalendarClock', 'blue'],
   'nav-terminal': ['Terminal', 'amber'],
   'nav-gallery': ['Component', 'rose'],

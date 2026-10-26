@@ -47,6 +47,7 @@ import { Media } from './collections/Media'
 import { dashboard } from './components/admin/widgets/config'
 import { adminUIPlugin } from './plugins/adminUI'
 import { auditLogPlugin } from './plugins/auditLog'
+import { databaseManagerPlugin } from './plugins/databaseManager'
 import {
   portfolioRedirectsPlugin,
   portfolioSeoPlugin,
@@ -250,6 +251,7 @@ export default buildConfig({
     portfolioSeoPlugin(),
     portfolioRedirectsPlugin(),
     auditLogPlugin(),
+    databaseManagerPlugin(),
     // Last, so it sees every field other plugins add: TanStack list views, boolean cells (ADR 0007).
     adminUIPlugin(),
   ],

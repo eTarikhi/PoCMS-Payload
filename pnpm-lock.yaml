@@ -29,6 +29,9 @@ importers:
       '@fortawesome/react-fontawesome':
         specifier: ^3.5.0
         version: 3.5.0(@fortawesome/fontawesome-svg-core@6.7.2)(react@19.2.6)
+      '@neon/sdk':
+        specifier: ^7.5.0
+        version: 7.5.0
       '@payloadcms/admin-bar':
         specifier: 3.90.2
         version: 3.90.2(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -107,6 +110,9 @@ importers:
       '@vercel/analytics':
         specifier: ^2.0.1
         version: 2.0.1(next@16.3.8(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.58.2)(@types/node@22.19.9)(babel-plugin-macros@3.1.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.77.4))(react@19.2.6)
+      '@vercel/blob':
+        specifier: 2.3.1
+        version: 2.3.1
       '@vercel/speed-insights':
         specifier: ^2.0.0
         version: 2.0.0(next@16.3.8(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.58.2)(@types/node@22.19.9)(babel-plugin-macros@3.1.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.77.4))(react@19.2.6)
@@ -161,6 +167,9 @@ importers:
       payload:
         specifier: 3.90.2
         version: 3.90.2(bufferutil@4.1.0)(graphql@16.14.2)(supports-color@7.2.0)(typescript@5.7.3)
+      pg:
+        specifier: 8.20.0
+        version: 8.20.0
       prism-react-renderer:
         specifier: ^2.3.1
         version: 2.4.1(react@19.2.6)
@@ -207,6 +216,9 @@ importers:
       '@types/node':
         specifier: 22.19.9
         version: 22.19.9
+      '@types/pg':
+        specifier: 8.20.0
+        version: 8.20.0
       '@types/react':
         specifier: 19.2.14
         version: 19.2.14
@@ -1539,6 +1551,10 @@ packages:
     peerDependencies:
       '@emnapi/core': ^1.7.1 || ^2.0.0-alpha.4
       '@emnapi/runtime': ^1.7.1 || ^2.0.0-alpha.4
+
+  '@neon/sdk@7.5.0':
+    resolution: {integrity: sha512-0zc1SynODndBsO5I+IVXl+6GiJe5LTSomz5WU+161C7EJkkoWBpNyosR4BnYcxfL5kwfutZ44ba4fnxTiSvJEQ==}
+    engines: {node: '>=20.19.0'}
 
   '@neondatabase/serverless@0.9.5':
     resolution: {integrity: sha512-siFas6gItqv6wD/pZnvdu34wEqgG3nSE6zWZdq5j2DEsa+VvX8i/5HXJOo06qrw5axPXn+lGCxeR+NLaSPIXug==}
@@ -6790,6 +6806,8 @@ snapshots:
       '@emnapi/runtime': 1.10.0
       '@tybys/wasm-util': 0.10.4
     optional: true
+
+  '@neon/sdk@7.5.0': {}
 
   '@neondatabase/serverless@0.9.5':
     dependencies:

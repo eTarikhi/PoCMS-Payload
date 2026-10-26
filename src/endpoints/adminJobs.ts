@@ -69,7 +69,11 @@ export const adminJobsEndpoints: Endpoint[] = [
           }
 
           const queued = await req.payload.jobs.queue({
-            task: task as 'refreshSiteCache' | 'verifyContentHealth' | 'purgeCompletedJobs',
+            task: task as
+              | 'refreshSiteCache'
+              | 'verifyContentHealth'
+              | 'purgeCompletedJobs'
+              | 'createDatabaseBackup',
             input: (body.input ?? {}) as Record<string, never>,
             queue: body.queue?.trim() || 'default',
             ...(waitUntilDate ? { waitUntil: waitUntilDate } : {}),

@@ -132,6 +132,8 @@ const ACTION_VERBS: Record<AuditAction, string> = {
   restore: 'restored',
   delete: 'deleted',
   login: 'signed in',
+  backup: 'backed up',
+  maintenance: 'maintained',
 }
 
 export const buildAuditSummary = ({
@@ -188,7 +190,7 @@ async function writeAuditEntry(
   req: PayloadRequest,
   entry: {
     action: AuditAction
-    entityKind: 'collection' | 'global' | 'auth'
+    entityKind: 'collection' | 'global' | 'auth' | 'database'
     entityType: string
     documentId?: string | null
     documentTitle?: string | null
@@ -233,6 +235,39 @@ async function writeAuditEntry(
       `[audit-log] Failed to record ${entry.action} on ${entry.entityType}: ${error instanceof Error ? error.message : String(error)}`,
     )
   }
+}
+
+/**
+ * Records an immutable audit trail entry for database management operations
+ * (logical backup, restore, repair/vacuum, provider snapshots, branches, compute controls).
+ */
+export async function recordDatabaseAuditLog(
+  req: PayloadRequest,
+  input: {
+    action: Extract<AuditAction, 'backup' | 'restore' | 'maintenance' | 'create' | 'delete'>
+    entityType: string
+    documentId?: string | null
+    documentTitle?: string | null
+    summary?: string
+    meta?: Record<string, unknown> | null
+  },
+): Promise<void> {
+  const actor = extractActorSnapshot(req.user)
+  const who = actor.actorName ?? actor.actorEmail ?? actor.actorLabel
+  const defaultSummary =
+    input.summary ??
+    `${who} ${ACTION_VERBS[input.action]} ${input.entityType}${input.documentTitle ? ` "${input.documentTitle}"` : ''}`
+
+  await writeAuditEntry(req, {
+    action: input.action,
+    entityKind: 'database',
+    entityType: input.entityType,
+    documentId: input.documentId ?? null,
+    documentTitle: input.documentTitle ?? null,
+    actor,
+    summary: defaultSummary,
+    meta: input.meta ?? null,
+  })
 }
 
 const shouldAuditCollection = (collection: CollectionConfig): boolean => {

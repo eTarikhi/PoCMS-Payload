@@ -8,6 +8,7 @@ import {
   ClockIcon,
   ComponentIcon,
   CornerDownLeftIcon,
+  DatabaseIcon,
   ExternalLinkIcon,
   FileTextIcon,
   FolderIcon,
@@ -219,6 +220,29 @@ export default function CommandMenu({
               keywords: ['versions', 'database', 'neon', 'postgres', 'health', 'environment'],
               icon: <ActivityIcon aria-hidden />,
               run: () => go(`${admin}/system`),
+            },
+          ]
+        : []),
+      ...(hasCapability(user, 'manageDatabase')
+        ? [
+            {
+              id: 'go:database',
+              group: 'Go to' as const,
+              label: 'Database manager',
+              keywords: [
+                'postgres',
+                'neon',
+                'backup',
+                'restore',
+                'repair',
+                'vacuum',
+                'snapshots',
+                'branches',
+                'supabase',
+                'prisma',
+              ],
+              icon: <DatabaseIcon aria-hidden />,
+              run: () => go(`${admin}/database`),
             },
           ]
         : []),

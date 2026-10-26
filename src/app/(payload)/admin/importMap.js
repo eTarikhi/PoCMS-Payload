@@ -57,6 +57,7 @@ import { GalleryView as GalleryView_4404d364f755885e3fcc8503bf41dc3b } from '../
 import { SystemView as SystemView_bb8d72b574a820115ca0f849b574bb2b } from '../../../components/admin/views/System'
 import { JobsView as JobsView_5b2bdd179a2c50766c2487ad8b5952c3 } from '../../../components/admin/views/Jobs'
 import { TerminalView as TerminalView_bafd7d8849a39078d40d75a87494ef59 } from '../../../components/admin/views/Terminal'
+import { DatabaseView as DatabaseView_b7e855913fe341d2d89b9d7dd5dad3cb } from '../../../components/admin/views/Database'
 import { WelcomeWidget as WelcomeWidget_97011d44accdd31a4a78f8cffb67c4e5 } from '../../../components/admin/widgets/Welcome'
 import { ContentHealthWidget as ContentHealthWidget_92780968cad9d22c51a64124ca7af0c0 } from '../../../components/admin/widgets/ContentHealth'
 import { ContentCountWidget as ContentCountWidget_0f60f33e106bbdc01e5390e7f570ae3c } from '../../../components/admin/widgets/ContentCount'
@@ -68,6 +69,7 @@ import { DeploymentsWidget as DeploymentsWidget_3f00a5a735dded59c161fc9c23f48f1f
 import { CIStatusWidget as CIStatusWidget_9f6578dd264c58f90e6d74b228341289 } from '../../../components/admin/widgets/CIStatus'
 import { SystemInfoWidget as SystemInfoWidget_64cd899a179ac37e74ddb95b67413737 } from '../../../components/admin/widgets/SystemInfo'
 import { ScheduledJobsWidget as ScheduledJobsWidget_1b4a7f1be380acf0eb25f8e6747a6fc9 } from '../../../components/admin/widgets/ScheduledJobs'
+import { DatabaseHealthWidget as DatabaseHealthWidget_22a778d9a143bc30350d431e63b97a60 } from '../../../components/admin/widgets/DatabaseHealth'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 import { VercelBlobClientUploadHandler as VercelBlobClientUploadHandler_16c82c5e25f430251a3e3ba57219ff4e } from '@payloadcms/storage-vercel-blob/client'
 
@@ -132,6 +134,7 @@ export const importMap = {
   "/components/admin/views/System#SystemView": SystemView_bb8d72b574a820115ca0f849b574bb2b,
   "/components/admin/views/Jobs#JobsView": JobsView_5b2bdd179a2c50766c2487ad8b5952c3,
   "/components/admin/views/Terminal#TerminalView": TerminalView_bafd7d8849a39078d40d75a87494ef59,
+  "/components/admin/views/Database#DatabaseView": DatabaseView_b7e855913fe341d2d89b9d7dd5dad3cb,
   "/components/admin/widgets/Welcome#WelcomeWidget": WelcomeWidget_97011d44accdd31a4a78f8cffb67c4e5,
   "/components/admin/widgets/ContentHealth#ContentHealthWidget": ContentHealthWidget_92780968cad9d22c51a64124ca7af0c0,
   "/components/admin/widgets/ContentCount#ContentCountWidget": ContentCountWidget_0f60f33e106bbdc01e5390e7f570ae3c,
@@ -143,6 +146,7 @@ export const importMap = {
   "/components/admin/widgets/CIStatus#CIStatusWidget": CIStatusWidget_9f6578dd264c58f90e6d74b228341289,
   "/components/admin/widgets/SystemInfo#SystemInfoWidget": SystemInfoWidget_64cd899a179ac37e74ddb95b67413737,
   "/components/admin/widgets/ScheduledJobs#ScheduledJobsWidget": ScheduledJobsWidget_1b4a7f1be380acf0eb25f8e6747a6fc9,
+  "/components/admin/widgets/DatabaseHealth#DatabaseHealthWidget": DatabaseHealthWidget_22a778d9a143bc30350d431e63b97a60,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1,
   "@payloadcms/storage-vercel-blob/client#VercelBlobClientUploadHandler": VercelBlobClientUploadHandler_16c82c5e25f430251a3e3ba57219ff4e
 }

@@ -32,6 +32,11 @@ export function NavExtraLinks({ payload, user }: ServerProps) {
           <span className="nav__link-label">System info</span>
         </Link>
       ) : null}
+      {hasCapability(user, 'manageDatabase') ? (
+        <Link className="nav__link" href={`${adminRoute}/database`} id="nav-database">
+          <span className="nav__link-label">Database</span>
+        </Link>
+      ) : null}
       {hasCapability(user, 'manageJobs') ? (
         <Link className="nav__link" href={`${adminRoute}/jobs`} id="nav-jobs">
           <span className="nav__link-label">Scheduled jobs</span>

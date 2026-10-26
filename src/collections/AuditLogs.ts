@@ -15,6 +15,8 @@ export const AUDIT_ACTIONS = [
   { label: 'Restored', value: 'restore' },
   { label: 'Deleted', value: 'delete' },
   { label: 'Signed in', value: 'login' },
+  { label: 'Backup', value: 'backup' },
+  { label: 'Maintenance', value: 'maintenance' },
 ] as const
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]['value']
@@ -85,6 +87,7 @@ export const AuditLogs: CollectionConfig = {
             { label: 'Collection', value: 'collection' },
             { label: 'Global', value: 'global' },
             { label: 'Auth', value: 'auth' },
+            { label: 'Database', value: 'database' },
           ],
           admin: { readOnly: true, width: '30%' },
         },

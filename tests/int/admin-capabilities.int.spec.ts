@@ -114,7 +114,7 @@ describe('RBAC Capability 1: viewSystem (System Information)', () => {
     const report = (await allowedRes.json()) as SystemInfoReport
     expect(report.versions.payload).toBe('3.90.2')
     expect(report.versions.next).toBe('16.3.8')
-    expect(report.schema.jobTasks).toBe(3)
+    expect(report.schema.jobTasks).toBe(4)
 
     render(React.createElement(SystemInfoSummaryView, { report }))
     expect(screen.getByText('System information')).toBeDefined()
@@ -157,6 +157,7 @@ describe('RBAC Capability 2: manageJobs (Payload Jobs Queue & Scheduled Jobs UI)
       'refreshSiteCache',
       'verifyContentHealth',
       'purgeCompletedJobs',
+      'createDatabaseBackup',
     ])
 
     vi.stubEnv('CRON_SECRET', 'cron_secret_xyz')

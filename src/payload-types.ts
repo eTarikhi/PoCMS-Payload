@@ -140,6 +140,7 @@ export interface Config {
     'ci-status': CiStatusWidget;
     'system-info': SystemInfoWidget;
     'scheduled-jobs': ScheduledJobsWidget;
+    'database-health': DatabaseHealthWidget;
     collections: CollectionsWidget;
   };
   user: User;
@@ -148,6 +149,7 @@ export interface Config {
       refreshSiteCache: TaskRefreshSiteCache;
       verifyContentHealth: TaskVerifyContentHealth;
       purgeCompletedJobs: TaskPurgeCompletedJobs;
+      createDatabaseBackup: TaskCreateDatabaseBackup;
       inline: {
         input: unknown;
         output: unknown;
@@ -617,6 +619,10 @@ export interface Role {
      */
     viewSystem?: boolean | null;
     /**
+     * PostgreSQL health & bloat monitoring, portable backups, transactional restore, repair tools, and serverless provider snapshots/branches.
+     */
+    manageDatabase?: boolean | null;
+    /**
      * The header developer menu (generators, migrations, caches, GraphQL) and the component gallery.
      */
     useDeveloperTools?: boolean | null;
@@ -644,8 +650,8 @@ export interface Role {
  */
 export interface AuditLog {
   id: number;
-  action: 'create' | 'update' | 'trash' | 'restore' | 'delete' | 'login';
-  entityKind: 'collection' | 'global' | 'auth';
+  action: 'create' | 'update' | 'trash' | 'restore' | 'delete' | 'login' | 'backup' | 'maintenance';
+  entityKind: 'collection' | 'global' | 'auth' | 'database';
   entityType: string;
   summary: string;
   documentId?: string | null;
@@ -766,7 +772,7 @@ export interface PayloadJob {
     | {
         executedAt: string;
         completedAt: string;
-        taskSlug: 'inline' | 'refreshSiteCache' | 'verifyContentHealth' | 'purgeCompletedJobs';
+        taskSlug: 'inline' | 'refreshSiteCache' | 'verifyContentHealth' | 'purgeCompletedJobs' | 'createDatabaseBackup';
         taskID: string;
         input?:
           | {
@@ -797,13 +803,16 @@ export interface PayloadJob {
           | boolean
           | null;
         parent?: {
-          taskSlug?: ('inline' | 'refreshSiteCache' | 'verifyContentHealth' | 'purgeCompletedJobs') | null;
+          taskSlug?:
+            | ('inline' | 'refreshSiteCache' | 'verifyContentHealth' | 'purgeCompletedJobs' | 'createDatabaseBackup')
+            | null;
           taskID?: string | null;
         };
         id?: string | null;
       }[]
     | null;
-  taskSlug?: ('inline' | 'refreshSiteCache' | 'verifyContentHealth' | 'purgeCompletedJobs') | null;
+  taskSlug?:
+    ('inline' | 'refreshSiteCache' | 'verifyContentHealth' | 'purgeCompletedJobs' | 'createDatabaseBackup') | null;
   queue?: string | null;
   waitUntil?: string | null;
   processing?: boolean | null;
@@ -1190,6 +1199,7 @@ export interface RolesSelect<T extends boolean = true> {
         viewAuditLog?: T;
         manageJobs?: T;
         viewSystem?: T;
+        manageDatabase?: T;
         useDeveloperTools?: T;
         useTerminal?: T;
       };
@@ -1918,6 +1928,16 @@ export interface ScheduledJobsWidget {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "database-health_widget".
+ */
+export interface DatabaseHealthWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'small' | 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "collections_widget".
  */
 export interface CollectionsWidget {
@@ -1962,6 +1982,24 @@ export interface TaskPurgeCompletedJobs {
   output: {
     deletedCount?: number | null;
     cutoffIso?: string | null;
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCreateDatabaseBackup".
+ */
+export interface TaskCreateDatabaseBackup {
+  input: {
+    retentionCount?: number | null;
+    label?: string | null;
+  };
+  output: {
+    pathname?: string | null;
+    sizeBytes?: number | null;
+    tables?: number | null;
+    rows?: number | null;
+    prunedCount?: number | null;
+    uploadedAt?: string | null;
   };
 }
 /**

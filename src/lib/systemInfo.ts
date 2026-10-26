@@ -191,7 +191,15 @@ export function inspectIntegrations(env: NodeJS.ProcessEnv = process.env): Integ
       category: 'Database',
       required: ['POSTGRES_URL'],
       optional: ['POSTGRES_URL_NON_POOLING'],
-      note: 'Pooled URL for serverless queries; unpooled URL recommended for Drizzle migrations.',
+      note: 'Pooled URL for serverless queries; unpooled URL recommended for VACUUM, REINDEX, and bulk restores.',
+    }),
+    buildItem({
+      key: 'neonApi',
+      name: 'Neon Management API',
+      category: 'Database provider',
+      required: ['NEON_API_KEY'],
+      optional: ['NEON_PROJECT_ID', 'NEON_BRANCH_ID'],
+      note: 'Optional Tier-2 controls in /admin/database (instant snapshots, PITR branches, compute scaling).',
     }),
     buildItem({
       key: 'storage',

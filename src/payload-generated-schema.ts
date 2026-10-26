@@ -128,11 +128,14 @@ export const enum_audit_logs_action = pgEnum('enum_audit_logs_action', [
   'restore',
   'delete',
   'login',
+  'backup',
+  'maintenance',
 ])
 export const enum_audit_logs_entity_kind = pgEnum('enum_audit_logs_entity_kind', [
   'collection',
   'global',
   'auth',
+  'database',
 ])
 export const enum_redirects_to_type = pgEnum('enum_redirects_to_type', ['reference', 'custom'])
 export const enum_redirects_type = pgEnum('enum_redirects_type', ['301', '302'])
@@ -141,6 +144,7 @@ export const enum_payload_jobs_log_task_slug = pgEnum('enum_payload_jobs_log_tas
   'refreshSiteCache',
   'verifyContentHealth',
   'purgeCompletedJobs',
+  'createDatabaseBackup',
 ])
 export const enum_payload_jobs_log_state = pgEnum('enum_payload_jobs_log_state', [
   'failed',
@@ -148,13 +152,20 @@ export const enum_payload_jobs_log_state = pgEnum('enum_payload_jobs_log_state',
 ])
 export const enum_payload_jobs_log_parent_task_slug = pgEnum(
   'enum_payload_jobs_log_parent_task_slug',
-  ['inline', 'refreshSiteCache', 'verifyContentHealth', 'purgeCompletedJobs'],
+  [
+    'inline',
+    'refreshSiteCache',
+    'verifyContentHealth',
+    'purgeCompletedJobs',
+    'createDatabaseBackup',
+  ],
 )
 export const enum_payload_jobs_task_slug = pgEnum('enum_payload_jobs_task_slug', [
   'inline',
   'refreshSiteCache',
   'verifyContentHealth',
   'purgeCompletedJobs',
+  'createDatabaseBackup',
 ])
 export const enum_navigation_items_position = pgEnum('enum_navigation_items_position', [
   'left',
@@ -795,6 +806,7 @@ export const roles = pgTable(
     capabilities_viewAuditLog: boolean('capabilities_view_audit_log').default(false),
     capabilities_manageJobs: boolean('capabilities_manage_jobs').default(false),
     capabilities_viewSystem: boolean('capabilities_view_system').default(false),
+    capabilities_manageDatabase: boolean('capabilities_manage_database').default(false),
     capabilities_useDeveloperTools: boolean('capabilities_use_developer_tools').default(false),
     capabilities_useTerminal: boolean('capabilities_use_terminal').default(false),
     updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true, precision: 3 })

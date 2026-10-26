@@ -64,6 +64,12 @@ export const REGISTERED_JOB_TASKS: readonly JobTaskMeta[] = [
     label: 'Clean up finished jobs',
     description: 'Removes completed job records older than 72 hours from payload-jobs.',
   },
+  {
+    slug: 'createDatabaseBackup',
+    label: 'Encrypted cloud database backup',
+    description:
+      'Exports all public PostgreSQL tables & sequences as an AES-256-GCM encrypted archive into Vercel Blob with retention pruning.',
+  },
 ] as const
 
 /** Authenticates external cron runners (e.g. Vercel Cron) via `Authorization: Bearer <CRON_SECRET>`. */

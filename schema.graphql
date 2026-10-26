@@ -5955,6 +5955,7 @@ type Role_Capabilities {
   viewAuditLog: Boolean
   manageJobs: Boolean
   viewSystem: Boolean
+  manageDatabase: Boolean
   useDeveloperTools: Boolean
   useTerminal: Boolean
 }
@@ -6516,6 +6517,7 @@ input Role_where {
   capabilities__viewAuditLog: Role_capabilities__viewAuditLog_operator
   capabilities__manageJobs: Role_capabilities__manageJobs_operator
   capabilities__viewSystem: Role_capabilities__viewSystem_operator
+  capabilities__manageDatabase: Role_capabilities__manageDatabase_operator
   capabilities__useDeveloperTools: Role_capabilities__useDeveloperTools_operator
   capabilities__useTerminal: Role_capabilities__useTerminal_operator
   updatedAt: Role_updatedAt_operator
@@ -6798,6 +6800,12 @@ input Role_capabilities__viewSystem_operator {
   exists: Boolean
 }
 
+input Role_capabilities__manageDatabase_operator {
+  equals: Boolean
+  not_equals: Boolean
+  exists: Boolean
+}
+
 input Role_capabilities__useDeveloperTools_operator {
   equals: Boolean
   not_equals: Boolean
@@ -6867,6 +6875,7 @@ input Role_where_and {
   capabilities__viewAuditLog: Role_capabilities__viewAuditLog_operator
   capabilities__manageJobs: Role_capabilities__manageJobs_operator
   capabilities__viewSystem: Role_capabilities__viewSystem_operator
+  capabilities__manageDatabase: Role_capabilities__manageDatabase_operator
   capabilities__useDeveloperTools: Role_capabilities__useDeveloperTools_operator
   capabilities__useTerminal: Role_capabilities__useTerminal_operator
   updatedAt: Role_updatedAt_operator
@@ -6901,6 +6910,7 @@ input Role_where_or {
   capabilities__viewAuditLog: Role_capabilities__viewAuditLog_operator
   capabilities__manageJobs: Role_capabilities__manageJobs_operator
   capabilities__viewSystem: Role_capabilities__viewSystem_operator
+  capabilities__manageDatabase: Role_capabilities__manageDatabase_operator
   capabilities__useDeveloperTools: Role_capabilities__useDeveloperTools_operator
   capabilities__useTerminal: Role_capabilities__useTerminal_operator
   updatedAt: Role_updatedAt_operator
@@ -7443,6 +7453,7 @@ type RolesDocAccessFields_capabilities_Fields {
   viewAuditLog: RolesDocAccessFields_capabilities_viewAuditLog
   manageJobs: RolesDocAccessFields_capabilities_manageJobs
   viewSystem: RolesDocAccessFields_capabilities_viewSystem
+  manageDatabase: RolesDocAccessFields_capabilities_manageDatabase
   useDeveloperTools: RolesDocAccessFields_capabilities_useDeveloperTools
   useTerminal: RolesDocAccessFields_capabilities_useTerminal
 }
@@ -7559,6 +7570,29 @@ type RolesDocAccessFields_capabilities_viewSystem_Update {
 }
 
 type RolesDocAccessFields_capabilities_viewSystem_Delete {
+  permission: Boolean!
+}
+
+type RolesDocAccessFields_capabilities_manageDatabase {
+  create: RolesDocAccessFields_capabilities_manageDatabase_Create
+  read: RolesDocAccessFields_capabilities_manageDatabase_Read
+  update: RolesDocAccessFields_capabilities_manageDatabase_Update
+  delete: RolesDocAccessFields_capabilities_manageDatabase_Delete
+}
+
+type RolesDocAccessFields_capabilities_manageDatabase_Create {
+  permission: Boolean!
+}
+
+type RolesDocAccessFields_capabilities_manageDatabase_Read {
+  permission: Boolean!
+}
+
+type RolesDocAccessFields_capabilities_manageDatabase_Update {
+  permission: Boolean!
+}
+
+type RolesDocAccessFields_capabilities_manageDatabase_Delete {
   permission: Boolean!
 }
 
@@ -7723,12 +7757,15 @@ enum AuditLog_action {
   restore
   delete
   login
+  backup
+  maintenance
 }
 
 enum AuditLog_entityKind {
   collection
   global
   auth
+  database
 }
 
 type AuditLogs {
@@ -7781,6 +7818,8 @@ enum AuditLog_action_Input {
   restore
   delete
   login
+  backup
+  maintenance
 }
 
 input AuditLog_entityKind_operator {
@@ -7795,6 +7834,7 @@ enum AuditLog_entityKind_Input {
   collection
   global
   auth
+  database
 }
 
 input AuditLog_entityType_operator {
@@ -8982,6 +9022,7 @@ enum PayloadJob_Log_taskSlug {
   refreshSiteCache
   verifyContentHealth
   purgeCompletedJobs
+  createDatabaseBackup
 }
 
 enum PayloadJob_Log_state {
@@ -8999,6 +9040,7 @@ enum PayloadJob_Log_Parent_taskSlug {
   refreshSiteCache
   verifyContentHealth
   purgeCompletedJobs
+  createDatabaseBackup
 }
 
 enum PayloadJob_taskSlug {
@@ -9006,6 +9048,7 @@ enum PayloadJob_taskSlug {
   refreshSiteCache
   verifyContentHealth
   purgeCompletedJobs
+  createDatabaseBackup
 }
 
 type PayloadJobs {
@@ -9141,6 +9184,7 @@ enum PayloadJob_log__taskSlug_Input {
   refreshSiteCache
   verifyContentHealth
   purgeCompletedJobs
+  createDatabaseBackup
 }
 
 input PayloadJob_log__taskID_operator {
@@ -9208,6 +9252,7 @@ enum PayloadJob_log__parent__taskSlug_Input {
   refreshSiteCache
   verifyContentHealth
   purgeCompletedJobs
+  createDatabaseBackup
 }
 
 input PayloadJob_log__parent__taskID_operator {
@@ -9246,6 +9291,7 @@ enum PayloadJob_taskSlug_Input {
   refreshSiteCache
   verifyContentHealth
   purgeCompletedJobs
+  createDatabaseBackup
 }
 
 input PayloadJob_queue_operator {
@@ -17698,6 +17744,7 @@ type RolesFields_capabilities_Fields {
   viewAuditLog: RolesFields_capabilities_viewAuditLog
   manageJobs: RolesFields_capabilities_manageJobs
   viewSystem: RolesFields_capabilities_viewSystem
+  manageDatabase: RolesFields_capabilities_manageDatabase
   useDeveloperTools: RolesFields_capabilities_useDeveloperTools
   useTerminal: RolesFields_capabilities_useTerminal
 }
@@ -17814,6 +17861,29 @@ type RolesFields_capabilities_viewSystem_Update {
 }
 
 type RolesFields_capabilities_viewSystem_Delete {
+  permission: Boolean!
+}
+
+type RolesFields_capabilities_manageDatabase {
+  create: RolesFields_capabilities_manageDatabase_Create
+  read: RolesFields_capabilities_manageDatabase_Read
+  update: RolesFields_capabilities_manageDatabase_Update
+  delete: RolesFields_capabilities_manageDatabase_Delete
+}
+
+type RolesFields_capabilities_manageDatabase_Create {
+  permission: Boolean!
+}
+
+type RolesFields_capabilities_manageDatabase_Read {
+  permission: Boolean!
+}
+
+type RolesFields_capabilities_manageDatabase_Update {
+  permission: Boolean!
+}
+
+type RolesFields_capabilities_manageDatabase_Delete {
   permission: Boolean!
 }
 
@@ -22813,6 +22883,7 @@ input mutationRole_CapabilitiesInput {
   viewAuditLog: Boolean
   manageJobs: Boolean
   viewSystem: Boolean
+  manageDatabase: Boolean
   useDeveloperTools: Boolean
   useTerminal: Boolean
 }
@@ -22852,6 +22923,7 @@ input mutationRoleUpdate_CapabilitiesInput {
   viewAuditLog: Boolean
   manageJobs: Boolean
   viewSystem: Boolean
+  manageDatabase: Boolean
   useDeveloperTools: Boolean
   useTerminal: Boolean
 }
@@ -22881,12 +22953,15 @@ enum AuditLog_action_MutationInput {
   restore
   delete
   login
+  backup
+  maintenance
 }
 
 enum AuditLog_entityKind_MutationInput {
   collection
   global
   auth
+  database
 }
 
 input mutationAuditLogUpdateInput {
@@ -22914,12 +22989,15 @@ enum AuditLogUpdate_action_MutationInput {
   restore
   delete
   login
+  backup
+  maintenance
 }
 
 enum AuditLogUpdate_entityKind_MutationInput {
   collection
   global
   auth
+  database
 }
 
 input mutationRedirectInput {
@@ -23024,6 +23102,7 @@ enum PayloadJob_Log_taskSlug_MutationInput {
   refreshSiteCache
   verifyContentHealth
   purgeCompletedJobs
+  createDatabaseBackup
 }
 
 input mutationPayloadJob_Log_ParentInput {
@@ -23036,6 +23115,7 @@ enum PayloadJob_Log_Parent_taskSlug_MutationInput {
   refreshSiteCache
   verifyContentHealth
   purgeCompletedJobs
+  createDatabaseBackup
 }
 
 enum PayloadJob_taskSlug_MutationInput {
@@ -23043,6 +23123,7 @@ enum PayloadJob_taskSlug_MutationInput {
   refreshSiteCache
   verifyContentHealth
   purgeCompletedJobs
+  createDatabaseBackup
 }
 
 input mutationPayloadJobUpdateInput {
@@ -23079,6 +23160,7 @@ enum PayloadJobUpdate_Log_taskSlug_MutationInput {
   refreshSiteCache
   verifyContentHealth
   purgeCompletedJobs
+  createDatabaseBackup
 }
 
 input mutationPayloadJobUpdate_Log_ParentInput {
@@ -23091,6 +23173,7 @@ enum PayloadJobUpdate_Log_Parent_taskSlug_MutationInput {
   refreshSiteCache
   verifyContentHealth
   purgeCompletedJobs
+  createDatabaseBackup
 }
 
 enum PayloadJobUpdate_taskSlug_MutationInput {
@@ -23098,6 +23181,7 @@ enum PayloadJobUpdate_taskSlug_MutationInput {
   refreshSiteCache
   verifyContentHealth
   purgeCompletedJobs
+  createDatabaseBackup
 }
 
 input mutationPayloadLockedDocumentInput {
