@@ -69,20 +69,25 @@ function executeShellCommand(command: string, cwd: string): Promise<TerminalRunR
   return new Promise((resolve) => {
     const started = Date.now()
     const bin = path.join(cwd, 'node_modules', '.bin')
-    const isWin = process.platform === 'win32'
-    const shellCmd = isWin ? 'cmd.exe' : '/bin/sh'
-    const shellArgs = isWin ? ['/d', '/s', '/c', command] : ['-c', command]
+    const nodeDir = path.dirname(process.execPath)
+    const childEnv: NodeJS.ProcessEnv = {
+      ...process.env,
+      CI: '1',
+      FORCE_COLOR: '0',
+      NO_COLOR: '1',
+    }
+    const pathKey = Object.keys(childEnv).find((k) => k.toLowerCase() === 'path') ?? 'PATH'
+    childEnv[pathKey] = [bin, nodeDir, childEnv[pathKey]].filter(Boolean).join(path.delimiter)
 
-    const child = spawn(shellCmd, shellArgs, {
+    // `shell: true` delegates to `/bin/sh -c` on POSIX and `cmd.exe /d /s /c "..."` WITH
+    // `windowsVerbatimArguments: true` on Windows so quoted arguments (e.g. `node -e "..."`)
+    // are not corrupted by libuv backslash escaping.
+    const child = spawn(command, {
       cwd,
+      shell: true,
+      windowsHide: true,
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: {
-        ...process.env,
-        PATH: [bin, process.env.PATH].filter(Boolean).join(path.delimiter),
-        CI: '1',
-        FORCE_COLOR: '0',
-        NO_COLOR: '1',
-      },
+      env: childEnv,
     })
 
     let stdoutBuf = ''

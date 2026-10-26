@@ -204,6 +204,9 @@ export default buildConfig({
     autoGenerate: false,
   },
   db: vercelPostgresAdapter({
+    // Skip interactive drizzle-kit schema introspection/prompts during automated Vitest runs
+    // (`NODE_ENV === 'test'`) unless explicitly requested via `PAYLOAD_DB_PUSH=true`.
+    push: process.env.NODE_ENV === 'test' ? process.env.PAYLOAD_DB_PUSH === 'true' : undefined,
     pool: {
       connectionString: process.env.POSTGRES_URL || '',
     },

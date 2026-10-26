@@ -79,7 +79,8 @@ async function writeJailedArtifact(
   }
   const baseDir = path.resolve(process.cwd(), subDir)
   const targetAbs = path.resolve(baseDir, filename)
-  if (!targetAbs.startsWith(baseDir + path.sep)) {
+  const rel = path.relative(baseDir, targetAbs)
+  if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) {
     throw new Error('Path traversal blocked while writing generated artifact.')
   }
   await fs.mkdir(baseDir, { recursive: true })
