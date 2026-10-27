@@ -7,15 +7,27 @@ import { SiteChrome } from '@/app/(frontend)/components/layout/SiteChrome'
 import { JsonLd } from '@/app/(frontend)/components/seo/JsonLd'
 import { getCachedPortfolioContent } from '@/app/(frontend)/lib/cache'
 import { buildArticlesHubJsonLd, buildArticlesHubMetadata } from '@/app/(frontend)/lib/seo'
+import type { ArticlesArchiveLayoutMode } from '@/app/(frontend)/lib/types'
 
 export async function generateMetadata(): Promise<Metadata> {
   const content = await getCachedPortfolioContent()
   return buildArticlesHubMetadata(content.siteSettings)
 }
 
-export default async function ArticlesHubPage() {
-  const content = await getCachedPortfolioContent()
-  const { siteSettings } = content
+type SearchParamsInput = Promise<Record<string, string | string[] | undefined>>
+
+const pickFirst = (val: string | string[] | undefined): string | undefined =>
+  Array.isArray(val) ? val[0] : val
+
+export default async function ArticlesHubPage(props?: { searchParams?: SearchParamsInput }) {
+  const [content, resolvedParams] = await Promise.all([
+    getCachedPortfolioContent(),
+    props?.searchParams ? props.searchParams : Promise.resolve({} as Record<string, string | string[] | undefined>),
+  ])
+  const { siteSettings, headerStudio } = content
+  const rawView = pickFirst(resolvedParams.view)
+  const initialView: ArticlesArchiveLayoutMode | undefined =
+    rawView === 'magazine' || rawView === 'list' || rawView === 'grid' ? rawView : undefined
 
   return (
     <>
@@ -24,10 +36,15 @@ export default async function ArticlesHubPage() {
         footer={content.footer}
         footerLabels={siteSettings.footerLabels}
       >
-        <main id="main-content" className="article-page">
+        <main id="main-content" className="article-page p-0">
           <ArticlesArchive
             articles={content.articles}
             labels={siteSettings.articlesSection}
+            headerConfig={headerStudio.articlesArchive}
+            initialQuery={pickFirst(resolvedParams.q)}
+            initialCategory={pickFirst(resolvedParams.category)}
+            initialSort={pickFirst(resolvedParams.sort)}
+            initialView={initialView}
           />
         </main>
       </SiteChrome>

@@ -1,0 +1,1296 @@
+/* ──────────────────────────────────────────────────────────────────────────
+ * PoCMS Extended Inner-Page Design System & Header Studio Styles
+ * Strictly scoped to non-home routes (/articles, /projects, and detail pages).
+ * Home page (/) and main.css remain 100% untouched.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+.pocms-subpage-shell,
+.pocms-header-stage,
+.pocms-inner-main {
+  /* 1. Obsidian Elevation & Glass Ramp (derived from #0d0f17 & #12141d) */
+  --pocms-bg-abyss: #07090f;
+  --pocms-bg-canvas: #0d0f17;
+  --pocms-surface-1: #121624;
+  --pocms-surface-2: #181e31;
+  --pocms-surface-3: #202840;
+  --pocms-glass-bg: rgba(17, 21, 34, 0.76);
+  --pocms-glass-strong: rgba(13, 16, 27, 0.88);
+
+  /* 2. Signature Gold-to-Copper Warm Ramp (derived from #da9100, #ffc448, #906242) */
+  --pocms-gold-specular: #ffe294;
+  --pocms-amber: #ffc448;
+  --pocms-gold: #da9100;
+  --pocms-copper: #9e541d;
+  --pocms-bronze: #906242;
+  --pocms-sand: #cfc4ad;
+
+  /* 3. Cool Architectural Slate Counter-Ramp (derived from #34495e) */
+  --pocms-slate: #34495e;
+  --pocms-slate-bright: #5dade2;
+  --pocms-cyan-soft: rgba(72, 158, 204, 0.16);
+
+  /* 4. Semantic Surfaces, Borders & Text */
+  --pocms-accent-primary: var(--pocms-amber);
+  --pocms-accent-strong: var(--pocms-gold);
+  --pocms-accent-glow-1: rgba(218, 145, 0, 0.24);
+  --pocms-accent-glow-2: rgba(158, 84, 29, 0.2);
+  --pocms-accent-glow-3: rgba(52, 73, 94, 0.34);
+  --pocms-border-subtle: rgba(255, 255, 255, 0.08);
+  --pocms-border-accent: rgba(218, 145, 0, 0.3);
+  --pocms-border-specular: rgba(255, 196, 72, 0.26);
+  --pocms-text-strong: #f8f9fc;
+  --pocms-text-body: rgba(240, 242, 248, 0.86);
+  --pocms-text-muted: rgba(207, 196, 173, 0.72);
+  --pocms-text-dim: rgba(255, 255, 255, 0.54);
+  --pocms-shadow-elevated: 0 22px 52px rgba(3, 5, 12, 0.52);
+}
+
+/* Selectable Extended Theme Palettes from Admin Header Studio */
+[data-accent-tone='amber-slate'] {
+  --pocms-accent-primary: #ffc448;
+  --pocms-accent-strong: #da9100;
+  --pocms-accent-glow-1: rgba(255, 196, 72, 0.2);
+  --pocms-accent-glow-2: rgba(52, 73, 94, 0.42);
+  --pocms-accent-glow-3: rgba(144, 98, 66, 0.22);
+}
+
+[data-accent-tone='cyan-gold'] {
+  --pocms-accent-primary: #ffd166;
+  --pocms-accent-strong: #da9100;
+  --pocms-accent-glow-1: rgba(72, 158, 204, 0.22);
+  --pocms-accent-glow-2: rgba(218, 145, 0, 0.2);
+  --pocms-accent-glow-3: rgba(36, 59, 85, 0.44);
+  --pocms-border-accent: rgba(93, 173, 226, 0.32);
+}
+
+/* ── Header Stage Shell (Type 2 & Type 3) ─────────────────────────────── */
+.pocms-header-stage {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: linear-gradient(180deg, var(--pocms-bg-abyss) 0%, var(--pocms-bg-canvas) 100%);
+  border-bottom: 1px solid var(--pocms-border-subtle);
+  padding: 2rem 0 2.75rem;
+  color: var(--pocms-text-strong);
+}
+
+.pocms-header-stage::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--pocms-border-specular) 28%,
+    rgba(93, 173, 226, 0.22) 72%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+.pocms-header-stage__inner {
+  position: relative;
+  z-index: 3;
+}
+
+/* ── Creative Header Background Engine ────────────────────────────────── */
+.pocms-header-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Preset 1: Aurora Mesh + Tactile Film Grain */
+.pocms-header-bg--aurora .pocms-header-bg__plume {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(68px);
+  opacity: 0.85;
+  will-change: transform;
+}
+
+.pocms-header-bg--aurora .pocms-header-bg__plume--1 {
+  width: 38rem;
+  height: 24rem;
+  top: -9rem;
+  left: -6rem;
+  background: radial-gradient(circle, var(--pocms-accent-glow-1) 0%, transparent 70%);
+  animation: pocmsAuroraFloatA 18s ease-in-out infinite alternate;
+}
+
+.pocms-header-bg--aurora .pocms-header-bg__plume--2 {
+  width: 34rem;
+  height: 24rem;
+  top: -6rem;
+  right: -5rem;
+  background: radial-gradient(circle, var(--pocms-accent-glow-3) 0%, transparent 72%);
+  animation: pocmsAuroraFloatB 22s ease-in-out infinite alternate;
+}
+
+.pocms-header-bg--aurora .pocms-header-bg__plume--3 {
+  width: 30rem;
+  height: 18rem;
+  bottom: -8rem;
+  left: 32%;
+  background: radial-gradient(circle, var(--pocms-accent-glow-2) 0%, transparent 72%);
+}
+
+.pocms-header-bg__grain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.04;
+  mix-blend-mode: soft-light;
+}
+
+/* Preset 2: Architectural Blueprint Grid + Interactive Spotlight */
+.pocms-header-bg--blueprint {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(to right, rgba(218, 145, 0, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(218, 145, 0, 0.08) 1px, transparent 1px);
+  background-size:
+    28px 28px,
+    28px 28px,
+    140px 140px,
+    140px 140px;
+  mask-image: radial-gradient(ellipse 88% 86% at 50% 38%, #000 38%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 88% 86% at 50% 38%, #000 38%, transparent 100%);
+}
+
+.pocms-header-bg__spotlight {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      560px circle at var(--spot-x, 50%) var(--spot-y, 32%),
+      var(--pocms-accent-glow-1),
+      transparent 68%
+    ),
+    radial-gradient(
+      620px circle at 82% 18%,
+      var(--pocms-accent-glow-3),
+      transparent 72%
+    );
+  transition: background 120ms ease-out;
+}
+
+/* Preset 3: Chromatic Cover-Art Atmospheric Wash */
+.pocms-header-bg__cover-wash {
+  position: absolute;
+  inset: -12%;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  filter: blur(56px) saturate(1.35) brightness(0.42);
+  transform: scale(1.12);
+  opacity: 0.68;
+}
+
+.pocms-header-bg__cover-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 70% at 50% 0%, rgba(218, 145, 0, 0.12), transparent 68%),
+    linear-gradient(
+      180deg,
+      rgba(7, 9, 15, 0.62) 0%,
+      rgba(13, 15, 23, 0.84) 68%,
+      rgba(13, 15, 23, 0.98) 100%
+    );
+}
+
+/* Preset 4: Constellation Telemetry Canvas */
+.pocms-header-bg__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0.82;
+}
+
+/* Preset 5: Obsidian Specular Minimal */
+.pocms-header-bg--minimal {
+  background:
+    radial-gradient(ellipse 65% 50% at 50% 0%, rgba(218, 145, 0, 0.11), transparent 70%),
+    linear-gradient(180deg, #090b12 0%, #0d0f17 100%);
+}
+
+@keyframes pocmsAuroraFloatA {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(36px, 18px, 0) scale(1.08);
+  }
+}
+
+@keyframes pocmsAuroraFloatB {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(-32px, 22px, 0) scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pocms-header-bg--aurora .pocms-header-bg__plume--1,
+  .pocms-header-bg--aurora .pocms-header-bg__plume--2 {
+    animation: none !important;
+  }
+}
+
+/* ── Top Context & Breadcrumb Utility Bar (Type 2 & Type 3) ──────────── */
+.pocms-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+  padding-bottom: 1.5rem;
+  margin-bottom: 1.65rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.pocms-breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.84rem;
+  color: var(--pocms-text-dim);
+}
+
+.pocms-breadcrumbs a {
+  color: var(--pocms-sand);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.16s ease;
+}
+
+.pocms-breadcrumbs a:hover,
+.pocms-breadcrumbs a:focus-visible {
+  color: var(--pocms-accent-primary);
+}
+
+.pocms-breadcrumbs__sep {
+  opacity: 0.4;
+  user-select: none;
+}
+
+.pocms-breadcrumbs__current {
+  color: rgba(255, 255, 255, 0.85);
+  max-width: 28ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pocms-topbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pocms-telemetry-pill,
+.pocms-utility-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  padding: 0.34rem 0.78rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.82);
+  text-decoration: none;
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.pocms-telemetry-pill strong {
+  color: var(--pocms-accent-primary);
+  font-weight: 700;
+}
+
+button.pocms-utility-btn {
+  cursor: pointer;
+}
+
+.pocms-utility-btn:hover,
+.pocms-utility-btn:focus-visible,
+a.pocms-telemetry-pill:hover {
+  border-color: var(--pocms-border-accent);
+  background: rgba(218, 145, 0, 0.14);
+  color: var(--pocms-accent-primary);
+}
+
+.pocms-utility-btn--copied {
+  border-color: rgba(82, 196, 126, 0.55);
+  background: rgba(46, 160, 95, 0.18);
+  color: #8ce9ad;
+}
+
+/* ── Hero Stage Typography (Type 2 & Type 3) ─────────────────────────── */
+.pocms-eyebrow-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.9rem;
+}
+
+.pocms-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.28rem 0.82rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--pocms-accent-primary);
+  background: rgba(218, 145, 0, 0.13);
+  border: 1px solid var(--pocms-border-accent);
+}
+
+.pocms-eyebrow::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--pocms-accent-primary);
+  box-shadow: 0 0 10px var(--pocms-accent-primary);
+}
+
+.pocms-badge-subtle {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.26rem 0.72rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pocms-sand);
+  background: rgba(52, 73, 94, 0.36);
+  border: 1px solid rgba(207, 196, 173, 0.2);
+}
+
+.pocms-stage-title {
+  color: var(--pocms-text-strong);
+  font-size: clamp(2rem, 3.8vw, 3.1rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.022em;
+  margin: 0 0 0.85rem;
+  text-wrap: balance;
+  max-width: 24ch;
+}
+
+.pocms-stage-subtitle {
+  color: var(--pocms-text-muted);
+  font-size: clamp(1rem, 1.35vw, 1.16rem);
+  line-height: 1.65;
+  max-width: 66ch;
+  margin: 0;
+}
+
+/* ── Type 2 Discovery Dock (Search + Filters + View Mode Switcher) ────── */
+.pocms-discovery-dock {
+  margin-top: 1.85rem;
+  padding: 1.1rem 1.25rem;
+  border-radius: 1rem;
+  background: var(--pocms-glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    var(--pocms-shadow-elevated);
+}
+
+.pocms-discovery-dock__primary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem 1rem;
+}
+
+.pocms-search-field {
+  position: relative;
+  flex: 1 1 260px;
+  max-width: 420px;
+}
+
+.pocms-search-field__icon {
+  position: absolute;
+  left: 0.9rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.45);
+  pointer-events: none;
+  font-size: 0.9rem;
+}
+
+.pocms-search-field__input {
+  width: 100%;
+  padding: 0.6rem 4.2rem 0.6rem 2.35rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(8, 10, 18, 0.72);
+  color: #fff;
+  font-size: 0.92rem;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.pocms-search-field__input::placeholder {
+  color: rgba(255, 255, 255, 0.44);
+}
+
+.pocms-search-field__input:focus {
+  outline: none;
+  border-color: var(--pocms-accent-strong);
+  box-shadow: 0 0 0 3px rgba(218, 145, 0, 0.2);
+}
+
+.pocms-search-field__kbd {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0.1rem 0.44rem;
+  border-radius: 0.35rem;
+  font-size: 0.72rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  pointer-events: none;
+}
+
+.pocms-search-field__clear {
+  position: absolute;
+  right: 0.55rem;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.82);
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pocms-search-field__clear:hover {
+  background: rgba(218, 145, 0, 0.28);
+  color: #fff;
+}
+
+.pocms-filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.42rem;
+}
+
+.pocms-pill-btn {
+  padding: 0.44rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.78);
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.pocms-pill-btn:hover {
+  border-color: var(--pocms-border-accent);
+  color: #fff;
+}
+
+.pocms-pill-btn.is-active {
+  background: linear-gradient(135deg, var(--pocms-gold) 0%, #b87300 100%);
+  border-color: var(--pocms-amber);
+  color: #090b12;
+  box-shadow: 0 4px 16px rgba(218, 145, 0, 0.3);
+}
+
+.pocms-dock-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.pocms-sort-select {
+  padding: 0.44rem 0.8rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(8, 10, 18, 0.78);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.pocms-view-switcher {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem;
+  border-radius: 0.65rem;
+  background: rgba(7, 9, 15, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+}
+
+.pocms-view-switcher__btn {
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.32rem 0.68rem;
+  border-radius: 0.48rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pocms-view-switcher__btn:hover {
+  color: #fff;
+}
+
+.pocms-view-switcher__btn.is-active {
+  background: rgba(218, 145, 0, 0.22);
+  color: var(--pocms-accent-primary);
+  box-shadow: inset 0 0 0 1px var(--pocms-border-accent);
+}
+
+.pocms-discovery-dock__secondary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem 1rem;
+  margin-top: 0.85rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.pocms-tech-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.38rem;
+}
+
+.pocms-tech-chip {
+  padding: 0.24rem 0.68rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(255, 255, 255, 0.76);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pocms-tech-chip:hover,
+a.pocms-tech-chip:hover {
+  border-color: var(--pocms-border-accent);
+  color: var(--pocms-accent-primary);
+  background: rgba(218, 145, 0, 0.12);
+}
+
+.pocms-tech-chip.is-active {
+  background: rgba(218, 145, 0, 0.24);
+  border-color: var(--pocms-amber);
+  color: var(--pocms-amber);
+}
+
+.pocms-results-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.83rem;
+  color: rgba(255, 255, 255, 0.62);
+  margin: 0;
+}
+
+/* ── Type 3 Contextual Dock (Article Meta + Jump Chips / Project Specs) ── */
+.pocms-detail-dock {
+  margin-top: 1.85rem;
+  padding: 1rem 1.25rem;
+  border-radius: 0.95rem;
+  background: var(--pocms-glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.pocms-article-meta-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+}
+
+.pocms-author-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 0.95rem;
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.pocms-author-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #090b12;
+  background: linear-gradient(135deg, var(--pocms-amber) 0%, var(--pocms-gold) 100%);
+}
+
+.pocms-meta-dot {
+  opacity: 0.38;
+}
+
+.pocms-section-jumps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.42rem;
+  margin-top: 0.85rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.pocms-section-jumps__label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--pocms-sand);
+  margin-right: 0.25rem;
+}
+
+.pocms-jump-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.24rem 0.68rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.pocms-jump-chip:hover {
+  border-color: var(--pocms-border-accent);
+  color: var(--pocms-accent-primary);
+  background: rgba(218, 145, 0, 0.12);
+}
+
+/* Project 4-Cell Spec Grid inside Type 3 Header */
+.pocms-spec-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 0.85rem 1.25rem;
+}
+
+.pocms-spec-cell__label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--pocms-sand);
+  margin-bottom: 0.2rem;
+}
+
+.pocms-spec-cell__value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+}
+
+.pocms-project-dock-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem 1.25rem;
+  margin-top: 0.95rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pocms-cta-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.pocms-btn-gold {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  padding: 0.5rem 1.05rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #090b12;
+  background: linear-gradient(135deg, var(--pocms-amber) 0%, var(--pocms-gold) 100%);
+  border: 1px solid var(--pocms-amber);
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pocms-btn-gold:hover {
+  color: #090b12;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(218, 145, 0, 0.34);
+}
+
+.pocms-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  padding: 0.48rem 0.98rem;
+  border-radius: 999px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.pocms-btn-ghost:hover {
+  color: var(--pocms-accent-primary);
+  border-color: var(--pocms-border-accent);
+  background: rgba(218, 145, 0, 0.1);
+}
+
+/* ── Main Content Surface (/articles, /projects, and detail pages) ───── */
+.pocms-inner-main {
+  background-color: var(--pocms-bg-canvas);
+  color: var(--pocms-text-body);
+  padding: 2.75rem 0 4.5rem;
+  min-height: 55vh;
+}
+
+.pocms-section-kicker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.pocms-section-kicker__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--pocms-sand);
+  margin: 0;
+}
+
+.pocms-section-kicker__title::before {
+  content: '';
+  width: 18px;
+  height: 2px;
+  background: var(--pocms-accent-strong);
+  border-radius: 2px;
+}
+
+/* ── /articles Magazine Layout (Featured Hero + Stream + Sticky Rail) ─── */
+.pocms-featured-hero {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  border-radius: 1.15rem;
+  overflow: hidden;
+  background: linear-gradient(155deg, var(--pocms-surface-2) 0%, var(--pocms-surface-1) 100%);
+  border: 1px solid var(--pocms-border-accent);
+  box-shadow: var(--pocms-shadow-elevated);
+  margin-bottom: 2.75rem;
+}
+
+@media (min-width: 992px) {
+  .pocms-featured-hero {
+    grid-template-columns: 1.12fr 1fr;
+  }
+}
+
+.pocms-featured-hero__media {
+  position: relative;
+  min-height: 250px;
+  background: #090b12;
+  overflow: hidden;
+}
+
+.pocms-featured-hero__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.45s ease;
+}
+
+.pocms-featured-hero:hover .pocms-featured-hero__media img {
+  transform: scale(1.03);
+}
+
+.pocms-featured-hero__body {
+  padding: 1.85rem 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.pocms-featured-hero__title {
+  font-size: clamp(1.45rem, 2.2vw, 1.95rem);
+  font-weight: 800;
+  line-height: 1.25;
+  margin: 0.65rem 0 0.8rem;
+}
+
+.pocms-featured-hero__title a {
+  color: #fff;
+  text-decoration: none;
+}
+
+.pocms-featured-hero__title a:hover {
+  color: var(--pocms-accent-primary);
+}
+
+.pocms-featured-hero__excerpt {
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 0.98rem;
+  line-height: 1.65;
+  margin-bottom: 1.25rem;
+}
+
+/* Editorial Stream Row (Magazine & List View) */
+.pocms-stream-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pocms-stream-item {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.15rem;
+  padding: 1.35rem 1.45rem;
+  border-radius: 0.95rem;
+  background: var(--pocms-surface-1);
+  border: 1px solid var(--pocms-border-subtle);
+  transition:
+    border-color 0.18s ease,
+    transform 0.18s ease,
+    background-color 0.18s ease;
+}
+
+@media (min-width: 768px) {
+  .pocms-stream-item--with-thumb {
+    grid-template-columns: 1fr 190px;
+    align-items: center;
+  }
+}
+
+.pocms-stream-item:hover {
+  border-color: var(--pocms-border-accent);
+  background: var(--pocms-surface-2);
+  transform: translateY(-2px);
+}
+
+.pocms-stream-item__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  font-size: 0.78rem;
+  color: var(--pocms-sand);
+  margin-bottom: 0.45rem;
+}
+
+.pocms-stream-item__title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 0 0 0.45rem;
+}
+
+.pocms-stream-item__title a {
+  color: #fff;
+  text-decoration: none;
+}
+
+.pocms-stream-item__title a:hover {
+  color: var(--pocms-accent-primary);
+}
+
+.pocms-stream-item__excerpt {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.93rem;
+  line-height: 1.6;
+  margin: 0 0 0.75rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pocms-stream-item__thumb {
+  border-radius: 0.7rem;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  background: #090b12;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pocms-stream-item__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Sticky Editorial Rail on /articles */
+.pocms-editorial-rail {
+  position: sticky;
+  top: 5.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.pocms-rail-card {
+  padding: 1.25rem 1.35rem;
+  border-radius: 0.95rem;
+  background: var(--pocms-surface-1);
+  border: 1px solid var(--pocms-border-subtle);
+}
+
+.pocms-rail-card__heading {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--pocms-accent-primary);
+  margin: 0 0 0.95rem;
+}
+
+.pocms-rail-ranked {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.pocms-rail-ranked__item {
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  gap: 0.65rem;
+  align-items: start;
+}
+
+.pocms-rail-ranked__num {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--pocms-gold);
+  font-variant-numeric: tabular-nums;
+  padding-top: 0.1rem;
+}
+
+.pocms-rail-ranked__link {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-decoration: none;
+}
+
+.pocms-rail-ranked__link:hover {
+  color: var(--pocms-accent-primary);
+}
+
+/* ── /projects Showcase & Architectural Index List ───────────────────── */
+.pocms-showcase-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-radius: 1.05rem;
+  overflow: hidden;
+  background: linear-gradient(165deg, var(--pocms-surface-2) 0%, var(--pocms-surface-1) 100%);
+  border: 1px solid var(--pocms-border-accent);
+  box-shadow: 0 16px 38px rgba(4, 6, 14, 0.4);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.pocms-showcase-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--pocms-amber);
+}
+
+.pocms-showcase-card__media {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #080a11;
+  overflow: hidden;
+}
+
+.pocms-showcase-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pocms-showcase-card__body {
+  padding: 1.45rem 1.55rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.pocms-index-table {
+  display: flex;
+  flex-direction: column;
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid var(--pocms-border-subtle);
+  background: var(--pocms-surface-1);
+}
+
+.pocms-index-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem 1.25rem;
+  padding: 1.15rem 1.35rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  align-items: center;
+  transition: background-color 0.16s ease;
+}
+
+.pocms-index-row:last-child {
+  border-bottom: 0;
+}
+
+.pocms-index-row:hover {
+  background: var(--pocms-surface-2);
+}
+
+@media (min-width: 992px) {
+  .pocms-index-row {
+    grid-template-columns: 76px 1.4fr 1fr 1.1fr auto;
+  }
+}
+
+/* ── Asymmetric 2-Column Reading Workspace (/articles/[slug] & /projects/[slug]) */
+.pocms-reading-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2.5rem;
+  align-items: start;
+}
+
+.pocms-reading-grid--with-rail {
+  max-width: 1140px;
+  margin: 0 auto;
+}
+
+.pocms-reading-grid--single {
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+@media (min-width: 992px) {
+  .pocms-reading-grid--with-rail {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 3rem;
+  }
+}
+
+.pocms-reading-main {
+  min-width: 0;
+}
+
+.pocms-reading-rail {
+  display: none;
+}
+
+@media (min-width: 992px) {
+  .pocms-reading-rail {
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+    position: sticky;
+    top: 5.25rem;
+  }
+
+  .pocms-mobile-toc {
+    display: none;
+  }
+}
+
+.pocms-sticky-toc-card {
+  padding: 1.2rem 1.25rem;
+  border-radius: 0.95rem;
+  background: var(--pocms-surface-1);
+  border: 1px solid var(--pocms-border-subtle);
+}
+
+.pocms-sticky-toc-card__title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--pocms-sand);
+  margin: 0 0 0.85rem;
+}
+
+.pocms-toc-spy-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.pocms-toc-spy-item a {
+  display: block;
+  padding: 0.34rem 0 0.34rem 0.85rem;
+  margin-left: -1px;
+  border-left: 2px solid transparent;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.64);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.pocms-toc-spy-item--lvl3 a {
+  padding-left: 1.45rem;
+  font-size: 0.81rem;
+}
+
+.pocms-toc-spy-item--lvl4 a {
+  padding-left: 1.95rem;
+  font-size: 0.78rem;
+}
+
+.pocms-toc-spy-item a:hover {
+  color: #fff;
+}
+
+.pocms-toc-spy-item.is-active a {
+  color: var(--pocms-accent-primary);
+  border-left-color: var(--pocms-accent-primary);
+  font-weight: 600;
+}
+
+/* Mobile collapsible TOC drawer */
+.pocms-mobile-toc details {
+  margin-bottom: 1.75rem;
+  padding: 0.95rem 1.15rem;
+  border-radius: 0.85rem;
+  background: var(--pocms-surface-1);
+  border: 1px solid var(--pocms-border-subtle);
+}
+
+.pocms-mobile-toc summary {
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--pocms-accent-primary);
+}
+
+/* Bottom Continuation Section ("Continue Reading" / "More Selected Projects") */
+.pocms-continuation {
+  margin-top: 3.75rem;
+  padding-top: 2.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.pocms-continuation-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1.3rem 1.4rem;
+  border-radius: 0.95rem;
+  background: var(--pocms-surface-1);
+  border: 1px solid var(--pocms-border-subtle);
+  text-decoration: none;
+  transition:
+    border-color 0.18s ease,
+    transform 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.pocms-continuation-card:hover {
+  border-color: var(--pocms-border-accent);
+  background: var(--pocms-surface-2);
+  transform: translateY(-2px);
+}
+
+.pocms-continuation-card__title {
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.38;
+  margin: 0.45rem 0 0.5rem;
+}
+
+.pocms-continuation-card:hover .pocms-continuation-card__title {
+  color: var(--pocms-accent-primary);
+}

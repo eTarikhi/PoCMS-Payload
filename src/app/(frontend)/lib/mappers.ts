@@ -38,14 +38,19 @@ import type {
   EducationItem,
   ExperienceItem,
   FooterContent,
+  HeaderAccentTone,
+  HeaderBackgroundPreset,
   HeaderContent,
+  HeaderStudioConfig,
   HiringCta,
   NavigationContent,
   NavigationItem,
   PortfolioContent,
   ProjectFilter,
   ProjectItem,
+  ProjectsArchiveLayoutMode,
   ProjectsContent,
+  ArticlesArchiveLayoutMode,
   SectionCta,
   SeoOverride,
   ServiceItem,
@@ -467,6 +472,207 @@ export const mapSiteSettings = (
   }
 }
 
+export const DEFAULT_HEADER_STUDIO: HeaderStudioConfig = {
+  articlesArchive: {
+    eyebrow: 'Engineering Journal & Notes',
+    headingOverride: null,
+    subtitleOverride: null,
+    backgroundPreset: 'aurora-grain',
+    accentTone: 'gold-copper',
+    defaultLayout: 'magazine',
+    showSearch: true,
+    showFilters: true,
+    showStatsBar: true,
+    showRssLink: true,
+  },
+  projectsArchive: {
+    eyebrow: 'Selected Architecture & Builds',
+    headingOverride: null,
+    subtitleOverride: null,
+    backgroundPreset: 'blueprint-spotlight',
+    accentTone: 'amber-slate',
+    defaultLayout: 'showcase',
+    showSearch: true,
+    showCategoryFilters: true,
+    showTechFilters: true,
+    showStatsBar: true,
+  },
+  articleDetail: {
+    eyebrow: 'Engineering Article',
+    backgroundPreset: 'chromatic-cover',
+    accentTone: 'gold-copper',
+    showBreadcrumbs: true,
+    showShareActions: true,
+    showSectionJumpDock: true,
+    showStickyToc: true,
+    showRelatedArticles: true,
+  },
+  projectDetail: {
+    eyebrow: 'Engineering Case Study',
+    backgroundPreset: 'chromatic-cover',
+    accentTone: 'amber-slate',
+    showBreadcrumbs: true,
+    showSpecDock: true,
+    showTechLinks: true,
+    showStickySidebar: true,
+    showRelatedProjects: true,
+  },
+}
+
+const VALID_BG_PRESETS: ReadonlySet<HeaderBackgroundPreset> = new Set([
+  'aurora-grain',
+  'blueprint-spotlight',
+  'chromatic-cover',
+  'constellation-canvas',
+  'obsidian-minimal',
+])
+
+const VALID_ACCENT_TONES: ReadonlySet<HeaderAccentTone> = new Set([
+  'gold-copper',
+  'amber-slate',
+  'cyan-gold',
+])
+
+const VALID_ARTICLES_LAYOUTS: ReadonlySet<ArticlesArchiveLayoutMode> = new Set([
+  'magazine',
+  'list',
+  'grid',
+])
+
+const VALID_PROJECTS_LAYOUTS: ReadonlySet<ProjectsArchiveLayoutMode> = new Set([
+  'showcase',
+  'list',
+  'grid',
+])
+
+const resolveBgPreset = (
+  value: string | null | undefined,
+  fallback: HeaderBackgroundPreset,
+): HeaderBackgroundPreset =>
+  value && VALID_BG_PRESETS.has(value as HeaderBackgroundPreset)
+    ? (value as HeaderBackgroundPreset)
+    : fallback
+
+const resolveAccentTone = (
+  value: string | null | undefined,
+  fallback: HeaderAccentTone,
+): HeaderAccentTone =>
+  value && VALID_ACCENT_TONES.has(value as HeaderAccentTone)
+    ? (value as HeaderAccentTone)
+    : fallback
+
+const nullableTrimmed = (value: string | null | undefined): string | null => {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : null
+}
+
+export const mapHeaderStudio = (doc?: Partial<Header> | null): HeaderStudioConfig => {
+  const articles = doc?.articlesHeader
+  const projects = doc?.projectsHeader
+  const articleDetail = doc?.articleDetailHeader
+  const projectDetail = doc?.projectDetailHeader
+
+  return {
+    articlesArchive: {
+      eyebrow: withFallback(articles?.eyebrow, DEFAULT_HEADER_STUDIO.articlesArchive.eyebrow),
+      headingOverride: nullableTrimmed(articles?.headingOverride),
+      subtitleOverride: nullableTrimmed(articles?.subtitleOverride),
+      backgroundPreset: resolveBgPreset(
+        articles?.backgroundPreset,
+        DEFAULT_HEADER_STUDIO.articlesArchive.backgroundPreset,
+      ),
+      accentTone: resolveAccentTone(
+        articles?.accentTone,
+        DEFAULT_HEADER_STUDIO.articlesArchive.accentTone,
+      ),
+      defaultLayout:
+        articles?.defaultLayout &&
+        VALID_ARTICLES_LAYOUTS.has(articles.defaultLayout as ArticlesArchiveLayoutMode)
+          ? (articles.defaultLayout as ArticlesArchiveLayoutMode)
+          : DEFAULT_HEADER_STUDIO.articlesArchive.defaultLayout,
+      showSearch: articles?.showSearch ?? DEFAULT_HEADER_STUDIO.articlesArchive.showSearch,
+      showFilters: articles?.showFilters ?? DEFAULT_HEADER_STUDIO.articlesArchive.showFilters,
+      showStatsBar: articles?.showStatsBar ?? DEFAULT_HEADER_STUDIO.articlesArchive.showStatsBar,
+      showRssLink: articles?.showRssLink ?? DEFAULT_HEADER_STUDIO.articlesArchive.showRssLink,
+    },
+    projectsArchive: {
+      eyebrow: withFallback(projects?.eyebrow, DEFAULT_HEADER_STUDIO.projectsArchive.eyebrow),
+      headingOverride: nullableTrimmed(projects?.headingOverride),
+      subtitleOverride: nullableTrimmed(projects?.subtitleOverride),
+      backgroundPreset: resolveBgPreset(
+        projects?.backgroundPreset,
+        DEFAULT_HEADER_STUDIO.projectsArchive.backgroundPreset,
+      ),
+      accentTone: resolveAccentTone(
+        projects?.accentTone,
+        DEFAULT_HEADER_STUDIO.projectsArchive.accentTone,
+      ),
+      defaultLayout:
+        projects?.defaultLayout &&
+        VALID_PROJECTS_LAYOUTS.has(projects.defaultLayout as ProjectsArchiveLayoutMode)
+          ? (projects.defaultLayout as ProjectsArchiveLayoutMode)
+          : DEFAULT_HEADER_STUDIO.projectsArchive.defaultLayout,
+      showSearch: projects?.showSearch ?? DEFAULT_HEADER_STUDIO.projectsArchive.showSearch,
+      showCategoryFilters:
+        projects?.showCategoryFilters ?? DEFAULT_HEADER_STUDIO.projectsArchive.showCategoryFilters,
+      showTechFilters:
+        projects?.showTechFilters ?? DEFAULT_HEADER_STUDIO.projectsArchive.showTechFilters,
+      showStatsBar: projects?.showStatsBar ?? DEFAULT_HEADER_STUDIO.projectsArchive.showStatsBar,
+    },
+    articleDetail: {
+      eyebrow: withFallback(
+        articleDetail?.eyebrow,
+        DEFAULT_HEADER_STUDIO.articleDetail.eyebrow,
+      ),
+      backgroundPreset: resolveBgPreset(
+        articleDetail?.backgroundPreset,
+        DEFAULT_HEADER_STUDIO.articleDetail.backgroundPreset,
+      ),
+      accentTone: resolveAccentTone(
+        articleDetail?.accentTone,
+        DEFAULT_HEADER_STUDIO.articleDetail.accentTone,
+      ),
+      showBreadcrumbs:
+        articleDetail?.showBreadcrumbs ?? DEFAULT_HEADER_STUDIO.articleDetail.showBreadcrumbs,
+      showShareActions:
+        articleDetail?.showShareActions ?? DEFAULT_HEADER_STUDIO.articleDetail.showShareActions,
+      showSectionJumpDock:
+        articleDetail?.showSectionJumpDock ??
+        DEFAULT_HEADER_STUDIO.articleDetail.showSectionJumpDock,
+      showStickyToc:
+        articleDetail?.showStickyToc ?? DEFAULT_HEADER_STUDIO.articleDetail.showStickyToc,
+      showRelatedArticles:
+        articleDetail?.showRelatedArticles ??
+        DEFAULT_HEADER_STUDIO.articleDetail.showRelatedArticles,
+    },
+    projectDetail: {
+      eyebrow: withFallback(
+        projectDetail?.eyebrow,
+        DEFAULT_HEADER_STUDIO.projectDetail.eyebrow,
+      ),
+      backgroundPreset: resolveBgPreset(
+        projectDetail?.backgroundPreset,
+        DEFAULT_HEADER_STUDIO.projectDetail.backgroundPreset,
+      ),
+      accentTone: resolveAccentTone(
+        projectDetail?.accentTone,
+        DEFAULT_HEADER_STUDIO.projectDetail.accentTone,
+      ),
+      showBreadcrumbs:
+        projectDetail?.showBreadcrumbs ?? DEFAULT_HEADER_STUDIO.projectDetail.showBreadcrumbs,
+      showSpecDock:
+        projectDetail?.showSpecDock ?? DEFAULT_HEADER_STUDIO.projectDetail.showSpecDock,
+      showTechLinks:
+        projectDetail?.showTechLinks ?? DEFAULT_HEADER_STUDIO.projectDetail.showTechLinks,
+      showStickySidebar:
+        projectDetail?.showStickySidebar ?? DEFAULT_HEADER_STUDIO.projectDetail.showStickySidebar,
+      showRelatedProjects:
+        projectDetail?.showRelatedProjects ??
+        DEFAULT_HEADER_STUDIO.projectDetail.showRelatedProjects,
+    },
+  }
+}
+
 export const mapHeader = (doc: Header | null): HeaderContent | null => {
   if (!doc) return null
   return {
@@ -475,6 +681,7 @@ export const mapHeader = (doc: Header | null): HeaderContent | null => {
     imageUrl: resolveMediaUrl(doc.profileImage) ?? withFallback(doc.imageUrl, ''),
     requestCV: withFallback(doc.requestCV, '#'),
     professionTexts: doc.professionTexts ?? [],
+    studio: mapHeaderStudio(doc),
   }
 }
 
@@ -654,6 +861,7 @@ export const mapPortfolioContent = (raw: RawPortfolioDocs): PortfolioContent => 
     siteSettings,
     navigation,
     header: mapHeader(raw.header),
+    headerStudio: mapHeaderStudio(raw.header),
     about: mapAbout(raw.about),
     skills: mapSkills(raw.skills),
     experiences: mapExperiences(raw.experiences),

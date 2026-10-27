@@ -110,6 +110,74 @@ export type SiteSettingsContent = {
   }
 }
 
+export type HeaderBackgroundPreset =
+  | 'aurora-grain'
+  | 'blueprint-spotlight'
+  | 'chromatic-cover'
+  | 'constellation-canvas'
+  | 'obsidian-minimal'
+
+export type HeaderAccentTone = 'gold-copper' | 'amber-slate' | 'cyan-gold'
+
+export type ArticlesArchiveLayoutMode = 'magazine' | 'list' | 'grid'
+
+export type ProjectsArchiveLayoutMode = 'showcase' | 'list' | 'grid'
+
+export type ArticlesArchiveHeaderConfig = {
+  eyebrow: string
+  headingOverride: string | null
+  subtitleOverride: string | null
+  backgroundPreset: HeaderBackgroundPreset
+  accentTone: HeaderAccentTone
+  defaultLayout: ArticlesArchiveLayoutMode
+  showSearch: boolean
+  showFilters: boolean
+  showStatsBar: boolean
+  showRssLink: boolean
+}
+
+export type ProjectsArchiveHeaderConfig = {
+  eyebrow: string
+  headingOverride: string | null
+  subtitleOverride: string | null
+  backgroundPreset: HeaderBackgroundPreset
+  accentTone: HeaderAccentTone
+  defaultLayout: ProjectsArchiveLayoutMode
+  showSearch: boolean
+  showCategoryFilters: boolean
+  showTechFilters: boolean
+  showStatsBar: boolean
+}
+
+export type ArticleDetailHeaderConfig = {
+  eyebrow: string
+  backgroundPreset: HeaderBackgroundPreset
+  accentTone: HeaderAccentTone
+  showBreadcrumbs: boolean
+  showShareActions: boolean
+  showSectionJumpDock: boolean
+  showStickyToc: boolean
+  showRelatedArticles: boolean
+}
+
+export type ProjectDetailHeaderConfig = {
+  eyebrow: string
+  backgroundPreset: HeaderBackgroundPreset
+  accentTone: HeaderAccentTone
+  showBreadcrumbs: boolean
+  showSpecDock: boolean
+  showTechLinks: boolean
+  showStickySidebar: boolean
+  showRelatedProjects: boolean
+}
+
+export type HeaderStudioConfig = {
+  articlesArchive: ArticlesArchiveHeaderConfig
+  projectsArchive: ProjectsArchiveHeaderConfig
+  articleDetail: ArticleDetailHeaderConfig
+  projectDetail: ProjectDetailHeaderConfig
+}
+
 export type HeaderContent = {
   id: string
   sureName: string
@@ -119,6 +187,8 @@ export type HeaderContent = {
   requestCV: string
   /** Job titles cycled by the typing effect. */
   professionTexts: string[]
+  /** Unified Header Studio configuration for inner archive & detail pages. */
+  studio?: HeaderStudioConfig
 }
 
 export type AboutContent = {
@@ -285,6 +355,7 @@ export type PortfolioContent = {
   siteSettings: SiteSettingsContent
   navigation: NavigationContent
   header: HeaderContent | null
+  headerStudio: HeaderStudioConfig
   about: AboutContent | null
   skills: SkillsContent
   experiences: ExperienceItem[]

@@ -49,11 +49,15 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     return <PayloadRedirects url={articlePagePath(slug)} />
   }
 
-  const { siteSettings } = content
+  const { siteSettings, headerStudio } = content
   const footerNavLabels = {
     backToArticlesLabel: siteSettings.articlesSection.backToArticlesLabel,
     externalPublicationLabel: siteSettings.articlesSection.externalPublicationLabel,
   }
+  const currentPath = articlePagePath(article.slug)
+  const relatedArticles = content.articles
+    .filter((item) => item.pagePath !== currentPath && String(item.id) !== String(article.id))
+    .slice(0, 3)
 
   return (
     <>
@@ -62,10 +66,24 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         footer={content.footer}
         footerLabels={siteSettings.footerLabels}
       >
-        <main id="main-content" className="article-page">
+        <main id="main-content" className="article-page p-0">
           {/* In the admin's Live Preview iframe the article follows the editor's changes. */}
-          <ArticleLivePreviewSwitch id={article.id} labels={footerNavLabels}>
-            <ArticleLayout article={article} labels={footerNavLabels} />
+          <ArticleLivePreviewSwitch
+            id={article.id}
+            labels={footerNavLabels}
+            headerConfig={headerStudio.articleDetail}
+            ownerName={siteSettings.ownerName}
+            featuredBadgeLabel={siteSettings.articlesSection.featuredBadgeLabel}
+            relatedArticles={relatedArticles}
+          >
+            <ArticleLayout
+              article={article}
+              labels={footerNavLabels}
+              headerConfig={headerStudio.articleDetail}
+              ownerName={siteSettings.ownerName}
+              featuredBadgeLabel={siteSettings.articlesSection.featuredBadgeLabel}
+              relatedArticles={relatedArticles}
+            />
           </ArticleLivePreviewSwitch>
         </main>
       </SiteChrome>

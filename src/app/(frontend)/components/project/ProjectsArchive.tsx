@@ -1,13 +1,20 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
-import { DEFAULT_SITE_SETTINGS } from '@/app/(frontend)/lib/mappers'
-import type { ProjectItem, SiteSettingsContent } from '@/app/(frontend)/lib/types'
+import { DEFAULT_HEADER_STUDIO, DEFAULT_SITE_SETTINGS } from '@/app/(frontend)/lib/mappers'
+import type {
+  ProjectItem,
+  ProjectsArchiveHeaderConfig,
+  ProjectsArchiveLayoutMode,
+  SiteSettingsContent,
+} from '@/app/(frontend)/lib/types'
+import { ArchiveHubHeader } from '../headers/ArchiveHubHeader'
 import { CoverImage } from '../ui/CoverImage'
 
 type CategoryFilter = '*' | 'front-end' | 'back-end' | 'cms-crm' | 'case-study'
+type ProjectSortMode = 'default' | 'case-studies' | 'year-desc' | 'title'
 
 const CATEGORY_LABELS: Record<string, string> = {
   'front-end': 'Front-End',
@@ -15,21 +22,42 @@ const CATEGORY_LABELS: Record<string, string> = {
   'cms-crm': 'CMS-CRM',
 }
 
+const SORT_OPTIONS: Array<{ label: string; value: ProjectSortMode }> = [
+  { label: 'Sort: Curated order', value: 'default' },
+  { label: 'Sort: Case studies first', value: 'case-studies' },
+  { label: 'Sort: Newest year', value: 'year-desc' },
+  { label: 'Sort: Title (A–Z)', value: 'title' },
+]
+
+const VIEW_OPTIONS: Array<{ label: string; value: ProjectsArchiveLayoutMode }> = [
+  { label: 'Showcase', value: 'showcase' },
+  { label: 'Index', value: 'list' },
+  { label: 'Grid', value: 'grid' },
+]
+
 export type ProjectsArchiveProps = {
   projects: ProjectItem[]
   labels?: SiteSettingsContent['projectsSection']
+  headerConfig?: ProjectsArchiveHeaderConfig
   initialQuery?: string
   initialCategory?: string
   initialTech?: string
+  initialSort?: string
+  initialView?: ProjectsArchiveLayoutMode
 }
 
 export function ProjectsArchive({
   projects,
   labels = DEFAULT_SITE_SETTINGS.projectsSection,
+  headerConfig,
   initialQuery = '',
   initialCategory = '*',
   initialTech = '*',
+  initialSort = 'default',
+  initialView,
 }: ProjectsArchiveProps) {
+  const effectiveHeader = headerConfig ?? DEFAULT_HEADER_STUDIO.projectsArchive
+
   const validInitialCategory: CategoryFilter =
     initialCategory === 'front-end' ||
     initialCategory === 'back-end' ||
@@ -38,9 +66,45 @@ export function ProjectsArchive({
       ? initialCategory
       : '*'
 
+  const validInitialSort: ProjectSortMode =
+    initialSort === 'case-studies' || initialSort === 'year-desc' || initialSort === 'title'
+      ? initialSort
+      : 'default'
+
+  const resolvedDefaultView: ProjectsArchiveLayoutMode =
+    initialView ?? (headerConfig ? headerConfig.defaultLayout : 'grid')
+
   const [query, setQuery] = useState(initialQuery)
   const [category, setCategory] = useState<CategoryFilter>(validInitialCategory)
   const [tech, setTech] = useState<string>(initialTech || '*')
+  const [sortBy, setSortBy] = useState<ProjectSortMode>(validInitialSort)
+  const [viewMode, setViewMode] = useState<ProjectsArchiveLayoutMode>(resolvedDefaultView)
+
+  // Keep URL query parameters synced for deep-linking (e.g. /projects?tech=Payload+CMS)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !headerConfig) return
+    const params = new URLSearchParams(window.location.search)
+    if (query.trim()) params.set('q', query.trim())
+    else params.delete('q')
+
+    if (category !== '*') params.set('category', category)
+    else params.delete('category')
+
+    if (tech && tech !== '*') params.set('tech', tech)
+    else params.delete('tech')
+
+    if (sortBy !== 'default') params.set('sort', sortBy)
+    else params.delete('sort')
+
+    if (viewMode !== effectiveHeader.defaultLayout) params.set('view', viewMode)
+    else params.delete('view')
+
+    const qs = params.toString()
+    const nextUrl = `${window.location.pathname}${qs ? `?${qs}` : ''}`
+    if (nextUrl !== `${window.location.pathname}${window.location.search}`) {
+      window.history.replaceState(null, '', nextUrl)
+    }
+  }, [category, effectiveHeader.defaultLayout, headerConfig, query, sortBy, tech, viewMode])
 
   const categoryOptions: Array<{ label: string; value: CategoryFilter }> = useMemo(
     () => [
@@ -67,11 +131,16 @@ export function ProjectsArchive({
     return Array.from(seen.values())
   }, [projects])
 
+  const caseStudyCount = useMemo(
+    () => projects.filter((p) => Boolean(p.pagePath)).length,
+    [projects],
+  )
+
   const filtered = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
     const normalizedTech = tech === '*' ? '' : tech.trim().toLowerCase()
 
-    return projects.filter((project) => {
+    const matches = projects.filter((project) => {
       if (category === 'case-study') {
         if (!project.pagePath) return false
       } else if (category !== '*' && !project.categories.includes(category)) {
@@ -98,110 +167,363 @@ export function ProjectsArchive({
 
       return haystack.includes(normalizedQuery)
     })
-  }, [projects, category, tech, query])
+
+    const copy = [...matches]
+    if (sortBy === 'case-studies') {
+      copy.sort((a, b) => Number(Boolean(b.pagePath)) - Number(Boolean(a.pagePath)))
+    } else if (sortBy === 'year-desc') {
+      copy.sort((a, b) => (b.year ?? '').localeCompare(a.year ?? ''))
+    } else if (sortBy === 'title') {
+      copy.sort((a, b) => a.title.localeCompare(b.title))
+    }
+    return copy
+  }, [projects, category, tech, query, sortBy])
+
+  const hasActiveFilters = Boolean(query.trim()) || category !== '*' || (tech !== '*' && Boolean(tech))
+  const resetFilters = () => {
+    setQuery('')
+    setCategory('*')
+    setTech('*')
+    setSortBy('default')
+  }
+
+  const statusText = `Showing ${filtered.length} of ${projects.length} ${
+    projects.length === 1 ? 'project' : 'projects'
+  }`
+
+  const resolvedHeading = effectiveHeader.headingOverride || labels.heading
+  const resolvedSubtitle = effectiveHeader.subtitleOverride ?? labels.archiveDescription
+
+  const showcaseCaseStudies = useMemo(
+    () => (viewMode === 'showcase' ? filtered.filter((p) => Boolean(p.pagePath)) : []),
+    [filtered, viewMode],
+  )
+  const showcaseBuilds = useMemo(
+    () =>
+      viewMode === 'showcase' && showcaseCaseStudies.length > 0
+        ? filtered.filter((p) => !p.pagePath)
+        : filtered,
+    [filtered, showcaseCaseStudies.length, viewMode],
+  )
 
   return (
-    <div className="articles-hub projects-hub">
-      <header className="articles-hub-header">
-        <h1 className="article-title">{labels.heading}</h1>
-        {labels.archiveDescription ? (
-          <p className="article-excerpt mb-0">{labels.archiveDescription}</p>
-        ) : null}
-      </header>
+    <div className="pocms-subpage-shell articles-hub projects-hub">
+      <ArchiveHubHeader
+        hubName="Projects"
+        siblingLink={{ label: 'Articles', href: '/articles' }}
+        eyebrow={effectiveHeader.eyebrow}
+        heading={resolvedHeading}
+        subtitle={resolvedSubtitle}
+        backgroundPreset={effectiveHeader.backgroundPreset}
+        accentTone={effectiveHeader.accentTone}
+        showStatsBar={effectiveHeader.showStatsBar}
+        stats={[
+          { value: projects.length, label: projects.length === 1 ? 'Build' : 'Builds' },
+          { value: caseStudyCount, label: caseStudyCount === 1 ? 'Case Study' : 'Case Studies' },
+          ...(availableTech.length > 0
+            ? [{ value: availableTech.length, label: 'Technologies' }]
+            : []),
+        ]}
+        showSearch={effectiveHeader.showSearch}
+        searchQuery={query}
+        onSearchChange={setQuery}
+        searchPlaceholder={labels.searchPlaceholder}
+        searchAriaLabel="Search projects"
+        showCategoryFilters={effectiveHeader.showCategoryFilters}
+        categoryOptions={categoryOptions}
+        activeCategory={category}
+        onCategoryChange={(val) => setCategory(val as CategoryFilter)}
+        categoryGroupAriaLabel="Filter projects by category"
+        showTechFilters={effectiveHeader.showTechFilters}
+        techOptions={availableTech}
+        activeTech={tech === '*' ? null : tech}
+        onTechToggle={(techName) =>
+          setTech((prev) => (prev.toLowerCase() === techName.toLowerCase() ? '*' : techName))
+        }
+        onTechClear={() => setTech('*')}
+        sortValue={sortBy}
+        onSortChange={(val) => setSortBy(val as ProjectSortMode)}
+        sortOptions={SORT_OPTIONS}
+        sortAriaLabel="Sort projects"
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        viewOptions={VIEW_OPTIONS}
+        statusText={statusText}
+        hasActiveFilters={hasActiveFilters && filtered.length > 0}
+        onResetFilters={resetFilters}
+      />
 
-      <div className="articles-hub-controls">
-        <input
-          type="search"
-          className="articles-hub-search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={labels.searchPlaceholder}
-          aria-label="Search projects"
+      <div className="pocms-inner-main">
+        <div className="container-xxl px-4 px-lg-5">
+          {filtered.length === 0 ? (
+            <div className="service-item rounded-4 p-5 text-center">
+              <p className="mb-3">No projects match your search or selected filters.</p>
+              <button
+                type="button"
+                className="pocms-pill-btn is-active"
+                onClick={resetFilters}
+              >
+                Reset filters
+              </button>
+            </div>
+          ) : viewMode === 'showcase' ? (
+            <div data-archive-view="showcase">
+              {showcaseCaseStudies.length > 0 && (
+                <section className="mb-5" aria-label="Featured engineering case studies">
+                  <div className="pocms-section-kicker">
+                    <p className="pocms-section-kicker__title">Engineering Case Studies</p>
+                  </div>
+                  <div className="row g-4 align-items-stretch">
+                    {showcaseCaseStudies.map((project) => (
+                      <div key={project.id} className="col-lg-6">
+                        <ShowcaseCaseStudyCard
+                          project={project}
+                          caseStudyLabel={labels.caseStudyLabel}
+                          liveProjectLabel={labels.liveProjectLabel}
+                          onSelectTech={(selected) => setTech(selected)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {showcaseBuilds.length > 0 && (
+                <section aria-label="Portfolio builds">
+                  {showcaseCaseStudies.length > 0 && (
+                    <div className="pocms-section-kicker">
+                      <p className="pocms-section-kicker__title">Selected Portfolio & Builds</p>
+                    </div>
+                  )}
+                  <div className="row gy-3 gx-4 align-items-stretch">
+                    {showcaseBuilds.map((project) => (
+                      <ArchiveProjectCard
+                        key={project.id}
+                        project={project}
+                        caseStudyLabel={labels.caseStudyLabel}
+                        liveProjectLabel={labels.liveProjectLabel}
+                        onSelectTech={(selected) => setTech(selected)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+            </div>
+          ) : viewMode === 'list' ? (
+            <div className="pocms-index-table" data-archive-view="list">
+              {filtered.map((project) => (
+                <ArchitecturalIndexRow
+                  key={project.id}
+                  project={project}
+                  caseStudyLabel={labels.caseStudyLabel}
+                  liveProjectLabel={labels.liveProjectLabel}
+                  onSelectTech={(selected) => setTech(selected)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="row gy-3 gx-4 align-items-stretch" data-archive-view="grid">
+              {filtered.map((project) => (
+                <ArchiveProjectCard
+                  key={project.id}
+                  project={project}
+                  caseStudyLabel={labels.caseStudyLabel}
+                  liveProjectLabel={labels.liveProjectLabel}
+                  onSelectTech={(selected) => setTech(selected)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ShowcaseCaseStudyCard({
+  project,
+  caseStudyLabel,
+  liveProjectLabel,
+  onSelectTech,
+}: {
+  project: ProjectItem
+  caseStudyLabel: string
+  liveProjectLabel: string
+  onSelectTech: (tech: string) => void
+}) {
+  const hasExternalUrl =
+    Boolean(project.url) && project.url !== '#' && !project.url.startsWith('/projects/')
+  const primaryHref = project.pagePath ?? (project.url || '#')
+  const isInternal = primaryHref.startsWith('/')
+  const coverSrc = project.imageUrl || project.thumbnailUrl
+  const metaParts = [
+    project.role,
+    project.year,
+    project.readTime ? `${project.readTime} read` : null,
+  ].filter((part): part is string => Boolean(part))
+
+  return (
+    <div className="pocms-showcase-card" data-case-study="true">
+      <Link
+        href={primaryHref}
+        {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+        className="pocms-showcase-card__media text-decoration-none"
+      >
+        <CoverImage
+          src={coverSrc}
+          alt={project.title}
+          fallbackSrc="/placeholder.svg"
+          sizes="(max-width: 992px) 100vw, 50vw"
+          width={640}
+          height={360}
+          className="img-fluid"
         />
-        <div
-          className="articles-hub-filters"
-          role="group"
-          aria-label="Filter projects by category"
-        >
-          {categoryOptions.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              className={`articles-filter-btn ${category === option.value ? 'active' : ''}`}
-              aria-pressed={category === option.value}
-              onClick={() => setCategory(option.value)}
-            >
-              {option.label}
-            </button>
+      </Link>
+
+      <div className="pocms-showcase-card__body">
+        <div className="d-flex flex-wrap align-items-center gap-2 mb-2">
+          <span className="pocms-eyebrow">{caseStudyLabel}</span>
+          {project.categories.map((cat) => (
+            <span key={cat} className="pocms-badge-subtle">
+              {CATEGORY_LABELS[cat] ?? cat}
+            </span>
           ))}
+        </div>
+
+        <h2 className="h4 fw-bold text-white my-2">
+          <Link
+            href={primaryHref}
+            {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+            className="text-white text-decoration-none"
+          >
+            {project.title}
+          </Link>
+        </h2>
+
+        {project.excerpt && (
+          <p className="text-white-50 mb-3" style={{ fontSize: '0.96rem', lineHeight: 1.62 }}>
+            {project.excerpt}
+          </p>
+        )}
+
+        <div className="mt-auto pt-2">
+          {project.techStack && project.techStack.length > 0 && (
+            <div className="d-flex flex-wrap gap-1 mb-3">
+              {project.techStack.map((techName) => (
+                <button
+                  key={techName}
+                  type="button"
+                  className="pocms-tech-chip"
+                  onClick={() => onSelectTech(techName)}
+                  title={`Filter by ${techName}`}
+                >
+                  {techName}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 pt-2 border-top border-secondary border-opacity-25">
+            <span className="small text-white-50">{metaParts.join(' • ')}</span>
+            <div className="d-flex flex-wrap gap-2">
+              {project.pagePath && (
+                <Link href={project.pagePath} className="pocms-btn-gold">
+                  {caseStudyLabel} →
+                </Link>
+              )}
+              {hasExternalUrl && (
+                <a
+                  href={project.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="pocms-btn-ghost"
+                >
+                  {liveProjectLabel} ↗
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ArchitecturalIndexRow({
+  project,
+  caseStudyLabel,
+  liveProjectLabel,
+  onSelectTech,
+}: {
+  project: ProjectItem
+  caseStudyLabel: string
+  liveProjectLabel: string
+  onSelectTech: (tech: string) => void
+}) {
+  const hasExternalUrl =
+    Boolean(project.url) && project.url !== '#' && !project.url.startsWith('/projects/')
+  const primaryHref = project.pagePath ?? (project.url || '#')
+  const isInternal = primaryHref.startsWith('/')
+
+  return (
+    <div
+      className="pocms-index-row"
+      data-case-study={project.pagePath ? 'true' : undefined}
+    >
+      <div className="small fw-bold" style={{ color: 'var(--pocms-amber)' }}>
+        {project.year || '—'}
+      </div>
+
+      <div>
+        <Link
+          href={primaryHref}
+          {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+          className="fw-bold text-white text-decoration-none d-inline-block"
+        >
+          {project.title}
+        </Link>
+        {project.excerpt && (
+          <p className="small text-white-50 mb-0 mt-1">{project.excerpt}</p>
+        )}
+      </div>
+
+      <div className="small text-white-50">
+        {project.role && <div className="text-white">{project.role}</div>}
+        <div>
+          {project.categories.map((cat) => CATEGORY_LABELS[cat] ?? cat).join(' · ')}
         </div>
       </div>
 
-      {availableTech.length > 0 ? (
-        <div
-          className="projects-tech-filter-row"
-          role="group"
-          aria-label="Filter projects by technology"
-        >
-          <span className="projects-tech-filter-label">Tech:</span>
+      <div className="d-flex flex-wrap gap-1">
+        {(project.techStack ?? []).slice(0, 4).map((techName) => (
           <button
+            key={techName}
             type="button"
-            className={`articles-filter-btn ${tech === '*' ? 'active' : ''}`}
-            aria-pressed={tech === '*'}
-            onClick={() => setTech('*')}
+            className="pocms-tech-chip"
+            onClick={() => onSelectTech(techName)}
           >
-            All tech
+            {techName}
           </button>
-          {availableTech.map((techName) => {
-            const active = tech.toLowerCase() === techName.toLowerCase()
-            return (
-              <button
-                key={techName}
-                type="button"
-                className={`articles-filter-btn ${active ? 'active' : ''}`}
-                aria-pressed={active}
-                onClick={() => setTech(active ? '*' : techName)}
-              >
-                {techName}
-              </button>
-            )
-          })}
-        </div>
-      ) : null}
+        ))}
+      </div>
 
-      <p className="articles-hub-count" aria-live="polite">
-        Showing {filtered.length} of {projects.length}{' '}
-        {projects.length === 1 ? 'project' : 'projects'}
-      </p>
-
-      {filtered.length === 0 ? (
-        <div className="service-item rounded p-4 text-center">
-          <p className="mb-3">No projects match your search or selected filters.</p>
-          <button
-            type="button"
-            className="articles-filter-btn active"
-            onClick={() => {
-              setQuery('')
-              setCategory('*')
-              setTech('*')
-            }}
+      <div className="d-flex flex-wrap gap-2 justify-content-lg-end">
+        {project.pagePath && (
+          <Link href={project.pagePath} className="pocms-utility-btn">
+            {caseStudyLabel} →
+          </Link>
+        )}
+        {hasExternalUrl && (
+          <a
+            href={project.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pocms-utility-btn"
           >
-            Reset filters
-          </button>
-        </div>
-      ) : (
-        <div className="row gy-1 gx-4 align-items-stretch">
-          {filtered.map((project) => (
-            <ArchiveProjectCard
-              key={project.id}
-              project={project}
-              caseStudyLabel={labels.caseStudyLabel}
-              liveProjectLabel={labels.liveProjectLabel}
-              onSelectTech={(selected) => setTech(selected)}
-            />
-          ))}
-        </div>
-      )}
+            {liveProjectLabel} ↗
+          </a>
+        )}
+      </div>
     </div>
   )
 }

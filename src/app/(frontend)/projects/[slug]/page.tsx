@@ -45,12 +45,16 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     return <PayloadRedirects url={projectPagePath(slug)} />
   }
 
-  const { siteSettings } = content
+  const { siteSettings, headerStudio } = content
   const projectLabels = {
     caseStudyLabel: siteSettings.projectsSection.caseStudyLabel,
     backToProjectsLabel: siteSettings.projectsSection.backToProjectsLabel,
     liveProjectLabel: siteSettings.projectsSection.liveProjectLabel,
   }
+  const currentPath = projectPagePath(project.slug)
+  const relatedProjects = content.projects.items
+    .filter((item) => item.pagePath !== currentPath && String(item.id) !== String(project.id))
+    .slice(0, 3)
 
   return (
     <>
@@ -59,9 +63,19 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         footer={content.footer}
         footerLabels={siteSettings.footerLabels}
       >
-        <main id="main-content" className="article-page">
-          <ProjectLivePreviewSwitch id={project.id} labels={projectLabels}>
-            <ProjectLayout project={project} labels={projectLabels} />
+        <main id="main-content" className="article-page p-0">
+          <ProjectLivePreviewSwitch
+            id={project.id}
+            labels={projectLabels}
+            headerConfig={headerStudio.projectDetail}
+            relatedProjects={relatedProjects}
+          >
+            <ProjectLayout
+              project={project}
+              labels={projectLabels}
+              headerConfig={headerStudio.projectDetail}
+              relatedProjects={relatedProjects}
+            />
           </ProjectLivePreviewSwitch>
         </main>
       </SiteChrome>

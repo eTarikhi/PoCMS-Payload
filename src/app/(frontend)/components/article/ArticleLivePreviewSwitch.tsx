@@ -3,6 +3,8 @@
 import dynamic from 'next/dynamic'
 import { type ReactNode, useSyncExternalStore } from 'react'
 
+import type { ArticleDetailHeaderConfig, ArticleItem } from '@/app/(frontend)/lib/types'
+
 import type { ArticleFooterNavLabels } from './ArticleFooterNav'
 
 const ArticleLivePreview = dynamic(() => import('./ArticleLivePreview'), { ssr: false })
@@ -17,12 +19,32 @@ const isEmbedded = () => window.self !== window.top
 export function ArticleLivePreviewSwitch({
   id,
   labels,
+  headerConfig,
+  ownerName,
+  featuredBadgeLabel,
+  relatedArticles,
   children,
 }: {
   id: number
   labels?: ArticleFooterNavLabels
+  headerConfig?: ArticleDetailHeaderConfig
+  ownerName?: string
+  featuredBadgeLabel?: string
+  relatedArticles?: ArticleItem[]
   children: ReactNode
 }) {
   const embedded = useSyncExternalStore(noopSubscribe, isEmbedded, () => false)
-  return embedded ? <ArticleLivePreview id={id} labels={labels} fallback={children} /> : children
+  return embedded ? (
+    <ArticleLivePreview
+      id={id}
+      labels={labels}
+      headerConfig={headerConfig}
+      ownerName={ownerName}
+      featuredBadgeLabel={featuredBadgeLabel}
+      relatedArticles={relatedArticles}
+      fallback={children}
+    />
+  ) : (
+    children
+  )
 }
