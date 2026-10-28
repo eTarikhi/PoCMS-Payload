@@ -225,6 +225,7 @@ export const seed = async ({
         return payload.create({
           collection: 'articles',
           data: {
+            _status: 'published',
             title: article.title,
             excerpt: article.excerpt,
             featured: Boolean(article.featured),
@@ -281,6 +282,7 @@ export const seed = async ({
         await payload.create({
           collection: 'projects',
           data: {
+            _status: 'published',
             title: project.title,
             excerpt: 'excerpt' in project ? project.excerpt : undefined,
             role: 'role' in project ? project.role : undefined,

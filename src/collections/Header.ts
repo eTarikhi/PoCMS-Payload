@@ -1,5 +1,5 @@
 import type { CollectionConfig, Field } from 'payload'
-import { portfolioAfterChange, portfolioAfterDelete } from '../app/(frontend)/lib/hooks'
+import { chromeAfterChange, chromeAfterDelete } from '../app/(frontend)/lib/hooks'
 import { contentAccess, hiddenWithout } from '../access/roles'
 import { createWhileEmpty } from '../access/singleton'
 
@@ -385,8 +385,8 @@ const projectDetailGroup: Field = {
 export const Header: CollectionConfig = {
   slug: 'header',
   hooks: {
-    afterChange: [portfolioAfterChange],
-    afterDelete: [portfolioAfterDelete],
+    afterChange: [chromeAfterChange],
+    afterDelete: [chromeAfterDelete],
   },
   labels: {
     singular: 'Header Management',

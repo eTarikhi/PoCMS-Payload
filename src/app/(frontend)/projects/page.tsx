@@ -5,13 +5,13 @@ import type { Metadata } from 'next'
 import { SiteChrome } from '@/app/(frontend)/components/layout/SiteChrome'
 import { ProjectsArchive } from '@/app/(frontend)/components/project/ProjectsArchive'
 import { JsonLd } from '@/app/(frontend)/components/seo/JsonLd'
-import { getCachedPortfolioContent } from '@/app/(frontend)/lib/cache'
+import { getCachedProjectsList, getCachedSiteChrome } from '@/app/(frontend)/lib/cache'
 import { buildProjectsHubJsonLd, buildProjectsHubMetadata } from '@/app/(frontend)/lib/seo'
 import type { ProjectsArchiveLayoutMode } from '@/app/(frontend)/lib/types'
 
 export async function generateMetadata(): Promise<Metadata> {
-  const content = await getCachedPortfolioContent()
-  return buildProjectsHubMetadata(content.siteSettings)
+  const { siteSettings } = await getCachedSiteChrome()
+  return buildProjectsHubMetadata(siteSettings)
 }
 
 type SearchParamsInput = Promise<Record<string, string | string[] | undefined>>
@@ -20,13 +20,14 @@ const pickFirst = (val: string | string[] | undefined): string | undefined =>
   Array.isArray(val) ? val[0] : val
 
 export default async function ProjectsHubPage(props?: { searchParams?: SearchParamsInput }) {
-  const [content, resolvedParams] = await Promise.all([
-    getCachedPortfolioContent(),
+  const [chrome, projectsContent, resolvedParams] = await Promise.all([
+    getCachedSiteChrome(),
+    getCachedProjectsList(),
     props?.searchParams
       ? props.searchParams
       : Promise.resolve({} as Record<string, string | string[] | undefined>),
   ])
-  const { siteSettings, headerStudio } = content
+  const { siteSettings, headerStudio } = chrome
   const rawView = pickFirst(resolvedParams.view)
   const initialView: ProjectsArchiveLayoutMode | undefined =
     rawView === 'showcase' || rawView === 'list' || rawView === 'grid' ? rawView : undefined
@@ -34,13 +35,13 @@ export default async function ProjectsHubPage(props?: { searchParams?: SearchPar
   return (
     <>
       <SiteChrome
-        navigation={content.navigation}
-        footer={content.footer}
+        navigation={chrome.navigation}
+        footer={chrome.footer}
         footerLabels={siteSettings.footerLabels}
       >
         <main id="main-content" className="article-page p-0">
           <ProjectsArchive
-            projects={content.projects.items}
+            projects={projectsContent.items}
             labels={siteSettings.projectsSection}
             headerConfig={headerStudio.projectsArchive}
             initialQuery={pickFirst(resolvedParams.q)}
@@ -51,7 +52,7 @@ export default async function ProjectsHubPage(props?: { searchParams?: SearchPar
           />
         </main>
       </SiteChrome>
-      <JsonLd data={buildProjectsHubJsonLd(content.projects.items, siteSettings)} />
+      <JsonLd data={buildProjectsHubJsonLd(projectsContent.items, siteSettings)} />
     </>
   )
 }

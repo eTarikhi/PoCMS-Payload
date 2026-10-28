@@ -2,26 +2,31 @@ import { unstable_cache } from 'next/cache'
 
 import { mapArticleDetail, type ArticleDetail } from './article-mappers'
 import { fetchArticleBySlug, fetchPublishedArticleSlugs } from './payload-source'
-import { PORTFOLIO_CACHE_TAG } from './revalidate'
+import { articleCacheTag, CACHE_TAGS, PORTFOLIO_CACHE_TAG } from './revalidate'
 
 /**
- * One article's page data, cached under its own key and the shared `portfolio` tag (article page spec §5.1, §6).
- * Saving any content in /admin marks the tag stale, which refreshes these entries too (D-A8).
- * Returns null when there is no article with that slug, or it has no page (no body).
+ * Published article page data cached under granular tags (`portfolio`, `portfolio:articles`, `article:{slug}`).
  */
 export const getCachedArticleBySlug = (slug: string): Promise<ArticleDetail | null> =>
   unstable_cache(
     async () => {
-      const doc = await fetchArticleBySlug(slug)
+      const doc = await fetchArticleBySlug(slug, { draft: false })
       return doc ? mapArticleDetail(doc) : null
     },
-    // v3: the view model gained `seo` overrides (`@payloadcms/plugin-seo`).
-    ['portfolio-article-v3', slug],
-    { tags: [PORTFOLIO_CACHE_TAG] },
+    ['portfolio-article-v4', slug],
+    { tags: [PORTFOLIO_CACHE_TAG, CACHE_TAGS.articles, articleCacheTag(slug)] },
   )()
 
-/** The slugs of every article that has a page. Used by `generateStaticParams`. */
+/**
+ * Uncached draft-aware reader used exclusively when Next.js `draftMode()` is enabled.
+ */
+export const getDraftArticleBySlug = async (slug: string): Promise<ArticleDetail | null> => {
+  const doc = await fetchArticleBySlug(slug, { draft: true })
+  return doc ? mapArticleDetail(doc) : null
+}
+
+/** The slugs of every published article that has an on-site page. Used by `generateStaticParams`. */
 export const getCachedArticleSlugs = (): Promise<string[]> =>
-  unstable_cache(() => fetchPublishedArticleSlugs(), ['portfolio-article-slugs'], {
-    tags: [PORTFOLIO_CACHE_TAG],
+  unstable_cache(() => fetchPublishedArticleSlugs(), ['portfolio-article-slugs-v2'], {
+    tags: [PORTFOLIO_CACHE_TAG, CACHE_TAGS.articles],
   })()

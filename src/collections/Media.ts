@@ -4,6 +4,8 @@ import { portfolioAfterChange, portfolioAfterDelete } from '../app/(frontend)/li
 
 export const Media: CollectionConfig = {
   slug: 'media',
+  folders: true,
+  enableQueryPresets: true,
   hooks: {
     afterChange: [portfolioAfterChange],
     afterDelete: [portfolioAfterDelete],
@@ -11,7 +13,8 @@ export const Media: CollectionConfig = {
   admin: {
     hidden: hiddenWithout('media'),
     group: 'Content',
-    description: 'Images and files used across the site. Alt text is required for accessibility.',
+    description:
+      'Images and files used across the site. Supports folders, focal-point cropping, and automatic WebP variants.',
     defaultColumns: ['filename', 'alt', 'mimeType', 'filesize', 'updatedAt'],
   },
   // Deleting moves documents to the trash (restorable); deleting for good needs the Full level.
@@ -34,12 +37,73 @@ export const Media: CollectionConfig = {
     },
   ],
   upload: {
-    // A small version for admin lists, drawers and pickers; the site keeps using the original.
-    imageSizes: [{ name: 'thumbnail', width: 400, height: 300, position: 'centre' }],
-    // Files uploaded before the size existed have no thumbnail: fall back to the original.
+    focalPoint: true,
+    crop: true,
+    formatOptions: {
+      format: 'webp',
+      options: { quality: 84 },
+    },
+    imageSizes: [
+      {
+        name: 'thumbnail',
+        width: 400,
+        height: 300,
+        position: 'centre',
+        withoutEnlargement: true,
+        formatOptions: {
+          format: 'webp',
+          options: { quality: 80 },
+        },
+        admin: {
+          disableGroupBy: true,
+          disableListColumn: true,
+          disableListFilter: true,
+        },
+      },
+      {
+        name: 'card',
+        width: 800,
+        height: 520,
+        position: 'centre',
+        withoutEnlargement: true,
+        formatOptions: {
+          format: 'webp',
+          options: { quality: 82 },
+        },
+        admin: {
+          disableGroupBy: true,
+          disableListColumn: true,
+          disableListFilter: true,
+        },
+      },
+      {
+        name: 'hero',
+        width: 1600,
+        withoutEnlargement: true,
+        formatOptions: {
+          format: 'webp',
+          options: { quality: 85 },
+        },
+        admin: {
+          disableGroupBy: true,
+          disableListColumn: true,
+          disableListFilter: true,
+        },
+      },
+    ],
+    // Files uploaded before the size existed have no thumbnail: fall back to card or original.
     adminThumbnail: ({ doc }) => {
-      const sizes = doc.sizes as { thumbnail?: { url?: string | null } } | undefined
-      return sizes?.thumbnail?.url || (typeof doc.url === 'string' ? doc.url : null)
+      const sizes = doc.sizes as
+        | {
+            thumbnail?: { url?: string | null }
+            card?: { url?: string | null }
+          }
+        | undefined
+      return (
+        sizes?.thumbnail?.url ||
+        sizes?.card?.url ||
+        (typeof doc.url === 'string' ? doc.url : null)
+      )
     },
   },
 }

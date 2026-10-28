@@ -233,23 +233,26 @@
     font-weight: 600;
 }
 
-/* Syntax-highlighted Code block */
-.article-page .rich-code {
+/* Syntax-highlighted Shiki Code & CodeTabs blocks */
+.article-page .rich-code,
+.article-page .rich-code-block {
     margin: 1.75rem 0;
-    border: 1px solid #2d3b4e;
-    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    border-radius: 10px;
     overflow: hidden;
-    background: #141722;
+    background: #10131c;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
 }
 
 .article-page .rich-code-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
     gap: 0.75rem;
-    padding: 0.5rem 0.875rem;
-    background: #1b2030;
-    border-bottom: 1px solid #2d3b4e;
+    padding: 0.55rem 0.9rem;
+    background: #171b27;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.09);
     font-size: 0.8125rem;
 }
 
@@ -263,15 +266,16 @@
 .article-page .rich-code-lang {
     padding: 0.125rem 0.5rem;
     border-radius: 4px;
-    background: rgba(218, 145, 0, 0.2);
-    color: #ffc448;
+    background: rgba(214, 166, 79, 0.16);
+    color: #e4b863;
     font-weight: 600;
-    font-size: 0.75rem;
-    letter-spacing: 0.03em;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
 .article-page .rich-code-filename {
-    color: #cfc4ad;
+    color: #dfe5f0;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -279,45 +283,260 @@
 }
 
 .article-page .rich-code-copy {
-    padding: 0.2rem 0.625rem;
-    border: 1px solid #34495e;
-    border-radius: 4px;
-    background: transparent;
-    color: #e7e7e7;
-    font-size: 0.75rem;
+    padding: 0.22rem 0.65rem;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.03);
+    color: #dbe2ee;
+    font-size: 0.74rem;
     cursor: pointer;
-    transition: border-color 0.15s ease, color 0.15s ease;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
 }
 
-.article-page .rich-code-copy:hover {
-    border-color: #da9100;
-    color: #ffc448;
+.article-page .rich-code-copy:hover,
+.article-page .rich-code-copy.is-active {
+    border-color: rgba(214, 166, 79, 0.65);
+    color: #f3c874;
+    background: rgba(214, 166, 79, 0.1);
 }
 
 .article-page .rich-code-pre {
     margin: 0;
-    padding: 1rem 0.875rem;
+    padding: 0.95rem 0;
     overflow-x: auto;
-    font-size: 0.875rem;
+    font-size: 0.855rem;
     line-height: 1.65;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
-.article-page .rich-code-line {
-    display: table-row;
+.article-page .rich-code-lines {
+    display: inline-block;
+    min-width: 100%;
 }
 
+.article-page .rich-code-line {
+    display: flex;
+    padding: 0 1rem;
+    border-left: 3px solid transparent;
+}
+
+.article-page .rich-code-line--highlighted {
+    background: rgba(214, 166, 79, 0.12);
+    border-left-color: #d6a64f;
+}
+
+.article-page .rich-code-line--diff-add {
+    background: rgba(52, 211, 153, 0.12);
+    border-left-color: #34d399;
+}
+
+.article-page .rich-code-line--diff-del {
+    background: rgba(248, 113, 113, 0.12);
+    border-left-color: #f87171;
+}
+
+.article-page .rich-code-line-num,
 .article-page .rich-code-line-no {
-    display: table-cell;
-    padding-right: 1rem;
+    flex: 0 0 2.3rem;
+    padding-right: 0.95rem;
     text-align: right;
     user-select: none;
-    color: #6b7688;
-    font-size: 0.78rem;
+    color: #5b6579;
+    font-size: 0.76rem;
 }
 
+.article-page .rich-code-line-content,
 .article-page .rich-code-line-text {
-    display: table-cell;
+    flex: 1 1 auto;
+    white-space: pre;
+    color: #d4d4d4;
+}
+
+/* Multi-file CodeTabs bar */
+.article-page .rich-code-tabs-header {
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+}
+
+.article-page .rich-code-tabs-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.article-page .rich-code-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: #9ba5b7;
+    font-size: 0.79rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+}
+
+.article-page .rich-code-tab-btn:hover {
+    color: #eef2f8;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.article-page .rich-code-tab-btn.is-active {
+    color: #fff;
+    background: rgba(214, 166, 79, 0.14);
+    border-color: rgba(214, 166, 79, 0.45);
+}
+
+.article-page .rich-code-tab-lang {
+    font-size: 0.67rem;
+    color: #d6a64f;
+    text-transform: uppercase;
+}
+
+.article-page .rich-code-tabs-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.article-page .rich-code-group-title {
+    color: #8f9bb0;
+    font-size: 0.75rem;
+}
+
+/* Impact / KPI Metrics Block */
+.article-page .rich-metrics-block {
+    margin: 2rem 0;
+}
+
+.article-page .rich-metrics-heading {
+    margin: 0 0 0.85rem !important;
+    font-size: 0.82rem !important;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #a6b0c3 !important;
+}
+
+.article-page .rich-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+    gap: 0.9rem;
+}
+
+.article-page .rich-metric-card {
+    padding: 1.1rem 1.15rem;
+    border-radius: 10px;
+    background: linear-gradient(160deg, rgba(24, 29, 42, 0.92), rgba(16, 19, 28, 0.96));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-top-width: 2px;
+}
+
+.article-page .rich-metric-card--gold {
+    border-top-color: #d6a64f;
+}
+
+.article-page .rich-metric-card--emerald {
+    border-top-color: #34d399;
+}
+
+.article-page .rich-metric-card--cyan {
+    border-top-color: #38bdf8;
+}
+
+.article-page .rich-metric-card--slate {
+    border-top-color: #94a3b8;
+}
+
+.article-page .rich-metric-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.15;
+    color: #f8fafc;
+    letter-spacing: -0.02em;
+}
+
+.article-page .rich-metric-card--gold .rich-metric-value {
+    color: #f0c46c;
+}
+
+.article-page .rich-metric-card--emerald .rich-metric-value {
+    color: #6ee7b7;
+}
+
+.article-page .rich-metric-card--cyan .rich-metric-value {
+    color: #7dd3fc;
+}
+
+.article-page .rich-metric-label {
+    margin-top: 0.35rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.article-page .rich-metric-context {
+    margin: 0.35rem 0 0 !important;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: #94a3b8;
+}
+
+/* Architecture / Mermaid Diagram Block */
+.article-page .rich-diagram-block {
+    margin: 1.85rem 0;
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    border-radius: 10px;
+    overflow: hidden;
+    background: #0e1118;
+}
+
+.article-page .rich-diagram-block.is-expanded {
+    margin-left: -1rem;
+    margin-right: -1rem;
+}
+
+.article-page .rich-diagram-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.article-page .rich-diagram-canvas {
+    padding: 1.25rem;
+    overflow-x: auto;
+    display: flex;
+    justify-content: center;
+    background:
+        radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0) 0 0 / 18px 18px,
+        #0e1118;
+}
+
+.article-page .rich-diagram-svg {
+    max-width: 100%;
+    height: auto;
+}
+
+.article-page .rich-diagram-block.is-expanded .rich-diagram-svg {
+    max-width: none;
+}
+
+.article-page .rich-diagram-source {
+    padding: 1rem 1.15rem;
+    color: #cfd6e3;
+}
+
+.article-page .rich-diagram-caption {
+    padding: 0.55rem 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 0.8rem;
+    color: #94a3b8;
+    text-align: center;
 }
 
 /* Callout block */

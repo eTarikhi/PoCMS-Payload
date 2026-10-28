@@ -1,24 +1,32 @@
 import { unstable_cache } from 'next/cache'
 
-import { mapProjectDetail, type ProjectDetail } from './project-mappers'
 import { fetchProjectBySlug, fetchPublishedProjectSlugs } from './payload-source'
-import { PORTFOLIO_CACHE_TAG } from './revalidate'
+import { mapProjectDetail, type ProjectDetail } from './project-mappers'
+import { CACHE_TAGS, PORTFOLIO_CACHE_TAG, projectCacheTag } from './revalidate'
 
 /**
- * One project's case-study page data, cached under its own key and the shared `portfolio` tag.
+ * Published project case-study page data cached under granular tags (`portfolio`, `portfolio:projects`, `project:{slug}`).
  */
 export const getCachedProjectBySlug = (slug: string): Promise<ProjectDetail | null> =>
   unstable_cache(
     async () => {
-      const doc = await fetchProjectBySlug(slug)
+      const doc = await fetchProjectBySlug(slug, { draft: false })
       return doc ? mapProjectDetail(doc) : null
     },
-    ['portfolio-project-v2', slug],
-    { tags: [PORTFOLIO_CACHE_TAG] },
+    ['portfolio-project-v3', slug],
+    { tags: [PORTFOLIO_CACHE_TAG, CACHE_TAGS.projects, projectCacheTag(slug)] },
   )()
 
-/** The slugs of every project that has an on-site case-study page. */
+/**
+ * Uncached draft-aware reader used exclusively when Next.js `draftMode()` is enabled.
+ */
+export const getDraftProjectBySlug = async (slug: string): Promise<ProjectDetail | null> => {
+  const doc = await fetchProjectBySlug(slug, { draft: true })
+  return doc ? mapProjectDetail(doc) : null
+}
+
+/** The slugs of every published project that has an on-site case-study page. */
 export const getCachedProjectSlugs = (): Promise<string[]> =>
-  unstable_cache(() => fetchPublishedProjectSlugs(), ['portfolio-project-slugs'], {
-    tags: [PORTFOLIO_CACHE_TAG],
+  unstable_cache(() => fetchPublishedProjectSlugs(), ['portfolio-project-slugs-v2'], {
+    tags: [PORTFOLIO_CACHE_TAG, CACHE_TAGS.projects],
   })()

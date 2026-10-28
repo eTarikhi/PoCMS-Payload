@@ -3,13 +3,10 @@ import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { GraphQL } from '@payloadcms/graphql/types'
 
-import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
 import { resendAdapter } from '@payloadcms/email-resend'
-// import nodemailerSendgrid from 'nodemailer-sendgrid'
-// import nodemailer from 'nodemailer'
 
 import path from 'path'
-import { buildConfig } from 'payload'
+import { buildConfig, type Config } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
@@ -24,6 +21,7 @@ import { SiteSettings } from './globals/SiteSettings'
 
 import { Users } from './collections/Users'
 import { adminJobsEndpoints } from './endpoints/adminJobs'
+import { draftPreviewEndpoint, exitDraftPreviewEndpoint } from './endpoints/draftPreview'
 import { devGenerateEndpoint } from './endpoints/devGenerate'
 import { devMigrateEndpoint } from './endpoints/devMigrate'
 import { devRestartEndpoint } from './endpoints/devRestart'
@@ -34,6 +32,7 @@ import { resetBundlerCacheEndpoint } from './endpoints/resetBundlerCache'
 import { revalidateSiteEndpoint } from './endpoints/revalidateSite'
 import { systemInfoEndpoint } from './endpoints/systemInfo'
 import { createJobsConfig } from './jobs/config'
+import { resolvePayloadSecret } from './lib/security'
 import { About } from './collections/About'
 import { Header } from './collections/Header'
 import { Articles } from './collections/Articles'
@@ -53,8 +52,6 @@ import {
   portfolioSeoPlugin,
   REDIRECTS_COLLECTION,
 } from './plugins/seoAndRedirects'
-
-// import { MediaWithPrefix } from './collections/MediaWithPrefix'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -84,6 +81,50 @@ const roleGovernedCollections = [
     admin: { group: 'Site settings' },
   },
 ]
+
+const extractUserRoleIds = (user: unknown): (number | string)[] => {
+  if (!user || typeof user !== 'object') return []
+  const rawRoles = (user as { roles?: unknown[] }).roles
+  if (!Array.isArray(rawRoles)) return []
+  return rawRoles
+    .map((r) =>
+      typeof r === 'number' || typeof r === 'string'
+        ? r
+        : r && typeof r === 'object' && 'id' in r
+          ? (r as { id: number | string }).id
+          : null,
+    )
+    .filter((id): id is number | string => id !== null)
+}
+
+type RolePresetConstraint = NonNullable<
+  NonNullable<NonNullable<Config['queryPresets']>['constraints']>['read']
+>[number]
+
+const buildRolePresetConstraint = (
+  operation: 'read' | 'update' | 'delete',
+): RolePresetConstraint => ({
+  label: 'Specific Roles',
+  value: 'specificRoles',
+  fields: [
+    {
+      name: 'roles',
+      type: 'relationship',
+      relationTo: 'roles',
+      hasMany: true,
+      required: true,
+    },
+  ],
+  access: ({ req: { user } }) => {
+    const roleIds = extractUserRoleIds(user)
+    if (roleIds.length === 0) return false
+    return {
+      [`access.${operation}.roles`]: {
+        in: roleIds,
+      },
+    }
+  },
+})
 
 export default buildConfig({
   admin: {
@@ -184,6 +225,36 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
+  // Hierarchical asset organization (`Media.folders = true`).
+  folders: {
+    browseByFolder: true,
+    collectionOverrides: [
+      ({ collection }) => ({
+        ...collection,
+        access: {
+          read: ({ req }) => Boolean(req.user),
+          create: ({ req }) => Boolean(req.user),
+          update: ({ req }) => Boolean(req.user),
+          delete: ({ req }) => Boolean(req.user),
+        },
+      }),
+    ],
+  },
+  // Saved filter/sort/column presets on `Articles`, `Projects`, `Media`, and `AuditLogs`,
+  // supporting personal presets, global presets, specific users, and RBAC `Roles`.
+  queryPresets: {
+    access: {
+      read: ({ req }) => Boolean(req.user),
+      create: ({ req }) => Boolean(req.user),
+      update: ({ req }) => Boolean(req.user),
+      delete: ({ req }) => Boolean(req.user),
+    },
+    constraints: {
+      read: [buildRolePresetConstraint('read')],
+      update: [buildRolePresetConstraint('update')],
+      delete: [buildRolePresetConstraint('delete')],
+    },
+  },
   // Order sets the sidebar order of the admin.group sections: Content, Profile, Site settings,
   // Admin. Profile follows the section order of the public home page. Payload lists collections
   // before globals, so the Footer global joins Site settings after the Header collection.
@@ -196,7 +267,7 @@ export default buildConfig({
   ],
   globals,
   editor: lexicalEditor(),
-  secret: process.env.PAYLOAD_SECRET || '',
+  secret: resolvePayloadSecret(),
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
     // Generated files are written only by `pnpm generate:all` (scripts/generate.mjs), so local runs
@@ -211,18 +282,12 @@ export default buildConfig({
       connectionString: process.env.POSTGRES_URL || '',
     },
   }),
-  // storage: [
-  //   vercelBlobStorage({
-  //     collections: {
-  //       media: true,
-  //     },
-  //     token: process.env.BLOB_READ_WRITE_TOKEN || '',
-  //   }),
-  // ],
   sharp,
   jobs: createJobsConfig(),
   // Custom REST endpoints (under /api).
   endpoints: [
+    draftPreviewEndpoint,
+    exitDraftPreviewEndpoint,
     revalidateSiteEndpoint,
     purgePagesEndpoint,
     migrationStatusEndpoint,
@@ -242,12 +307,14 @@ export default buildConfig({
   },
   plugins: [
     vercelBlobStorage({
-      enabled: true,
+      // Only activate live Vercel Blob storage when BLOB_READ_WRITE_TOKEN is configured;
+      // `alwaysInsertFields: true` keeps database/TypeScript/GraphQL schemas identical in local dev,
+      // and `clientUploads: true` bypasses serverless 4.5 MB request body limits in production.
+      enabled: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
+      alwaysInsertFields: true,
+      clientUploads: true,
       collections: {
         media: true,
-        // 'media-with-prefix': {
-        //   prefix: 'media',
-        // },
       },
       token: process.env.BLOB_READ_WRITE_TOKEN || '',
     }),
@@ -259,46 +326,9 @@ export default buildConfig({
     adminUIPlugin(),
   ],
   graphQL: {
-    validationRules: (args) => [NoProductionIntrospection],
-    disablePlaygroundInProduction: false,
+    validationRules: () => [NoProductionIntrospection],
+    disablePlaygroundInProduction: true,
   },
-
-  // email: nodemailerAdapter({
-  //   defaultFromAddress: 'info@payloadcms.com',
-  //   defaultFromName: 'Payload',
-  //   // Nodemailer transportOptions
-  //   transportOptions: {
-  //     host: process.env.SMTP_HOST,
-  //     port: 587,
-  //     auth: {
-  //       user: process.env.SMTP_USER,
-  //       pass: process.env.SMTP_PASS,
-  //     },
-  //   },
-  // }),
-
-  // email: nodemailerAdapter({
-  //   defaultFromAddress: 'info@payloadcms.com',
-  //   defaultFromName: 'Payload',
-  //   // Any Nodemailer transport can be used
-  //   transport: nodemailer.createTransport({
-  //     host: process.env.SMTP_HOST,
-  //     port: 587,
-  //     auth: {
-  //       user: process.env.SMTP_USER,
-  //       pass: process.env.SMTP_PASS,
-  //     },
-  //   }),
-  // }),
-
-  // email: nodemailerAdapter({
-  //   defaultFromAddress: 'info@payloadcms.com',
-  //   defaultFromName: 'Payload',
-  //   transportOptions: nodemailerSendgrid({
-  //     apiKey: process.env.SENDGRID_API_KEY,
-  //   }),
-  // }),
-
   email: resendAdapter({
     defaultFromAddress: 'dev@vtarikhi.com',
     defaultFromName: 'PoCMS',

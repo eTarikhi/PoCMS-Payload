@@ -1,87 +1,74 @@
-'use client'
+import {
+  type HighlightedCodeLine,
+  LANGUAGE_LABELS,
+  tokenizeCodeLines,
+} from '@/app/(frontend)/lib/shiki'
 
-import { useState } from 'react'
-import { Highlight, themes } from 'prism-react-renderer'
+import { CopyCodeButton } from './CopyCodeButton'
 
-const LANGUAGE_LABELS: Record<string, string> = {
-  typescript: 'TypeScript',
-  tsx: 'TSX',
-  javascript: 'JavaScript',
-  jsx: 'JSX',
-  php: 'PHP',
-  sql: 'SQL',
-  bash: 'Bash',
-  json: 'JSON',
-  yaml: 'YAML',
-  markup: 'HTML',
-  html: 'HTML',
-  css: 'CSS',
-  python: 'Python',
-  go: 'Go',
-  rust: 'Rust',
-  docker: 'Dockerfile',
-  plain: 'Text',
-  plaintext: 'Text',
-}
-
-export type CodeBlockProps = {
+type CodeBlockProps = {
   code: string
   language?: string | null
   filename?: string | null
+  highlightLines?: string | null
 }
 
-export function CodeBlock({ code, language, filename }: CodeBlockProps) {
-  const [copied, setCopied] = useState(false)
-  const normalizedLang = (language ?? 'typescript').trim().toLowerCase() || 'plain'
-  const label = LANGUAGE_LABELS[normalizedLang] ?? normalizedLang.toUpperCase()
-  const trimmedCode = code.replace(/\n$/, '')
+export function ShikiTokenLines({ lines }: { lines: HighlightedCodeLine[] }) {
+  return (
+    <pre className="rich-code-pre">
+      <code className="rich-code-lines">
+        {lines.map((line) => {
+          const classes = ['rich-code-line']
+          if (line.isHighlighted) classes.push('rich-code-line--highlighted')
+          if (line.diffKind === 'add') classes.push('rich-code-line--diff-add')
+          if (line.diffKind === 'del') classes.push('rich-code-line--diff-del')
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(trimmedCode)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1800)
-    } catch {
-      // Clipboard API unavailable in non-secure / headless contexts.
-    }
-  }
+          return (
+            <span key={line.lineNumber} className={classes.join(' ')}>
+              <span className="rich-code-line-num" aria-hidden="true">
+                {line.lineNumber}
+              </span>
+              <span className="rich-code-line-content">
+                {line.tokens.map((tok, tokIdx) => (
+                  <span
+                    key={tokIdx}
+                    style={
+                      tok.color || tok.fontStyle
+                        ? {
+                            ...(tok.color ? { color: tok.color } : {}),
+                            ...(tok.fontStyle && tok.fontStyle & 1 ? { fontStyle: 'italic' } : {}),
+                            ...(tok.fontStyle && tok.fontStyle & 2 ? { fontWeight: 600 } : {}),
+                          }
+                        : undefined
+                    }
+                  >
+                    {tok.content}
+                  </span>
+                ))}
+              </span>
+            </span>
+          )
+        })}
+      </code>
+    </pre>
+  )
+}
+
+export function CodeBlock({ code, language, filename, highlightLines }: CodeBlockProps) {
+  const normalizedLang = (language || 'plain').toLowerCase()
+  const langLabel = LANGUAGE_LABELS[normalizedLang] ?? normalizedLang
+  const lines = tokenizeCodeLines(code, normalizedLang, highlightLines)
 
   return (
-    <div className="rich-code" data-language={normalizedLang}>
+    <figure className="rich-code-block">
       <div className="rich-code-header">
         <div className="rich-code-meta">
-          <span className="rich-code-lang">{label}</span>
           {filename ? <span className="rich-code-filename">{filename}</span> : null}
+          <span className="rich-code-lang">{langLabel}</span>
         </div>
-        <button
-          type="button"
-          className="rich-code-copy"
-          onClick={handleCopy}
-          aria-label={copied ? 'Copied code to clipboard' : 'Copy code to clipboard'}
-        >
-          {copied ? 'Copied!' : 'Copy'}
-        </button>
+        <CopyCodeButton code={code} />
       </div>
-      <Highlight theme={themes.vsDark} code={trimmedCode} language={normalizedLang}>
-        {({ className, style, tokens, getLineProps, getTokenProps }) => (
-          <pre className={`${className} rich-code-pre`} style={style}>
-            <code>
-              {tokens.map((line, lineIndex) => (
-                <div key={lineIndex} {...getLineProps({ line })} className="rich-code-line">
-                  <span className="rich-code-line-no" aria-hidden="true">
-                    {lineIndex + 1}
-                  </span>
-                  <span className="rich-code-line-text">
-                    {line.map((token, tokenIndex) => (
-                      <span key={tokenIndex} {...getTokenProps({ token })} />
-                    ))}
-                  </span>
-                </div>
-              ))}
-            </code>
-          </pre>
-        )}
-      </Highlight>
-    </div>
+      <ShikiTokenLines lines={lines} />
+    </figure>
   )
 }

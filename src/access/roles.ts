@@ -42,6 +42,18 @@ const asRoleIds = (ids: ID[]) => ids as NonNullable<User['roles']>
 /* -------------------------------------------------------------------------------------------- */
 
 /**
+ * Backward-compatible published filter for draft-enabled collections (`Articles`, `Projects`):
+ * matches documents explicitly published (`_status: 'published'`) as well as legacy rows saved
+ * before `versions.drafts` was enabled (`_status` does not exist / null).
+ */
+export const PUBLISHED_OR_LEGACY_WHERE: Where = {
+  or: [
+    { _status: { equals: 'published' } },
+    { _status: { exists: false } },
+  ],
+}
+
+/**
  * Collections that hold site content: anyone may read (the public site and its REST/GraphQL
  * reads), writes follow the user's access level. Moving to the trash is an edit: Payload passes
  * `data.deletedAt` to delete access when it trashes. Deleting permanently needs "full".
@@ -55,6 +67,20 @@ export const contentAccess = (slug: string) => ({
     if (level === 'full') return true
     return level === 'edit' && Boolean((data as { deletedAt?: unknown } | undefined)?.deletedAt)
   }) satisfies Access,
+})
+
+/**
+ * Access rules for versioned & draft-enabled content collections (`Articles`, `Projects`):
+ * - Signed-in users with `read` access on `slug` can read drafts and version history.
+ * - Anonymous visitors only receive published (or legacy pre-draft) documents and cannot read versions.
+ */
+export const draftContentAccess = (slug: string) => ({
+  ...contentAccess(slug),
+  read: (({ req }) => {
+    if (can(req.user, slug, 'read')) return true
+    return PUBLISHED_OR_LEGACY_WHERE
+  }) satisfies Access,
+  readVersions: (({ req }) => can(req.user, slug, 'read')) satisfies Access,
 })
 
 /** Globals that hold site content: public read, updates need "edit". */

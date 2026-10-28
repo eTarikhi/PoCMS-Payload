@@ -3,7 +3,9 @@ import type { JobsConfig, Payload } from 'payload'
 
 import { hasCapability } from '@/access/permissions'
 import { capabilityAccess } from '@/access/roles'
-import { PORTFOLIO_CACHE_TAG } from '@/app/(frontend)/lib/revalidate'
+import { CACHE_TAGS, PORTFOLIO_CACHE_TAG } from '@/app/(frontend)/lib/revalidate'
+import { auditContentHealth } from '@/lib/contentHealth'
+import { consolidateLegacyMediaUrls } from '@/lib/legacyMediaConsolidation'
 
 import {
   classifyJobStatus,
@@ -56,7 +58,9 @@ const tasks: NonNullable<JobsConfig['tasks']> = [
     ],
     handler: async () => {
       try {
-        revalidateTag(PORTFOLIO_CACHE_TAG, { expire: 0 })
+        for (const tag of Object.values(CACHE_TAGS)) {
+          revalidateTag(tag, { expire: 0 })
+        }
         revalidatePath('/', 'layout')
       } catch {
         // Safe outside Next.js request context (e.g. CLI test runner).
@@ -79,30 +83,55 @@ const tasks: NonNullable<JobsConfig['tasks']> = [
       { name: 'projects', type: 'number' },
       { name: 'redirects', type: 'number' },
       { name: 'missingSeoDescriptions', type: 'number' },
+      { name: 'draftBacklogCount', type: 'number' },
+      { name: 'orphanedMediaCount', type: 'number' },
+      { name: 'redirectChains', type: 'number' },
+      { name: 'redirectLoops', type: 'number' },
     ],
     handler: async ({ req }) => {
-      const [articles, projects, redirects] = await Promise.all([
-        req.payload.find({ collection: 'articles', pagination: false, depth: 0, req }),
-        req.payload.find({ collection: 'projects', pagination: false, depth: 0, req }),
-        req.payload.find({ collection: 'redirects', pagination: false, depth: 0, req }),
-      ])
-
-      const missingArticleSeo = articles.docs.filter(
-        (doc) => !doc.meta?.description?.trim() && !doc.excerpt?.trim(),
-      ).length
-      const missingProjectSeo = projects.docs.filter(
-        (doc) => !doc.meta?.description?.trim() && !doc.excerpt?.trim(),
-      ).length
+      const report = await auditContentHealth(req.payload, req)
 
       return {
         output: {
-          checkedAt: new Date().toISOString(),
-          articles: articles.totalDocs,
-          projects: projects.totalDocs,
-          redirects: redirects.totalDocs,
-          missingSeoDescriptions: missingArticleSeo + missingProjectSeo,
+          checkedAt: report.checkedAt,
+          articles: report.articlesTotal,
+          projects: report.projectsTotal,
+          redirects: report.redirectsTotal,
+          missingSeoDescriptions:
+            report.missingArticleSeoDescriptions + report.missingProjectSeoDescriptions,
+          draftBacklogCount: report.draftBacklogCount,
+          orphanedMediaCount: report.orphanedMediaCount,
+          redirectChains: report.redirectChainCount,
+          redirectLoops: report.redirectLoopCount,
         },
       }
+    },
+  },
+  {
+    slug: 'consolidateLegacyMediaUrls',
+    label: 'Consolidate legacy media URLs',
+    retries: 1,
+    outputSchema: [
+      { name: 'completedAt', type: 'text' },
+      { name: 'scannedArticles', type: 'number' },
+      { name: 'migratedArticles', type: 'number' },
+      { name: 'scannedProjects', type: 'number' },
+      { name: 'migratedProjects', type: 'number' },
+      { name: 'skippedCount', type: 'number' },
+    ],
+    handler: async ({ req }) => {
+      const summary = await consolidateLegacyMediaUrls({ payload: req.payload, req })
+      if (summary.migratedArticles > 0 || summary.migratedProjects > 0) {
+        try {
+          revalidateTag(CACHE_TAGS.all, { expire: 0 })
+          revalidateTag(CACHE_TAGS.articles, { expire: 0 })
+          revalidateTag(CACHE_TAGS.projects, { expire: 0 })
+          revalidateTag(CACHE_TAGS.home, { expire: 0 })
+        } catch {
+          // Safe outside Next.js request context.
+        }
+      }
+      return { output: summary }
     },
   },
   {

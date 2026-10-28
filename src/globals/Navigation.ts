@@ -1,7 +1,7 @@
 import type { GlobalConfig } from 'payload'
 
 import { globalAccess, hiddenWithout } from '../access/roles'
-import { portfolioAfterChange } from '../app/(frontend)/lib/hooks'
+import { chromeAfterChange } from '../app/(frontend)/lib/hooks'
 
 const DEFAULT_NAV_ITEMS = [
   { label: 'Home', href: '/#home', position: 'left' as const, openInNewTab: false, enabled: true },
@@ -34,7 +34,7 @@ export const Navigation: GlobalConfig = {
   slug: 'navigation',
   label: 'Navigation',
   hooks: {
-    afterChange: [portfolioAfterChange],
+    afterChange: [chromeAfterChange],
   },
   admin: {
     hidden: hiddenWithout('navigation'),

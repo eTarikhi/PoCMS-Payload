@@ -16,6 +16,7 @@ export const CODE_LANGUAGE_OPTIONS = [
   { label: 'Go', value: 'go' },
   { label: 'Rust', value: 'rust' },
   { label: 'Dockerfile', value: 'docker' },
+  { label: 'Unified Diff', value: 'diff' },
   { label: 'Plain Text', value: 'plain' },
 ] as const
 
@@ -36,15 +37,24 @@ export const CodeBlock: Block = {
           required: true,
           defaultValue: 'typescript',
           options: [...CODE_LANGUAGE_OPTIONS],
-          admin: { width: '50%' },
+          admin: { width: '34%' },
         },
         {
           name: 'filename',
           type: 'text',
           label: 'Filename (optional)',
           admin: {
-            width: '50%',
+            width: '38%',
             placeholder: 'src/payload.config.ts',
+          },
+        },
+        {
+          name: 'highlightLines',
+          type: 'text',
+          label: 'Highlight Lines (optional)',
+          admin: {
+            width: '28%',
+            placeholder: '1, 4-6',
           },
         },
       ],

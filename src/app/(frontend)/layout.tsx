@@ -13,7 +13,7 @@ import '@/app/(frontend)/styles/bootstrap.min.css'
 import '@/app/(frontend)/styles/main.css'
 import '@fortawesome/fontawesome-svg-core/styles.css'
 
-import { getCachedPortfolioContent } from '@/app/(frontend)/lib/cache'
+import { getCachedSiteChrome } from '@/app/(frontend)/lib/cache'
 import {
   buildPortfolioMetadata,
   buildPortfolioViewport,
@@ -34,12 +34,12 @@ const openSans = Open_Sans({
 // Site-wide metadata and viewport come from the `site-settings` global (cached via unstable_cache,
 // with no request-scoped APIs, so pages still prerender statically).
 export async function generateMetadata(): Promise<Metadata> {
-  const { siteSettings } = await getCachedPortfolioContent()
+  const { siteSettings } = await getCachedSiteChrome()
   return buildPortfolioMetadata(siteSettings)
 }
 
 export async function generateViewport(): Promise<Viewport> {
-  const { siteSettings } = await getCachedPortfolioContent()
+  const { siteSettings } = await getCachedSiteChrome()
   return buildPortfolioViewport(siteSettings)
 }
 
@@ -48,7 +48,7 @@ export default async function FrontendLayout({ children }: { children: React.Rea
   preload('/images/bg-mobile.webp', { as: 'image' })
   preload('/images/bg-desktop.webp', { as: 'image' })
 
-  const { siteSettings } = await getCachedPortfolioContent()
+  const { siteSettings } = await getCachedSiteChrome()
 
   return (
     <html lang={htmlLangFromLocale(siteSettings.locale)} className={openSans.className}>

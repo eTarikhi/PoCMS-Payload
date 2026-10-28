@@ -1,13 +1,13 @@
 import { contentAccess, hiddenWithout } from '@/access/roles'
 import type { CollectionConfig } from 'payload'
-import { portfolioAfterChange, portfolioAfterDelete } from '../app/(frontend)/lib/hooks'
+import { homeSectionAfterChange, homeSectionAfterDelete } from '../app/(frontend)/lib/hooks'
 
 export const Experiences: CollectionConfig = {
   slug: 'experiences',
   orderable: true,
   hooks: {
-    afterChange: [portfolioAfterChange],
-    afterDelete: [portfolioAfterDelete],
+    afterChange: [homeSectionAfterChange],
+    afterDelete: [homeSectionAfterDelete],
   },
   admin: {
     hidden: hiddenWithout('experiences'),

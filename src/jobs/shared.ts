@@ -57,7 +57,13 @@ export const REGISTERED_JOB_TASKS: readonly JobTaskMeta[] = [
     slug: 'verifyContentHealth',
     label: 'Audit content & SEO health',
     description:
-      'Scans Articles, Projects, and Redirects for missing SEO descriptions or incomplete fields.',
+      'Scans Articles, Projects, Media, and Redirects for missing SEO descriptions, orphaned uploads, draft backlog, and redirect chains/loops.',
+  },
+  {
+    slug: 'consolidateLegacyMediaUrls',
+    label: 'Consolidate legacy media URLs',
+    description:
+      'Imports local legacy imageUrl / src strings on Articles & Projects into tracked Media records with responsive WebP variants.',
   },
   {
     slug: 'purgeCompletedJobs',
@@ -150,7 +156,10 @@ export function mapJobDocsToSnapshot(
     canceled: 0,
   }
 
-  const labelBySlug = new Map(REGISTERED_JOB_TASKS.map((t) => [t.slug, t.label]))
+  const labelBySlug = new Map<string, string>([
+    ...REGISTERED_JOB_TASKS.map((t): [string, string] => [t.slug, t.label]),
+    ['schedulePublish', 'Scheduled publish'],
+  ])
 
   const jobs: AdminJobRow[] = docs.map((doc) => {
     const state = classifyJobStatus(

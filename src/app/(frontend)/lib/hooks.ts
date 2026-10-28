@@ -8,15 +8,18 @@ import type {
 } from 'payload'
 
 import { calculateReadTimeMinutes, hasLexicalContent } from './lexical'
-import { revalidatePortfolio } from './revalidate'
+import {
+  revalidateArticleTags,
+  revalidateChrome,
+  revalidateHomeOnly,
+  revalidatePortfolio,
+  revalidateProjectTags,
+  revalidateRedirectsTags,
+} from './revalidate'
 import { slugify, withUniqueSuffix } from './slug'
 
 /**
- * Hooks that refresh the portfolio cache when editors change content.
- *
- * Attach `portfolioAfterChange` and `portfolioAfterDelete` to every content collection and global.
- * Each hook makes one `revalidatePortfolio()` call, which never throws, so a failed refresh cannot
- * fail the save (roadmap §3.2).
+ * Umbrella hooks preserved for collections/globals that refresh the full portfolio tag.
  */
 export const portfolioAfterChange: CollectionAfterChangeHook & GlobalAfterChangeHook = ({
   context,
@@ -28,6 +31,103 @@ export const portfolioAfterChange: CollectionAfterChangeHook & GlobalAfterChange
 
 export const portfolioAfterDelete: CollectionAfterDeleteHook = ({ context, doc }) => {
   if (!context?.skipRevalidate) revalidatePortfolio()
+  return doc
+}
+
+/**
+ * Scoped hooks for site-wide chrome (`SiteSettings`, `Navigation`, `Footer`, `Header`).
+ */
+export const chromeAfterChange: CollectionAfterChangeHook & GlobalAfterChangeHook = ({
+  context,
+  doc,
+}) => {
+  if (!context?.skipRevalidate) revalidateChrome()
+  return doc
+}
+
+export const chromeAfterDelete: CollectionAfterDeleteHook = ({ context, doc }) => {
+  if (!context?.skipRevalidate) revalidateChrome()
+  return doc
+}
+
+/**
+ * Scoped hooks for Home-only profile collections (`About`, `Skills`, `Experiences`, `Educations`, `Certificates`, `Services`).
+ */
+export const homeSectionAfterChange: CollectionAfterChangeHook = ({ context, doc }) => {
+  if (!context?.skipRevalidate) revalidateHomeOnly()
+  return doc
+}
+
+export const homeSectionAfterDelete: CollectionAfterDeleteHook = ({ context, doc }) => {
+  if (!context?.skipRevalidate) revalidateHomeOnly()
+  return doc
+}
+
+/**
+ * Returns `true` when an `afterChange` operation on a draft-enabled collection only saved an
+ * unpublished draft without changing published visibility (so public caches need no invalidation).
+ */
+export const isPureDraftAutosave = (
+  doc: { _status?: string | null } | null | undefined,
+  previousDoc?: { _status?: string | null } | null,
+): boolean => {
+  const nextStatus = doc?._status
+  const prevStatus = previousDoc?._status
+  return nextStatus === 'draft' && prevStatus !== 'published'
+}
+
+/**
+ * Scoped hooks for `Articles`: skips public cache thrashing on pure draft autosaves, and otherwise
+ * invalidates only `portfolio:articles`, `portfolio:home`, `portfolio:feeds`, and `article:{slug}`.
+ */
+export const articleAfterChange: CollectionAfterChangeHook = ({ context, doc, previousDoc }) => {
+  if (!context?.skipRevalidate && !isPureDraftAutosave(doc, previousDoc)) {
+    revalidateArticleTags(
+      typeof doc?.slug === 'string' ? doc.slug : null,
+      typeof previousDoc?.slug === 'string' ? previousDoc.slug : null,
+    )
+  }
+  return doc
+}
+
+export const articleAfterDelete: CollectionAfterDeleteHook = ({ context, doc }) => {
+  if (!context?.skipRevalidate) {
+    revalidateArticleTags(typeof doc?.slug === 'string' ? doc.slug : null)
+  }
+  return doc
+}
+
+/**
+ * Scoped hooks for `Projects`: skips public cache thrashing on pure draft autosaves, and otherwise
+ * invalidates only `portfolio:projects`, `portfolio:home`, `portfolio:feeds`, and `project:{slug}`.
+ */
+export const projectAfterChange: CollectionAfterChangeHook = ({ context, doc, previousDoc }) => {
+  if (!context?.skipRevalidate && !isPureDraftAutosave(doc, previousDoc)) {
+    revalidateProjectTags(
+      typeof doc?.slug === 'string' ? doc.slug : null,
+      typeof previousDoc?.slug === 'string' ? previousDoc.slug : null,
+    )
+  }
+  return doc
+}
+
+export const projectAfterDelete: CollectionAfterDeleteHook = ({ context, doc }) => {
+  if (!context?.skipRevalidate) {
+    revalidateProjectTags(typeof doc?.slug === 'string' ? doc.slug : null)
+  }
+  return doc
+}
+
+/**
+ * Scoped hooks for CMS `Redirects`: invalidates only `portfolio:redirects`.
+ */
+export const redirectAfterChange: CollectionAfterChangeHook = ({ context, doc }) => {
+  if (!context?.skipRevalidate) revalidateRedirectsTags()
+  return doc
+}
+
+export const redirectAfterDelete: CollectionAfterDeleteHook = ({ context, doc }) => {
+  if (!context?.skipRevalidate) revalidateRedirectsTags()
   return doc
 }
 
@@ -47,6 +147,8 @@ export const createSlugBeforeValidate =
 
     const typed = typeof data.slug === 'string' ? data.slug.trim() : ''
     const source = typed || data.title || originalDoc?.title || ''
+    if (!source) return data
+
     const base = slugify(source)
     const ownId = originalDoc?.id
 

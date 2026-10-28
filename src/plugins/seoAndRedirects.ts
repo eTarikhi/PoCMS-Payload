@@ -4,7 +4,7 @@ import type { Plugin } from 'payload'
 
 import { contentAccess, hiddenWithout } from '@/access/roles'
 import { articlePagePath } from '@/app/(frontend)/lib/article-page'
-import { portfolioAfterChange, portfolioAfterDelete } from '@/app/(frontend)/lib/hooks'
+import { redirectAfterChange, redirectAfterDelete } from '@/app/(frontend)/lib/hooks'
 import { extractLexicalText } from '@/app/(frontend)/lib/lexical'
 import { DEFAULT_SITE_SETTINGS } from '@/app/(frontend)/lib/mappers'
 import { projectPagePath } from '@/app/(frontend)/lib/project-page'
@@ -116,8 +116,8 @@ export const portfolioRedirectsPlugin = (): Plugin =>
             return data
           },
         ],
-        afterChange: [portfolioAfterChange],
-        afterDelete: [portfolioAfterDelete],
+        afterChange: [redirectAfterChange],
+        afterDelete: [redirectAfterDelete],
       },
     },
   })

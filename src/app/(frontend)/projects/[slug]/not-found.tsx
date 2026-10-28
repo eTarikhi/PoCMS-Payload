@@ -3,11 +3,11 @@ import '@/app/(frontend)/styles/article.css'
 import Link from 'next/link'
 
 import { SiteChrome } from '@/app/(frontend)/components/layout/SiteChrome'
-import { getCachedPortfolioContent } from '@/app/(frontend)/lib/cache'
+import { getCachedSiteChrome } from '@/app/(frontend)/lib/cache'
 import { PROJECTS_HUB_PATH } from '@/app/(frontend)/lib/project-page'
 
 export default async function ProjectNotFound() {
-  const content = await getCachedPortfolioContent()
+  const content = await getCachedSiteChrome()
   const { projectsSection, footerLabels } = content.siteSettings
 
   return (

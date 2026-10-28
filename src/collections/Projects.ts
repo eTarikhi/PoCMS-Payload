@@ -1,40 +1,51 @@
 import type { CollectionConfig } from 'payload'
 
-import { contentAccess, hiddenWithout } from '@/access/roles'
+import { draftContentAccess, hiddenWithout } from '@/access/roles'
 import { hasProjectPage, projectPagePath } from '@/app/(frontend)/lib/project-page'
 import { contentLexicalEditor } from '@/fields/richText'
 
 import {
   computeReadTimeBeforeChange,
-  portfolioAfterChange,
-  portfolioAfterDelete,
+  projectAfterChange,
+  projectAfterDelete,
   projectSlugBeforeValidate,
 } from '../app/(frontend)/lib/hooks'
 
 export const Projects: CollectionConfig = {
   slug: 'projects',
   orderable: true,
+  enableQueryPresets: true,
+  versions: {
+    maxPerDoc: 25,
+    drafts: {
+      autosave: { interval: 1000 },
+      schedulePublish: true,
+    },
+  },
   hooks: {
     beforeValidate: [projectSlugBeforeValidate],
     beforeChange: [computeReadTimeBeforeChange],
-    afterChange: [portfolioAfterChange],
-    afterDelete: [portfolioAfterDelete],
+    afterChange: [projectAfterChange],
+    afterDelete: [projectAfterDelete],
   },
   admin: {
     hidden: hiddenWithout('projects'),
     group: 'Content',
     description: 'Portfolio projects and case studies (/projects/{slug}). Drag rows to reorder.',
     useAsTitle: 'title',
-    defaultColumns: ['title', 'categories', 'readTime', 'updatedAt'],
+    defaultColumns: ['title', 'categories', '_status', 'readTime', 'updatedAt'],
     livePreview: {
       url: ({ data }) => (hasProjectPage(data) ? projectPagePath(String(data.slug)) : null),
     },
-    preview: (doc) => (hasProjectPage(doc) ? projectPagePath(String(doc.slug)) : null),
+    preview: (doc) =>
+      hasProjectPage(doc)
+        ? `/api/draft?collection=projects&slug=${encodeURIComponent(String(doc.slug))}`
+        : null,
   },
   // Deleting moves documents to the trash (restorable); deleting for good needs the Full level.
   trash: true,
-  // Levels from the user's roles (ADR 0011): public read, edit and trash, full to delete for good.
-  access: contentAccess('projects'),
+  // Public visitors read published (or legacy pre-draft) projects; signed-in editors also read drafts & versions.
+  access: draftContentAccess('projects'),
   fields: [
     { name: 'title', type: 'text', required: true },
     {

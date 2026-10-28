@@ -1,42 +1,53 @@
 import type { CollectionConfig } from 'payload'
 
-import { contentAccess, hiddenWithout } from '@/access/roles'
+import { draftContentAccess, hiddenWithout } from '@/access/roles'
 import { articlePagePath, hasArticlePage } from '@/app/(frontend)/lib/article-page'
 import { contentLexicalEditor } from '@/fields/richText'
 
 import {
+  articleAfterChange,
+  articleAfterDelete,
   articleSlugBeforeValidate,
   computeReadTimeBeforeChange,
-  portfolioAfterChange,
-  portfolioAfterDelete,
 } from '../app/(frontend)/lib/hooks'
 
 export const Articles: CollectionConfig = {
   slug: 'articles',
+  enableQueryPresets: true,
+  versions: {
+    maxPerDoc: 25,
+    drafts: {
+      autosave: { interval: 1000 },
+      schedulePublish: true,
+    },
+  },
   hooks: {
     beforeValidate: [articleSlugBeforeValidate],
     beforeChange: [computeReadTimeBeforeChange],
-    afterChange: [portfolioAfterChange],
-    afterDelete: [portfolioAfterDelete],
+    afterChange: [articleAfterChange],
+    afterDelete: [articleAfterDelete],
   },
   admin: {
     hidden: hiddenWithout('articles'),
     group: 'Content',
     description: 'Blog posts and technical articles, listed on the home page and under /articles.',
     useAsTitle: 'title',
-    defaultColumns: ['title', 'category', 'publishedAt', 'readTime', 'featured'],
+    defaultColumns: ['title', 'category', '_status', 'publishedAt', 'readTime', 'featured'],
     // Live Preview and the Preview button open the article page; only articles with a slug and a
     // body have one (see hasArticlePage), so link-out entries without a body get no preview.
     livePreview: {
       url: ({ data }) => (hasArticlePage(data) ? articlePagePath(String(data.slug)) : null),
     },
-    preview: (doc) => (hasArticlePage(doc) ? articlePagePath(String(doc.slug)) : null),
+    preview: (doc) =>
+      hasArticlePage(doc)
+        ? `/api/draft?collection=articles&slug=${encodeURIComponent(String(doc.slug))}`
+        : null,
   },
   defaultSort: '-publishedAt',
   // Deleting moves documents to the trash (restorable); deleting for good needs the Full level.
   trash: true,
-  // Levels from the user's roles (ADR 0011): public read, edit and trash, full to delete for good.
-  access: contentAccess('articles'),
+  // Public visitors read published (or legacy pre-draft) posts; signed-in editors also read drafts & versions.
+  access: draftContentAccess('articles'),
   fields: [
     { name: 'title', type: 'text', required: true },
     { name: 'excerpt', type: 'textarea', required: true },

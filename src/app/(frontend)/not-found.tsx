@@ -3,10 +3,10 @@ import '@/app/(frontend)/styles/article.css'
 import Link from 'next/link'
 
 import { SiteChrome } from '@/app/(frontend)/components/layout/SiteChrome'
-import { getCachedPortfolioContent } from '@/app/(frontend)/lib/cache'
+import { getCachedSiteChrome } from '@/app/(frontend)/lib/cache'
 
 export default async function FrontendNotFound() {
-  const content = await getCachedPortfolioContent()
+  const content = await getCachedSiteChrome()
   const { footerLabels } = content.siteSettings
 
   return (

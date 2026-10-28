@@ -1,13 +1,13 @@
 import type { GlobalConfig } from 'payload'
 
 import { globalAccess, hiddenWithout } from '../access/roles'
-import { portfolioAfterChange } from '../app/(frontend)/lib/hooks'
+import { chromeAfterChange } from '../app/(frontend)/lib/hooks'
 
 export const SiteSettings: GlobalConfig = {
   slug: 'site-settings',
   label: 'Site settings',
   hooks: {
-    afterChange: [portfolioAfterChange],
+    afterChange: [chromeAfterChange],
   },
   admin: {
     hidden: hiddenWithout('site-settings'),

@@ -283,6 +283,8 @@ function createCollectionAfterChange(collection: CollectionConfig): CollectionAf
 
   return async ({ context, doc, operation, previousDoc, req }) => {
     if (context?.skipAuditLog) return doc
+    // Skip high-frequency 1-second draft autosave ticks; explicit saves & publishes are still logged.
+    if (operation === 'update' && Boolean(req?.query?.autosave)) return doc
 
     const docRecord = (doc ?? {}) as Record<string, unknown>
     const prevRecord = (previousDoc ?? null) as Record<string, unknown> | null

@@ -39,6 +39,7 @@ export const preventAuditLogDeletion: CollectionBeforeDeleteHook = () => {
  */
 export const AuditLogs: CollectionConfig = {
   slug: 'audit-logs',
+  enableQueryPresets: true,
   labels: {
     singular: 'Audit log',
     plural: 'Audit logs',

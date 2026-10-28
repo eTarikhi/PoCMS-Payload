@@ -71,6 +71,41 @@ export const extractNodePlainText = (node: LexicalNodeLike | null | undefined): 
       return typeof fields.caption === 'string' ? fields.caption : ''
     }
 
+    if (blockType === 'metrics') {
+      const heading = typeof fields.heading === 'string' ? fields.heading : ''
+      const items = Array.isArray(fields.items)
+        ? fields.items.flatMap((raw) => {
+            if (!raw || typeof raw !== 'object') return []
+            const item = raw as Record<string, unknown>
+            return [item.value, item.label, item.context].filter(
+              (v): v is string => typeof v === 'string' && v.trim() !== '',
+            )
+          })
+        : []
+      return [heading, ...items].filter(Boolean).join(' ')
+    }
+
+    if (blockType === 'diagram') {
+      const title = typeof fields.title === 'string' ? fields.title : ''
+      const caption = typeof fields.caption === 'string' ? fields.caption : ''
+      const code = typeof fields.code === 'string' ? fields.code : ''
+      return [title, caption, code].filter(Boolean).join('\n')
+    }
+
+    if (blockType === 'codeTabs') {
+      const title = typeof fields.title === 'string' ? fields.title : ''
+      const tabs = Array.isArray(fields.tabs)
+        ? fields.tabs.flatMap((raw) => {
+            if (!raw || typeof raw !== 'object') return []
+            const tab = raw as Record<string, unknown>
+            return [tab.label, tab.code].filter(
+              (v): v is string => typeof v === 'string' && v.trim() !== '',
+            )
+          })
+        : []
+      return [title, ...tabs].filter(Boolean).join('\n')
+    }
+
     return Object.values(fields)
       .filter((v): v is string => typeof v === 'string' && v !== blockType)
       .join(' ')

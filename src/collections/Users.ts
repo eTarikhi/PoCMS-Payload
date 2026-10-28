@@ -22,7 +22,10 @@ export const Users: CollectionConfig = {
     // Everyone else manages their own account from the account menu; the list is for admins.
     hidden: ({ user }) => !isAdmin(user),
   },
-  auth: true,
+  auth: {
+    maxLoginAttempts: 5,
+    lockTime: 600_000, // 10-minute account lockout after 5 consecutive failed sign-in attempts
+  },
   access: {
     // The admin panel needs at least one role (ADR 0011); REST and GraphQL logins still work.
     admin: ({ req }) => hasAnyRole(req.user),

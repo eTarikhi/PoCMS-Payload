@@ -4,10 +4,10 @@ import Link from 'next/link'
 
 import { SiteChrome } from '@/app/(frontend)/components/layout/SiteChrome'
 import { ARTICLES_HUB_PATH } from '@/app/(frontend)/lib/article-page'
-import { getCachedPortfolioContent } from '@/app/(frontend)/lib/cache'
+import { getCachedSiteChrome } from '@/app/(frontend)/lib/cache'
 
 export default async function ArticleNotFound() {
-  const content = await getCachedPortfolioContent()
+  const content = await getCachedSiteChrome()
   const { articlesSection, footerLabels } = content.siteSettings
 
   return (
