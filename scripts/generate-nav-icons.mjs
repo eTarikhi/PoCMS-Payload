@@ -21,6 +21,8 @@ import { renderToStaticMarkup } from 'react-dom/server'
 const NAV_ICONS = {
   'nav-articles': ['FileText', 'amber'],
   'nav-projects': ['FolderKanban', 'blue'],
+  'nav-forms': ['ClipboardList', 'teal'],
+  'nav-form-submissions': ['Inbox', 'green'],
   'nav-services': ['Wrench', 'teal'],
   'nav-media': ['Images', 'violet'],
   'nav-about': ['UserRound', 'rose'],

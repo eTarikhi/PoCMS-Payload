@@ -25,6 +25,8 @@ export const PROFILE_IMAGE_PATH = DEFAULT_PROFILE_IMAGE_PATH
 
 export const RSS_FEED_PATH = '/feed.xml'
 
+export const CONTACT_HUB_PATH = '/contact'
+
 export const siteUrl = (): string => {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim()
   return (configured && configured.length > 0 ? configured : DEFAULT_SITE_URL).replace(/\/+$/, '')
@@ -578,3 +580,61 @@ export const buildProjectJsonLd = (
     ...(project.liveUrl ? { sameAs: project.liveUrl } : {}),
   }
 }
+
+export const buildContactPageMetadata = (
+  settings: SiteSettingsContent = DEFAULT_SITE_SETTINGS,
+  site: string = siteUrl(),
+): Metadata => {
+  const url = `${site}${CONTACT_HUB_PATH}`
+  const title = `Contact & Request CV | ${settings.siteName}`
+  const description = `Get in touch with ${settings.ownerName} for project inquiries, consulting, or to request a current CV.`
+  const imageUrl = absoluteUrl(settings.ogImage.url, site)
+
+  return {
+    title,
+    description,
+    robots: buildRobotsMetadata(settings.allowIndexing),
+    alternates: {
+      canonical: url,
+      types: {
+        'application/rss+xml': `${site}${RSS_FEED_PATH}`,
+      },
+    },
+    openGraph: {
+      type: 'website',
+      siteName: settings.siteName,
+      title,
+      description,
+      url,
+      locale: settings.locale,
+      images: [
+        {
+          url: imageUrl,
+          alt: settings.ogImage.alt || settings.ownerName,
+          width: settings.ogImage.width,
+          height: settings.ogImage.height,
+          ...(settings.ogImage.mimeType ? { type: settings.ogImage.mimeType } : {}),
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [imageUrl],
+      ...buildTwitterAttribution(settings),
+    },
+  }
+}
+
+export const buildContactPageJsonLd = (
+  settings: SiteSettingsContent = DEFAULT_SITE_SETTINGS,
+  site: string = siteUrl(),
+): Record<string, unknown> => ({
+  '@context': 'https://schema.org/',
+  '@type': 'ContactPage',
+  name: `Contact ${settings.ownerName}`,
+  description: `Send an inquiry or request a CV from ${settings.ownerName}.`,
+  url: `${site}${CONTACT_HUB_PATH}`,
+})
+

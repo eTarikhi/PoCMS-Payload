@@ -23,10 +23,12 @@ export const CACHE_TAGS = {
   globalFooter: 'global:footer',
   redirects: 'portfolio:redirects',
   feeds: 'portfolio:feeds',
+  forms: 'forms:list',
 } as const
 
 export const articleCacheTag = (slug: string): string => `article:${slug.trim()}`
 export const projectCacheTag = (slug: string): string => `project:${slug.trim()}`
+export const formCacheTag = (slug: string): string => `form:${slug.trim()}`
 export const globalCacheTag = (slug: string): string => `global:${slug.trim()}`
 
 /**
@@ -145,3 +147,17 @@ export const revalidateProjectTags = (
 
 /** Invalidates only the CMS URL redirects cache. */
 export const revalidateRedirectsTags = (): string[] => revalidateTags([CACHE_TAGS.redirects])
+
+/** Invalidates the CMS forms list cache (`forms:list`) and specific `form:${slug}` tags. */
+export const revalidateFormTags = (
+  slug?: string | null,
+  previousSlug?: string | null,
+): string[] => {
+  const tags: string[] = [CACHE_TAGS.forms]
+  if (slug?.trim()) tags.push(formCacheTag(slug))
+  if (previousSlug?.trim() && previousSlug.trim() !== slug?.trim()) {
+    tags.push(formCacheTag(previousSlug))
+  }
+  return revalidateTags(tags)
+}
+

@@ -11,21 +11,21 @@ export interface LoginOptions {
 }
 
 /**
- * Logs the user into the admin panel via the login page.
+ * Signs in to the Payload Admin Panel via `/admin/login` and waits for the governed sidebar.
  */
 export async function login({
   page,
-  serverURL = 'http://localhost:3000',
+  serverURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
   user,
 }: LoginOptions): Promise<void> {
-  await page.goto(`${serverURL}/admin/login`)
+  const base = serverURL.replace(/\/+$/, '')
+  await page.goto(`${base}/admin/login`)
 
   await page.fill('#field-email', user.email)
   await page.fill('#field-password', user.password)
   await page.click('button[type="submit"]')
 
-  await page.waitForURL(`${serverURL}/admin`)
+  await page.waitForURL((url) => url.pathname.startsWith('/admin') && !url.pathname.endsWith('/login'))
 
-  const dashboardArtifact = page.locator('span[title="Dashboard"]')
-  await expect(dashboardArtifact).toBeVisible()
+  await expect(page.locator('#nav-articles')).toBeVisible()
 }

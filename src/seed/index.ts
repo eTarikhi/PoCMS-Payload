@@ -11,6 +11,7 @@ import { certificatesData } from './certificates.js'
 import { educationsData } from './educations.js'
 import { experiencesData } from './experiences.js'
 import { footerData } from './footer.js'
+import { formsData } from './forms.js'
 import { headerData } from './header.js'
 import { navigationData } from './navigation.js'
 import { projectsData } from './projects.js'
@@ -27,6 +28,8 @@ const collections = [
   'articles',
   'services',
   'projects',
+  'form-submissions',
+  'forms',
   'media',
 ] as const
 
@@ -354,6 +357,23 @@ export const seed = async ({
   } catch (error) {
     payload.logger.error(
       `  Failed to seed footer: ${error instanceof Error ? error.message : String(error)}`,
+    )
+  }
+
+  payload.logger.info('— Seeding CMS forms...')
+  try {
+    for (const formItem of formsData()) {
+      await payload.create({
+        collection: 'forms',
+        data: formItem,
+        overrideAccess: true,
+        context: seedContext,
+      })
+    }
+    payload.logger.info('  ✓ Forms seeded (contact, request-cv)')
+  } catch (error) {
+    payload.logger.error(
+      `  Failed to seed forms: ${error instanceof Error ? error.message : String(error)}`,
     )
   }
 

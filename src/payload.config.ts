@@ -14,6 +14,7 @@ import { ensureDraftVersions } from './access/draftMigration'
 import { ensureOrderable } from './access/orderable'
 import { governedEntities } from './access/permissions'
 import { ensureRoles } from './access/roles'
+import { ensureDefaultForms } from './seed/ensureForms'
 import { AuditLogs } from './collections/AuditLogs'
 import { createRoles } from './collections/Roles'
 import { Footer } from './globals/Footer'
@@ -49,6 +50,11 @@ import { adminUIPlugin } from './plugins/adminUI'
 import { auditLogPlugin } from './plugins/auditLog'
 import { databaseManagerPlugin } from './plugins/databaseManager'
 import {
+  FORM_SUBMISSIONS_COLLECTION,
+  FORMS_COLLECTION,
+  portfolioFormBuilderPlugin,
+} from './plugins/formBuilder'
+import {
   portfolioRedirectsPlugin,
   portfolioSeoPlugin,
   REDIRECTS_COLLECTION,
@@ -72,9 +78,19 @@ const contentCollections = [
 
 const globals = [Header, SiteSettings, Navigation, Footer]
 
-/** Includes plugin-registered collections (`redirects`) so RBAC role fields match `payload.config`. */
+/** Includes plugin-registered collections (`redirects`, `forms`, `form-submissions`) so RBAC role fields match `payload.config`. */
 const roleGovernedCollections = [
   ...contentCollections,
+  {
+    slug: FORMS_COLLECTION,
+    labels: { plural: 'Forms' },
+    admin: { group: 'Content' },
+  },
+  {
+    slug: FORM_SUBMISSIONS_COLLECTION,
+    labels: { plural: 'Form Submissions' },
+    admin: { group: 'Content' },
+  },
   {
     slug: REDIRECTS_COLLECTION,
     labels: { plural: 'Redirects' },
@@ -305,6 +321,7 @@ export default buildConfig({
     await ensureRoles(payload)
     await ensureOrderable(payload)
     await ensureDraftVersions(payload)
+    await ensureDefaultForms(payload)
   },
   plugins: [
     vercelBlobStorage({
@@ -321,6 +338,7 @@ export default buildConfig({
     }),
     portfolioSeoPlugin(),
     portfolioRedirectsPlugin(),
+    portfolioFormBuilderPlugin(),
     auditLogPlugin(),
     databaseManagerPlugin(),
     // Last, so it sees every field other plugins add: TanStack list views, boolean cells (ADR 0007).

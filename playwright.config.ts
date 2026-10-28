@@ -1,46 +1,38 @@
 import { defineConfig, devices } from '@playwright/test'
+import 'dotenv/config'
+
+const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000'
 
 /**
- * Read environment variables from file.
- * https://github.com/motdotla/dotenv
- */
-import 'dotenv/config'
-const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000'
-/**
- * See https://playwright.dev/docs/test-configuration.
+ * End-to-End & Accessibility test configuration (Playwright + @axe-core/playwright).
+ * Override target host via `PLAYWRIGHT_BASE_URL` when running against a preview deployment.
  */
 export default defineConfig({
   testDir: './tests/e2e',
-  /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
-  /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
-  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
+  reporter: [['html', { open: 'never' }], ['list']],
   use: {
-    /* Base URL to use in actions like `await page.goto('/')`. */
-    // baseURL: 'http://localhost:3000',
-
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
+    baseURL,
     trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
   },
   projects: [
     {
       name: 'chromium',
-      use: {
-        ...devices['Desktop Chrome'],
-        ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE
-          ? { launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } }
-          : { channel: 'chromium' }),
-      },
+      use: { ...devices['Desktop Chrome'] },
     },
   ],
   webServer: {
     command: 'pnpm dev',
-    reuseExistingServer: true,
-    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env.CI,
+    url: baseURL,
+    timeout: 120_000,
+    env: {
+      ...(process.env as Record<string, string>),
+      PAYLOAD_SECRET:
+        process.env.PAYLOAD_SECRET || 'playwright-e2e-dev-secret-key-min-32-chars',
+    },
   },
 })

@@ -6,7 +6,12 @@ import { articlePagePath, ARTICLES_HUB_PATH, hasArticlePage } from './article-pa
 import { extractLexicalText } from './lexical'
 import { DEFAULT_SITE_SETTINGS } from './mappers'
 import { hasProjectPage, projectPagePath, PROJECTS_HUB_PATH } from './project-page'
-import { htmlLangFromLocale, RSS_FEED_PATH, siteUrl } from './seo'
+import {
+  CONTACT_HUB_PATH,
+  htmlLangFromLocale,
+  RSS_FEED_PATH,
+  siteUrl,
+} from './seo'
 import type { SiteSettingsContent } from './types'
 
 /**
@@ -125,6 +130,12 @@ export const buildSitemapEntries = ({
       ...(latestProjectDate ? { lastModified: latestProjectDate } : {}),
       changeFrequency: 'weekly',
       priority: 0.8,
+    },
+    {
+      url: `${site}${CONTACT_HUB_PATH}`,
+      ...(latestSiteDate ? { lastModified: latestSiteDate } : {}),
+      changeFrequency: 'monthly',
+      priority: 0.6,
     },
     ...publishedArticles.map((doc, index): MetadataRoute.Sitemap[number] => {
       const lastModified = articleDates[index]
