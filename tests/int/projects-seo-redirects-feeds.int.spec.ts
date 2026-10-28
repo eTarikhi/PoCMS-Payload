@@ -19,7 +19,11 @@ import {
   lexicalParagraphNode,
   lexicalTextNode,
 } from '@/app/(frontend)/lib/lexical'
-import { DEFAULT_SITE_SETTINGS, mapProjects } from '@/app/(frontend)/lib/mappers'
+import {
+  DEFAULT_SITE_SETTINGS,
+  mapProjects,
+  mapSiteSettings,
+} from '@/app/(frontend)/lib/mappers'
 import { mapProjectDetail } from '@/app/(frontend)/lib/project-mappers'
 import { PROJECTS_HUB_PATH } from '@/app/(frontend)/lib/project-page'
 import {
@@ -30,7 +34,9 @@ import {
 } from '@/app/(frontend)/lib/redirects-utils'
 import {
   buildArticleMetadata,
+  buildArticlesHubMetadata,
   buildBlogPostingJsonLd,
+  buildPersonJsonLd,
   buildPortfolioMetadata,
   buildProjectJsonLd,
   buildProjectMetadata,
@@ -488,7 +494,7 @@ describe('Improvement 3: Dynamic sitemap.ts, robots.ts & RSS Feed (/feed.xml)', 
     expect(urls).not.toContain('https://vtarikhi.com/projects/sepiwhite')
   })
 
-  it('generates robots.txt rules allowing public routes, disallowing /admin & /api, and referencing /sitemap.xml', () => {
+  it('generates robots.txt rules allowing public routes, disallowing /admin & /api, and honoring global allowIndexing', () => {
     const rules = buildRobotsRules('https://vtarikhi.com')
     expect(rules.sitemap).toBe('https://vtarikhi.com/sitemap.xml')
     expect(rules.host).toBe('https://vtarikhi.com')
@@ -497,6 +503,144 @@ describe('Improvement 3: Dynamic sitemap.ts, robots.ts & RSS Feed (/feed.xml)', 
         userAgent: '*',
         allow: '/',
         disallow: ['/admin', '/admin/', '/api', '/api/'],
+      },
+    ])
+
+    const blockedRules = buildRobotsRules('https://staging.vtarikhi.com', {
+      allowIndexing: false,
+    })
+    expect(blockedRules.sitemap).toBeUndefined()
+    expect(blockedRules.rules).toEqual([{ userAgent: '*', disallow: '/' }])
+  })
+
+  it('maps & emits Hub Page SEO (2.B) and Site-Wide Technical, Social & Person JSON-LD SEO (2.C)', () => {
+    const customSettings = mapSiteSettings({
+      siteName: 'Amir Engineering',
+      ownerName: 'Amir v.Tarikhi',
+      siteTitle: 'Amir v.Tarikhi — Principal Architect',
+      ogTitle: 'Build Resilient Distributed Systems with Amir',
+      allowIndexing: true,
+      twitterSite: 'etarikhi',
+      twitterCreator: '@amir_tarikhi',
+      verification: {
+        googleSiteVerification: 'gsc-token-123',
+        bingVerification: 'bing-token-456',
+        yandexVerification: 'yandex-token-789',
+      },
+      articlesHubSeo: {
+        metaTitle: 'Engineering Deep Dives & Architecture Notes',
+        metaDescription: 'Long-form essays on TypeScript, Payload CMS, and PostgreSQL.',
+        keywords: 'TypeScript, Payload CMS, PostgreSQL',
+        ogImage: {
+          id: 50,
+          url: '/api/media/file/articles-hub.webp',
+          alt: 'Articles Banner',
+          width: 1600,
+          height: 900,
+          sizes: {
+            og: {
+              url: '/api/media/file/articles-hub-1200x630.webp',
+              width: 1200,
+              height: 630,
+              mimeType: 'image/webp',
+            },
+          },
+        } as unknown as Media,
+        noIndex: false,
+      },
+      projectsHubSeo: {
+        metaTitle: 'Production Case Studies & Systems',
+        metaDescription: 'Selected full-stack architectures and performance case studies.',
+        keywords: 'Case Studies, Next.js, Cloud',
+        noIndex: true,
+      },
+      knowsAbout: ['TypeScript', 'Next.js', 'Payload CMS', 'PostgreSQL'],
+      worksFor: {
+        name: 'vTarikhi Consulting',
+        url: 'https://vtarikhi.com',
+      },
+      alumniOf: [
+        {
+          name: 'Technical University',
+          url: 'https://tu.example.edu',
+        },
+      ],
+    })
+
+    // 2.C: Home ogTitle, normalized Twitter @handles, verification tags & googleBot rich-snippet directives
+    const homeMeta = buildPortfolioMetadata(customSettings, 'https://vtarikhi.com')
+    expect(homeMeta.title).toBe('Amir v.Tarikhi — Principal Architect')
+    expect(homeMeta.openGraph?.title).toBe('Build Resilient Distributed Systems with Amir')
+    expect(homeMeta.twitter).toMatchObject({
+      card: 'summary_large_image',
+      title: 'Build Resilient Distributed Systems with Amir',
+      site: '@etarikhi',
+      creator: '@amir_tarikhi',
+    })
+    expect(homeMeta.verification).toEqual({
+      google: 'gsc-token-123',
+      yandex: 'yandex-token-789',
+      other: { 'msvalidate.01': 'bing-token-456' },
+    })
+    expect(homeMeta.robots).toMatchObject({
+      index: true,
+      follow: true,
+      googleBot: { 'max-image-preview': 'large' },
+    })
+
+    // 2.B: /articles Hub custom SEO + 1200x630 OG variant while keeping visible section heading separate
+    expect(customSettings.articlesSection.heading).toBe('Latest Articles')
+    const articlesHubMeta = buildArticlesHubMetadata(customSettings, 'https://vtarikhi.com')
+    expect(articlesHubMeta.title).toBe('Engineering Deep Dives & Architecture Notes')
+    expect(articlesHubMeta.description).toBe(
+      'Long-form essays on TypeScript, Payload CMS, and PostgreSQL.',
+    )
+    expect(articlesHubMeta.keywords).toBe('TypeScript, Payload CMS, PostgreSQL')
+    expect(articlesHubMeta.openGraph?.images).toEqual([
+      {
+        url: 'https://vtarikhi.com/api/media/file/articles-hub-1200x630.webp',
+        alt: 'Articles Banner',
+        width: 1200,
+        height: 630,
+        type: 'image/webp',
+      },
+    ])
+    expect(articlesHubMeta.twitter).toMatchObject({
+      site: '@etarikhi',
+      creator: '@amir_tarikhi',
+    })
+
+    // 2.B: /projects Hub per-page noIndex toggle
+    const projectsHubMeta = buildProjectsHubMetadata(customSettings, 'https://vtarikhi.com')
+    expect(projectsHubMeta.title).toBe('Production Case Studies & Systems')
+    expect(projectsHubMeta.robots).toMatchObject({ index: false, follow: false })
+
+    // 2.C: Global allowIndexing = false overrides all pages
+    const unindexedSettings = { ...customSettings, allowIndexing: false }
+    expect(buildPortfolioMetadata(unindexedSettings, 'https://vtarikhi.com').robots).toMatchObject({
+      index: false,
+      follow: false,
+    })
+    expect(
+      buildArticlesHubMetadata(unindexedSettings, 'https://vtarikhi.com').robots,
+    ).toMatchObject({
+      index: false,
+      follow: false,
+    })
+
+    // 2.C: Richer Schema.org Person JSON-LD (knowsAbout, worksFor, alumniOf)
+    const personLd = buildPersonJsonLd(null, null, customSettings, 'https://vtarikhi.com')
+    expect(personLd.knowsAbout).toEqual(['TypeScript', 'Next.js', 'Payload CMS', 'PostgreSQL'])
+    expect(personLd.worksFor).toEqual({
+      '@type': 'Organization',
+      name: 'vTarikhi Consulting',
+      url: 'https://vtarikhi.com',
+    })
+    expect(personLd.alumniOf).toEqual([
+      {
+        '@type': 'EducationalOrganization',
+        name: 'Technical University',
+        url: 'https://tu.example.edu',
       },
     ])
   })

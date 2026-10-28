@@ -43,6 +43,33 @@ export type SeoOverride = {
   imageAlt: string | null
 }
 
+export type OgImageContent = {
+  url: string
+  width: number
+  height: number
+  alt: string
+  mimeType?: string
+}
+
+export type HubPageSeoContent = {
+  metaTitle: string | null
+  metaDescription: string | null
+  keywords: string | null
+  ogImage: OgImageContent | null
+  noIndex: boolean
+}
+
+export type SiteVerificationContent = {
+  google: string | null
+  bing: string | null
+  yandex: string | null
+}
+
+export type PersonOrganizationContent = {
+  name: string
+  url: string | null
+}
+
 export type SiteSettingsContent = {
   siteName: string
   ownerName: string
@@ -51,15 +78,19 @@ export type SiteSettingsContent = {
   siteTitle: string
   metaDescription: string
   keywords: string
+  ogTitle: string | null
   ogDescription: string
-  ogImage: {
-    url: string
-    width: number
-    height: number
-    alt: string
-    mimeType?: string
-  }
+  ogImage: OgImageContent
+  allowIndexing: boolean
+  twitterSite: string | null
+  twitterCreator: string | null
+  verification: SiteVerificationContent
+  articlesHubSeo: HubPageSeoContent
+  projectsHubSeo: HubPageSeoContent
   jobTitle: string
+  knowsAbout: string[]
+  worksFor: PersonOrganizationContent | null
+  alumniOf: PersonOrganizationContent[]
   address: PostalAddressContent
   hero: {
     greeting: string

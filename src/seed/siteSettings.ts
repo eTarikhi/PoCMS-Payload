@@ -16,6 +16,7 @@ export const siteSettingsData = (
     'Full-Stack Senior PHP Developer, Automation Panel Developer, E-Commerce CMS Developer, SEO Manager and Consultant',
   ogImage: profileImage?.id ?? null,
   ogImageUrl: '/images/profile.webp',
+  allowIndexing: true,
   jobTitle: 'Senior Full-Stack Web Developer',
   address: {
     streetAddress: '34805, Beykoz, Istanbul, Turkey',

@@ -109,6 +109,15 @@ export const SiteSettings: GlobalConfig = {
               },
             },
             {
+              name: 'ogTitle',
+              label: 'Open Graph Title',
+              type: 'text',
+              admin: {
+                description:
+                  'Social sharing card title when sharing the home page. Falls back to Site Title when empty.',
+              },
+            },
+            {
               name: 'ogDescription',
               type: 'textarea',
               defaultValue:
@@ -124,7 +133,7 @@ export const SiteSettings: GlobalConfig = {
               relationTo: 'media',
               admin: {
                 description:
-                  'Social preview image (and fallback cover for articles without an image). Falls back to Fallback Image URL below when empty.',
+                  'Social preview image (and fallback cover for hub/detail pages without a dedicated image). Falls back to Fallback Image URL below when empty.',
               },
             },
             {
@@ -136,6 +145,205 @@ export const SiteSettings: GlobalConfig = {
                 description:
                   'Path or URL used for Open Graph and Person JSON-LD when no OG Image upload is selected.',
               },
+            },
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'allowIndexing',
+                  label: 'Allow Search Engine Indexing',
+                  type: 'checkbox',
+                  defaultValue: true,
+                  admin: {
+                    width: '34%',
+                    description:
+                      'Master indexing switch. Uncheck on staging/preview domains to emit noindex, nofollow site-wide and disallow crawlers in robots.txt.',
+                  },
+                },
+                {
+                  name: 'twitterSite',
+                  label: 'Twitter / X Site (@handle)',
+                  type: 'text',
+                  admin: {
+                    width: '33%',
+                    placeholder: '@etarikhi',
+                    description: 'Optional twitter:site handle across all pages.',
+                  },
+                },
+                {
+                  name: 'twitterCreator',
+                  label: 'Twitter / X Creator (@handle)',
+                  type: 'text',
+                  admin: {
+                    width: '33%',
+                    placeholder: '@etarikhi',
+                    description: 'Optional twitter:creator attribution across all pages.',
+                  },
+                },
+              ],
+            },
+            {
+              name: 'verification',
+              label: 'Search Engine Verification Codes',
+              type: 'group',
+              admin: {
+                description:
+                  'Paste verification token values only (not the full <meta> tag) for Google Search Console, Bing Webmaster Tools, or Yandex.',
+              },
+              fields: [
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'googleSiteVerification',
+                      label: 'Google Verification',
+                      type: 'text',
+                      admin: {
+                        width: '34%',
+                        description: 'Emits <meta name="google-site-verification" content="...">.',
+                      },
+                    },
+                    {
+                      name: 'bingVerification',
+                      label: 'Bing Verification (msvalidate.01)',
+                      type: 'text',
+                      admin: {
+                        width: '33%',
+                        description: 'Emits <meta name="msvalidate.01" content="...">.',
+                      },
+                    },
+                    {
+                      name: 'yandexVerification',
+                      label: 'Yandex Verification',
+                      type: 'text',
+                      admin: {
+                        width: '33%',
+                        description: 'Emits <meta name="yandex-verification" content="...">.',
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'articlesHubSeo',
+              label: 'Articles Hub Page SEO (/articles)',
+              type: 'group',
+              admin: {
+                description:
+                  'Dedicated search & social metadata for /articles without altering Home section headings.',
+              },
+              fields: [
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'metaTitle',
+                      label: 'Meta Title',
+                      type: 'text',
+                      admin: {
+                        width: '50%',
+                        description:
+                          'Custom <title> & og:title for /articles. Falls back to "{Heading} | {Site Name}".',
+                      },
+                    },
+                    {
+                      name: 'keywords',
+                      label: 'Keywords',
+                      type: 'text',
+                      admin: {
+                        width: '50%',
+                        description: 'Comma-separated <meta name="keywords"> for /articles.',
+                      },
+                    },
+                  ],
+                },
+                {
+                  name: 'metaDescription',
+                  label: 'Meta Description',
+                  type: 'textarea',
+                  admin: {
+                    description:
+                      'Custom <meta name="description"> & og:description for /articles. Falls back to Archive Description.',
+                  },
+                },
+                {
+                  name: 'ogImage',
+                  label: 'Open Graph Image (1200×630)',
+                  type: 'upload',
+                  relationTo: 'media',
+                  admin: {
+                    description:
+                      'Dedicated social sharing banner for /articles. Falls back to default OG Image when empty.',
+                  },
+                },
+                {
+                  name: 'noIndex',
+                  label: 'Exclude /articles from search engine indexing (noindex, nofollow)',
+                  type: 'checkbox',
+                  defaultValue: false,
+                },
+              ],
+            },
+            {
+              name: 'projectsHubSeo',
+              label: 'Projects Hub Page SEO (/projects)',
+              type: 'group',
+              admin: {
+                description:
+                  'Dedicated search & social metadata for /projects without altering Home section headings.',
+              },
+              fields: [
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'metaTitle',
+                      label: 'Meta Title',
+                      type: 'text',
+                      admin: {
+                        width: '50%',
+                        description:
+                          'Custom <title> & og:title for /projects. Falls back to "{Heading} | {Site Name}".',
+                      },
+                    },
+                    {
+                      name: 'keywords',
+                      label: 'Keywords',
+                      type: 'text',
+                      admin: {
+                        width: '50%',
+                        description: 'Comma-separated <meta name="keywords"> for /projects.',
+                      },
+                    },
+                  ],
+                },
+                {
+                  name: 'metaDescription',
+                  label: 'Meta Description',
+                  type: 'textarea',
+                  admin: {
+                    description:
+                      'Custom <meta name="description"> & og:description for /projects. Falls back to Archive Description.',
+                  },
+                },
+                {
+                  name: 'ogImage',
+                  label: 'Open Graph Image (1200×630)',
+                  type: 'upload',
+                  relationTo: 'media',
+                  admin: {
+                    description:
+                      'Dedicated social sharing banner for /projects. Falls back to default OG Image when empty.',
+                  },
+                },
+                {
+                  name: 'noIndex',
+                  label: 'Exclude /projects from search engine indexing (noindex, nofollow)',
+                  type: 'checkbox',
+                  defaultValue: false,
+                },
+              ],
             },
           ],
         },
@@ -150,6 +358,78 @@ export const SiteSettings: GlobalConfig = {
               admin: {
                 description: 'Schema.org Person jobTitle.',
               },
+            },
+            {
+              name: 'knowsAbout',
+              label: 'Core Specialties & Technologies (knowsAbout)',
+              type: 'text',
+              hasMany: true,
+              admin: {
+                description:
+                  'Topics & technologies emitted in Schema.org Person.knowsAbout (e.g. PHP, TypeScript, Next.js, Payload CMS, PostgreSQL).',
+              },
+            },
+            {
+              name: 'worksFor',
+              label: 'Current Organization (worksFor)',
+              type: 'group',
+              fields: [
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'name',
+                      label: 'Organization Name',
+                      type: 'text',
+                      admin: {
+                        width: '50%',
+                        placeholder: 'e.g. Independent Architecture Consultant',
+                      },
+                    },
+                    {
+                      name: 'url',
+                      label: 'Organization URL',
+                      type: 'text',
+                      admin: {
+                        width: '50%',
+                        placeholder: 'https://...',
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'alumniOf',
+              label: 'Educational Organizations (alumniOf)',
+              type: 'array',
+              labels: {
+                singular: 'Institution',
+                plural: 'Institutions',
+              },
+              admin: {
+                description: 'Universities or institutions emitted in Schema.org Person.alumniOf.',
+              },
+              fields: [
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'name',
+                      label: 'Institution Name',
+                      type: 'text',
+                      required: true,
+                      admin: { width: '50%' },
+                    },
+                    {
+                      name: 'url',
+                      label: 'Institution URL',
+                      type: 'text',
+                      admin: { width: '50%', placeholder: 'https://...' },
+                    },
+                  ],
+                },
+              ],
             },
             {
               name: 'address',

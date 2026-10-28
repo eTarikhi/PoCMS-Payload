@@ -178,6 +178,8 @@ export function collectReferencedMediaIds(sources: MediaReferenceSources): Set<s
 
   if (sources.siteSettings) {
     add(sources.siteSettings.ogImage)
+    add((sources.siteSettings.articlesHubSeo as Record<string, unknown> | undefined)?.ogImage)
+    add((sources.siteSettings.projectsHubSeo as Record<string, unknown> | undefined)?.ogImage)
     add((sources.siteSettings.personSchema as Record<string, unknown> | undefined)?.image)
   }
 

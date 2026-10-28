@@ -48,17 +48,34 @@ const summarizeText = (raw: string, maxLength = 280): string => {
   return `${clean.slice(0, maxLength - 1).trimEnd()}…`
 }
 
-export const buildRobotsRules = (site: string = siteUrl()): MetadataRoute.Robots => ({
-  rules: [
-    {
-      userAgent: '*',
-      allow: '/',
-      disallow: ['/admin', '/admin/', '/api', '/api/'],
-    },
-  ],
-  sitemap: `${site}/sitemap.xml`,
-  host: site,
-})
+export const buildRobotsRules = (
+  site: string = siteUrl(),
+  options?: { allowIndexing?: boolean },
+): MetadataRoute.Robots => {
+  if (options?.allowIndexing === false) {
+    return {
+      rules: [
+        {
+          userAgent: '*',
+          disallow: '/',
+        },
+      ],
+      host: site,
+    }
+  }
+
+  return {
+    rules: [
+      {
+        userAgent: '*',
+        allow: '/',
+        disallow: ['/admin', '/admin/', '/api', '/api/'],
+      },
+    ],
+    sitemap: `${site}/sitemap.xml`,
+    host: site,
+  }
+}
 
 export const buildSitemapEntries = ({
   articles,

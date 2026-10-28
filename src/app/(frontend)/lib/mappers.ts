@@ -43,8 +43,11 @@ import type {
   HeaderContent,
   HeaderStudioConfig,
   HiringCta,
+  HubPageSeoContent,
   NavigationContent,
   NavigationItem,
+  OgImageContent,
+  PersonOrganizationContent,
   PortfolioContent,
   ProjectFilter,
   ProjectItem,
@@ -99,6 +102,14 @@ export const DEFAULT_NAVIGATION: NavigationContent = {
   ],
 }
 
+export const DEFAULT_HUB_PAGE_SEO: HubPageSeoContent = {
+  metaTitle: null,
+  metaDescription: null,
+  keywords: null,
+  ogImage: null,
+  noIndex: false,
+}
+
 export const DEFAULT_SITE_SETTINGS: SiteSettingsContent = {
   siteName: 'Amir v.Tarikhi Live Resume',
   ownerName: 'Amir v.Tarikhi',
@@ -109,6 +120,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettingsContent = {
     'Senior PHP, JavaScript & MySQL, Mid. React & Next.js, Jr. Node.js & Laravel, E-Commerce CMS, WordPress, WooCommerce & Shopify Developer ..',
   keywords:
     'Senior Web Developer, Full-Stack Developer, PHP Developer, JavaScript Developer, Next.js Developer, React.js Developer, Shopify Developer, MySQL Developer, Full-Stack Senior PHP Developer, Automation Panel Developer, E-Commerce CMS Developer, SEO Manager and Consultant',
+  ogTitle: null,
   ogDescription:
     'Full-Stack Senior PHP Developer, Automation Panel Developer, E-Commerce CMS Developer, SEO Manager and Consultant',
   ogImage: {
@@ -118,7 +130,20 @@ export const DEFAULT_SITE_SETTINGS: SiteSettingsContent = {
     alt: 'Amir v.Tarikhi',
     mimeType: 'image/webp',
   },
+  allowIndexing: true,
+  twitterSite: null,
+  twitterCreator: null,
+  verification: {
+    google: null,
+    bing: null,
+    yandex: null,
+  },
+  articlesHubSeo: { ...DEFAULT_HUB_PAGE_SEO },
+  projectsHubSeo: { ...DEFAULT_HUB_PAGE_SEO },
   jobTitle: 'Senior Full-Stack Web Developer',
+  knowsAbout: [],
+  worksFor: null,
+  alumniOf: [],
   address: {
     streetAddress: '34805, Beykoz, Istanbul, Turkey',
     addressLocality: 'Istanbul, Turkey',
@@ -314,6 +339,51 @@ export const mapNavigation = (doc: Partial<Navigation> | null | undefined): Navi
   }
 }
 
+const normalizeTwitterHandle = (value: string | null | undefined): string | null => {
+  const trimmed = value?.trim()
+  if (!trimmed) return null
+  return trimmed.startsWith('@') ? trimmed : `@${trimmed}`
+}
+
+const mapUploadedOgImage = (
+  media: number | Media | null | undefined,
+  fallbackAlt: string,
+): OgImageContent | null => {
+  if (!media || typeof media !== 'object' || !media.url) return null
+  const ogVariant = (media as { sizes?: { og?: MediaVariantShape } }).sizes?.og
+  const mime = ogVariant?.mimeType || media.mimeType
+  return {
+    url: (ogVariant?.url || media.url) as string,
+    width: ogVariant?.width ?? media.width ?? 1200,
+    height: ogVariant?.height ?? media.height ?? 630,
+    alt: withFallback(media.alt, fallbackAlt),
+    ...(mime ? { mimeType: mime } : {}),
+  }
+}
+
+const mapHubPageSeo = (
+  group:
+    | {
+        metaTitle?: string | null
+        metaDescription?: string | null
+        keywords?: string | null
+        ogImage?: (number | null) | Media
+        noIndex?: boolean | null
+      }
+    | null
+    | undefined,
+  fallbackAlt: string,
+): HubPageSeoContent => {
+  if (!group) return { ...DEFAULT_HUB_PAGE_SEO }
+  return {
+    metaTitle: group.metaTitle?.trim() || null,
+    metaDescription: group.metaDescription?.trim() || null,
+    keywords: group.keywords?.trim() || null,
+    ogImage: mapUploadedOgImage(group.ogImage, fallbackAlt),
+    noIndex: Boolean(group.noIndex),
+  }
+}
+
 export const mapSiteSettings = (
   doc: Partial<SiteSetting> | null | undefined,
 ): SiteSettingsContent => {
@@ -330,7 +400,7 @@ export const mapSiteSettings = (
     uploadedOgMedia as { sizes?: { og?: MediaVariantShape } } | null
   )?.sizes?.og
   const fallbackOgUrl = withFallback(doc.ogImageUrl, DEFAULT_SITE_SETTINGS.ogImage.url)
-  const ogImage = uploadedOgMedia
+  const ogImage: OgImageContent = uploadedOgMedia
     ? {
         url: (ogVariant?.url || uploadedOgMedia.url) as string,
         width: ogVariant?.width ?? uploadedOgMedia.width ?? DEFAULT_PROFILE_IMAGE_WIDTH,
@@ -348,6 +418,25 @@ export const mapSiteSettings = (
         ...(fallbackOgUrl.endsWith('.webp') ? { mimeType: 'image/webp' } : {}),
       }
 
+  const worksForName = doc.worksFor?.name?.trim() || null
+  const worksFor: PersonOrganizationContent | null = worksForName
+    ? {
+        name: worksForName,
+        url: doc.worksFor?.url?.trim() || null,
+      }
+    : null
+
+  const alumniOf: PersonOrganizationContent[] = (doc.alumniOf ?? [])
+    .map((entry): PersonOrganizationContent | null => {
+      const name = entry?.name?.trim()
+      if (!name) return null
+      return {
+        name,
+        url: entry?.url?.trim() || null,
+      }
+    })
+    .filter((entry): entry is PersonOrganizationContent => entry !== null)
+
   return {
     siteName,
     ownerName,
@@ -359,12 +448,26 @@ export const mapSiteSettings = (
       doc.keywords === undefined
         ? DEFAULT_SITE_SETTINGS.keywords
         : (doc.keywords ?? '').trim(),
+    ogTitle: doc.ogTitle?.trim() || null,
     ogDescription:
       doc.ogDescription === undefined
         ? DEFAULT_SITE_SETTINGS.ogDescription
         : ogDescription,
     ogImage,
+    allowIndexing: doc.allowIndexing ?? DEFAULT_SITE_SETTINGS.allowIndexing,
+    twitterSite: normalizeTwitterHandle(doc.twitterSite),
+    twitterCreator: normalizeTwitterHandle(doc.twitterCreator),
+    verification: {
+      google: doc.verification?.googleSiteVerification?.trim() || null,
+      bing: doc.verification?.bingVerification?.trim() || null,
+      yandex: doc.verification?.yandexVerification?.trim() || null,
+    },
+    articlesHubSeo: mapHubPageSeo(doc.articlesHubSeo, `${siteName} Articles`),
+    projectsHubSeo: mapHubPageSeo(doc.projectsHubSeo, `${siteName} Projects`),
     jobTitle: withFallback(doc.jobTitle, DEFAULT_SITE_SETTINGS.jobTitle),
+    knowsAbout: (doc.knowsAbout ?? []).map((item) => item.trim()).filter(Boolean),
+    worksFor,
+    alumniOf,
     address: {
       streetAddress: withFallback(
         doc.address?.streetAddress,
