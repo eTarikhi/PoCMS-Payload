@@ -21,13 +21,105 @@ const truncateMetaDescription = (text: string, maxLength = 155): string => {
 }
 
 /**
- * Per-document SEO overrides (`meta.title`, `meta.description`, `meta.image`) and live Google SERP
- * preview for `articles` and `projects`.
+ * Per-document SEO tab (`tabbedUI: true`) with SERP preview, auto-generators, canonical URL
+ * override, keywords/tags, social card overrides, and per-document indexing flags (`noIndex`,
+ * `noFollow`) for `articles` and `projects`.
  */
 export const portfolioSeoPlugin = (): Plugin =>
   seoPlugin({
     collections: ['articles', 'projects'],
     uploadsCollection: 'media',
+    tabbedUI: true,
+    fields: ({ defaultFields }) => [
+      ...defaultFields,
+      {
+        type: 'row',
+        fields: [
+          {
+            name: 'canonicalUrl',
+            label: 'Canonical URL Override',
+            type: 'text',
+            admin: {
+              width: '55%',
+              placeholder: 'https://medium.com/... or /articles/...',
+              description:
+                'Optional canonical URL for syndicated/cross-posted content (LinkedIn, Medium, Dev.to). Leave empty to use this page’s URL.',
+            },
+          },
+          {
+            name: 'keywords',
+            label: 'Keywords / Tags',
+            type: 'text',
+            admin: {
+              width: '45%',
+              placeholder: 'TypeScript, Payload CMS, PostgreSQL',
+              description:
+                'Comma-separated tags emitted in <meta name="keywords">, Open Graph article:tag, and JSON-LD keywords.',
+            },
+          },
+        ],
+      },
+      {
+        type: 'row',
+        fields: [
+          {
+            name: 'ogTitle',
+            label: 'Social / Open Graph Title',
+            type: 'text',
+            admin: {
+              width: '65%',
+              description:
+                'Optional social headline for LinkedIn, X/Twitter, Slack, and Discord cards. Falls back to Meta Title.',
+            },
+          },
+          {
+            name: 'twitterCard',
+            label: 'Twitter / X Card Style',
+            type: 'select',
+            options: [
+              { label: 'Large Banner (summary_large_image)', value: 'summary_large_image' },
+              { label: 'Compact Thumbnail (summary)', value: 'summary' },
+            ],
+            admin: {
+              width: '35%',
+              description: 'Auto-picks based on cover image when left empty.',
+            },
+          },
+        ],
+      },
+      {
+        name: 'ogDescription',
+        label: 'Social / Open Graph Description',
+        type: 'textarea',
+        admin: {
+          description:
+            'Optional custom summary for social sharing cards. Falls back to Meta Description.',
+        },
+      },
+      {
+        type: 'row',
+        fields: [
+          {
+            name: 'noIndex',
+            label: 'No Index (exclude from search engines, sitemap.xml & feed.xml)',
+            type: 'checkbox',
+            defaultValue: false,
+            admin: {
+              width: '50%',
+            },
+          },
+          {
+            name: 'noFollow',
+            label: 'No Follow (prevent crawlers from following outbound links)',
+            type: 'checkbox',
+            defaultValue: false,
+            admin: {
+              width: '50%',
+            },
+          },
+        ],
+      },
+    ],
     generateTitle: async ({ doc, req }) => {
       const rawTitle = typeof doc?.title === 'string' ? doc.title.trim() : ''
       let siteName = DEFAULT_SITE_SETTINGS.siteName

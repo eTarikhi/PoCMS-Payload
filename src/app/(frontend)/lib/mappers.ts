@@ -61,6 +61,7 @@ import type {
   SiteSettingsContent,
   SkillBar,
   SkillsContent,
+  TwitterCardType,
 } from './types'
 
 /**
@@ -272,16 +273,40 @@ export const mapSeoOverride = (
     title?: string | null
     description?: string | null
     image?: (number | null) | Media
+    canonicalUrl?: string | null
+    keywords?: string | null
+    ogTitle?: string | null
+    ogDescription?: string | null
+    twitterCard?: string | null
+    noIndex?: boolean | null
+    noFollow?: boolean | null
   } | null,
-): SeoOverride => ({
-  title: meta?.title?.trim() || null,
-  description: meta?.description?.trim() || null,
-  imageUrl: resolveMediaSizeUrl(meta?.image, 'og'),
-  imageAlt:
-    meta?.image && typeof meta.image === 'object' && meta.image.alt?.trim()
-      ? meta.image.alt.trim()
-      : null,
-})
+): SeoOverride => {
+  const keywords = (meta?.keywords ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+  const rawCard = meta?.twitterCard
+  const twitterCard: TwitterCardType | null =
+    rawCard === 'summary_large_image' || rawCard === 'summary' ? rawCard : null
+
+  return {
+    title: meta?.title?.trim() || null,
+    description: meta?.description?.trim() || null,
+    imageUrl: resolveMediaSizeUrl(meta?.image, 'og'),
+    imageAlt:
+      meta?.image && typeof meta.image === 'object' && meta.image.alt?.trim()
+        ? meta.image.alt.trim()
+        : null,
+    canonicalUrl: meta?.canonicalUrl?.trim() || null,
+    keywords,
+    ogTitle: meta?.ogTitle?.trim() || null,
+    ogDescription: meta?.ogDescription?.trim() || null,
+    twitterCard,
+    noIndex: Boolean(meta?.noIndex),
+    noFollow: Boolean(meta?.noFollow),
+  }
+}
 
 const idToString = (id: number | string): string => String(id)
 

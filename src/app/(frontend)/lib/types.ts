@@ -36,11 +36,20 @@ export type SectionCta = {
   url: string
 }
 
+export type TwitterCardType = 'summary_large_image' | 'summary'
+
 export type SeoOverride = {
   title: string | null
   description: string | null
   imageUrl: string | null
   imageAlt: string | null
+  canonicalUrl?: string | null
+  keywords?: string[]
+  ogTitle?: string | null
+  ogDescription?: string | null
+  twitterCard?: TwitterCardType | null
+  noIndex?: boolean
+  noFollow?: boolean
 }
 
 export type OgImageContent = {

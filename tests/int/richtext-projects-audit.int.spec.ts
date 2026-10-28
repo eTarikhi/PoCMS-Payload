@@ -84,12 +84,33 @@ describe('Feature 1: Lexical Rich Text + Blocks, ReadTime, and Table of Contents
   it('configures Lexical richText fields with Code, Callout, and Media blocks on Articles and Projects', async () => {
     const sanitized = await config
 
+    const findNamedField = (
+      fields: readonly unknown[],
+      targetName: string,
+    ): { type?: string } | undefined => {
+      for (const raw of fields) {
+        const f = raw as { name?: string; type?: string; fields?: readonly unknown[]; tabs?: Array<{ fields?: readonly unknown[] }> }
+        if (f?.name === targetName) return f
+        if (Array.isArray(f?.fields)) {
+          const found = findNamedField(f.fields, targetName)
+          if (found) return found
+        }
+        if (Array.isArray(f?.tabs)) {
+          for (const tab of f.tabs) {
+            if (Array.isArray(tab?.fields)) {
+              const found = findNamedField(tab.fields, targetName)
+              if (found) return found
+            }
+          }
+        }
+      }
+      return undefined
+    }
+
     for (const slug of ['articles', 'projects'] as const) {
       const collection = sanitized.collections.find((c) => c.slug === slug)
       expect(collection).toBeDefined()
-      const contentField = collection?.fields.find(
-        (f) => 'name' in f && f.name === 'content',
-      )
+      const contentField = findNamedField(collection?.fields ?? [], 'content')
       expect(contentField?.type).toBe('richText')
       expect(collection?.hooks.beforeValidate?.length).toBeGreaterThan(0)
       expect(collection?.hooks.beforeChange?.length).toBeGreaterThan(0)

@@ -77,6 +77,9 @@ export const buildRobotsRules = (
   }
 }
 
+const isDocumentNoIndex = (doc: { meta?: { noIndex?: boolean | null } | null }): boolean =>
+  Boolean(doc.meta?.noIndex)
+
 export const buildSitemapEntries = ({
   articles,
   projects,
@@ -88,11 +91,11 @@ export const buildSitemapEntries = ({
 }): MetadataRoute.Sitemap => {
   const publishedArticles = articles.filter(
     (doc): doc is Partial<Article> & { slug: string } =>
-      Boolean(doc.slug) && !doc.deletedAt && hasArticlePage(doc),
+      Boolean(doc.slug) && !doc.deletedAt && !isDocumentNoIndex(doc) && hasArticlePage(doc),
   )
   const publishedProjects = projects.filter(
     (doc): doc is Partial<Project> & { slug: string } =>
-      Boolean(doc.slug) && !doc.deletedAt && hasProjectPage(doc),
+      Boolean(doc.slug) && !doc.deletedAt && !isDocumentNoIndex(doc) && hasProjectPage(doc),
   )
 
   const articleDates = publishedArticles.map((doc) =>
@@ -170,7 +173,7 @@ export const buildRssFeedXml = ({
   const language = htmlLangFromLocale(settings.locale)
 
   const articleEntries: RssEntry[] = articles
-    .filter((doc) => !doc.deletedAt && Boolean(doc.title?.trim()))
+    .filter((doc) => !doc.deletedAt && !isDocumentNoIndex(doc) && Boolean(doc.title?.trim()))
     .flatMap((doc): RssEntry[] => {
       const onSiteUrl =
         doc.slug && hasArticlePage(doc) ? `${site}${articlePagePath(doc.slug)}` : null
@@ -204,6 +207,7 @@ export const buildRssFeedXml = ({
     .filter(
       (doc): doc is Partial<Project> & { slug: string; title: string } =>
         !doc.deletedAt &&
+        !isDocumentNoIndex(doc) &&
         Boolean(doc.slug) &&
         Boolean(doc.title?.trim()) &&
         hasProjectPage(doc),

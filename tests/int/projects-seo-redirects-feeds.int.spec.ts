@@ -230,24 +230,59 @@ describe('Improvement 1: /projects Archive Page with Tech-Stack/Category Filteri
 })
 
 describe('Improvement 2: @payloadcms/plugin-seo Overrides & @payloadcms/plugin-redirects (301/302)', () => {
-  it('registers plugin-seo (with SERP preview & generate endpoints) and plugin-redirects (with RBAC) in payload.config', async () => {
+  it('registers plugin-seo (with tabbedUI Content/SEO tabs, extended 2.A fields, SERP preview & generate endpoints) and plugin-redirects (with RBAC)', async () => {
     const sanitized = await config
+
+    const collectFieldNames = (fields: readonly unknown[]): string[] => {
+      const names: string[] = []
+      for (const raw of fields) {
+        const f = raw as { name?: string; fields?: readonly unknown[] }
+        if (typeof f?.name === 'string') names.push(f.name)
+        if (Array.isArray(f?.fields)) names.push(...collectFieldNames(f.fields))
+      }
+      return names
+    }
 
     for (const slug of ['articles', 'projects'] as const) {
       const col = sanitized.collections.find((c) => c.slug === slug)
       expect(col).toBeDefined()
-      const metaGroup = col?.fields.find(
-        (field) => 'name' in field && field.name === 'meta' && field.type === 'group',
-      )
-      expect(metaGroup).toBeDefined()
-      if (metaGroup && 'fields' in metaGroup) {
-        const subNames = metaGroup.fields
-          .map((f) => ('name' in f ? f.name : undefined))
-          .filter(Boolean)
-        expect(subNames).toEqual(
-          expect.arrayContaining(['overview', 'title', 'description', 'image', 'preview']),
+
+      // tabbedUI: true puts Content + SEO tabs inside a tabs field while keeping sidebar fields (slug, readTime, ...) at root
+      const tabsField = col?.fields.find((f) => f.type === 'tabs')
+      expect(tabsField?.type).toBe('tabs')
+      if (tabsField?.type === 'tabs') {
+        expect(tabsField.tabs.map((t) => t.label)).toEqual(['Content', 'SEO'])
+        const seoTab = tabsField.tabs[1]
+        const metaGroup = seoTab?.fields.find(
+          (field) => 'name' in field && field.name === 'meta' && field.type === 'group',
         )
+        expect(metaGroup).toBeDefined()
+        if (metaGroup && 'fields' in metaGroup) {
+          const subNames = collectFieldNames(metaGroup.fields)
+          expect(subNames).toEqual(
+            expect.arrayContaining([
+              'overview',
+              'title',
+              'description',
+              'image',
+              'preview',
+              'canonicalUrl',
+              'keywords',
+              'ogTitle',
+              'ogDescription',
+              'twitterCard',
+              'noIndex',
+              'noFollow',
+            ]),
+          )
+        }
       }
+
+      // Sidebar fields remain pinned at root across both Content and SEO tabs
+      const rootFieldNames = (col?.fields ?? [])
+        .map((f) => ('name' in f ? f.name : undefined))
+        .filter(Boolean)
+      expect(rootFieldNames).toEqual(expect.arrayContaining(['slug', 'readTime']))
     }
 
     const endpointPaths = (sanitized.endpoints ?? []).map((e) => e.path)
@@ -273,7 +308,7 @@ describe('Improvement 2: @payloadcms/plugin-seo Overrides & @payloadcms/plugin-r
     expect(entities.some((e) => e.slug === 'redirects' && e.field === 'redirects')).toBe(true)
   })
 
-  it('applies per-document SEO overrides (meta.title, meta.description, meta.image) to Articles and Projects metadata & JSON-LD', () => {
+  it('applies per-document 2.A SEO overrides (title, description, image, canonicalUrl, keywords, ogTitle, ogDescription, twitterCard, noIndex/noFollow) & excludes noIndex from sitemap/RSS', () => {
     const customOg = sampleMedia('/media/custom-seo-card.webp', 'Custom SERP Social Banner')
 
     const articleDoc: Article = {
@@ -287,6 +322,13 @@ describe('Improvement 2: @payloadcms/plugin-seo Overrides & @payloadcms/plugin-r
         title: 'Custom SEO Title — Search Optimized',
         description: 'Custom SERP meta description tailored for click-through.',
         image: customOg,
+        canonicalUrl: 'https://medium.com/@etarikhi/original-article',
+        keywords: 'TypeScript, Payload CMS, Architecture',
+        ogTitle: 'Punchy LinkedIn & X Headline',
+        ogDescription: 'Punchy social card summary.',
+        twitterCard: 'summary',
+        noIndex: true,
+        noFollow: true,
       },
       updatedAt: '2026-10-21T09:00:00.000Z',
       createdAt: '2026-10-20T09:00:00.000Z',
@@ -298,6 +340,13 @@ describe('Improvement 2: @payloadcms/plugin-seo Overrides & @payloadcms/plugin-r
       description: 'Custom SERP meta description tailored for click-through.',
       imageUrl: '/media/custom-seo-card.webp',
       imageAlt: 'Custom SERP Social Banner',
+      canonicalUrl: 'https://medium.com/@etarikhi/original-article',
+      keywords: ['TypeScript', 'Payload CMS', 'Architecture'],
+      ogTitle: 'Punchy LinkedIn & X Headline',
+      ogDescription: 'Punchy social card summary.',
+      twitterCard: 'summary',
+      noIndex: true,
+      noFollow: true,
     })
 
     const articleMeta = buildArticleMetadata(
@@ -309,7 +358,27 @@ describe('Improvement 2: @payloadcms/plugin-seo Overrides & @payloadcms/plugin-r
     expect(articleMeta.description).toBe(
       'Custom SERP meta description tailored for click-through.',
     )
-    expect(articleMeta.openGraph?.title).toBe('Custom SEO Title — Search Optimized')
+    expect(articleMeta.alternates?.canonical).toBe(
+      'https://medium.com/@etarikhi/original-article',
+    )
+    expect(articleMeta.keywords).toEqual(['TypeScript', 'Payload CMS', 'Architecture'])
+    expect(articleMeta.robots).toMatchObject({
+      index: false,
+      follow: false,
+      googleBot: { index: false, follow: false },
+    })
+    expect(articleMeta.openGraph?.title).toBe('Punchy LinkedIn & X Headline')
+    expect(articleMeta.openGraph?.description).toBe('Punchy social card summary.')
+    expect((articleMeta.openGraph as { tags?: string[] })?.tags).toEqual([
+      'TypeScript',
+      'Payload CMS',
+      'Architecture',
+    ])
+    expect(articleMeta.twitter).toMatchObject({
+      card: 'summary',
+      title: 'Punchy LinkedIn & X Headline',
+      description: 'Punchy social card summary.',
+    })
     const ogImages = articleMeta.openGraph?.images as Array<{ url: string; alt: string }>
     expect(ogImages[0]?.url).toBe('https://vtarikhi.com/media/custom-seo-card.webp')
     expect(ogImages[0]?.alt).toBe('Custom SERP Social Banner')
@@ -324,15 +393,23 @@ describe('Improvement 2: @payloadcms/plugin-seo Overrides & @payloadcms/plugin-r
     expect(articleJsonLd.description).toBe(
       'Custom SERP meta description tailored for click-through.',
     )
+    expect(articleJsonLd.keywords).toBe('TypeScript, Payload CMS, Architecture')
     expect(articleJsonLd.image).toBe('https://vtarikhi.com/media/custom-seo-card.webp')
 
-    // Project SEO override
+    // Project SEO override (including unlisted NDA case study with noIndex: true)
     const projectDoc: Project = {
       ...sampleProjectsRaw()[0]!,
       meta: {
         title: 'AlyaPanel Case Study | Enterprise SaaS Architecture',
         description: 'Deep dive into multi-tenant Laravel & MySQL automation.',
         image: customOg,
+        canonicalUrl: '/projects/alyapanel-v2',
+        keywords: 'SaaS, Multi-Tenant, MySQL',
+        ogTitle: 'How We Scaled AlyaPanel',
+        ogDescription: 'Multi-tenant SaaS case study.',
+        twitterCard: 'summary_large_image',
+        noIndex: true,
+        noFollow: false,
       },
     }
     const mappedProject = mapProjectDetail(projectDoc)!
@@ -345,6 +422,16 @@ describe('Improvement 2: @payloadcms/plugin-seo Overrides & @payloadcms/plugin-r
     expect(projectMeta.description).toBe(
       'Deep dive into multi-tenant Laravel & MySQL automation.',
     )
+    expect(projectMeta.alternates?.canonical).toBe('https://vtarikhi.com/projects/alyapanel-v2')
+    expect(projectMeta.keywords).toEqual(['SaaS', 'Multi-Tenant', 'MySQL'])
+    expect(projectMeta.robots).toMatchObject({ index: false, follow: true })
+    expect(projectMeta.openGraph?.title).toBe('How We Scaled AlyaPanel')
+    expect(projectMeta.openGraph?.description).toBe('Multi-tenant SaaS case study.')
+    expect(projectMeta.twitter).toMatchObject({
+      card: 'summary_large_image',
+      title: 'How We Scaled AlyaPanel',
+    })
+
     const projectJsonLd = buildProjectJsonLd(
       mappedProject,
       null,
@@ -355,7 +442,37 @@ describe('Improvement 2: @payloadcms/plugin-seo Overrides & @payloadcms/plugin-r
     expect(projectJsonLd.description).toBe(
       'Deep dive into multi-tenant Laravel & MySQL automation.',
     )
+    expect(projectJsonLd.keywords).toBe('SaaS, Multi-Tenant, MySQL')
     expect(projectJsonLd.image).toBe('https://vtarikhi.com/media/custom-seo-card.webp')
+
+    // Documents with meta.noIndex === true are automatically excluded from sitemap.xml and feed.xml
+    const indexedArticleDoc: Article = {
+      ...articleDoc,
+      id: 11,
+      slug: 'indexed-article',
+      title: 'Public Indexed Article',
+      meta: { noIndex: false },
+    }
+    const sitemapUrls = buildSitemapEntries({
+      articles: [articleDoc, indexedArticleDoc],
+      projects: [projectDoc, sampleProjectsRaw()[1]!],
+      site: 'https://vtarikhi.com',
+    }).map((entry) => entry.url)
+    expect(sitemapUrls).not.toContain('https://vtarikhi.com/articles/original-article')
+    expect(sitemapUrls).toContain('https://vtarikhi.com/articles/indexed-article')
+    expect(sitemapUrls).not.toContain('https://vtarikhi.com/projects/alyapanel')
+    expect(sitemapUrls).toContain('https://vtarikhi.com/projects/pocms-payload')
+
+    const rssXml = buildRssFeedXml({
+      articles: [articleDoc, indexedArticleDoc],
+      projects: [projectDoc, sampleProjectsRaw()[1]!],
+      settings: DEFAULT_SITE_SETTINGS,
+      site: 'https://vtarikhi.com',
+    })
+    expect(rssXml).not.toContain('https://vtarikhi.com/articles/original-article')
+    expect(rssXml).toContain('https://vtarikhi.com/articles/indexed-article')
+    expect(rssXml).not.toContain('https://vtarikhi.com/projects/alyapanel')
+    expect(rssXml).toContain('https://vtarikhi.com/projects/pocms-payload')
   })
 
   it('normalizes paths, resolves 301/302 internal & custom redirects, prevents self-loops, and executes PayloadRedirects', async () => {

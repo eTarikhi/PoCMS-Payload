@@ -41,26 +41,32 @@ export const htmlLangFromLocale = (locale: string | null | undefined): string =>
 }
 
 export const buildRobotsMetadata = (shouldIndex: boolean): Metadata['robots'] =>
-  shouldIndex
-    ? {
-        index: true,
-        follow: true,
-        googleBot: {
+  buildDocumentRobotsMetadata(shouldIndex, false, false)
+
+export const buildDocumentRobotsMetadata = (
+  allowIndexing: boolean,
+  noIndex?: boolean | null,
+  noFollow?: boolean | null,
+): Metadata['robots'] => {
+  const index = allowIndexing && !noIndex
+  const follow = allowIndexing && !noFollow
+  return {
+    index,
+    follow,
+    googleBot: index
+      ? {
           index: true,
-          follow: true,
+          follow,
           'max-image-preview': 'large',
           'max-snippet': -1,
           'max-video-preview': -1,
-        },
-      }
-    : {
-        index: false,
-        follow: false,
-        googleBot: {
+        }
+      : {
           index: false,
-          follow: false,
+          follow,
         },
-      }
+  }
+}
 
 const buildTwitterAttribution = (
   settings: SiteSettingsContent,
@@ -312,13 +318,21 @@ export const buildArticleMetadata = (
   settings: SiteSettingsContent = DEFAULT_SITE_SETTINGS,
   site: string = siteUrl(),
 ): Metadata => {
-  const url = articleCanonicalUrl(article.slug, site)
+  const pageUrl = articleCanonicalUrl(article.slug, site)
+  const canonical = article.seo?.canonicalUrl
+    ? absoluteUrl(article.seo.canonicalUrl, site)
+    : pageUrl
   const effectiveTitle = article.seo?.title || article.title
   const effectiveDescription = article.seo?.description || article.excerpt || undefined
+  const socialTitle = article.seo?.ogTitle || effectiveTitle
+  const socialDescription = article.seo?.ogDescription || effectiveDescription
+  const seoKeywords = article.seo?.keywords ?? []
   const customImageUrl = article.seo?.imageUrl || article.coverUrl
   const customImageAlt = article.seo?.imageAlt || article.coverAlt
+  const twitterCard =
+    article.seo?.twitterCard || (customImageUrl ? 'summary_large_image' : 'summary')
   const image = customImageUrl
-    ? { url: absoluteUrl(customImageUrl, site), alt: customImageAlt, width: 1140, height: 600 }
+    ? { url: absoluteUrl(customImageUrl, site), alt: customImageAlt, width: 1200, height: 630 }
     : {
         url: absoluteUrl(settings.ogImage.url, site),
         alt: settings.ogImage.alt || settings.ownerName,
@@ -329,22 +343,28 @@ export const buildArticleMetadata = (
   return {
     title: effectiveTitle,
     ...(effectiveDescription ? { description: effectiveDescription } : {}),
-    robots: buildRobotsMetadata(settings.allowIndexing),
-    alternates: { canonical: url },
+    ...(seoKeywords.length > 0 ? { keywords: seoKeywords } : {}),
+    robots: buildDocumentRobotsMetadata(
+      settings.allowIndexing,
+      article.seo?.noIndex,
+      article.seo?.noFollow,
+    ),
+    alternates: { canonical },
     openGraph: {
       type: 'article',
       siteName: settings.siteName,
-      title: effectiveTitle,
-      ...(effectiveDescription ? { description: effectiveDescription } : {}),
-      url,
+      title: socialTitle,
+      ...(socialDescription ? { description: socialDescription } : {}),
+      url: pageUrl,
       locale: settings.locale,
       ...(article.publishedAt ? { publishedTime: article.publishedAt } : {}),
+      ...(seoKeywords.length > 0 ? { tags: seoKeywords } : {}),
       images: [image],
     },
     twitter: {
-      card: customImageUrl ? 'summary_large_image' : 'summary',
-      title: effectiveTitle,
-      ...(effectiveDescription ? { description: effectiveDescription } : {}),
+      card: twitterCard,
+      title: socialTitle,
+      ...(socialDescription ? { description: socialDescription } : {}),
       images: [image.url],
       ...buildTwitterAttribution(settings),
     },
@@ -362,6 +382,7 @@ export const buildBlogPostingJsonLd = (
   const url = articleCanonicalUrl(article.slug, site)
   const description = article.seo?.description || article.excerpt
   const imageUrl = article.seo?.imageUrl ?? article.coverUrl ?? settings.ogImage.url
+  const seoKeywords = article.seo?.keywords ?? []
 
   return {
     '@context': 'https://schema.org/',
@@ -369,6 +390,7 @@ export const buildBlogPostingJsonLd = (
     headline: article.title,
     ...(description ? { description } : {}),
     ...(article.publishedAt ? { datePublished: article.publishedAt } : {}),
+    ...(seoKeywords.length > 0 ? { keywords: seoKeywords.join(', ') } : {}),
     author,
     image: absoluteUrl(imageUrl, site),
     url,
@@ -471,15 +493,25 @@ export const buildProjectMetadata = (
   settings: SiteSettingsContent = DEFAULT_SITE_SETTINGS,
   site: string = siteUrl(),
 ): Metadata => {
-  const url = projectCanonicalUrl(project.slug, site)
+  const pageUrl = projectCanonicalUrl(project.slug, site)
+  const canonical = project.seo?.canonicalUrl
+    ? absoluteUrl(project.seo.canonicalUrl, site)
+    : pageUrl
   const defaultTitle = `${project.title} — ${settings.projectsSection.caseStudyLabel}`
   const effectiveTitle = project.seo?.title || defaultTitle
-  const ogTitle = project.seo?.title || project.title
+  const ogTitle = project.seo?.ogTitle || project.seo?.title || project.title
   const description = project.seo?.description || project.excerpt || settings.metaDescription
+  const socialDescription = project.seo?.ogDescription || description
+  const seoKeywords =
+    project.seo?.keywords && project.seo.keywords.length > 0
+      ? project.seo.keywords
+      : project.techStack
   const customImageUrl = project.seo?.imageUrl || project.coverUrl
   const customImageAlt = project.seo?.imageAlt || project.coverAlt
+  const twitterCard =
+    project.seo?.twitterCard || (customImageUrl ? 'summary_large_image' : 'summary')
   const image = customImageUrl
-    ? { url: absoluteUrl(customImageUrl, site), alt: customImageAlt, width: 1140, height: 600 }
+    ? { url: absoluteUrl(customImageUrl, site), alt: customImageAlt, width: 1200, height: 630 }
     : {
         url: absoluteUrl(settings.ogImage.url, site),
         alt: settings.ogImage.alt || settings.ownerName,
@@ -490,21 +522,27 @@ export const buildProjectMetadata = (
   return {
     title: effectiveTitle,
     description,
-    robots: buildRobotsMetadata(settings.allowIndexing),
-    alternates: { canonical: url },
+    ...(seoKeywords.length > 0 ? { keywords: seoKeywords } : {}),
+    robots: buildDocumentRobotsMetadata(
+      settings.allowIndexing,
+      project.seo?.noIndex,
+      project.seo?.noFollow,
+    ),
+    alternates: { canonical },
     openGraph: {
       type: 'article',
       siteName: settings.siteName,
       title: ogTitle,
-      description,
-      url,
+      description: socialDescription,
+      url: pageUrl,
       locale: settings.locale,
+      ...(seoKeywords.length > 0 ? { tags: seoKeywords } : {}),
       images: [image],
     },
     twitter: {
-      card: customImageUrl ? 'summary_large_image' : 'summary',
+      card: twitterCard,
       title: ogTitle,
-      description,
+      description: socialDescription,
       images: [image.url],
       ...buildTwitterAttribution(settings),
     },
@@ -522,6 +560,10 @@ export const buildProjectJsonLd = (
   const url = projectCanonicalUrl(project.slug, site)
   const description = project.seo?.description || project.excerpt
   const imageUrl = project.seo?.imageUrl ?? project.coverUrl ?? settings.ogImage.url
+  const effectiveKeywords =
+    project.seo?.keywords && project.seo.keywords.length > 0
+      ? project.seo.keywords
+      : project.techStack
 
   return {
     '@context': 'https://schema.org/',
@@ -529,7 +571,7 @@ export const buildProjectJsonLd = (
     name: project.title,
     ...(description ? { description } : {}),
     ...(project.year ? { dateCreated: project.year } : {}),
-    ...(project.techStack.length > 0 ? { keywords: project.techStack.join(', ') } : {}),
+    ...(effectiveKeywords.length > 0 ? { keywords: effectiveKeywords.join(', ') } : {}),
     creator,
     image: absoluteUrl(imageUrl, site),
     url,

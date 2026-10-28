@@ -48,8 +48,50 @@ export const Articles: CollectionConfig = {
   // Public visitors read published (or legacy pre-draft) posts; signed-in editors also read drafts & versions.
   access: draftContentAccess('articles'),
   fields: [
-    { name: 'title', type: 'text', required: true },
-    { name: 'excerpt', type: 'textarea', required: true },
+    {
+      type: 'tabs',
+      tabs: [
+        {
+          label: 'Content',
+          fields: [
+            { name: 'title', type: 'text', required: true },
+            { name: 'excerpt', type: 'textarea', required: true },
+            {
+              name: 'content',
+              type: 'richText',
+              label: 'Article Body',
+              editor: contentLexicalEditor,
+              admin: {
+                description:
+                  'Rich-text article body with headings (drives Table of Contents), Code, Callout, and Media blocks. Leave empty if the article only links out externally.',
+              },
+            },
+            {
+              name: 'description',
+              type: 'textarea',
+              label: 'Legacy Plain-Text Body',
+              admin: {
+                condition: (_, siblingData) =>
+                  Boolean(
+                    typeof siblingData?.description === 'string' && siblingData.description.trim(),
+                  ),
+                description:
+                  'Legacy plain-text body preserved from earlier versions. Prefer the Rich Text Article Body above.',
+              },
+            },
+            { name: 'image', type: 'upload', relationTo: 'media' },
+            { name: 'imageUrl', type: 'text' },
+            {
+              name: 'link',
+              type: 'text',
+              admin: {
+                description: 'Optional external publication URL (LinkedIn, Medium, Dev.to, ...).',
+              },
+            },
+          ],
+        },
+      ],
+    },
     {
       name: 'slug',
       type: 'text',
@@ -61,33 +103,13 @@ export const Articles: CollectionConfig = {
       },
     },
     {
-      name: 'content',
-      type: 'richText',
-      label: 'Article Body',
-      editor: contentLexicalEditor,
-      admin: {
-        description:
-          'Rich-text article body with headings (drives Table of Contents), Code, Callout, and Media blocks. Leave empty if the article only links out externally.',
-      },
-    },
-    {
-      name: 'description',
-      type: 'textarea',
-      label: 'Legacy Plain-Text Body',
-      admin: {
-        condition: (_, siblingData) =>
-          Boolean(typeof siblingData?.description === 'string' && siblingData.description.trim()),
-        description:
-          'Legacy plain-text body preserved from earlier versions. Prefer the Rich Text Article Body above.',
-      },
-    },
-    {
       name: 'featured',
       type: 'checkbox',
       defaultValue: false,
       admin: {
         position: 'sidebar',
-        description: 'Highlight this article in the featured spotlight on the home page and /articles.',
+        description:
+          'Highlight this article in the featured spotlight on the home page and /articles.',
       },
     },
     {
@@ -119,15 +141,6 @@ export const Articles: CollectionConfig = {
         position: 'sidebar',
         description:
           'Minutes ("{n} min"). Auto-calculated on save from the article body (~200 words/min); enter manually only for external link-out articles.',
-      },
-    },
-    { name: 'image', type: 'upload', relationTo: 'media' },
-    { name: 'imageUrl', type: 'text' },
-    {
-      name: 'link',
-      type: 'text',
-      admin: {
-        description: 'Optional external publication URL (LinkedIn, Medium, Dev.to, ...).',
       },
     },
   ],
