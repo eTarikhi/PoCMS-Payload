@@ -10,7 +10,7 @@ import {
   plainTextToLexical,
   type TocItem,
 } from './lexical'
-import { mapSeoOverride, resolveMediaUrl } from './mappers'
+import { mapSeoOverride, resolveMediaBlurDataURL, resolveMediaSizeUrl } from './mappers'
 import type { SeoOverride } from './types'
 
 /** The view model for one article page. Components receive only this, never the Payload document. */
@@ -29,6 +29,7 @@ export type ArticleDetail = {
   /** e.g. "3 min" */
   readTimeDisplay: string
   coverUrl: string | null
+  coverBlurDataURL?: string | null
   /** Alt text from the media record (§9). Falls back to the title. */
   coverAlt: string
   /** Rich-text Lexical editor state (converted from legacy `description` when `content` is empty). */
@@ -64,6 +65,7 @@ export const mapArticleDetail = (doc: Article): ArticleDetail | null => {
   const paragraphs = hasRichContent
     ? splitArticleBody(extractLexicalText(doc.content))
     : splitArticleBody(doc.description ?? '')
+  const coverBlurDataURL = resolveMediaBlurDataURL(doc.image)
 
   return {
     id: doc.id,
@@ -75,7 +77,8 @@ export const mapArticleDetail = (doc: Article): ArticleDetail | null => {
     publishedAt: doc.publishedAt ?? null,
     publishedDisplay: formatDisplayDate(doc.publishedAt),
     readTimeDisplay: formatReadTime(minutes),
-    coverUrl: resolveMediaUrl(doc.image) ?? (doc.imageUrl || null),
+    coverUrl: resolveMediaSizeUrl(doc.image, 'hero') ?? (doc.imageUrl || null),
+    ...(coverBlurDataURL ? { coverBlurDataURL } : {}),
     coverAlt: (typeof doc.image === 'object' && doc.image?.alt) || doc.title,
     content: effectiveContent,
     paragraphs,

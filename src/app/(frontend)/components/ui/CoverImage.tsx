@@ -13,6 +13,8 @@ export type CoverImageProps = {
   alt: string
   /** Shown when `src` is empty or fails to load. */
   fallbackSrc: string
+  /** Optional tiny base64 WebP placeholder generated via `sharp`. */
+  blurDataURL?: string | null
   width: number
   height: number
   sizes?: string
@@ -23,6 +25,7 @@ export function CoverImage({
   src,
   alt,
   fallbackSrc,
+  blurDataURL,
   width,
   height,
   sizes,
@@ -35,6 +38,8 @@ export function CoverImage({
     }
   }
 
+  const hasBlur = Boolean(src && blurDataURL?.startsWith('data:image/'))
+
   return (
     <Image
       src={src || fallbackSrc}
@@ -43,6 +48,8 @@ export function CoverImage({
       width={width}
       height={height}
       loading="lazy"
+      placeholder={hasBlur ? 'blur' : 'empty'}
+      blurDataURL={hasBlur ? (blurDataURL as string) : undefined}
       className={className}
       onError={handleError}
     />

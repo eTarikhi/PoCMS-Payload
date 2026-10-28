@@ -260,6 +260,8 @@ export type ArticleItem = {
   /** Display read time, e.g. "3 min". */
   readTime: string
   imageUrl: string
+  /** Optional base64 WebP blur placeholder generated via `sharp` on upload. */
+  blurDataURL?: string | null
   /** External publication URL (empty string when on-site only). */
   link: string
   /** Internal page path, e.g. "/articles/devops-roadmap". Null when the article has no page. */
@@ -308,6 +310,8 @@ export type ProjectItem = {
   thumbnailUrl: string
   /** Full-size image. */
   imageUrl: string
+  /** Optional base64 WebP blur placeholder generated via `sharp` on upload. */
+  blurDataURL?: string | null
   /** Live site or external project URL. */
   url: string
   /** Internal case-study page path, e.g. "/projects/alyapanel". Null when the project has no case study. */

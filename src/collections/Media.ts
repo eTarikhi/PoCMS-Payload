@@ -1,5 +1,8 @@
-import { contentAccess, hiddenWithout } from '@/access/roles'
 import type { CollectionConfig } from 'payload'
+
+import { contentAccess, hiddenWithout } from '@/access/roles'
+import { mediaBlurAfterChange, mediaBlurBeforeChange } from '@/lib/mediaBlur'
+
 import { portfolioAfterChange, portfolioAfterDelete } from '../app/(frontend)/lib/hooks'
 
 export const Media: CollectionConfig = {
@@ -7,14 +10,15 @@ export const Media: CollectionConfig = {
   folders: true,
   enableQueryPresets: true,
   hooks: {
-    afterChange: [portfolioAfterChange],
+    beforeChange: [mediaBlurBeforeChange],
+    afterChange: [mediaBlurAfterChange, portfolioAfterChange],
     afterDelete: [portfolioAfterDelete],
   },
   admin: {
     hidden: hiddenWithout('media'),
     group: 'Content',
     description:
-      'Images and files used across the site. Supports folders, focal-point cropping, and automatic WebP variants.',
+      'Images and files used across the site. Supports folders, focal-point cropping, WebP variants, and blur placeholders.',
     defaultColumns: ['filename', 'alt', 'mimeType', 'filesize', 'updatedAt'],
   },
   // Deleting moves documents to the trash (restorable); deleting for good needs the Full level.
@@ -26,6 +30,16 @@ export const Media: CollectionConfig = {
       name: 'alt',
       type: 'text',
       required: true,
+    },
+    {
+      name: 'blurDataURL',
+      type: 'text',
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+        description:
+          'Auto-generated tiny WebP base64 blur placeholder for smooth Next.js image loading.',
+      },
     },
     // Merged into Payload's built-in upload field of the same name: only the list cell changes.
     {
@@ -78,7 +92,23 @@ export const Media: CollectionConfig = {
       },
       {
         name: 'hero',
-        width: 1600,
+        width: 1400,
+        withoutEnlargement: true,
+        formatOptions: {
+          format: 'webp',
+          options: { quality: 85 },
+        },
+        admin: {
+          disableGroupBy: true,
+          disableListColumn: true,
+          disableListFilter: true,
+        },
+      },
+      {
+        name: 'og',
+        width: 1200,
+        height: 630,
+        position: 'centre',
         withoutEnlargement: true,
         formatOptions: {
           format: 'webp',

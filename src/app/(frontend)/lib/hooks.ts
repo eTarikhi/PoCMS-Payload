@@ -11,6 +11,7 @@ import { calculateReadTimeMinutes, hasLexicalContent } from './lexical'
 import {
   revalidateArticleTags,
   revalidateChrome,
+  revalidateGlobalBySlug,
   revalidateHomeOnly,
   revalidatePortfolio,
   revalidateProjectTags,
@@ -36,12 +37,21 @@ export const portfolioAfterDelete: CollectionAfterDeleteHook = ({ context, doc }
 
 /**
  * Scoped hooks for site-wide chrome (`SiteSettings`, `Navigation`, `Footer`, `Header`).
+ * When invoked as a Global hook (`global.slug` present), invalidates only that Global's slices.
  */
-export const chromeAfterChange: CollectionAfterChangeHook & GlobalAfterChangeHook = ({
-  context,
-  doc,
-}) => {
-  if (!context?.skipRevalidate) revalidateChrome()
+export const chromeAfterChange: CollectionAfterChangeHook & GlobalAfterChangeHook = (args) => {
+  const { context, doc } = args
+  if (!context?.skipRevalidate) {
+    const globalSlug =
+      'global' in args && args.global && typeof args.global.slug === 'string'
+        ? args.global.slug
+        : null
+    if (globalSlug) {
+      revalidateGlobalBySlug(globalSlug)
+    } else {
+      revalidateChrome()
+    }
+  }
   return doc
 }
 

@@ -81,9 +81,13 @@ export function ArticleLayout({
           >
             <div className="pocms-reading-main">
               <article className="article-layout">
-                {article.coverUrl ? (
-                  <ArticleCover src={article.coverUrl} alt={article.coverAlt} />
-                ) : null}
+              {article.coverUrl ? (
+                <ArticleCover
+                  src={article.coverUrl}
+                  alt={article.coverAlt}
+                  blurDataURL={article.coverBlurDataURL}
+                />
+              ) : null}
 
                 {hasStickyRail ? (
                   <MobileTocDrawer items={tocItems} />

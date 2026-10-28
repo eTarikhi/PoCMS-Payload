@@ -362,6 +362,7 @@ function MagazineSpotlightCard({
         <CoverImage
           src={article.imageUrl}
           alt={article.title}
+          blurDataURL={article.blurDataURL}
           fallbackSrc="/placeholder.svg"
           sizes="(max-width: 992px) 100vw, 55vw"
           width={680}
@@ -502,6 +503,7 @@ function EditorialStreamRow({
           <CoverImage
             src={article.imageUrl}
             alt={article.title}
+            blurDataURL={article.blurDataURL}
             fallbackSrc="/placeholder.svg"
             sizes="200px"
             width={240}
@@ -541,6 +543,7 @@ function ArchiveArticleCard({
             <CoverImage
               src={article.imageUrl}
               alt={article.title}
+              blurDataURL={article.blurDataURL}
               fallbackSrc="/placeholder.svg"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               width={400}

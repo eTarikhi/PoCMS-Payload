@@ -292,10 +292,10 @@ export const seed = async ({
             url: project.url,
             readMoreUrl: project.readMoreUrl,
             categories: project.categories as ('front-end' | 'back-end' | 'cms-crm')[],
-            placeHolder: project.placeHolder,
-            src: project.src,
             _order: projectOrders[index],
-            ...(media ? { image: media.id } : {}),
+            ...(media
+              ? { image: media.id }
+              : { src: project.src, placeHolder: project.placeHolder }),
           },
           overrideAccess: true,
           context: seedContext,

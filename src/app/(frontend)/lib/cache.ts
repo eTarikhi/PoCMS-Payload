@@ -1,10 +1,23 @@
 import { unstable_cache } from 'next/cache'
 
 import {
-  getPortfolioContent,
+  mapFooter,
+  mapHeader,
+  mapHeaderStudio,
+  mapNavigation,
+  mapPortfolioContent,
+  mapSiteSettings,
+} from './mappers'
+import {
+  fetchFooterGlobal,
+  fetchHeaderGlobal,
+  fetchHomeProfileRawDocs,
+  fetchNavigationGlobal,
+  fetchPublishedArticleCardDocs,
+  fetchPublishedProjectCardDocs,
+  fetchSiteSettingsGlobal,
   getPublishedArticlesList,
   getPublishedProjectsList,
-  getSiteChromeContent,
   type SiteChromeContent,
 } from './payload-source'
 import { CACHE_TAGS, PORTFOLIO_CACHE_TAG } from './revalidate'
@@ -13,47 +26,146 @@ import type { ArticleItem, PortfolioContent, ProjectsContent } from './types'
 export type { SiteChromeContent }
 
 /**
- * Lightweight cached loader for site-wide chrome (`SiteSettings`, `Navigation`, `Header`, `Footer`).
- * Used by `layout.tsx`, `not-found.tsx`, `/articles`, `/projects`, and detail pages so non-home
- * routes never pay the cost of querying all 12 home-page collections.
+ * Per-global & per-section cached loaders so updating a single Global (e.g. `footer`) or a single
+ * section (`projects` / `articles` / `header`) only re-queries that slice from PostgreSQL.
  */
-export const getCachedSiteChrome: () => Promise<SiteChromeContent> = unstable_cache(
-  () => getSiteChromeContent(),
-  ['portfolio-site-chrome-v1'],
-  { tags: [PORTFOLIO_CACHE_TAG, CACHE_TAGS.chrome] },
+export const getCachedSiteSettingsDoc = unstable_cache(
+  () => fetchSiteSettingsGlobal(),
+  ['portfolio-global-site-settings-v2'],
+  { tags: [PORTFOLIO_CACHE_TAG, CACHE_TAGS.chrome, CACHE_TAGS.globalSiteSettings] },
 )
 
-/**
- * Cached published articles list (`ArticleItem[]`), invalidated only when `articles` (or umbrella `portfolio`) changes.
- */
-export const getCachedArticlesList: () => Promise<ArticleItem[]> = unstable_cache(
-  () => getPublishedArticlesList(),
-  ['portfolio-articles-list-v1'],
-  { tags: [PORTFOLIO_CACHE_TAG, CACHE_TAGS.articles] },
+export const getCachedNavigationDoc = unstable_cache(
+  () => fetchNavigationGlobal(),
+  ['portfolio-global-navigation-v2'],
+  { tags: [PORTFOLIO_CACHE_TAG, CACHE_TAGS.chrome, CACHE_TAGS.globalNavigation] },
 )
 
-/**
- * Cached published projects hub (`ProjectsContent`), invalidated only when `projects` or `chrome` changes.
- */
-export const getCachedProjectsList: () => Promise<ProjectsContent> = unstable_cache(
-  () => getPublishedProjectsList(),
-  ['portfolio-projects-list-v1'],
-  { tags: [PORTFOLIO_CACHE_TAG, CACHE_TAGS.projects, CACHE_TAGS.chrome] },
-)
-
-/**
- * Full home-page aggregate view model (`/`), tagged across home, chrome, articles, and projects.
- */
-export const getCachedPortfolioContent: () => Promise<PortfolioContent> = unstable_cache(
-  () => getPortfolioContent(),
-  ['portfolio-content-v2'],
+export const getCachedHeaderDoc = unstable_cache(
+  () => fetchHeaderGlobal(),
+  ['portfolio-global-header-v2'],
   {
     tags: [
       PORTFOLIO_CACHE_TAG,
-      CACHE_TAGS.home,
       CACHE_TAGS.chrome,
-      CACHE_TAGS.articles,
-      CACHE_TAGS.projects,
+      CACHE_TAGS.globalHeader,
+      CACHE_TAGS.homeHeader,
     ],
   },
 )
+
+export const getCachedFooterDoc = unstable_cache(
+  () => fetchFooterGlobal(),
+  ['portfolio-global-footer-v2'],
+  { tags: [PORTFOLIO_CACHE_TAG, CACHE_TAGS.chrome, CACHE_TAGS.globalFooter] },
+)
+
+export const getCachedHomeProfileDocs = unstable_cache(
+  () => fetchHomeProfileRawDocs(),
+  ['portfolio-home-profile-v2'],
+  { tags: [PORTFOLIO_CACHE_TAG, CACHE_TAGS.home, CACHE_TAGS.homeProfile] },
+)
+
+export const getCachedRawArticleCards = unstable_cache(
+  () => fetchPublishedArticleCardDocs(),
+  ['portfolio-raw-article-cards-v2'],
+  {
+    tags: [
+      PORTFOLIO_CACHE_TAG,
+      CACHE_TAGS.articles,
+      CACHE_TAGS.homeArticles,
+    ],
+  },
+)
+
+export const getCachedRawProjectCards = unstable_cache(
+  () => fetchPublishedProjectCardDocs(),
+  ['portfolio-raw-project-cards-v2'],
+  {
+    tags: [
+      PORTFOLIO_CACHE_TAG,
+      CACHE_TAGS.projects,
+      CACHE_TAGS.homeProjects,
+    ],
+  },
+)
+
+/**
+ * Composes the 4 independently cached globals (`global:site-settings`, `global:navigation`,
+ * `global:header`, `global:footer`).
+ */
+export const getCachedSiteChrome = async (): Promise<SiteChromeContent> => {
+  const [siteSettingsDoc, navigationDoc, headerDoc, footerDoc] = await Promise.all([
+    getCachedSiteSettingsDoc(),
+    getCachedNavigationDoc(),
+    getCachedHeaderDoc(),
+    getCachedFooterDoc(),
+  ])
+
+  return {
+    siteSettings: mapSiteSettings(siteSettingsDoc),
+    navigation: mapNavigation(navigationDoc),
+    header: mapHeader(headerDoc),
+    headerStudio: mapHeaderStudio(headerDoc),
+    footer: mapFooter(footerDoc),
+  }
+}
+
+/**
+ * Cached published articles list (`ArticleItem[]`), invalidated under `articles:list`.
+ */
+export const getCachedArticlesList: () => Promise<ArticleItem[]> = unstable_cache(
+  () => getPublishedArticlesList(),
+  ['portfolio-articles-list-v2'],
+  { tags: [PORTFOLIO_CACHE_TAG, CACHE_TAGS.articles, CACHE_TAGS.homeArticles] },
+)
+
+/**
+ * Cached published projects hub (`ProjectsContent`), invalidated under `projects:list` or `global:site-settings`.
+ */
+export const getCachedProjectsList: () => Promise<ProjectsContent> = unstable_cache(
+  () => getPublishedProjectsList(),
+  ['portfolio-projects-list-v2'],
+  {
+    tags: [
+      PORTFOLIO_CACHE_TAG,
+      CACHE_TAGS.projects,
+      CACHE_TAGS.homeProjects,
+      CACHE_TAGS.globalSiteSettings,
+    ],
+  },
+)
+
+/**
+ * Full home-page aggregate view model (`/`), composed from independently cached slices
+ * (`home:header`, `home:profile`, `home:articles`, `home:projects`, `global:footer`, etc.) so
+ * editing one slice never forces PostgreSQL to re-query the remaining 11 collections/globals.
+ */
+export const getCachedPortfolioContent = async (): Promise<PortfolioContent> => {
+  const [siteSettings, navigation, header, profile, articles, projects, footer] = await Promise.all(
+    [
+      getCachedSiteSettingsDoc(),
+      getCachedNavigationDoc(),
+      getCachedHeaderDoc(),
+      getCachedHomeProfileDocs(),
+      getCachedRawArticleCards(),
+      getCachedRawProjectCards(),
+      getCachedFooterDoc(),
+    ],
+  )
+
+  return mapPortfolioContent({
+    siteSettings,
+    navigation,
+    header,
+    about: profile.about,
+    skills: profile.skills,
+    experiences: profile.experiences,
+    educations: profile.educations,
+    certificates: profile.certificates,
+    articles,
+    services: profile.services,
+    projects,
+    footer,
+  })
+}

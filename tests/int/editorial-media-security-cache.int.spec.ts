@@ -38,6 +38,14 @@ import {
   lexicalTextNode,
 } from '@/app/(frontend)/lib/lexical'
 import { parseMermaidDiagram } from '@/app/(frontend)/lib/mermaid-lite'
+import {
+  ARTICLE_CARD_SELECT,
+  ARTICLE_SLUG_SELECT,
+  DETAIL_POPULATE,
+  MEDIA_PUBLIC_POPULATE,
+  PROJECT_CARD_SELECT,
+  PROJECT_SLUG_SELECT,
+} from '@/app/(frontend)/lib/payload-source'
 import { CACHE_TAGS, PORTFOLIO_CACHE_TAG } from '@/app/(frontend)/lib/revalidate'
 import { parseHighlightLineRange, tokenizeCodeLines } from '@/app/(frontend)/lib/shiki'
 import { ContentHealthWidget } from '@/components/admin/widgets/ContentHealth'
@@ -54,6 +62,7 @@ import {
   findOrphanedMediaIds,
 } from '@/lib/contentHealth'
 import { consolidateLegacyMediaUrls } from '@/lib/legacyMediaConsolidation'
+import { generateBlurDataURLFromBuffer, mediaBlurBeforeChange } from '@/lib/mediaBlur'
 import { resolvePayloadSecret, SECURITY_HEADERS } from '@/lib/security'
 import config from '@/payload.config'
 
@@ -208,21 +217,62 @@ describe('Milestone 2.1: Drafts, Version History, Autosave, Scheduled Publishing
 })
 
 describe('Milestone 3.2: Media Pipeline 2.0, Folders, Direct Client Uploads & Legacy Consolidation', () => {
-  it('enables focalPoint, crop, WebP variants (thumbnail/card/hero), folders, and Vercel Blob clientUploads', async () => {
+  it('enables focalPoint, crop, WebP variants (thumbnail/card/hero/og), sharp blurDataURL, folders, and Vercel Blob next/image safety', async () => {
     const sanitized = await config
     const media = sanitized.collections.find((c) => c.slug === 'media')
     expect(media?.folders).toBeTruthy()
     expect(sanitized.collections.some((c) => c.slug === 'payload-folders')).toBe(true)
 
+    const hasBlurField = (media?.fields ?? []).some(
+      (f) => 'name' in f && f.name === 'blurDataURL',
+    )
+    expect(hasBlurField).toBe(true)
+
     const upload = typeof media?.upload === 'object' ? media.upload : undefined
     expect(upload?.focalPoint).toBe(true)
     expect(upload?.crop).toBe(true)
-    const sizeNames = (upload?.imageSizes ?? []).map((s) => s.name)
-    expect(sizeNames).toEqual(['thumbnail', 'card', 'hero'])
+    const sizeSpecs = (upload?.imageSizes ?? []).map((s) => ({
+      name: s.name,
+      width: s.width,
+      height: s.height,
+    }))
+    expect(sizeSpecs).toEqual([
+      { name: 'thumbnail', width: 400, height: 300 },
+      { name: 'card', width: 800, height: 520 },
+      { name: 'hero', width: 1400, height: undefined },
+      { name: 'og', width: 1200, height: 630 },
+    ])
     for (const size of upload?.imageSizes ?? []) {
       expect(size.withoutEnlargement).toBe(true)
       expect(size.formatOptions?.format).toBe('webp')
     }
+
+    // Generate a real tiny WebP base64 LQIP placeholder via sharp from public/images/profile.webp
+    const sampleBuffer = fs.readFileSync(
+      path.join(process.cwd(), 'public/images/profile.webp'),
+    )
+    const blur = await generateBlurDataURLFromBuffer(sampleBuffer)
+    expect(blur).toMatch(/^data:image\/webp;base64,/)
+
+    const hookedData = await mediaBlurBeforeChange({
+      data: { alt: 'Profile' },
+      req: {
+        file: {
+          data: sampleBuffer,
+          mimetype: 'image/webp',
+          name: 'profile.webp',
+          size: sampleBuffer.byteLength,
+        },
+      },
+    } as never)
+    expect((hookedData as { blurDataURL?: string }).blurDataURL).toMatch(
+      /^data:image\/webp;base64,/,
+    )
+
+    // Verify next.config.ts gates dangerouslyAllowLocalIP behind development and allows Vercel Blob
+    const nextConfigSrc = fs.readFileSync(path.join(process.cwd(), 'next.config.ts'), 'utf8')
+    expect(nextConfigSrc).toContain("process.env.NODE_ENV === 'development'")
+    expect(nextConfigSrc).toContain('*.public.blob.vercel-storage.com')
   })
 
   it('consolidates local legacy imageUrl & src paths idempotently and rejects path traversal', async () => {
@@ -427,7 +477,7 @@ describe('Milestone 4.1: Granular Cache-Tag Architecture & Draft-Aware Hooks', (
     } as never)
     expect(revalidateTagMock).not.toHaveBeenCalled()
 
-    // Publishing an article -> invalidates articles + slug + home + feeds, NOT umbrella/chrome/projects!
+    // Publishing an article -> invalidates articles:list + home:articles + article:{slug} + feeds, NOT umbrella/chrome/projects!
     articleAfterChange({
       doc: { id: 1, slug: 'live-post', _status: 'published' },
       previousDoc: { id: 1, slug: 'old-slug', _status: 'published' },
@@ -435,7 +485,8 @@ describe('Milestone 4.1: Granular Cache-Tag Architecture & Draft-Aware Hooks', (
     } as never)
     const invalidatedArticleTags = revalidateTagMock.mock.calls.map((c) => c[0])
     expect(invalidatedArticleTags).not.toContain(PORTFOLIO_CACHE_TAG)
-    expect(invalidatedArticleTags).toContain(CACHE_TAGS.articles)
+    expect(invalidatedArticleTags).toContain('articles:list')
+    expect(invalidatedArticleTags).toContain('home:articles')
     expect(invalidatedArticleTags).toContain('article:live-post')
     expect(invalidatedArticleTags).toContain('article:old-slug')
     expect(invalidatedArticleTags).toContain(CACHE_TAGS.home)
@@ -443,21 +494,32 @@ describe('Milestone 4.1: Granular Cache-Tag Architecture & Draft-Aware Hooks', (
     expect(invalidatedArticleTags).not.toContain(CACHE_TAGS.chrome)
     expect(invalidatedArticleTags).not.toContain(CACHE_TAGS.projects)
 
-    // Chrome global save -> invalidates chrome + home + feeds, NOT articles or projects!
+    // Saving only Footer global -> invalidates global:footer + chrome + home, NOT global:header or articles/projects!
     revalidateTagMock.mockReset()
-    chromeAfterChange({ doc: {}, context: {} } as never)
-    const chromeTags = revalidateTagMock.mock.calls.map((c) => c[0])
-    expect(chromeTags).toContain(CACHE_TAGS.chrome)
-    expect(chromeTags).not.toContain(CACHE_TAGS.articles)
-    expect(chromeTags).not.toContain(CACHE_TAGS.projects)
+    chromeAfterChange({ global: { slug: 'footer' }, doc: {}, context: {} } as never)
+    const footerTags = revalidateTagMock.mock.calls.map((c) => c[0])
+    expect(footerTags).toContain('global:footer')
+    expect(footerTags).toContain(CACHE_TAGS.chrome)
+    expect(footerTags).not.toContain('global:header')
+    expect(footerTags).not.toContain('home:header')
+    expect(footerTags).not.toContain(CACHE_TAGS.articles)
+    expect(footerTags).not.toContain(CACHE_TAGS.projects)
 
-    // Home section save -> invalidates only portfolio:home!
+    // Saving Header global -> invalidates global:header + home:header + chrome + home, NOT global:footer!
+    revalidateTagMock.mockReset()
+    chromeAfterChange({ global: { slug: 'header' }, doc: {}, context: {} } as never)
+    const headerTags = revalidateTagMock.mock.calls.map((c) => c[0])
+    expect(headerTags).toContain('global:header')
+    expect(headerTags).toContain('home:header')
+    expect(headerTags).not.toContain('global:footer')
+
+    // Home section save -> invalidates only home:profile + portfolio:home!
     revalidateTagMock.mockReset()
     homeSectionAfterChange({ doc: {}, context: {} } as never)
     const homeTags = revalidateTagMock.mock.calls.map((c) => c[0])
-    expect(homeTags).toEqual([CACHE_TAGS.home])
+    expect(homeTags).toEqual([CACHE_TAGS.homeProfile, CACHE_TAGS.home])
 
-    // Project publish -> invalidates projects + project:{slug} + home, NOT articles or chrome!
+    // Project publish -> invalidates projects:list + home:projects + project:{slug} + home, NOT articles or chrome!
     revalidateTagMock.mockReset()
     projectAfterChange({
       doc: { id: 2, slug: 'sepiwhite', _status: 'published' },
@@ -465,7 +527,8 @@ describe('Milestone 4.1: Granular Cache-Tag Architecture & Draft-Aware Hooks', (
       context: {},
     } as never)
     const projectTags = revalidateTagMock.mock.calls.map((c) => c[0])
-    expect(projectTags).toContain(CACHE_TAGS.projects)
+    expect(projectTags).toContain('projects:list')
+    expect(projectTags).toContain('home:projects')
     expect(projectTags).toContain('project:sepiwhite')
     expect(projectTags).not.toContain(CACHE_TAGS.articles)
     expect(projectTags).not.toContain(CACHE_TAGS.chrome)
@@ -474,6 +537,17 @@ describe('Milestone 4.1: Granular Cache-Tag Architecture & Draft-Aware Hooks', (
     revalidateTagMock.mockReset()
     redirectAfterChange({ doc: {}, context: {} } as never)
     expect(revalidateTagMock.mock.calls.map((c) => c[0])).toEqual([CACHE_TAGS.redirects])
+
+    // Explicit Payload select & populate projections omit unused columns on RSC queries
+    expect(ARTICLE_CARD_SELECT).toHaveProperty('title', true)
+    expect(ARTICLE_CARD_SELECT).not.toHaveProperty('meta')
+    expect(ARTICLE_SLUG_SELECT).toEqual({ slug: true, content: true, description: true })
+    expect(PROJECT_CARD_SELECT).toHaveProperty('title', true)
+    expect(PROJECT_CARD_SELECT).not.toHaveProperty('meta')
+    expect(PROJECT_SLUG_SELECT).toEqual({ slug: true, content: true })
+    expect(MEDIA_PUBLIC_POPULATE.media.blurDataURL).toBe(true)
+    expect(DETAIL_POPULATE.articles).toEqual({ slug: true, title: true })
+    expect(DETAIL_POPULATE.projects).toEqual({ slug: true, title: true })
   })
 })
 

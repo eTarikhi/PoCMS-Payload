@@ -372,6 +372,7 @@ function ShowcaseCaseStudyCard({
         <CoverImage
           src={coverSrc}
           alt={project.title}
+          blurDataURL={project.blurDataURL}
           fallbackSrc="/placeholder.svg"
           sizes="(max-width: 992px) 100vw, 50vw"
           width={640}
@@ -565,6 +566,7 @@ function ArchiveProjectCard({
             <CoverImage
               src={coverSrc}
               alt={project.title}
+              blurDataURL={project.blurDataURL}
               fallbackSrc="/placeholder.svg"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               width={400}

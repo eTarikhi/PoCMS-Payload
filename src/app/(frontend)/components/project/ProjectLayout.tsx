@@ -82,9 +82,13 @@ export function ProjectLayout({
           >
             <div className="pocms-reading-main">
               <article className="article-layout project-layout">
-                {project.coverUrl ? (
-                  <ArticleCover src={project.coverUrl} alt={project.coverAlt} />
-                ) : null}
+              {project.coverUrl ? (
+                <ArticleCover
+                  src={project.coverUrl}
+                  alt={project.coverAlt}
+                  blurDataURL={project.coverBlurDataURL}
+                />
+              ) : null}
 
                 {hasStickyRail ? (
                   <MobileTocDrawer items={tocItems} />

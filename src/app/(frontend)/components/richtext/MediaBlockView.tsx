@@ -15,6 +15,18 @@ type MediaSizeVariant = {
   height?: number | null
 }
 
+const isNextImageOptimizable = (src: string): boolean => {
+  if (src.startsWith('/api/media/file/') || src.startsWith('/images/')) return true
+  try {
+    const parsed = new URL(src)
+    return (
+      parsed.protocol === 'https:' && parsed.hostname.endsWith('.public.blob.vercel-storage.com')
+    )
+  } catch {
+    return false
+  }
+}
+
 export function MediaBlockView({ media, imageUrl, caption, size = 'normal' }: MediaBlockViewProps) {
   const mediaDoc = media && typeof media === 'object' ? media : null
   const sizes = (mediaDoc as { sizes?: { card?: MediaSizeVariant; hero?: MediaSizeVariant } } | null)
@@ -27,6 +39,8 @@ export function MediaBlockView({ media, imageUrl, caption, size = 'normal' }: Me
   const alt = mediaDoc?.alt || caption?.trim() || 'Illustration'
   const width = preferredVariant?.width ?? mediaDoc?.width ?? 1140
   const height = preferredVariant?.height ?? mediaDoc?.height ?? 640
+  const blurDataURL = (mediaDoc as { blurDataURL?: string | null } | null)?.blurDataURL
+  const hasBlur = Boolean(blurDataURL?.startsWith('data:image/'))
   const focalX = (mediaDoc as { focalX?: number | null } | null)?.focalX
   const focalY = (mediaDoc as { focalY?: number | null } | null)?.focalY
   const objectPosition =
@@ -41,7 +55,10 @@ export function MediaBlockView({ media, imageUrl, caption, size = 'normal' }: Me
         alt={alt}
         width={width}
         height={height}
-        unoptimized
+        sizes={size === 'wide' ? '(max-width: 1200px) 100vw, 1140px' : '(max-width: 992px) 100vw, 820px'}
+        unoptimized={!isNextImageOptimizable(src)}
+        placeholder={hasBlur ? 'blur' : 'empty'}
+        blurDataURL={hasBlur ? (blurDataURL as string) : undefined}
         style={objectPosition ? { objectPosition } : undefined}
         className="rich-media-img"
       />

@@ -6,7 +6,7 @@ import {
   extractTableOfContents,
   type TocItem,
 } from './lexical'
-import { mapSeoOverride, resolveMediaUrl } from './mappers'
+import { mapSeoOverride, resolveMediaBlurDataURL, resolveMediaSizeUrl } from './mappers'
 import { hasProjectPage } from './project-page'
 import type { SeoOverride } from './types'
 
@@ -29,6 +29,7 @@ export type ProjectDetail = {
   techStack: string[]
   readTimeDisplay: string
   coverUrl: string | null
+  coverBlurDataURL?: string | null
   coverAlt: string
   liveUrl: string | null
   readMoreUrl: string | null
@@ -50,7 +51,8 @@ export const mapProjectDetail = (doc: Project): ProjectDetail | null => {
     fallbackReadTime: doc.readTime,
   })
   const categories = doc.categories ?? []
-  const uploadUrl = resolveMediaUrl(doc.image)
+  const uploadUrl = resolveMediaSizeUrl(doc.image, 'hero')
+  const coverBlurDataURL = resolveMediaBlurDataURL(doc.image)
 
   return {
     id: doc.id,
@@ -65,6 +67,7 @@ export const mapProjectDetail = (doc: Project): ProjectDetail | null => {
     techStack: (doc.techStack ?? []).map((item) => item.trim()).filter(Boolean),
     readTimeDisplay: formatReadTime(minutes),
     coverUrl: uploadUrl ?? (doc.src?.trim() || null),
+    ...(coverBlurDataURL ? { coverBlurDataURL } : {}),
     coverAlt: (typeof doc.image === 'object' && doc.image?.alt) || doc.title,
     liveUrl: doc.url?.trim() || null,
     readMoreUrl: doc.readMoreUrl?.trim() || null,
