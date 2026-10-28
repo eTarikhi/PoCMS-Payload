@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import fs from 'node:fs'
 import path from 'node:path'
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
@@ -17,6 +18,7 @@ vi.mock('next/cache', () => ({
   unstable_cache: <T extends (...args: never[]) => unknown>(fn: T) => fn,
 }))
 
+import { ensureDraftVersions } from '@/access/draftMigration'
 import { type EffectivePermissions, NO_PERMISSIONS } from '@/access/permissions'
 import { draftContentAccess, PUBLISHED_OR_LEGACY_WHERE } from '@/access/roles'
 import { RichTextContent } from '@/app/(frontend)/components/richtext/RichTextContent'
@@ -110,6 +112,41 @@ describe('Milestone 2.1: Drafts, Version History, Autosave, Scheduled Publishing
       { req: {} as PayloadRequest, locale: 'en', token: '' },
     )
     expect(previewUrl).toBe('/api/draft?collection=articles&slug=my-draft-post')
+  })
+
+  it('auto-backfills published version snapshots for pre-existing Articles & Projects rows with 0 versions while preserving real drafts', async () => {
+    const updated: Array<{ collection: string; id: number | string; status: unknown }> = []
+
+    const mockPayload = {
+      find: vi.fn(async ({ collection }: { collection: string }) => {
+        if (collection === 'articles') {
+          return { docs: [{ id: 1 }, { id: 2 }] }
+        }
+        if (collection === 'projects') {
+          return { docs: [{ id: 10 }] }
+        }
+        return { docs: [] }
+      }),
+      findVersions: vi.fn(async ({ collection }: { collection: string }) => {
+        // Article #2 already has a version row (e.g. a real draft created in Admin); #1 and Project #10 do not!
+        if (collection === 'articles') {
+          return { docs: [{ parent: 2 }] }
+        }
+        return { docs: [] }
+      }),
+      update: vi.fn(async ({ collection, id, data }) => {
+        updated.push({ collection, id, status: data._status })
+        return { id }
+      }),
+      logger: { info: vi.fn(), error: vi.fn() },
+    } as unknown as Payload
+
+    const count = await ensureDraftVersions(mockPayload)
+    expect(count).toBe(2)
+    expect(updated).toEqual([
+      { collection: 'articles', id: 1, status: 'published' },
+      { collection: 'projects', id: 10, status: 'published' },
+    ])
   })
 
   it('restricts anonymous reads to published-or-legacy documents while letting editors read drafts & versions', () => {
@@ -441,13 +478,36 @@ describe('Milestone 4.1: Granular Cache-Tag Architecture & Draft-Aware Hooks', (
 })
 
 describe('Milestone 4.2: Saved Admin Query Presets & Content Health 2.0', () => {
-  it('enables Query Presets on Articles, Projects, Media, and AuditLogs with RBAC constraints', async () => {
+  it('enables Query Presets on Media & AuditLogs (disabled on Articles & Projects), registers Header as Global, and collapses Browse-by-Folder in rail mode', async () => {
     const sanitized = await config
-    for (const slug of ['articles', 'projects', 'media', 'audit-logs']) {
+    for (const slug of ['media', 'audit-logs']) {
       const col = sanitized.collections.find((c) => c.slug === slug)
       expect(col?.enableQueryPresets).toBe(true)
     }
+    for (const slug of ['articles', 'projects']) {
+      const col = sanitized.collections.find((c) => c.slug === slug)
+      expect(Boolean(col?.enableQueryPresets)).toBe(false)
+    }
     expect(sanitized.collections.some((c) => c.slug === 'payload-query-presets')).toBe(true)
+
+    // Header is registered as a Global with brief label "Header" (not a collection)
+    expect(sanitized.collections.some((c) => String(c.slug) === 'header')).toBe(false)
+    const headerGlobal = sanitized.globals.find((g) => g.slug === 'header')
+    expect(headerGlobal?.label).toBe('Header')
+
+    // Collapsed sidebar rail hides Browse-by-Folder label overflow and hub pages use wide .pocms-hub-container
+    const navRailCss = fs.readFileSync(
+      path.join(process.cwd(), 'src/styles/admin/nav-rail.css'),
+      'utf8',
+    )
+    expect(navRailCss).toContain('.browse-by-folder-button')
+    expect(navRailCss).toContain('font-size: 0;')
+
+    const articleCss = fs.readFileSync(
+      path.join(process.cwd(), 'src/app/(frontend)/styles/article.css'),
+      'utf8',
+    )
+    expect(articleCss).not.toMatch(/\.articles-hub\s*\{[^}]*max-width:\s*1140px/)
   })
 
   it('detects redirect chains (A -> B -> C), redirect loops (A -> B -> A), and orphaned Media across Lexical & SEO', async () => {
@@ -463,7 +523,7 @@ describe('Milestone 4.2: Saved Admin Query Presets & Content Health 2.0', () => 
     expect(graph.problematicIds).toEqual([1, 3, 4])
 
     const referenced = collectReferencedMediaIds({
-      headers: [{ profilePhoto: 10, archiveHeader: { backgroundImage: { id: 11 } } }],
+      header: { profileImage: 10, archiveHeader: { backgroundImage: { id: 11 } } },
       articles: [
         {
           image: 12,
@@ -485,13 +545,13 @@ describe('Milestone 4.2: Saved Admin Query Presets & Content Health 2.0', () => 
       config: { routes: { admin: '/admin' } },
       count: vi.fn().mockResolvedValue({ totalDocs: 1 }),
       findGlobal: vi.fn(async ({ slug }: { slug: string }) => {
+        if (slug === 'header') return { sureName: 'Amir v.Tarikhi', profileImage: 1 }
         if (slug === 'site-settings') return { siteTitle: 'PoCMS', ownerName: 'Amir' }
         if (slug === 'navigation') return { items: [{ label: 'Home', enabled: true }] }
         if (slug === 'footer') return { socialLinks: [{ platform: 'github' }] }
         return {}
       }),
       find: vi.fn(async ({ collection }: { collection: string }) => {
-        if (collection === 'header') return { totalDocs: 1, docs: [{ profilePhoto: 1 }] }
         if (collection === 'articles') {
           return {
             totalDocs: 2,

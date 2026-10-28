@@ -139,7 +139,7 @@ export function ArchiveHubHeader<TView extends string = string>({
     >
       <HeaderBackground preset={backgroundPreset} />
 
-      <div className="container-xxl px-4 px-lg-5 pocms-header-stage__inner">
+      <div className="pocms-hub-container pocms-header-stage__inner">
         <div className="pocms-topbar">
           <nav aria-label="Breadcrumb">
             <ol className="pocms-breadcrumbs">

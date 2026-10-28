@@ -189,7 +189,7 @@ export function ArticlesArchive({
       />
 
       <div className="pocms-inner-main">
-        <div className="container-xxl px-4 px-lg-5">
+        <div className="pocms-hub-container">
           {filtered.length === 0 ? (
             <div className="service-item rounded-4 p-5 text-center">
               <p className="mb-3">No articles match your search or selected filter.</p>

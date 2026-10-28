@@ -1,7 +1,7 @@
-import type { CollectionConfig, Field } from 'payload'
-import { chromeAfterChange, chromeAfterDelete } from '../app/(frontend)/lib/hooks'
-import { contentAccess, hiddenWithout } from '../access/roles'
-import { createWhileEmpty } from '../access/singleton'
+import type { Field, GlobalConfig } from 'payload'
+
+import { globalAccess, hiddenWithout } from '../access/roles'
+import { chromeAfterChange } from '../app/(frontend)/lib/hooks'
 
 const ARCHIVE_BACKGROUND_OPTIONS = [
   { label: 'Editorial Aurora Mesh + Tactile Grain', value: 'aurora-grain' },
@@ -382,31 +382,19 @@ const projectDetailGroup: Field = {
   ],
 }
 
-export const Header: CollectionConfig = {
+export const Header: GlobalConfig = {
   slug: 'header',
+  label: 'Header',
   hooks: {
     afterChange: [chromeAfterChange],
-    afterDelete: [chromeAfterDelete],
-  },
-  labels: {
-    singular: 'Header Management',
-    plural: 'Header Management',
   },
   admin: {
     hidden: hiddenWithout('header'),
     group: 'Site settings',
     description:
-      'Unified Header Management Studio: configure (1) Home Hero, (2) /articles & /projects Archive Headers, and (3) /articles/[slug] & /projects/[slug] Detail Headers.',
-    useAsTitle: 'sureName',
-    defaultColumns: ['id', 'sureName', 'professionTexts', 'updatedAt'],
-    components: {
-      views: { list: { Component: '/components/admin/views/SingletonList#SingletonListView' } },
-    },
+      'Unified Header Studio: configure (1) Home Hero, (2) /articles & /projects Archive Headers, and (3) /articles/[slug] & /projects/[slug] Detail Headers.',
   },
-  access: {
-    ...contentAccess('header'),
-    create: createWhileEmpty('header'),
-  },
+  access: globalAccess('header'),
   fields: [
     {
       type: 'tabs',

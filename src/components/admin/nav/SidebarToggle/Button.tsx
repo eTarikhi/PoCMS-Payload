@@ -32,6 +32,12 @@ export function SidebarToggleButton({ initialRail }: { initialRail: boolean }) {
       const label = toggle.querySelector('.nav-group__label')?.textContent?.trim()
       if (label) toggle.dataset.navLabel = label
     })
+    document
+      .querySelectorAll<HTMLElement>('.nav #browse-by-folder, .nav .browse-by-folder-button')
+      .forEach((folderBtn) => {
+        const label = folderBtn.dataset.navLabel || folderBtn.textContent?.trim()
+        if (label) folderBtn.dataset.navLabel = label
+      })
   }, [rail])
 
   useEffect(() => {

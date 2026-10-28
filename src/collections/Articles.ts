@@ -13,7 +13,6 @@ import {
 
 export const Articles: CollectionConfig = {
   slug: 'articles',
-  enableQueryPresets: true,
   versions: {
     maxPerDoc: 25,
     drafts: {

@@ -53,7 +53,7 @@ export const getSiteChromeContent = async (): Promise<SiteChromeContent> => {
   const [siteSettingsDoc, navigationDoc, headerDoc, footerDoc] = await Promise.all([
     payload.findGlobal({ slug: 'site-settings', depth: 1 }),
     payload.findGlobal({ slug: 'navigation', depth: 0 }),
-    payload.find({ collection: 'header', limit: 1, depth: 1 }).then((res) => res.docs[0] ?? null),
+    payload.findGlobal({ slug: 'header', depth: 1 }),
     payload.findGlobal({ slug: 'footer', depth: 1 }),
   ])
 
@@ -116,7 +116,7 @@ export const fetchRawPortfolioDocs = async (): Promise<RawPortfolioDocs> => {
   ] = await Promise.all([
     payload.findGlobal({ slug: 'site-settings', depth: 1 }),
     payload.findGlobal({ slug: 'navigation', depth: 0 }),
-    payload.find({ collection: 'header', limit: 1, depth: 1 }).then((res) => res.docs[0] ?? null),
+    payload.findGlobal({ slug: 'header', depth: 1 }),
     payload.find({ collection: 'about', limit: 1, depth: 1 }).then((res) => res.docs[0] ?? null),
     payload
       .find({ collection: 'skills', pagination: false, sort: '_order', depth: 0 })

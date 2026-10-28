@@ -28,8 +28,8 @@ export async function ContentHealthWidget({ req }: WidgetServerProps) {
   const missingSeoWhere: Where = { and: [empty('meta.description'), empty('excerpt')] }
   const draftWhere: Where = { _status: { equals: 'draft' } }
 
-  const [header, about, siteSettings, navigation, footer, health] = await Promise.all([
-    count('header'),
+  const [headerDoc, about, siteSettings, navigation, footer, health] = await Promise.all([
+    req.payload.findGlobal({ slug: 'header', req, overrideAccess: false, depth: 0 }),
     count('about'),
     req.payload.findGlobal({ slug: 'site-settings', req, overrideAccess: false, depth: 0 }),
     req.payload.findGlobal({ slug: 'navigation', req, overrideAccess: false, depth: 0 }),
@@ -37,6 +37,7 @@ export async function ContentHealthWidget({ req }: WidgetServerProps) {
     auditContentHealth(req.payload, req),
   ])
 
+  const hasHeader = Boolean(headerDoc?.sureName?.trim())
   const hasSiteIdentity =
     Boolean(siteSettings?.siteTitle?.trim()) && Boolean(siteSettings?.ownerName?.trim())
   const navLinks = (navigation?.items ?? []).filter((item) => item.enabled !== false).length
@@ -49,10 +50,10 @@ export async function ContentHealthWidget({ req }: WidgetServerProps) {
 
   const checks: Check[] = [
     {
-      ok: header > 0,
+      ok: hasHeader,
       done: 'Hero section (Header) is set up',
       todo: 'Set up the hero section (Header)',
-      href: adminURL(req, 'header'),
+      href: `${req.payload.config.routes.admin}/globals/header`,
     },
     {
       ok: about > 0,

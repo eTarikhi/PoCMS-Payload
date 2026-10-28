@@ -11,6 +11,10 @@
     line-height: 1.75;
 }
 
+.article-page:has(.pocms-subpage-shell) {
+    padding: 0;
+}
+
 .article-page .article-layout {
     max-width: 68ch;
     margin: 0 auto;
@@ -698,10 +702,11 @@
     border-color: #da9100;
 }
 
-/* Articles Archive Hub (/articles) */
+/* Articles & Projects Archive Hubs (/articles & /projects) — full-width shell */
 .article-page .articles-hub {
-    max-width: 1140px;
-    margin: 0 auto;
+    width: 100%;
+    max-width: none;
+    margin: 0;
 }
 
 .article-page .articles-hub-header {

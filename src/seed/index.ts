@@ -19,7 +19,6 @@ import { siteSettingsData } from './siteSettings.js'
 import { skillsData } from './skills.js'
 
 const collections = [
-  'header',
   'about',
   'skills',
   'experiences',
@@ -97,15 +96,15 @@ export const seed = async ({
     payload.logger.info(`  ✓ Profile image seeded (ID: ${profileImage.id})`)
   }
 
-  payload.logger.info('— Seeding header section...')
+  payload.logger.info('— Seeding header global...')
   try {
-    const header = await payload.create({
-      collection: 'header',
+    await payload.updateGlobal({
+      slug: 'header',
       data: headerData(profileImage),
       overrideAccess: true,
       context: seedContext,
     })
-    payload.logger.info(`  ✓ Header seeded (ID: ${header.id})`)
+    payload.logger.info('  ✓ Header global seeded')
   } catch (error) {
     payload.logger.error(
       `  Failed to seed header: ${error instanceof Error ? error.message : String(error)}`,

@@ -66,7 +66,7 @@ import type {
 export type RawPortfolioDocs = {
   siteSettings?: Partial<SiteSetting> | null
   navigation?: Partial<Navigation> | null
-  header: Header | null
+  header?: Partial<Header> | null
   about: About | null
   skills: Skill[]
   experiences: Experience[]
@@ -673,10 +673,10 @@ export const mapHeaderStudio = (doc?: Partial<Header> | null): HeaderStudioConfi
   }
 }
 
-export const mapHeader = (doc: Header | null): HeaderContent | null => {
-  if (!doc) return null
+export const mapHeader = (doc: Partial<Header> | null | undefined): HeaderContent | null => {
+  if (!doc || !doc.sureName?.trim()) return null
   return {
-    id: idToString(doc.id),
+    id: doc.id !== undefined ? idToString(doc.id) : 'header',
     sureName: doc.sureName,
     imageUrl: resolveMediaUrl(doc.profileImage) ?? withFallback(doc.imageUrl, ''),
     requestCV: withFallback(doc.requestCV, '#'),

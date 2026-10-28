@@ -10,12 +10,14 @@ import { buildConfig, type Config } from 'payload'
 import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
+import { ensureDraftVersions } from './access/draftMigration'
 import { ensureOrderable } from './access/orderable'
 import { governedEntities } from './access/permissions'
 import { ensureRoles } from './access/roles'
 import { AuditLogs } from './collections/AuditLogs'
 import { createRoles } from './collections/Roles'
 import { Footer } from './globals/Footer'
+import { Header } from './globals/Header'
 import { Navigation } from './globals/Navigation'
 import { SiteSettings } from './globals/SiteSettings'
 
@@ -34,7 +36,6 @@ import { systemInfoEndpoint } from './endpoints/systemInfo'
 import { createJobsConfig } from './jobs/config'
 import { resolvePayloadSecret } from './lib/security'
 import { About } from './collections/About'
-import { Header } from './collections/Header'
 import { Articles } from './collections/Articles'
 import { Certificates } from './collections/Certificates'
 import { Educations } from './collections/Educations'
@@ -67,10 +68,9 @@ const contentCollections = [
   Certificates,
   Services,
   Skills,
-  Header,
 ]
 
-const globals = [SiteSettings, Navigation, Footer]
+const globals = [Header, SiteSettings, Navigation, Footer]
 
 /** Includes plugin-registered collections (`redirects`) so RBAC role fields match `payload.config`. */
 const roleGovernedCollections = [
@@ -300,10 +300,11 @@ export default buildConfig({
     devRestartEndpoint,
     devTerminalEndpoint,
   ],
-  // Roles (ADR 0011) and orderable collections: built-in roles, legacy migration, and _order keys.
+  // Roles (ADR 0011), orderable collections, and pre-draft version snapshots on existing rows.
   onInit: async (payload) => {
     await ensureRoles(payload)
     await ensureOrderable(payload)
+    await ensureDraftVersions(payload)
   },
   plugins: [
     vercelBlobStorage({

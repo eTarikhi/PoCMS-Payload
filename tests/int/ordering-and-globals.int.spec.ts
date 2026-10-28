@@ -68,12 +68,12 @@ describe('Drag-and-drop ordering & globals configuration', () => {
     )
   })
 
-  it('registers site-settings, navigation and footer globals with RBAC governance', async () => {
+  it('registers header, site-settings, navigation and footer globals with RBAC governance', async () => {
     const sanitized = await config
     const globalSlugs = sanitized.globals.map((g) => g.slug)
-    expect(globalSlugs).toEqual(['site-settings', 'navigation', 'footer'])
+    expect(globalSlugs).toEqual(['header', 'site-settings', 'navigation', 'footer'])
 
-    for (const slug of ['site-settings', 'navigation', 'footer']) {
+    for (const slug of ['header', 'site-settings', 'navigation', 'footer']) {
       const globalConfig = sanitized.globals.find((g) => g.slug === slug)
       expect(globalConfig?.admin.group).toBe('Site settings')
       const editViews = globalConfig?.admin.components?.views?.edit ?? {}
@@ -83,6 +83,7 @@ describe('Drag-and-drop ordering & globals configuration', () => {
     const entities = governedEntities(sanitized)
     const governedGlobals = entities.filter((e) => e.kind === 'global')
     expect(governedGlobals.map((g) => ({ slug: g.slug, field: g.field }))).toEqual([
+      { slug: 'header', field: 'header' },
       { slug: 'site-settings', field: 'siteSettings' },
       { slug: 'navigation', field: 'navigation' },
       { slug: 'footer', field: 'footer' },
@@ -479,7 +480,13 @@ describe('Frontend components render CMS-driven Navigation & SiteSettings string
       expect(docs.some((d) => 'order' in d)).toBe(false)
     }
 
-    expect(Array.from(updatedGlobals.keys())).toEqual(['site-settings', 'navigation', 'footer'])
+    expect(Array.from(updatedGlobals.keys())).toEqual([
+      'header',
+      'site-settings',
+      'navigation',
+      'footer',
+    ])
+    expect(updatedGlobals.get('header')?.sureName).toBe('Amir v.Tarikhi')
     expect(updatedGlobals.get('site-settings')?.siteName).toBe('Amir v.Tarikhi Live Resume')
     expect((updatedGlobals.get('navigation')?.items as unknown[])?.length).toBe(6)
   })

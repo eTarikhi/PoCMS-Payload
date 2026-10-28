@@ -2,7 +2,7 @@ import React from 'react'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { Header } from '@/collections/Header'
+import { Header } from '@/globals/Header'
 import { ArticlesArchive } from '@/app/(frontend)/components/article/ArticlesArchive'
 import { ArticleLayout } from '@/app/(frontend)/components/article/ArticleLayout'
 import { HeaderBackground } from '@/app/(frontend)/components/headers/HeaderBackground'
@@ -26,8 +26,9 @@ afterEach(() => {
 })
 
 describe('Unified 3-Type Header Studio, Creative Backgrounds & Subpage Layouts', () => {
-  it('structures Header collection into 3 Admin Studio tabs while keeping Home Hero root fields intact', () => {
+  it('structures Header global ("Header") into 3 Admin Studio tabs while keeping Home Hero root fields intact', () => {
     expect(Header.slug).toBe('header')
+    expect(Header.label).toBe('Header')
     expect(Header.admin?.group).toBe('Site settings')
 
     const tabsField = Header.fields[0]

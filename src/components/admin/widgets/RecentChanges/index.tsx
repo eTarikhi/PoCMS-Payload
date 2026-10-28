@@ -13,7 +13,6 @@ const COLLECTIONS: CollectionSlug[] = [
   'projects',
   'services',
   'media',
-  'header',
   'about',
   'experiences',
   'educations',

@@ -14,7 +14,6 @@ import {
 export const Projects: CollectionConfig = {
   slug: 'projects',
   orderable: true,
-  enableQueryPresets: true,
   versions: {
     maxPerDoc: 25,
     drafts: {

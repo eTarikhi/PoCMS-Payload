@@ -210,6 +210,40 @@
       height: 1.125rem;
     }
 
+    /* Collapse Payload's "Browse by folder" button (raw text node + SVG) cleanly into a rail icon. */
+    .template-default--nav-open:has(.nav [data-nav-rail='true']) .nav .browse-by-folder-button {
+      position: relative;
+      justify-content: center;
+      width: 2.5rem;
+      max-width: 2.5rem;
+      height: 2.25rem;
+      padding: 0;
+      gap: 0;
+      margin: 0.25rem auto 0.5rem;
+      font-size: 0;
+      line-height: 0;
+      white-space: nowrap;
+      border-radius: var(--style-radius-m);
+    }
+
+    .template-default--nav-open:has(.nav [data-nav-rail='true'])
+      .nav
+      .browse-by-folder-button:hover,
+    .template-default--nav-open:has(.nav [data-nav-rail='true'])
+      .nav
+      .browse-by-folder-button.active {
+      background-color: var(--theme-elevation-100);
+    }
+
+    .template-default--nav-open:has(.nav [data-nav-rail='true'])
+      .nav
+      .browse-by-folder-button
+      svg {
+      flex: none;
+      width: 1.125rem;
+      height: 1.125rem;
+    }
+
     /* Hidden visually only, so the links keep their accessible names. */
     .template-default--nav-open:has(.nav [data-nav-rail='true']) .nav .nav__link-label,
     .template-default--nav-open:has(.nav [data-nav-rail='true'])
@@ -231,7 +265,10 @@
     /* Tooltip with the link text, on hover and keyboard focus. */
     .template-default--nav-open:has(.nav [data-nav-rail='true'])
       .nav
-      :is(.nav__link, .nav-group__toggle)[data-nav-label]:is(:hover, :focus-visible)::after {
+      :is(.nav__link, .nav-group__toggle, .browse-by-folder-button)[data-nav-label]:is(
+        :hover,
+        :focus-visible
+      )::after {
       content: attr(data-nav-label);
       position: absolute;
       inset-inline-start: calc(100% + 0.5rem);

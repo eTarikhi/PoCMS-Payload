@@ -135,6 +135,7 @@ export function extractLexicalMediaIds(node: unknown, out: Set<string> = new Set
 }
 
 export type MediaReferenceSources = {
+  header?: Record<string, unknown> | null
   headers?: readonly Record<string, unknown>[]
   articles?: readonly Record<string, unknown>[]
   projects?: readonly Record<string, unknown>[]
@@ -149,7 +150,13 @@ export function collectReferencedMediaIds(sources: MediaReferenceSources): Set<s
     if (id) ids.add(id)
   }
 
-  for (const h of sources.headers ?? []) {
+  const headerDocs = [
+    ...(sources.header ? [sources.header] : []),
+    ...(sources.headers ?? []),
+  ]
+
+  for (const h of headerDocs) {
+    add(h.profileImage)
     add(h.profilePhoto)
     add((h.meta as Record<string, unknown> | undefined)?.image)
     add((h.archiveHeader as Record<string, unknown> | undefined)?.backgroundImage)
@@ -211,8 +218,8 @@ export async function auditContentHealth(
   payload: Payload,
   req?: PayloadRequest,
 ): Promise<ContentHealthAuditReport> {
-  const [headers, articles, projects, media, redirects, siteSettings] = await Promise.all([
-    payload.find({ collection: 'header', pagination: false, depth: 0, overrideAccess: true, req }),
+  const [headerDoc, articles, projects, media, redirects, siteSettings] = await Promise.all([
+    payload.findGlobal({ slug: 'header', depth: 0, overrideAccess: true, req }),
     payload.find({
       collection: 'articles',
       pagination: false,
@@ -262,7 +269,7 @@ export async function auditContentHealth(
   ).length
 
   const referencedIds = collectReferencedMediaIds({
-    headers: headers.docs as unknown as Record<string, unknown>[],
+    header: headerDoc as unknown as Record<string, unknown>,
     articles: articles.docs as unknown as Record<string, unknown>[],
     projects: projects.docs as unknown as Record<string, unknown>[],
     siteSettings: siteSettings as unknown as Record<string, unknown>,
