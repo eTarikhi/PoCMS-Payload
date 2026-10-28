@@ -7,9 +7,12 @@ import {
 import Link from 'next/link'
 import React from 'react'
 
-import { extractNodePlainText, type LexicalStateLike } from '@/app/(frontend)/lib/lexical'
+import {
+  extractNodePlainText,
+  type LexicalStateLike,
+  resolveInternalLinkDocHref,
+} from '@/app/(frontend)/lib/lexical'
 import { slugify } from '@/app/(frontend)/lib/slug'
-import { resolveInternalLinkDocHref } from '@/fields/richText'
 
 import { CalloutBlock } from './CalloutBlock'
 import { CodeBlock } from './CodeBlock'

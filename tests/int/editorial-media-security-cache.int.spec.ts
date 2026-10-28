@@ -508,6 +508,14 @@ describe('Milestone 4.2: Saved Admin Query Presets & Content Health 2.0', () => 
       'utf8',
     )
     expect(articleCss).not.toMatch(/\.articles-hub\s*\{[^}]*max-width:\s*1140px/)
+
+    // RichTextContent is rendered inside 'use client' Live Preview trees and must never import
+    // server-only Payload config modules (@/fields/*, @/collections/*, payload) that pull in 'fs'.
+    const richTextContentSrc = fs.readFileSync(
+      path.join(process.cwd(), 'src/app/(frontend)/components/richtext/RichTextContent.tsx'),
+      'utf8',
+    )
+    expect(richTextContentSrc).not.toContain("@/fields/")
   })
 
   it('detects redirect chains (A -> B -> C), redirect loops (A -> B -> A), and orphaned Media across Lexical & SEO', async () => {

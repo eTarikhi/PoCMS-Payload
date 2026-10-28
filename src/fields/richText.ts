@@ -7,8 +7,7 @@ import {
   LinkFeature,
 } from '@payloadcms/richtext-lexical'
 
-import { articlePagePath } from '@/app/(frontend)/lib/article-page'
-import { projectPagePath } from '@/app/(frontend)/lib/project-page'
+import { resolveInternalLinkDocHref } from '@/app/(frontend)/lib/lexical'
 import { CalloutBlock } from '@/blocks/Callout'
 import { CodeBlock } from '@/blocks/Code'
 import { CodeTabsBlock } from '@/blocks/CodeTabs'
@@ -16,20 +15,7 @@ import { DiagramBlock } from '@/blocks/Diagram'
 import { MediaBlock } from '@/blocks/MediaBlock'
 import { MetricsBlock } from '@/blocks/Metrics'
 
-/**
- * Resolves an internal Lexical `doc` link (`articles` | `projects`) to its canonical public path.
- */
-export const resolveInternalLinkDocHref = (doc: {
-  relationTo?: string | null
-  value?: unknown
-} | null | undefined): string => {
-  if (!doc?.relationTo || !doc.value || typeof doc.value !== 'object') return '#'
-  const slug = (doc.value as { slug?: unknown }).slug
-  if (typeof slug !== 'string' || !slug.trim()) return '#'
-  if (doc.relationTo === 'articles') return articlePagePath(slug)
-  if (doc.relationTo === 'projects') return projectPagePath(slug)
-  return '#'
-}
+export { resolveInternalLinkDocHref }
 
 /**
  * Rich-text Lexical editor shared by `Articles` and `Projects`:

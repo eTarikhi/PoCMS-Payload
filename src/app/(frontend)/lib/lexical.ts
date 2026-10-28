@@ -346,3 +346,25 @@ export const plainTextToLexical = (text: string) => {
     paragraphs.map((paragraph) => lexicalParagraphNode([lexicalTextNode(paragraph)])),
   )
 }
+
+/**
+ * Resolves an internal Lexical `doc` link (`articles` | `projects`) to its canonical public path.
+ * Kept in this pure helper module (zero Payload/Node imports) so both Server Components and
+ * `'use client'` Live Preview trees can safely import it via `RichTextContent`.
+ */
+export const resolveInternalLinkDocHref = (
+  doc:
+    | {
+        relationTo?: string | null
+        value?: unknown
+      }
+    | null
+    | undefined,
+): string => {
+  if (!doc?.relationTo || !doc.value || typeof doc.value !== 'object') return '#'
+  const slug = (doc.value as { slug?: unknown }).slug
+  if (typeof slug !== 'string' || !slug.trim()) return '#'
+  if (doc.relationTo === 'articles') return `/articles/${slug}`
+  if (doc.relationTo === 'projects') return `/projects/${slug}`
+  return '#'
+}
