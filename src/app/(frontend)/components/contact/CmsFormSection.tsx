@@ -2,12 +2,16 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useMemo, useState, type FormEvent } from 'react'
+import { useMemo, useRef, useState, type FormEvent, type PointerEvent } from 'react'
 
 import { HeaderBackground } from '@/app/(frontend)/components/headers/HeaderBackground'
 import { RichTextContent } from '@/app/(frontend)/components/richtext/RichTextContent'
 import type { PublicCmsForm, PublicCmsFormField } from '@/app/(frontend)/lib/forms-types'
-import type { FooterContent, HeaderBackgroundPreset, HeaderAccentTone } from '@/app/(frontend)/lib/types'
+import type {
+  FooterContent,
+  HeaderAccentTone,
+  HeaderBackgroundPreset,
+} from '@/app/(frontend)/lib/types'
 
 export type CmsFormSectionProps = {
   forms: PublicCmsForm[]
@@ -45,6 +49,7 @@ export function CmsFormSection({
   accentTone = 'gold-copper',
 }: CmsFormSectionProps) {
   const router = useRouter()
+  const stageRef = useRef<HTMLElement | null>(null)
 
   const defaultSlug = useMemo(() => {
     if (initialFormSlug) {
@@ -68,6 +73,17 @@ export function CmsFormSection({
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+
+  const handlePointerMove = (event: PointerEvent<HTMLElement>) => {
+    const el = stageRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    if (!rect.width || !rect.height) return
+    const x = Math.round(((event.clientX - rect.left) / rect.width) * 100)
+    const y = Math.round(((event.clientY - rect.top) / rect.height) * 100)
+    el.style.setProperty('--spot-x', `${x}%`)
+    el.style.setProperty('--spot-y', `${y}%`)
+  }
 
   const handleSelectForm = (slug: string) => {
     const nextForm = forms.find((f) => f.slug === slug) ?? forms[0]
@@ -179,7 +195,9 @@ export function CmsFormSection({
 
       setIsSubmitted(true)
     } catch {
-      setSubmitError('Network error while submitting the form. Please check your connection and retry.')
+      setSubmitError(
+        'Network error while submitting the form. Please check your connection and retry.',
+      )
     } finally {
       setIsSubmitting(false)
     }
@@ -189,13 +207,11 @@ export function CmsFormSection({
     const inputId = `cms-form-${activeForm?.slug ?? 'default'}-${field.name}`
     const errorId = `${inputId}-error`
     const errorMsg = fieldErrors[field.name]
-    const baseInputClass =
-      'w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 shadow-xs transition placeholder:text-zinc-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/30 dark:border-zinc-700 dark:bg-zinc-900/90 dark:text-zinc-100 dark:placeholder:text-zinc-400'
 
     if (field.blockType === 'checkbox') {
       return (
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={inputId} className="inline-flex cursor-pointer items-start gap-3 text-sm text-zinc-800 dark:text-zinc-200">
+        <div className="pocms-contact-field-group">
+          <label htmlFor={inputId} className="pocms-contact-checkbox-label">
             <input
               id={inputId}
               name={field.name}
@@ -215,15 +231,19 @@ export function CmsFormSection({
                   })
                 }
               }}
-              className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-amber-600 focus:ring-amber-500 dark:border-zinc-600 dark:bg-zinc-900"
+              className="pocms-contact-checkbox"
             />
             <span>
               {field.label}
-              {field.required ? <span className="ml-1 text-amber-700 dark:text-amber-400">*</span> : null}
+              {field.required ? (
+                <span className="pocms-contact-req" aria-hidden="true">
+                  *
+                </span>
+              ) : null}
             </span>
           </label>
           {errorMsg ? (
-            <p id={errorId} className="text-xs font-medium text-red-700 dark:text-red-400">
+            <p id={errorId} className="pocms-contact-error">
               {errorMsg}
             </p>
           ) : null}
@@ -232,14 +252,11 @@ export function CmsFormSection({
     }
 
     return (
-      <div className="flex flex-col gap-1.5">
-        <label
-          htmlFor={inputId}
-          className="text-sm font-medium text-zinc-800 dark:text-zinc-200"
-        >
+      <div className="pocms-contact-field-group">
+        <label htmlFor={inputId} className="pocms-contact-label">
           {field.label}
           {field.required ? (
-            <span className="ml-1 text-amber-700 dark:text-amber-400" aria-hidden="true">
+            <span className="pocms-contact-req" aria-hidden="true">
               *
             </span>
           ) : null}
@@ -266,7 +283,7 @@ export function CmsFormSection({
                 })
               }
             }}
-            className={`${baseInputClass} resize-y`}
+            className="pocms-contact-textarea"
           />
         ) : field.blockType === 'select' ? (
           <select
@@ -288,7 +305,7 @@ export function CmsFormSection({
                 })
               }
             }}
-            className={baseInputClass}
+            className="pocms-contact-select"
           >
             {field.placeholder ? <option value="">{field.placeholder}</option> : null}
             {field.options.map((opt) => (
@@ -318,12 +335,12 @@ export function CmsFormSection({
                 })
               }
             }}
-            className={baseInputClass}
+            className="pocms-contact-input"
           />
         )}
 
         {errorMsg ? (
-          <p id={errorId} className="text-xs font-medium text-red-700 dark:text-red-400">
+          <p id={errorId} className="pocms-contact-error">
             {errorMsg}
           </p>
         ) : null}
@@ -332,116 +349,106 @@ export function CmsFormSection({
   }
 
   return (
-    <div className="min-h-[70vh]">
-      {/* Subpage Header matching /articles and /projects */}
+    <div className="pocms-subpage-shell" data-accent-tone={accentTone}>
       <header
-        data-accent={accentTone}
-        className="pocms-hub-header relative overflow-hidden border-b border-zinc-200/80 bg-zinc-50/90 py-12 dark:border-zinc-800/80 dark:bg-zinc-950/90 md:py-16"
+        ref={stageRef}
+        className="pocms-header-stage"
+        data-header-type="archive"
+        data-accent-tone={accentTone}
+        onPointerMove={handlePointerMove}
       >
         <HeaderBackground preset={backgroundPreset} />
-        <div className="pocms-hub-container relative z-10">
-          <nav
-            aria-label="Breadcrumb"
-            className="mb-6 flex flex-wrap items-center justify-between gap-4 text-sm text-zinc-600 dark:text-zinc-400"
-          >
-            <ol className="flex items-center gap-2">
-              <li>
-                <Link
-                  href="/"
-                  className="font-medium text-zinc-700 transition hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white"
-                >
-                  Home
-                </Link>
-              </li>
-              <li aria-hidden="true">/</li>
-              <li className="font-semibold text-zinc-900 dark:text-zinc-100" aria-current="page">
-                Contact
-              </li>
-            </ol>
 
-            <div className="flex items-center gap-4">
-              <Link
-                href="/projects"
-                className="font-medium text-zinc-700 transition hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white"
-              >
+        <div className="pocms-hub-container pocms-header-stage__inner">
+          <div className="pocms-topbar">
+            <nav aria-label="Breadcrumb">
+              <ol className="pocms-breadcrumbs">
+                <li>
+                  <Link href="/">← Home</Link>
+                </li>
+                <li className="pocms-breadcrumbs__sep" aria-hidden="true">
+                  /
+                </li>
+                <li className="pocms-breadcrumbs__current" aria-current="page">
+                  Contact
+                </li>
+              </ol>
+            </nav>
+
+            <div className="pocms-topbar__actions">
+              {forms.length > 0 ? (
+                <span className="pocms-telemetry-pill">
+                  <strong>{forms.length}</strong> {forms.length === 1 ? 'Channel' : 'Channels'}
+                </span>
+              ) : null}
+              <Link href="/projects" className="pocms-utility-btn">
                 Projects →
               </Link>
-              <Link
-                href="/articles"
-                className="font-medium text-zinc-700 transition hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white"
-              >
+              <Link href="/articles" className="pocms-utility-btn">
                 Articles →
               </Link>
             </div>
-          </nav>
+          </div>
 
-          <p className="mb-2 text-xs font-semibold tracking-[0.2em] text-amber-800 uppercase dark:text-amber-300">
-            Direct &amp; Private Channel
-          </p>
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-950 sm:text-4xl md:text-5xl dark:text-zinc-50">
-            Contact &amp; Request CV
-          </h1>
-          <p className="mt-4 max-w-2xl text-base leading-relaxed text-zinc-700 dark:text-zinc-300">
-            Reach out to {ownerName} regarding software architecture, consulting engagements, or
-            request an up-to-date CV copy. Submissions are stored securely in Payload CMS without
-            exposing private inbox addresses.
-          </p>
+          <div className="pocms-stage-copy">
+            <div className="pocms-eyebrow-row">
+              <span className="pocms-eyebrow">Direct &amp; Private Channel</span>
+            </div>
+            <h1 className="pocms-stage-title">Contact &amp; Request CV</h1>
+            <p className="pocms-stage-subtitle">
+              Reach out to {ownerName} regarding software architecture, consulting engagements, or
+              request an up-to-date CV copy. Submissions are stored securely in Payload CMS without
+              exposing private inbox addresses.
+            </p>
+          </div>
 
           {forms.length > 1 ? (
-            <div
-              role="tablist"
-              aria-label="Choose inquiry type"
-              className="mt-8 inline-flex flex-wrap gap-2 rounded-2xl border border-zinc-200/90 bg-white/90 p-1.5 shadow-xs backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/90"
-            >
-              {forms.map((form) => {
-                const selected = form.slug === activeForm?.slug
-                return (
-                  <button
-                    key={form.slug}
-                    type="button"
-                    role="tab"
-                    aria-selected={selected}
-                    onClick={() => handleSelectForm(form.slug)}
-                    className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-                      selected
-                        ? 'bg-zinc-900 text-white shadow-xs dark:bg-amber-400 dark:text-zinc-950'
-                        : 'text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white'
-                    }`}
-                  >
-                    {form.title}
-                  </button>
-                )
-              })}
+            <div className="pocms-contact-dock">
+              <div
+                role="tablist"
+                aria-label="Choose inquiry type"
+                className="pocms-filter-pills"
+              >
+                {forms.map((form) => {
+                  const selected = form.slug === activeForm?.slug
+                  return (
+                    <button
+                      key={form.slug}
+                      type="button"
+                      role="tab"
+                      aria-selected={selected}
+                      onClick={() => handleSelectForm(form.slug)}
+                      className={`pocms-pill-btn${selected ? ' is-active' : ''}`}
+                    >
+                      {form.title}
+                    </button>
+                  )
+                })}
+              </div>
+              <span className="pocms-contact-dock__hint">
+                Active form: <strong>{activeForm?.title}</strong>
+              </span>
             </div>
           ) : null}
         </div>
       </header>
 
-      {/* Main 2-column Workspace */}
-      <section className="pocms-hub-container py-12 md:py-16">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12">
-          <div className="lg:col-span-8">
-            <div className="rounded-2xl border border-zinc-200/90 bg-white p-6 shadow-xs sm:p-8 dark:border-zinc-800 dark:bg-zinc-900/60">
+      <div className="pocms-inner-main">
+        <div className="pocms-hub-container">
+          <div className="pocms-contact-grid">
+            <div className="pocms-contact-card">
               {!activeForm ? (
-                <div className="py-8 text-center">
-                  <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                    Contact form is being configured
-                  </h2>
-                  <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                <div className="pocms-contact-empty">
+                  <h2 className="pocms-contact-empty__title">Contact form is being configured</h2>
+                  <p className="pocms-contact-empty__body">
                     Create or publish a form under <strong>Admin › Content › Forms</strong> to start
                     receiving submissions on this page.
                   </p>
                 </div>
               ) : isSubmitted ? (
-                <div
-                  role="status"
-                  aria-live="polite"
-                  className="rounded-xl border border-emerald-500/30 bg-emerald-50/70 p-6 dark:border-emerald-500/30 dark:bg-emerald-950/30"
-                >
-                  <h2 className="text-lg font-semibold text-emerald-950 dark:text-emerald-200">
-                    Submission received
-                  </h2>
-                  <div className="mt-3 text-sm leading-relaxed text-emerald-900 dark:text-emerald-100">
+                <div role="status" aria-live="polite" className="pocms-contact-success">
+                  <h2 className="pocms-contact-success__title">Submission received</h2>
+                  <div className="pocms-contact-success__body">
                     {activeForm.confirmationMessage ? (
                       <RichTextContent data={activeForm.confirmationMessage} />
                     ) : (
@@ -454,43 +461,33 @@ export function CmsFormSection({
                       setValues(buildInitialValues(activeForm))
                       setIsSubmitted(false)
                     }}
-                    className="mt-6 inline-flex items-center rounded-xl border border-emerald-700/30 bg-white px-4 py-2 text-sm font-semibold text-emerald-900 transition hover:bg-emerald-100/70 dark:border-emerald-400/30 dark:bg-zinc-900 dark:text-emerald-200 dark:hover:bg-zinc-800"
+                    className="pocms-btn-ghost pocms-contact-success__reset"
                   >
                     Send another message
                   </button>
                 </div>
               ) : (
-                <form
-                  aria-label={activeForm.title}
-                  noValidate
-                  onSubmit={handleSubmit}
-                  className="space-y-6"
-                >
-                  <div className="border-b border-zinc-200/80 pb-4 dark:border-zinc-800">
-                    <h2 className="text-xl font-bold text-zinc-950 dark:text-zinc-50">
-                      {activeForm.title}
-                    </h2>
-                    <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-                      Fields marked with <span className="text-amber-700 dark:text-amber-400">*</span> are required.
+                <form aria-label={activeForm.title} noValidate onSubmit={handleSubmit}>
+                  <div className="pocms-contact-card__header">
+                    <h2 className="pocms-contact-card__title">{activeForm.title}</h2>
+                    <p className="pocms-contact-card__meta">
+                      Fields marked with <span className="pocms-contact-req">*</span> are required.
                     </p>
                   </div>
 
                   {submitError ? (
-                    <div
-                      role="alert"
-                      className="rounded-xl border border-red-500/40 bg-red-50 px-4 py-3 text-sm font-medium text-red-900 dark:border-red-500/40 dark:bg-red-950/40 dark:text-red-200"
-                    >
+                    <div role="alert" className="pocms-contact-alert">
                       {submitError}
                     </div>
                   ) : null}
 
-                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                  <div className="pocms-contact-fields-grid">
                     {activeForm.fields.map((field) => {
                       if (field.blockType === 'message') {
                         return (
                           <div
                             key={field.id}
-                            className="md:col-span-2 rounded-xl bg-zinc-50 p-4 text-sm text-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-300"
+                            className="pocms-contact-field--full pocms-contact-message-block"
                           >
                             <RichTextContent data={field.message} />
                           </div>
@@ -501,7 +498,9 @@ export function CmsFormSection({
                       return (
                         <div
                           key={field.id}
-                          className={spanHalf ? 'md:col-span-1' : 'md:col-span-2'}
+                          className={
+                            spanHalf ? 'pocms-contact-field--half' : 'pocms-contact-field--full'
+                          }
                         >
                           {renderFieldControl(field)}
                         </div>
@@ -509,11 +508,8 @@ export function CmsFormSection({
                     })}
                   </div>
 
-                  {/* Anti-spam honeypot field hidden from assistive technology and keyboard tab order */}
-                  <div
-                    aria-hidden="true"
-                    className="pointer-events-none absolute -left-[9999px] h-0 w-0 overflow-hidden opacity-0"
-                  >
+                  {/* Anti-spam honeypot field hidden off-screen from visual layout, assistive tech, and tab order */}
+                  <div aria-hidden="true" className="pocms-contact-honeypot">
                     <label htmlFor={`cms-hp-${activeForm.slug}`}>Leave this field blank</label>
                     <input
                       id={`cms-hp-${activeForm.slug}`}
@@ -526,99 +522,89 @@ export function CmsFormSection({
                     />
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
+                  <div className="pocms-contact-footer">
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="inline-flex items-center justify-center rounded-xl bg-zinc-900 px-6 py-3 text-sm font-semibold text-white shadow-xs transition hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-amber-400 dark:text-zinc-950 dark:hover:bg-amber-300"
+                      className="pocms-btn-gold pocms-contact-submit"
                     >
                       {isSubmitting ? 'Sending…' : activeForm.submitButtonLabel}
                     </button>
-                    <span className="text-xs text-zinc-600 dark:text-zinc-400">
+                    <span className="pocms-contact-security-note">
                       Protected against automated scraping &amp; spam.
                     </span>
                   </div>
                 </form>
               )}
             </div>
-          </div>
 
-          <aside aria-label="Contact details" className="lg:col-span-4">
-            <div className="space-y-6 rounded-2xl border border-zinc-200/90 bg-zinc-50/80 p-6 dark:border-zinc-800 dark:bg-zinc-900/40">
-              <div>
-                <h2 className="text-base font-bold text-zinc-950 dark:text-zinc-100">
-                  How this channel works
-                </h2>
-                <p className="mt-2 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-                  Every form on this page is managed in Payload CMS with strict role-based access
-                  control. Submissions are stored in an immutable inbox and trigger private Resend
-                  notifications without exposing destination addresses to bots.
-                </p>
-              </div>
+            <aside aria-label="Contact details" className="pocms-contact-rail">
+              <div className="pocms-contact-rail-card">
+                <div className="pocms-contact-rail__section">
+                  <h2 className="pocms-contact-rail__heading">How this channel works</h2>
+                  <p className="pocms-contact-rail__text">
+                    Every form on this page is managed in Payload CMS with strict role-based access
+                    control. Submissions are stored in an immutable inbox and trigger private Resend
+                    notifications without exposing destination addresses to bots.
+                  </p>
+                </div>
 
-              {(footer?.profiles && footer.profiles.length > 0) ||
-              (footer?.socialLinks && footer.socialLinks.length > 0) ? (
-                <div className="border-t border-zinc-200/80 pt-5 dark:border-zinc-800">
-                  <h3 className="text-xs font-semibold tracking-wider text-zinc-600 uppercase dark:text-zinc-400">
-                    Elsewhere Online
-                  </h3>
-                  <ul className="mt-3 flex flex-wrap gap-2">
-                    {footer?.profiles && footer.profiles.length > 0
-                      ? footer.profiles.map((profile) => (
-                          <li key={profile.url}>
-                            <a
-                              href={profile.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center rounded-lg border border-zinc-300/80 bg-white px-3 py-1.5 text-xs font-medium text-zinc-800 transition hover:border-amber-500 hover:text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-amber-400"
-                            >
-                              {profile.name}
-                            </a>
-                          </li>
-                        ))
-                      : footer?.socialLinks.map((social) => (
-                          <li key={social.url}>
-                            <a
-                              href={social.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center rounded-lg border border-zinc-300/80 bg-white px-3 py-1.5 text-xs font-medium text-zinc-800 transition hover:border-amber-500 hover:text-zinc-950 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-amber-400"
-                            >
-                              {social.ariaLabel}
-                            </a>
-                          </li>
-                        ))}
+                {(footer?.profiles && footer.profiles.length > 0) ||
+                (footer?.socialLinks && footer.socialLinks.length > 0) ? (
+                  <div className="pocms-contact-rail__section">
+                    <h3 className="pocms-contact-rail__kicker">Elsewhere Online</h3>
+                    <ul className="pocms-contact-profile-list">
+                      {footer?.profiles && footer.profiles.length > 0
+                        ? footer.profiles.map((profile) => (
+                            <li key={profile.url}>
+                              <a
+                                href={profile.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="pocms-btn-ghost"
+                              >
+                                {profile.name} ↗
+                              </a>
+                            </li>
+                          ))
+                        : footer?.socialLinks.map((social) => (
+                            <li key={social.url}>
+                              <a
+                                href={social.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="pocms-btn-ghost"
+                              >
+                                {social.ariaLabel} ↗
+                              </a>
+                            </li>
+                          ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                <div className="pocms-contact-rail__section">
+                  <h3 className="pocms-contact-rail__kicker">Explore Portfolio</h3>
+                  <ul className="pocms-contact-nav-list">
+                    <li>
+                      <Link href="/projects" className="pocms-contact-nav-link">
+                        <span>Browse Case Studies &amp; Projects</span>
+                        <span aria-hidden="true">→</span>
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/articles" className="pocms-contact-nav-link">
+                        <span>Read Technical Articles &amp; Notes</span>
+                        <span aria-hidden="true">→</span>
+                      </Link>
+                    </li>
                   </ul>
                 </div>
-              ) : null}
-
-              <div className="border-t border-zinc-200/80 pt-5 dark:border-zinc-800">
-                <h3 className="text-xs font-semibold tracking-wider text-zinc-600 uppercase dark:text-zinc-400">
-                  Explore Portfolio
-                </h3>
-                <ul className="mt-3 space-y-2 text-sm">
-                  <li>
-                    <Link
-                      href="/projects"
-                      className="font-medium text-zinc-800 underline-offset-4 hover:underline dark:text-zinc-200"
-                    >
-                      Browse Case Studies &amp; Projects →
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/articles"
-                      className="font-medium text-zinc-800 underline-offset-4 hover:underline dark:text-zinc-200"
-                    >
-                      Read Technical Articles &amp; Notes →
-                    </Link>
-                  </li>
-                </ul>
               </div>
-            </div>
-          </aside>
+            </aside>
+          </div>
         </div>
-      </section>
+      </div>
     </div>
   )
 }

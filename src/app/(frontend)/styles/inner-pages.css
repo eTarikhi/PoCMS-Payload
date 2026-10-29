@@ -1307,3 +1307,392 @@ a.pocms-tech-chip:hover {
 .pocms-continuation-card:hover .pocms-continuation-card__title {
   color: var(--pocms-accent-primary);
 }
+
+/* ── Contact & Request-CV Workspace (/contact) ───────────────────────── */
+.pocms-contact-dock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem 1.25rem;
+  margin-top: 1.85rem;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  background: var(--pocms-glass-bg);
+  border: 1px solid var(--pocms-border-subtle);
+  backdrop-filter: blur(14px);
+}
+
+.pocms-contact-dock__hint {
+  font-size: 0.82rem;
+  color: var(--pocms-text-muted);
+}
+
+.pocms-contact-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (min-width: 992px) {
+  .pocms-contact-grid {
+    grid-template-columns: minmax(0, 1.65fr) minmax(300px, 0.95fr);
+    gap: 2.5rem;
+  }
+}
+
+.pocms-contact-card {
+  position: relative;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  border-radius: 1.15rem;
+  background: linear-gradient(180deg, rgba(24, 30, 49, 0.78) 0%, rgba(18, 22, 36, 0.94) 100%);
+  border: 1px solid var(--pocms-border-subtle);
+  box-shadow: var(--pocms-shadow-elevated);
+}
+
+.pocms-contact-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 1.5rem auto;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--pocms-border-specular) 50%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.pocms-contact-card__header {
+  padding-bottom: 1.15rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--pocms-border-subtle);
+}
+
+.pocms-contact-card__title {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--pocms-text-strong);
+  letter-spacing: -0.01em;
+}
+
+.pocms-contact-card__meta {
+  margin: 0.4rem 0 0;
+  font-size: 0.84rem;
+  color: var(--pocms-text-muted);
+}
+
+.pocms-contact-req {
+  color: var(--pocms-accent-primary);
+  margin-left: 0.22rem;
+  font-weight: 700;
+}
+
+.pocms-contact-fields-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .pocms-contact-fields-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem 1.35rem;
+  }
+}
+
+.pocms-contact-field--half {
+  grid-column: span 1;
+}
+
+.pocms-contact-field--full {
+  grid-column: 1 / -1;
+}
+
+.pocms-contact-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.48rem;
+}
+
+.pocms-contact-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--pocms-text-strong);
+  line-height: 1.4;
+}
+
+.pocms-contact-input,
+.pocms-contact-select,
+.pocms-contact-textarea {
+  width: 100%;
+  padding: 0.78rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background-color: rgba(8, 10, 18, 0.84);
+  color: var(--pocms-text-strong);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    background-color 0.16s ease;
+}
+
+.pocms-contact-select option {
+  background-color: #121624;
+  color: #f8f9fc;
+}
+
+.pocms-contact-textarea {
+  min-height: 8.75rem;
+  resize: vertical;
+}
+
+.pocms-contact-input::placeholder,
+.pocms-contact-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.pocms-contact-input:hover,
+.pocms-contact-select:hover,
+.pocms-contact-textarea:hover {
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.pocms-contact-input:focus,
+.pocms-contact-select:focus,
+.pocms-contact-textarea:focus {
+  outline: none;
+  border-color: var(--pocms-accent-primary);
+  background-color: rgba(10, 13, 24, 0.96);
+  box-shadow: 0 0 0 3px rgba(218, 145, 0, 0.2);
+}
+
+.pocms-contact-input[aria-invalid='true'],
+.pocms-contact-select[aria-invalid='true'],
+.pocms-contact-textarea[aria-invalid='true'] {
+  border-color: rgba(248, 113, 113, 0.78);
+}
+
+.pocms-contact-checkbox-label {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  cursor: pointer;
+  font-size: 0.92rem;
+  color: var(--pocms-text-body);
+  line-height: 1.5;
+}
+
+.pocms-contact-checkbox {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.2rem;
+  accent-color: var(--pocms-gold);
+  cursor: pointer;
+}
+
+.pocms-contact-message-block {
+  padding: 0.95rem 1.15rem;
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--pocms-border-subtle);
+  font-size: 0.92rem;
+  color: var(--pocms-text-body);
+}
+
+.pocms-contact-error {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fca5a5;
+}
+
+.pocms-contact-alert {
+  margin-bottom: 1.25rem;
+  padding: 0.85rem 1.1rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  background: rgba(127, 29, 29, 0.34);
+  color: #fecaca;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.pocms-contact-honeypot {
+  position: absolute !important;
+  left: -9999px !important;
+  top: auto !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.pocms-contact-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.65rem;
+  padding-top: 1.35rem;
+  border-top: 1px solid var(--pocms-border-subtle);
+}
+
+.pocms-contact-submit {
+  padding: 0.72rem 1.55rem;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+.pocms-contact-submit:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.pocms-contact-security-note {
+  font-size: 0.8rem;
+  color: var(--pocms-text-muted);
+}
+
+.pocms-contact-success {
+  padding: 1.6rem 1.75rem;
+  border-radius: 0.95rem;
+  border: 1px solid rgba(82, 196, 126, 0.42);
+  background: rgba(18, 62, 42, 0.28);
+  color: var(--pocms-text-strong);
+}
+
+.pocms-contact-success__title {
+  margin: 0 0 0.65rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #8ce9ad;
+}
+
+.pocms-contact-success__body {
+  font-size: 0.96rem;
+  color: var(--pocms-text-body);
+  line-height: 1.65;
+}
+
+.pocms-contact-success__body p:last-child {
+  margin-bottom: 0;
+}
+
+.pocms-contact-success__reset {
+  margin-top: 1.25rem;
+  cursor: pointer;
+}
+
+.pocms-contact-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.pocms-contact-empty__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--pocms-text-strong);
+}
+
+.pocms-contact-empty__body {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--pocms-text-muted);
+}
+
+.pocms-contact-rail {
+  position: sticky;
+  top: 5.5rem;
+}
+
+.pocms-contact-rail-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.6rem;
+  border-radius: 1.15rem;
+  background: var(--pocms-surface-1);
+  border: 1px solid var(--pocms-border-subtle);
+}
+
+.pocms-contact-rail__section + .pocms-contact-rail__section {
+  padding-top: 1.35rem;
+  border-top: 1px solid var(--pocms-border-subtle);
+}
+
+.pocms-contact-rail__heading {
+  margin: 0 0 0.55rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--pocms-text-strong);
+}
+
+.pocms-contact-rail__kicker {
+  margin: 0 0 0.75rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pocms-accent-primary);
+}
+
+.pocms-contact-rail__text {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.65;
+  color: var(--pocms-text-body);
+}
+
+.pocms-contact-profile-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pocms-contact-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pocms-contact-nav-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--pocms-border-subtle);
+  color: var(--pocms-text-strong);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.pocms-contact-nav-link:hover,
+.pocms-contact-nav-link:focus-visible {
+  border-color: var(--pocms-border-accent);
+  background: rgba(218, 145, 0, 0.12);
+  color: var(--pocms-accent-primary);
+}
+
