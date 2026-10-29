@@ -20,6 +20,9 @@ const nextConfig: NextConfig = {
     ]
   },
   images: {
+    formats: ['image/webp'],
+    deviceSizes: [640, 768, 1080, 1200, 1600],
+    imageSizes: [256, 400, 520, 800],
     dangerouslyAllowLocalIP: process.env.NODE_ENV === 'development',
     remotePatterns: [
       {
@@ -30,6 +33,9 @@ const nextConfig: NextConfig = {
     localPatterns: [
       {
         pathname: '/api/media/file/**',
+      },
+      {
+        pathname: '/api/media-frame',
       },
       {
         // Static assets from public/images (vTarikhi portfolio). Without this entry,

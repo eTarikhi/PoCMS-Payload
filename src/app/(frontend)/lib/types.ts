@@ -291,6 +291,22 @@ export type CertificateItem = {
   link: string | null
 }
 
+export type ArticleMediaMode = 'none' | 'single' | 'gallery'
+
+export type ArticleGalleryLayout = 'carousel' | 'grid'
+
+export type ArticleGallerySlide = {
+  id: string
+  src: string
+  thumbSrc: string
+  width: number
+  height: number
+  alt: string
+  caption: string | null
+  blurDataURL?: string | null
+  objectPosition?: string
+}
+
 export type ArticleItem = {
   id: string
   title: string
@@ -300,8 +316,12 @@ export type ArticleItem = {
   /** Display read time, e.g. "3 min". */
   readTime: string
   imageUrl: string
-  /** Optional base64 WebP blur placeholder generated via `sharp` on upload. */
+  /** Optional base64 WebP blur placeholder generated via `sharp` on upload or `/images/**` save. */
   blurDataURL?: string | null
+  /**Resolved lead media display mode (`'none'` | `'single'` | `'gallery'`). */
+  mediaMode?: ArticleMediaMode
+  /** Number of resolved slides when `mediaMode === 'gallery'`. */
+  galleryCount?: number
   /** External publication URL (empty string when on-site only). */
   link: string
   /** Internal page path, e.g. "/articles/devops-roadmap". Null when the article has no page. */

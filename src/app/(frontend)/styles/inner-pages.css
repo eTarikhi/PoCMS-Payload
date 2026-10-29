@@ -1696,3 +1696,24 @@ a.pocms-tech-chip:hover {
   color: var(--pocms-accent-primary);
 }
 
+/* ── Article Media Mode Badges & Text-Only Spotlight (/articles) ────────── */
+.pocms-featured-hero--text-only {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.pocms-gallery-pill {
+  position: absolute;
+  right: 0.7rem;
+  bottom: 0.7rem;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(13, 15, 23, 0.84);
+  border: 1px solid rgba(255, 196, 72, 0.42);
+  color: #ffc448;
+  font-size: 0.73rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(6px);
+}
+
+

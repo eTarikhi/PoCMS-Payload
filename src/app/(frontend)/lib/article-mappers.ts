@@ -10,8 +10,13 @@ import {
   plainTextToLexical,
   type TocItem,
 } from './lexical'
-import { mapSeoOverride, resolveMediaBlurDataURL, resolveMediaSizeUrl } from './mappers'
-import type { SeoOverride } from './types'
+import { mapSeoOverride, resolveArticleLeadMedia } from './mappers'
+import type {
+  ArticleGalleryLayout,
+  ArticleGallerySlide,
+  ArticleMediaMode,
+  SeoOverride,
+} from './types'
 
 /** The view model for one article page. Components receive only this, never the Payload document. */
 export type ArticleDetail = {
@@ -28,10 +33,17 @@ export type ArticleDetail = {
   publishedDisplay: string
   /** e.g. "3 min" */
   readTimeDisplay: string
+  /** Resolved lead media preview mode (`'none'` | `'single'` | `'gallery'`). */
+  mediaMode?: ArticleMediaMode
   coverUrl: string | null
   coverBlurDataURL?: string | null
-  /** Alt text from the media record (§9). Falls back to the title. */
+  coverObjectPosition?: string
+  /** Alt text from override or media record (§9). Falls back to the title. */
   coverAlt: string
+  /** Gallery display layout when `mediaMode === 'gallery'`. */
+  galleryLayout?: ArticleGalleryLayout
+  /** Resolved gallery slides when `mediaMode === 'gallery'`. */
+  gallery?: ArticleGallerySlide[]
   /** Rich-text Lexical editor state (converted from legacy `description` when `content` is empty). */
   content?: Article['content']
   /** Extracted plain-text paragraphs (kept for backward compatibility and lightweight excerpts). */
@@ -65,7 +77,7 @@ export const mapArticleDetail = (doc: Article): ArticleDetail | null => {
   const paragraphs = hasRichContent
     ? splitArticleBody(extractLexicalText(doc.content))
     : splitArticleBody(doc.description ?? '')
-  const coverBlurDataURL = resolveMediaBlurDataURL(doc.image)
+  const leadMedia = resolveArticleLeadMedia(doc)
 
   return {
     id: doc.id,
@@ -77,9 +89,15 @@ export const mapArticleDetail = (doc: Article): ArticleDetail | null => {
     publishedAt: doc.publishedAt ?? null,
     publishedDisplay: formatDisplayDate(doc.publishedAt),
     readTimeDisplay: formatReadTime(minutes),
-    coverUrl: resolveMediaSizeUrl(doc.image, 'hero') ?? (doc.imageUrl || null),
-    ...(coverBlurDataURL ? { coverBlurDataURL } : {}),
-    coverAlt: (typeof doc.image === 'object' && doc.image?.alt) || doc.title,
+    mediaMode: leadMedia.mediaMode,
+    coverUrl: leadMedia.heroUrl,
+    ...(leadMedia.blurDataURL ? { coverBlurDataURL: leadMedia.blurDataURL } : {}),
+    ...(leadMedia.coverObjectPosition
+      ? { coverObjectPosition: leadMedia.coverObjectPosition }
+      : {}),
+    coverAlt: leadMedia.coverAlt,
+    galleryLayout: leadMedia.galleryLayout,
+    gallery: leadMedia.gallery,
     content: effectiveContent,
     paragraphs,
     toc: extractTableOfContents(effectiveContent),

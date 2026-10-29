@@ -19,6 +19,7 @@ export type CoverImageProps = {
   height: number
   sizes?: string
   className?: string
+  objectPosition?: string
 }
 
 export function CoverImage({
@@ -30,6 +31,7 @@ export function CoverImage({
   height,
   sizes,
   className,
+  objectPosition,
 }: CoverImageProps) {
   const handleError = (event: SyntheticEvent<HTMLImageElement, Event>) => {
     // Stop once the fallback itself has failed, so an error cannot loop.
@@ -50,6 +52,7 @@ export function CoverImage({
       loading="lazy"
       placeholder={hasBlur ? 'blur' : 'empty'}
       blurDataURL={hasBlur ? (blurDataURL as string) : undefined}
+      style={objectPosition ? { objectPosition } : undefined}
       className={className}
       onError={handleError}
     />

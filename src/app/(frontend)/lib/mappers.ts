@@ -32,7 +32,10 @@ import { calculateReadTimeMinutes } from './lexical'
 import { hasProjectPage, projectPagePath } from './project-page'
 import type {
   AboutContent,
+  ArticleGalleryLayout,
+  ArticleGallerySlide,
   ArticleItem,
+  ArticleMediaMode,
   CertificateItem,
   ContactItem,
   EducationItem,
@@ -224,7 +227,7 @@ export const buildProjectFilters = (
   ...PROJECT_FILTERS.slice(1),
 ]
 
-export type MediaSizeName = 'thumbnail' | 'card' | 'hero' | 'og'
+export type MediaSizeName = 'thumbnail' | 'card' | 'content' | 'hero' | 'og'
 
 type MediaVariantShape = {
   url?: string | null
@@ -265,6 +268,212 @@ export const resolveMediaBlurDataURL = (
   if (!media || typeof media !== 'object') return null
   const blur = (media as { blurDataURL?: string | null }).blurDataURL
   return typeof blur === 'string' && blur.startsWith('data:image/') ? blur : null
+}
+
+type StoredUrlMeta = {
+  width?: number | null
+  height?: number | null
+  blurDataURL?: string | null
+}
+
+const parseStoredUrlMeta = (raw: unknown): StoredUrlMeta | null => {
+  if (!raw || typeof raw !== 'object') return null
+  const rec = raw as Record<string, unknown>
+  return {
+    width: typeof rec.width === 'number' && rec.width > 0 ? rec.width : null,
+    height: typeof rec.height === 'number' && rec.height > 0 ? rec.height : null,
+    blurDataURL:
+      typeof rec.blurDataURL === 'string' && rec.blurDataURL.startsWith('data:image/')
+        ? rec.blurDataURL
+        : null,
+  }
+}
+
+const resolveMediaObjectPosition = (
+  media: number | Media | null | undefined,
+): string | undefined => {
+  if (!media || typeof media !== 'object') return undefined
+  const focalX = (media as { focalX?: number | null }).focalX
+  const focalY = (media as { focalY?: number | null }).focalY
+  return typeof focalX === 'number' && typeof focalY === 'number'
+    ? `${focalX}% ${focalY}%`
+    : undefined
+}
+
+export type ResolvedArticleLeadMedia = {
+  mediaMode: ArticleMediaMode
+  cardUrl: string
+  heroUrl: string | null
+  blurDataURL: string | null
+  coverAlt: string
+  coverObjectPosition?: string
+  galleryLayout: ArticleGalleryLayout
+  gallery: ArticleGallerySlide[]
+}
+
+/**
+ * Resolves an article's display mode (`none` | `single` | `gallery`) across both direct `Media`
+ * uploads and pre-uploaded `imageUrl` paths (e.g. `"/images/articles/1735708966846.webp"`).
+ */
+export const resolveArticleLeadMedia = (doc: Partial<Article>): ResolvedArticleLeadMedia => {
+  const fallbackAlt = doc.title?.trim() || 'Article illustration'
+  const rawMode = doc.mediaMode
+
+  if (rawMode === 'none') {
+    return {
+      mediaMode: 'none',
+      cardUrl: '',
+      heroUrl: null,
+      blurDataURL: null,
+      coverAlt: fallbackAlt,
+      galleryLayout: 'carousel',
+      gallery: [],
+    }
+  }
+
+  if (rawMode === 'gallery') {
+    const galleryLayout: ArticleGalleryLayout =
+      doc.galleryLayout === 'grid' ? 'grid' : 'carousel'
+    const slides: ArticleGallerySlide[] = []
+
+    for (const [idx, slide] of (doc.gallery ?? []).entries()) {
+      if (!slide) continue
+      const inferredSource =
+        slide.source ?? (slide.imageUrl && !slide.media ? 'url' : 'upload')
+
+      if (inferredSource === 'url') {
+        const urlStr = slide.imageUrl?.trim() || ''
+        if (!urlStr) continue
+        const meta = parseStoredUrlMeta(slide.urlMeta)
+        slides.push({
+          id: slide.id || `slide-${idx + 1}`,
+          src: urlStr,
+          thumbSrc: urlStr,
+          width: meta?.width ?? 1200,
+          height: meta?.height ?? 675,
+          alt: slide.alt?.trim() || slide.caption?.trim() || `${fallbackAlt} (${idx + 1})`,
+          caption: slide.caption?.trim() || null,
+          ...(meta?.blurDataURL ? { blurDataURL: meta.blurDataURL } : {}),
+        })
+      } else {
+        const heroSrc =
+          resolveMediaSizeUrl(slide.media, 'hero') ?? (slide.imageUrl?.trim() || null)
+        if (!heroSrc) continue
+        const thumbSrc = resolveMediaSizeUrl(slide.media, 'thumbnail') ?? heroSrc
+        const mediaObj = slide.media && typeof slide.media === 'object' ? slide.media : null
+        const blur = resolveMediaBlurDataURL(slide.media)
+        const objectPosition = resolveMediaObjectPosition(slide.media)
+        slides.push({
+          id: slide.id || `slide-${idx + 1}`,
+          src: heroSrc,
+          thumbSrc,
+          width: mediaObj?.width ?? 1200,
+          height: mediaObj?.height ?? 675,
+          alt:
+            slide.alt?.trim() ||
+            mediaObj?.alt?.trim() ||
+            slide.caption?.trim() ||
+            `${fallbackAlt} (${idx + 1})`,
+          caption: slide.caption?.trim() || null,
+          ...(blur ? { blurDataURL: blur } : {}),
+          ...(objectPosition ? { objectPosition } : {}),
+        })
+      }
+    }
+
+    if (slides.length === 0) {
+      return {
+        mediaMode: 'none',
+        cardUrl: '',
+        heroUrl: null,
+        blurDataURL: null,
+        coverAlt: fallbackAlt,
+        galleryLayout,
+        gallery: [],
+      }
+    }
+
+    const lead = slides[0]!
+    return {
+      mediaMode: 'gallery',
+      cardUrl:
+        resolveMediaSizeUrl((doc.gallery?.[0] ?? undefined)?.media, 'card') ?? lead.src,
+      heroUrl: lead.src,
+      blurDataURL: lead.blurDataURL ?? null,
+      coverAlt: lead.alt,
+      ...(lead.objectPosition ? { coverObjectPosition: lead.objectPosition } : {}),
+      galleryLayout,
+      gallery: slides,
+    }
+  }
+
+  // Default / 'single' mode (handles both explicit `mediaSource` and legacy pre-migration rows)
+  const inferredSingleSource =
+    doc.mediaSource ?? (doc.imageUrl && !doc.image ? 'url' : 'upload')
+
+  if (inferredSingleSource === 'url') {
+    const rawUrl = doc.imageUrl?.trim() || ''
+    if (!rawUrl) {
+      return {
+        mediaMode: 'none',
+        cardUrl: '',
+        heroUrl: null,
+        blurDataURL: null,
+        coverAlt: fallbackAlt,
+        galleryLayout: 'carousel',
+        gallery: [],
+      }
+    }
+    const meta = parseStoredUrlMeta(doc.imageUrlMeta)
+    return {
+      mediaMode: 'single',
+      cardUrl: rawUrl,
+      heroUrl: rawUrl,
+      blurDataURL: meta?.blurDataURL ?? null,
+      coverAlt: doc.imageAlt?.trim() || fallbackAlt,
+      galleryLayout: 'carousel',
+      gallery: [],
+    }
+  }
+
+  const uploadCard = resolveMediaSizeUrl(doc.image, 'card')
+  const uploadHero = resolveMediaSizeUrl(doc.image, 'hero')
+  const legacyUrl = doc.imageUrl?.trim() || ''
+  const cardUrl = uploadCard ?? legacyUrl
+  const heroUrl = uploadHero ?? (legacyUrl || null)
+
+  if (!heroUrl) {
+    return {
+      mediaMode: 'none',
+      cardUrl: '',
+      heroUrl: null,
+      blurDataURL: null,
+      coverAlt: fallbackAlt,
+      galleryLayout: 'carousel',
+      gallery: [],
+    }
+  }
+
+  const uploadBlur =
+    resolveMediaBlurDataURL(doc.image) ??
+    parseStoredUrlMeta(doc.imageUrlMeta)?.blurDataURL ??
+    null
+  const mediaAlt =
+    doc.image && typeof doc.image === 'object' && doc.image.alt?.trim()
+      ? doc.image.alt.trim()
+      : null
+  const coverObjectPosition = resolveMediaObjectPosition(doc.image)
+
+  return {
+    mediaMode: 'single',
+    cardUrl,
+    heroUrl,
+    blurDataURL: uploadBlur,
+    coverAlt: doc.imageAlt?.trim() || mediaAlt || fallbackAlt,
+    ...(coverObjectPosition ? { coverObjectPosition } : {}),
+    galleryLayout: 'carousel',
+    gallery: [],
+  }
 }
 
 /** Extracts clean per-document SEO overrides from `@payloadcms/plugin-seo`'s `meta` group. */
@@ -933,7 +1142,7 @@ export const mapArticles = (docs: Article[]): ArticleItem[] =>
         description: doc.description,
         fallbackReadTime: doc.readTime,
       })
-    const blurDataURL = resolveMediaBlurDataURL(doc.image)
+    const leadMedia = resolveArticleLeadMedia(doc)
 
     return {
       id: idToString(doc.id),
@@ -941,8 +1150,10 @@ export const mapArticles = (docs: Article[]): ArticleItem[] =>
       excerpt: doc.excerpt,
       author: formatDisplayDate(doc.publishedAt),
       readTime: formatReadTime(minutes),
-      imageUrl: resolveMediaSizeUrl(doc.image, 'card') ?? withFallback(doc.imageUrl, ''),
-      ...(blurDataURL ? { blurDataURL } : {}),
+      imageUrl: leadMedia.cardUrl,
+      ...(leadMedia.blurDataURL ? { blurDataURL: leadMedia.blurDataURL } : {}),
+      mediaMode: leadMedia.mediaMode,
+      ...(leadMedia.mediaMode === 'gallery' ? { galleryCount: leadMedia.gallery.length } : {}),
       link: doc.link ?? '',
       pagePath: doc.slug && hasArticlePage(doc) ? articlePagePath(doc.slug) : null,
       featured: Boolean(doc.featured),

@@ -91,8 +91,22 @@ export const Media: CollectionConfig = {
         },
       },
       {
+        name: 'content',
+        width: 1080,
+        withoutEnlargement: true,
+        formatOptions: {
+          format: 'webp',
+          options: { quality: 84 },
+        },
+        admin: {
+          disableGroupBy: true,
+          disableListColumn: true,
+          disableListFilter: true,
+        },
+      },
+      {
         name: 'hero',
-        width: 1400,
+        width: 1600,
         withoutEnlargement: true,
         formatOptions: {
           format: 'webp',

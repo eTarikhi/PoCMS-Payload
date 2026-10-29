@@ -348,28 +348,34 @@ function MagazineSpotlightCard({
 }) {
   const primaryHref = article.pagePath ?? (article.link || '#')
   const isInternal = primaryHref.startsWith('/')
+  const hasMedia = article.mediaMode !== 'none' && Boolean(article.imageUrl)
 
   return (
     <div
-      className="pocms-featured-hero"
+      className={`pocms-featured-hero${!hasMedia ? ' pocms-featured-hero--text-only' : ''}`}
       data-featured={article.featured ? 'true' : undefined}
     >
-      <Link
-        href={primaryHref}
-        {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
-        className="pocms-featured-hero__media text-decoration-none"
-      >
-        <CoverImage
-          src={article.imageUrl}
-          alt={article.title}
-          blurDataURL={article.blurDataURL}
-          fallbackSrc="/placeholder.svg"
-          sizes="(max-width: 992px) 100vw, 55vw"
-          width={680}
-          height={420}
-          className="img-fluid"
-        />
-      </Link>
+      {hasMedia ? (
+        <Link
+          href={primaryHref}
+          {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+          className="pocms-featured-hero__media text-decoration-none position-relative"
+        >
+          <CoverImage
+            src={article.imageUrl}
+            alt={article.title}
+            blurDataURL={article.blurDataURL}
+            fallbackSrc="/placeholder.svg"
+            sizes="(max-width: 992px) 100vw, 55vw"
+            width={680}
+            height={420}
+            className="img-fluid"
+          />
+          {article.mediaMode === 'gallery' && (article.galleryCount ?? 0) > 1 ? (
+            <span className="pocms-gallery-pill">⧉ {article.galleryCount} photos</span>
+          ) : null}
+        </Link>
+      ) : null}
 
       <div className="pocms-featured-hero__body">
         <div className="d-flex flex-wrap align-items-center gap-2">
@@ -453,6 +459,12 @@ function EditorialStreamRow({
           <span>{article.readTime} read</span>
           <span aria-hidden="true">•</span>
           <span>{article.pagePath ? 'On-site guide' : 'External publication'}</span>
+          {article.mediaMode === 'gallery' && (article.galleryCount ?? 0) > 1 ? (
+            <>
+              <span aria-hidden="true">•</span>
+              <span>⧉ {article.galleryCount} photos</span>
+            </>
+          ) : null}
         </div>
 
         <h2 className="pocms-stream-item__title">
@@ -527,6 +539,7 @@ function ArchiveArticleCard({
 }) {
   const primaryHref = article.pagePath ?? (article.link || '#')
   const isInternal = primaryHref.startsWith('/')
+  const hasMedia = article.mediaMode !== 'none' && Boolean(article.imageUrl)
 
   return (
     <article
@@ -539,18 +552,23 @@ function ArchiveArticleCard({
           {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
           className="text-decoration-none"
         >
-          <div className="rounded overflow-hidden">
-            <CoverImage
-              src={article.imageUrl}
-              alt={article.title}
-              blurDataURL={article.blurDataURL}
-              fallbackSrc="/placeholder.svg"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              width={400}
-              height={255}
-              className="img-fluid"
-            />
-          </div>
+          {hasMedia ? (
+            <div className="rounded overflow-hidden position-relative">
+              <CoverImage
+                src={article.imageUrl}
+                alt={article.title}
+                blurDataURL={article.blurDataURL}
+                fallbackSrc="/placeholder.svg"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                width={400}
+                height={255}
+                className="img-fluid"
+              />
+              {article.mediaMode === 'gallery' && (article.galleryCount ?? 0) > 1 ? (
+                <span className="pocms-gallery-pill">⧉ {article.galleryCount} photos</span>
+              ) : null}
+            </div>
+          ) : null}
           <div className="p-2">
             {article.featured ? (
               <span className="featured-badge mb-2">{featuredBadgeLabel}</span>

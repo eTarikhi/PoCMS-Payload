@@ -30,6 +30,7 @@ import { devMigrateEndpoint } from './endpoints/devMigrate'
 import { devRestartEndpoint } from './endpoints/devRestart'
 import { devTerminalEndpoint } from './endpoints/devTerminal'
 import { migrationStatusEndpoint } from './endpoints/migrationStatus'
+import { mediaFrameEndpoint, publicImagesEndpoint } from './endpoints/publicImages'
 import { purgePagesEndpoint } from './endpoints/purgePages'
 import { resetBundlerCacheEndpoint } from './endpoints/resetBundlerCache'
 import { revalidateSiteEndpoint } from './endpoints/revalidateSite'
@@ -308,6 +309,8 @@ export default buildConfig({
     purgePagesEndpoint,
     migrationStatusEndpoint,
     systemInfoEndpoint,
+    publicImagesEndpoint,
+    mediaFrameEndpoint,
     ...adminJobsEndpoints,
     // Development only (they return 404 in production).
     resetBundlerCacheEndpoint,

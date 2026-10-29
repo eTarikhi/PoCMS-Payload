@@ -213,8 +213,14 @@ export const ARTICLE_CARD_SELECT = {
   category: true,
   publishedAt: true,
   readTime: true,
+  mediaMode: true,
+  mediaSource: true,
   image: true,
   imageUrl: true,
+  imageAlt: true,
+  imageUrlMeta: true,
+  galleryLayout: true,
+  gallery: true,
   link: true,
 } satisfies ArticlesSelect
 

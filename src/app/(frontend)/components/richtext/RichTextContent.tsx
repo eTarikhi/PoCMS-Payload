@@ -18,7 +18,12 @@ import { CalloutBlock } from './CalloutBlock'
 import { CodeBlock } from './CodeBlock'
 import { CodeTabsBlockView, type RawCodeTabItem } from './CodeTabsBlockView'
 import { DiagramBlockView } from './DiagramBlockView'
-import { MediaBlockView } from './MediaBlockView'
+import {
+  type MediaBlockAlignment,
+  type MediaBlockAspectRatio,
+  type MediaBlockSize,
+  MediaBlockView,
+} from './MediaBlockView'
 import { type MetricCardItem, MetricsBlockView } from './MetricsBlockView'
 
 type RichTextContentProps = {
@@ -105,6 +110,28 @@ export function RichTextContent({ data, className }: RichTextContentProps) {
         }
         return React.createElement(tag || 'h2', { className: 'rich-heading' }, children)
       },
+      upload: ({ node }) => {
+        const fields = (node.fields ?? {}) as {
+          size?: MediaBlockSize
+          customWidth?: number
+          alignment?: MediaBlockAlignment
+          aspectRatio?: MediaBlockAspectRatio
+          alt?: string
+          caption?: string
+        }
+        return (
+          <MediaBlockView
+            source="upload"
+            media={node.value as never}
+            size={fields.size}
+            customWidth={fields.customWidth}
+            alignment={fields.alignment}
+            aspectRatio={fields.aspectRatio}
+            alt={fields.alt}
+            caption={fields.caption}
+          />
+        )
+      },
       blocks: {
         ...defaultConverters.blocks,
         code: ({ node }: { node: SerializedBlockNode }) => {
@@ -144,17 +171,29 @@ export function RichTextContent({ data, className }: RichTextContentProps) {
         },
         mediaBlock: ({ node }: { node: SerializedBlockNode }) => {
           const fields = (node.fields ?? {}) as {
+            source?: 'upload' | 'url'
             media?: unknown
             imageUrl?: string
             caption?: string
-            size?: 'normal' | 'wide'
+            alt?: string
+            size?: MediaBlockSize
+            customWidth?: number
+            alignment?: MediaBlockAlignment
+            aspectRatio?: MediaBlockAspectRatio
+            urlMeta?: unknown
           }
           return (
             <MediaBlockView
+              source={fields.source}
               media={fields.media as never}
               imageUrl={fields.imageUrl}
               caption={fields.caption}
+              alt={fields.alt}
               size={fields.size}
+              customWidth={fields.customWidth}
+              alignment={fields.alignment}
+              aspectRatio={fields.aspectRatio}
+              urlMeta={fields.urlMeta}
             />
           )
         },

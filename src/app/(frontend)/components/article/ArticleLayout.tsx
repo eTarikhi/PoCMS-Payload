@@ -10,6 +10,7 @@ import { TableOfContents } from '../richtext/TableOfContents'
 import { ArticleBody } from './ArticleBody'
 import { ArticleCover } from './ArticleCover'
 import { ArticleFooterNav, type ArticleFooterNavLabels } from './ArticleFooterNav'
+import { ArticleGallery } from './ArticleGallery'
 import { ReadingProgress } from './ReadingProgress'
 
 const CATEGORY_BADGES: Record<NonNullable<ArticleDetail['category']>, string> = {
@@ -81,13 +82,19 @@ export function ArticleLayout({
           >
             <div className="pocms-reading-main">
               <article className="article-layout">
-              {article.coverUrl ? (
-                <ArticleCover
-                  src={article.coverUrl}
-                  alt={article.coverAlt}
-                  blurDataURL={article.coverBlurDataURL}
-                />
-              ) : null}
+                {article.mediaMode === 'gallery' && (article.gallery?.length ?? 0) > 0 ? (
+                  <ArticleGallery
+                    slides={article.gallery ?? []}
+                    layout={article.galleryLayout ?? 'carousel'}
+                  />
+                ) : article.mediaMode !== 'none' && article.coverUrl ? (
+                  <ArticleCover
+                    src={article.coverUrl}
+                    alt={article.coverAlt}
+                    blurDataURL={article.coverBlurDataURL}
+                    objectPosition={article.coverObjectPosition}
+                  />
+                ) : null}
 
                 {hasStickyRail ? (
                   <MobileTocDrawer items={tocItems} />

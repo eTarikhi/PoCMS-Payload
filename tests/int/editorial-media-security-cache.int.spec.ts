@@ -239,7 +239,8 @@ describe('Milestone 3.2: Media Pipeline 2.0, Folders, Direct Client Uploads & Le
     expect(sizeSpecs).toEqual([
       { name: 'thumbnail', width: 400, height: 300 },
       { name: 'card', width: 800, height: 520 },
-      { name: 'hero', width: 1400, height: undefined },
+      { name: 'content', width: 1080, height: undefined },
+      { name: 'hero', width: 1600, height: undefined },
       { name: 'og', width: 1200, height: 630 },
     ])
     for (const size of upload?.imageSizes ?? []) {
