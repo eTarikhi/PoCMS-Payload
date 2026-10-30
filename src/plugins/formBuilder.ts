@@ -388,8 +388,8 @@ export const portfolioFormBuilderPlugin = (): Plugin =>
     formSubmissionOverrides: {
       slug: FORM_SUBMISSIONS_COLLECTION,
       labels: {
-        singular: 'Form Submission',
-        plural: 'Form Submissions',
+        singular: 'Submission',
+        plural: 'Submissions',
       },
       access: {
         // Anyone on the public website can submit a form; reading or deleting submissions requires RBAC.

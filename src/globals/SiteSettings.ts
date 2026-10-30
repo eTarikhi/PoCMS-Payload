@@ -5,7 +5,7 @@ import { chromeAfterChange } from '../app/(frontend)/lib/hooks'
 
 export const SiteSettings: GlobalConfig = {
   slug: 'site-settings',
-  label: 'Site settings',
+  label: 'Settings',
   hooks: {
     afterChange: [chromeAfterChange],
   },

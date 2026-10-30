@@ -90,7 +90,7 @@ const roleGovernedCollections = [
   },
   {
     slug: FORM_SUBMISSIONS_COLLECTION,
-    labels: { plural: 'Form Submissions' },
+    labels: { plural: 'Submissions' },
     admin: { group: 'Content' },
   },
   {

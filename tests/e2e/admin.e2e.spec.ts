@@ -55,7 +55,7 @@ test.describe('PoCMS Admin Panel (RBAC, Content, SEO Tabs, Forms & Globals)', ()
 
     await page.goto('/admin/collections/form-submissions')
     await expect(page).toHaveURL(/\/admin\/collections\/form-submissions/)
-    await expect(page.locator('h1', { hasText: /Form Submissions/i }).first()).toBeVisible()
+    await expect(page.locator('h1', { hasText: /Submissions/i }).first()).toBeVisible()
 
     await page.goto('/admin/collections/redirects')
     await expect(page).toHaveURL(/\/admin\/collections\/redirects/)
