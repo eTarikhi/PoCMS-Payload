@@ -9,7 +9,7 @@
     "build:compile": "cross-env next build --experimental-build-mode compile",
     "build:generate": "cross-env next build --experimental-build-mode generate",
     "build:all": "cross-env next build --experimental-build-mode compile && cross-env next build --experimental-build-mode generate",
-    "prebuild:dev": "pnpm generate:all && npx payload migrate:create && npx payload migrate && pnpm dev",
+    "prebuild:dev": "pnpm generate:all && npx payload migrate:create && pnpm dev",
     "prebuild": "pnpm generate:all && npx payload migrate:create && npx payload migrate",
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
     "devsafe": "rm -rf .next && cross-env NODE_OPTIONS=--no-deprecation next dev",
