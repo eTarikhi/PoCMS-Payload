@@ -11,6 +11,9 @@ let cachedPayloadPromise: Promise<Payload> | null = null
 async function resolveTestPayload(): Promise<Payload> {
   if (!cachedPayloadPromise) {
     cachedPayloadPromise = (async () => {
+      // `webServer` (`pnpm dev`) has already pushed the Drizzle schema before Playwright starts;
+      // marking the worker process as `NODE_ENV=test` skips a duplicate concurrent `pushDevSchema()`.
+      ;(process.env as Record<string, string | undefined>).NODE_ENV ||= 'test'
       const [{ getPayload }, { default: config }] = await Promise.all([
         import('payload'),
         import('../../src/payload.config.js'),

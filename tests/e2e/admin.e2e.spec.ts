@@ -4,6 +4,8 @@ import { login } from '../helpers/login'
 import { cleanupTestUser, seedTestUser, testUser } from '../helpers/seedUser'
 
 test.describe('PoCMS Admin Panel (RBAC, Content, SEO Tabs, Forms, Globals, Inbox & Database)', () => {
+  test.describe.configure({ mode: 'serial' })
+
   let context: BrowserContext | undefined
   let page: Page
   let didSeedUser = false
