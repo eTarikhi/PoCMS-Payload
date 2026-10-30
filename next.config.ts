@@ -3,12 +3,17 @@ import type { NextConfig } from 'next'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
+import { installCompressionDrainFix } from './src/lib/fixCompressionDrainListeners'
 import { SECURITY_HEADERS } from './src/lib/security'
+
+installCompressionDrainFix()
 
 const __filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(__filename)
 
 const nextConfig: NextConfig = {
+  // Skip redundant zlib gzip compression on local dev bundles/HMR streams while keeping it in `next start`.
+  compress: process.env.NODE_ENV !== 'development',
   // Dev-only indicator: bottom right, so it doesn't cover the admin sidebar's account controls.
   devIndicators: { position: 'bottom-right' },
   async headers() {
