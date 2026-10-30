@@ -2,10 +2,9 @@
  * PoCMS Decoupled Theme Toggle — Encapsulated CSS Module
  * Derived from the PoCMS Front-End Design Audit:
  *   - Obsidian ramp: #07090f -> #0d0f17 -> #121624
- *   - Solar Gold / Amber ramp: #ffe294 -> #ffc448 -> #da9100 -> #906242
+ *   - Solar Gold / Amber ramp: #ffe294 -> #ffc448 -> #da9100 -> #8a5800
  *   - Warm Sand / Parchment ramp: #faf7f0 -> #efe9dc -> #cfc4ad
  *   - Architectural Slate counter-accent: #34495e / #5dade2
- * Zero global selectors; safe to add, customize, or remove without side effects.
  * ========================================================================== */
 
 .wrapper {
@@ -13,26 +12,25 @@
   --tt-radius: 999px;
   --tt-transition: 240ms cubic-bezier(0.22, 1, 0.36, 1);
 
-  /* Dark mode surface tokens (matches .pocms-utility-btn & .pocms-view-switcher) */
-  --tt-surface-bg: rgba(13, 16, 27, 0.82);
-  --tt-surface-border: rgba(255, 196, 72, 0.24);
-  --tt-surface-border-hover: rgba(255, 196, 72, 0.52);
+  /* Dark mode surface tokens (>15:1 text contrast for WCAG AA/AAA) */
+  --tt-surface-bg: rgba(15, 19, 31, 0.94);
+  --tt-surface-border: rgba(255, 196, 72, 0.34);
+  --tt-surface-border-hover: rgba(255, 196, 72, 0.68);
   --tt-surface-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 8px 22px rgba(3, 5, 12, 0.42);
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    0 10px 28px rgba(3, 5, 12, 0.48);
   --tt-track-bg: #07090f;
-  --tt-track-border: rgba(255, 255, 255, 0.1);
-  --tt-text: rgba(248, 249, 252, 0.9);
-  --tt-text-muted: rgba(207, 196, 173, 0.78);
+  --tt-track-border: rgba(255, 255, 255, 0.12);
+  --tt-text: #f8f9fc;
 
   /* Thumb tokens — Dark state: Obsidian-Slate disc with Lunar Amber ink */
-  --tt-thumb-bg: linear-gradient(145deg, #1b2438 0%, #101522 100%);
-  --tt-thumb-border: rgba(255, 196, 72, 0.45);
+  --tt-thumb-bg: linear-gradient(145deg, #1d273d 0%, #101522 100%);
+  --tt-thumb-border: rgba(255, 196, 72, 0.48);
   --tt-thumb-ink: #ffc448;
-  --tt-thumb-glow: 0 2px 10px rgba(255, 196, 72, 0.24);
+  --tt-thumb-glow: 0 2px 10px rgba(255, 196, 72, 0.26);
 
   /* Focus ring — remedies legacy main.css `.btn:focus { outline: 0 }` */
-  --tt-focus-ring: 0 0 0 3px rgba(218, 145, 0, 0.34);
+  --tt-focus-ring: 0 0 0 3px rgba(218, 145, 0, 0.36);
 
   display: inline-flex;
   align-items: center;
@@ -41,24 +39,31 @@
 }
 
 /* Light-state token overrides — Warm Alabaster/Parchment + Solar Gold thumb
-   Uses #090b12 dark ink over #ffc448/#da9100 gold (>9.5:1 WCAG AAA contrast,
-   avoiding the 2.58:1 white-on-gold contrast issue noted in the UI audit). */
+   Uses #090b12 dark ink over #ffc448/#da9100 gold (>9.5:1 WCAG AAA contrast). */
 .isLight {
-  --tt-surface-bg: rgba(250, 247, 240, 0.92);
-  --tt-surface-border: rgba(144, 98, 66, 0.3);
-  --tt-surface-border-hover: rgba(184, 115, 0, 0.62);
+  --tt-surface-bg: rgba(252, 249, 243, 0.96);
+  --tt-surface-border: rgba(144, 98, 66, 0.36);
+  --tt-surface-border-hover: rgba(184, 115, 0, 0.72);
   --tt-surface-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    0 8px 20px rgba(18, 20, 29, 0.1);
-  --tt-track-bg: #e9e1cf;
-  --tt-track-border: rgba(144, 98, 66, 0.24);
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 10px 26px rgba(18, 20, 29, 0.14);
+  --tt-track-bg: #e8dfcc;
+  --tt-track-border: rgba(144, 98, 66, 0.26);
   --tt-text: #12141d;
-  --tt-text-muted: #5c4b37;
 
   --tt-thumb-bg: linear-gradient(135deg, #ffd46b 0%, #da9100 100%);
-  --tt-thumb-border: rgba(158, 84, 29, 0.38);
+  --tt-thumb-border: rgba(158, 84, 29, 0.42);
   --tt-thumb-ink: #090b12;
-  --tt-thumb-glow: 0 3px 10px rgba(218, 145, 0, 0.36);
+  --tt-thumb-glow: 0 3px 10px rgba(218, 145, 0, 0.38);
+}
+
+/* Fixed bottom-left floating corner pill (pairs symmetrically with bottom-right BackToTop) */
+.floatingDock {
+  position: fixed;
+  left: clamp(1rem, 2.5vw, 2.5rem);
+  bottom: calc(clamp(1rem, 2.5vw, 2.5rem) + env(safe-area-inset-bottom, 0px));
+  z-index: 1035;
+  pointer-events: auto;
 }
 
 .switchBtn {
@@ -66,7 +71,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  padding: 0.24rem;
+  padding: 0.26rem;
   border-radius: var(--tt-radius);
   border: 1px solid var(--tt-surface-border);
   background: var(--tt-surface-bg);
@@ -86,11 +91,12 @@
 }
 
 .switchBtnWithLabel {
-  padding: 0.24rem 0.72rem 0.24rem 0.26rem;
+  padding: 0.26rem 0.78rem 0.26rem 0.28rem;
 }
 
 .switchBtn:hover {
   border-color: var(--tt-surface-border-hover);
+  transform: translateY(-1px);
 }
 
 .switchBtn:active {
@@ -140,7 +146,7 @@
   justify-content: center;
   width: 0.78rem;
   height: 0.78rem;
-   pointer-events: none;
+  pointer-events: none;
   transition:
     opacity var(--tt-transition),
     transform var(--tt-transition),
@@ -158,8 +164,8 @@
 }
 
 .isDark .trackCueSun {
-  color: rgba(255, 196, 72, 0.45);
-  opacity: 0.55;
+  color: rgba(255, 196, 72, 0.5);
+  opacity: 0.6;
 }
 
 .isDark .trackCueMoon {
@@ -172,7 +178,7 @@
 
 .isLight .trackCueMoon {
   color: #34495e;
-  opacity: 0.58;
+  opacity: 0.62;
 }
 
 /* Sliding thumb disc */
@@ -279,7 +285,13 @@
   border: 0;
 }
 
-/* Respect OS reduced-motion preferences (addresses audit motion finding) */
+@media print {
+  .floatingDock {
+    display: none !important;
+  }
+}
+
+/* Respect OS reduced-motion preferences */
 @media (prefers-reduced-motion: reduce) {
   .switchBtn,
   .track,

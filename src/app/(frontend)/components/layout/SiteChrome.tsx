@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 
 import { CustomAfterFooterSlot } from '@/app/(frontend)/components/seo/CustomCodeInjection'
+import { FloatingThemeToggle } from '@/app/(frontend)/components/ui/ThemeToggle'
 import { DEFAULT_NAVIGATION, DEFAULT_SITE_SETTINGS } from '@/app/(frontend)/lib/mappers'
 import type {
   CustomCodeContent,
@@ -43,6 +44,7 @@ export function SiteChrome({
       {children}
       {footer ? <Footer footer={footer} labels={footerLabels} /> : null}
       <CustomAfterFooterSlot customCode={customCode} />
+      <FloatingThemeToggle />
       <BackToTop />
       <BootstrapClient />
     </>

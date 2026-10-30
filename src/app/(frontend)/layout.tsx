@@ -18,6 +18,7 @@ import {
   CustomBodyStartSlot,
   CustomHeadSlot,
 } from '@/app/(frontend)/components/seo/CustomCodeInjection'
+import { ThemeInitScript } from '@/app/(frontend)/components/ui/ThemeToggle/ThemeInitScript'
 import { getCachedSiteChrome } from '@/app/(frontend)/lib/cache'
 import {
   buildPortfolioMetadata,
@@ -56,8 +57,13 @@ export default async function FrontendLayout({ children }: { children: React.Rea
   const { siteSettings, customCode } = await getCachedSiteChrome()
 
   return (
-    <html lang={htmlLangFromLocale(siteSettings.locale)} className={openSans.className}>
+    <html
+      lang={htmlLangFromLocale(siteSettings.locale)}
+      className={openSans.className}
+      suppressHydrationWarning
+    >
       <head>
+        <ThemeInitScript />
         <CustomHeadSlot customCode={customCode} />
       </head>
       <body>

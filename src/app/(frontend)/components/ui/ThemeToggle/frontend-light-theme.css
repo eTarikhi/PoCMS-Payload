@@ -1,0 +1,671 @@
+/* ==========================================================================
+ * PoCMS Front-End Light Theme Layer (`html[data-theme='light']`)
+ * --------------------------------------------------------------------------
+ * Strictly gated behind `html[data-theme='light']` so default Dark mode
+ * (`/` Home Page + all inner pages) remains 100% pixel-identical when dark.
+ *
+ * Palette System ("Warm Alabaster & Burnished Solar Gold"):
+ *   - Canvas:          #faf7f0  (Warm editorial alabaster)
+ *   - Recessed Stage:  #f2ebdc  (Parchment stone)
+ *   - Elevated Card:   #ffffff  (Pure warm ivory lift)
+ *   - Heading Ink:     #12141d  (Deep obsidian — 16.4:1 contrast)
+ *   - Body Ink:        #262936  (Architectural charcoal — 13.2:1 contrast)
+ *   - Muted Ink:       #544535  (Warm umber — 8.1:1 contrast)
+ *   - Accessible Gold: #8a5800  (Burnished amber — 5.68:1 WCAG AA contrast)
+ *   - Solar Fill:      #da9100  (Brand gold paired with #090b12 dark ink)
+ * ========================================================================== */
+
+/* Smooth theme cross-fade on major surfaces (disabled under reduced-motion) */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-theme='light'] body,
+  html[data-theme='dark'] body {
+    transition:
+      background-color 240ms ease,
+      color 240ms ease;
+  }
+}
+
+/* ── 1. Root Variables, Body Canvas & Core Typography ──────────────────── */
+html[data-theme='light'] {
+  --primary: #8a5800 !important;
+  --secondary: #9c6500 !important;
+  --light: #1e2230 !important;
+  --dark: #faf7f0 !important;
+}
+
+html[data-theme='light'] body {
+  background-color: #faf7f0 !important;
+  background-image: linear-gradient(
+    180deg,
+    rgba(218, 145, 0, 0.06) 0%,
+    rgba(250, 247, 240, 0.94) 45%,
+    rgba(239, 232, 216, 0.65) 100%
+  ) !important;
+  color: #262936 !important;
+}
+
+html[data-theme='light'] h1,
+html[data-theme='light'] .h1,
+html[data-theme='light'] h2,
+html[data-theme='light'] .h2,
+html[data-theme='light'] h3,
+html[data-theme='light'] .h3,
+html[data-theme='light'] h4,
+html[data-theme='light'] .h4,
+html[data-theme='light'] h5,
+html[data-theme='light'] .h5,
+html[data-theme='light'] h6,
+html[data-theme='light'] .h6 {
+  color: #12141d;
+}
+
+html[data-theme='light'] .text-primary {
+  color: #8a5800 !important;
+}
+
+html[data-theme='light'] .text-secondary {
+  color: #966000 !important;
+}
+
+/* Buttons — Burnished Gold outline -> Solar Gold fill with dark obsidian ink */
+html[data-theme='light'] .btn,
+html[data-theme='light'] .btn-primary,
+html[data-theme='light'] .btn-secondary,
+html[data-theme='light'] .btn-custom {
+  color: #7c4f00;
+  border-color: #b87900;
+  background-color: rgba(218, 145, 0, 0.06) !important;
+}
+
+html[data-theme='light'] .btn-lg-square:hover,
+html[data-theme='light'] .btn-lg-square:focus,
+html[data-theme='light'] .btn-lg-square:active,
+html[data-theme='light'] .btn.btn-primary:hover,
+html[data-theme='light'] .btn.btn-primary:focus,
+html[data-theme='light'] .btn.btn-primary:active,
+html[data-theme='light'] .btn.btn-secondary:hover,
+html[data-theme='light'] .btn.btn-secondary:focus,
+html[data-theme='light'] .btn.btn-secondary:active,
+html[data-theme='light'] .btn-custom:hover,
+html[data-theme='light'] .btn-custom:focus,
+html[data-theme='light'] .btn-custom:active {
+  color: #090b12 !important;
+  background-color: #ffc448 !important;
+  border-color: #b87900 !important;
+}
+
+html[data-theme='light'] .back-to-top {
+  background-color: #da9100 !important;
+  color: #090b12 !important;
+  border-color: #b87900 !important;
+  box-shadow: 0 8px 22px rgba(18, 20, 29, 0.16);
+}
+
+/* ── 2. Sticky Navigation Bar (`Navigation.tsx`) ───────────────────────── */
+html[data-theme='light'] .navbar.bg-dark {
+  background-color: rgba(250, 247, 240, 0.94) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(144, 98, 66, 0.2);
+  opacity: 0.98;
+}
+
+html[data-theme='light'] .navbar .navbar-nav .nav-link,
+html[data-theme='light'] .navbar .navbar-nav .nav-link.text-light {
+  color: #1c202e !important;
+}
+
+html[data-theme='light'] .navbar .navbar-nav .nav-link:hover,
+html[data-theme='light'] .navbar .navbar-nav .nav-link.active {
+  color: #8a5800 !important;
+}
+
+html[data-theme='light'] .navbar .navbar-brand.bg-primary {
+  background-color: #da9100 !important;
+}
+
+html[data-theme='light'] .navbar .navbar-brand.bg-primary .text-white {
+  color: #090b12 !important;
+}
+
+html[data-theme='light'] .navbar-dark .navbar-toggler {
+  border-color: rgba(18, 20, 29, 0.25);
+}
+
+html[data-theme='light'] .navbar-dark .navbar-toggler-icon {
+  filter: invert(0.85);
+}
+
+/* ── 3. Home Hero (`Hero.tsx` & `#home`) ───────────────────────────────── */
+/* Replaces dark charcoal bg-desktop.webp / bg-mobile.webp with a light ivory
+   architectural bevel & subtle gold pinstripe geometry matching its motif. */
+html[data-theme='light'] #home {
+  background-color: #f5efe2 !important;
+  background-image:
+    radial-gradient(circle at 18% 22%, rgba(218, 145, 0, 0.13) 0%, transparent 48%),
+    radial-gradient(circle at 84% 72%, rgba(52, 73, 94, 0.08) 0%, transparent 52%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.86) 0%, rgba(243, 236, 221, 0.92) 52%, rgba(233, 223, 203, 0.95) 100%) !important;
+  border-bottom: 1px solid rgba(144, 98, 66, 0.2);
+}
+
+html[data-theme='light'] #home h1.text-white {
+  color: #12141d !important;
+}
+
+html[data-theme='light'] #home .typed-text-output,
+html[data-theme='light'] #home .typing-effect,
+html[data-theme='light'] #home .typing-effect .cursor,
+html[data-theme='light'] .typed-cursor {
+  color: #2c241b !important;
+}
+
+/* ── 4. Home Page Sections (`About`, `Services`, `Skills`, `Projects`, `Articles`, `Footer`) ── */
+html[data-theme='light'] .service-item,
+html[data-theme='light'] .tab-pane {
+  background-color: #ffffff !important;
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(250, 245, 235, 0.94) 100%
+  ) !important;
+  border: 1px solid rgba(144, 98, 66, 0.28) !important;
+  box-shadow: 0 12px 30px rgba(18, 20, 29, 0.06);
+  color: #262936;
+}
+
+html[data-theme='light'] .border-primary {
+  border-color: rgba(144, 98, 66, 0.36) !important;
+}
+
+html[data-theme='light'] #skill .nav-pills .nav-link {
+  color: #1c202e !important;
+}
+
+html[data-theme='light'] #skill .nav-pills .nav-link.active {
+  background: #1e293b !important;
+  color: #ffffff !important;
+}
+
+html[data-theme='light'] #skill .progress {
+  background-color: #e6decb;
+}
+
+html[data-theme='light'] #portfolio-flters li {
+  color: #2c241b;
+}
+
+html[data-theme='light'] #portfolio-flters li:hover,
+html[data-theme='light'] #portfolio-flters li.active {
+  color: #8a5800;
+  border-color: #da9100;
+}
+
+html[data-theme='light'] .portfolio-img {
+  border-color: rgba(144, 98, 66, 0.32);
+  box-shadow: 0 12px 28px rgba(18, 20, 29, 0.08);
+}
+
+html[data-theme='light'] .portfolio-btn .btn-outline-primary {
+  color: #ffc448 !important;
+  border-color: #ffc448 !important;
+  background-color: rgba(13, 15, 23, 0.65) !important;
+}
+
+html[data-theme='light'] .portfolio-btn .btn-outline-primary:hover {
+  color: #090b12 !important;
+  background-color: #ffc448 !important;
+}
+
+html[data-theme='light'] .article-text {
+  color: #463b2e !important;
+}
+
+html[data-theme='light'] #article .article-title {
+  color: #12141d !important;
+}
+
+html[data-theme='light'] #article .text-muted-foreground {
+  color: #5c4d3c;
+}
+
+/* Footer (`Footer.tsx`) */
+html[data-theme='light'] footer.bg-dark {
+  background-color: #efe9dc !important;
+  color: #1e2230 !important;
+  border-top: 1px solid rgba(144, 98, 66, 0.24);
+}
+
+html[data-theme='light'] footer.bg-dark .text-white {
+  color: #1e2230 !important;
+}
+
+html[data-theme='light'] footer.bg-dark a.link-secondary {
+  color: #544535 !important;
+}
+
+html[data-theme='light'] footer.bg-dark a.link-secondary:hover,
+html[data-theme='light'] footer.bg-dark a.text-reset:hover {
+  color: #8a5800 !important;
+}
+
+/* ── 5. Extended Inner-Page System (`/articles`, `/projects`, `/contact`, Detail Pages) ── */
+html[data-theme='light'] .pocms-subpage-shell,
+html[data-theme='light'] .pocms-header-stage,
+html[data-theme='light'] .pocms-inner-main {
+  --pocms-bg-abyss: #f1ead9;
+  --pocms-bg-canvas: #faf7f0;
+  --pocms-surface-1: #ffffff;
+  --pocms-surface-2: #f6f0e3;
+  --pocms-surface-3: #ebe2cf;
+  --pocms-glass-bg: rgba(255, 253, 248, 0.88);
+  --pocms-glass-strong: rgba(250, 246, 238, 0.95);
+
+  --pocms-sand: #544535;
+  --pocms-accent-primary: #8a5800;
+  --pocms-accent-strong: #b87300;
+  --pocms-accent-glow-1: rgba(218, 145, 0, 0.16);
+  --pocms-accent-glow-2: rgba(158, 84, 29, 0.11);
+  --pocms-accent-glow-3: rgba(52, 73, 94, 0.12);
+  --pocms-border-subtle: rgba(18, 20, 29, 0.1);
+  --pocms-border-accent: rgba(184, 115, 0, 0.38);
+  --pocms-border-specular: rgba(184, 115, 0, 0.3);
+  --pocms-text-strong: #12141d;
+  --pocms-text-body: #262936;
+  --pocms-text-muted: #544535;
+  --pocms-text-dim: rgba(18, 20, 29, 0.62);
+  --pocms-shadow-elevated: 0 18px 40px rgba(18, 20, 29, 0.08);
+}
+
+html[data-theme='light'] .pocms-header-bg--blueprint {
+  background-image:
+    linear-gradient(to right, rgba(18, 20, 29, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(18, 20, 29, 0.045) 1px, transparent 1px),
+    linear-gradient(to right, rgba(184, 115, 0, 0.11) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(184, 115, 0, 0.11) 1px, transparent 1px);
+}
+
+html[data-theme='light'] .pocms-header-bg__cover-scrim {
+  background: linear-gradient(
+    180deg,
+    rgba(241, 234, 217, 0.82) 0%,
+    rgba(250, 247, 240, 0.95) 100%
+  );
+}
+
+html[data-theme='light'] .pocms-topbar,
+html[data-theme='light'] .pocms-discovery-dock__secondary {
+  border-color: rgba(18, 20, 29, 0.1);
+}
+
+html[data-theme='light'] .pocms-breadcrumbs__current {
+  color: #12141d;
+}
+
+html[data-theme='light'] .pocms-telemetry-pill,
+html[data-theme='light'] .pocms-utility-btn,
+html[data-theme='light'] .article-page a.pocms-telemetry-pill,
+html[data-theme='light'] .article-page a.pocms-utility-btn {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(18, 20, 29, 0.14);
+  color: #1c202e;
+}
+
+html[data-theme='light'] .pocms-utility-btn:hover,
+html[data-theme='light'] .pocms-utility-btn:focus-visible,
+html[data-theme='light'] .article-page a.pocms-utility-btn:hover,
+html[data-theme='light'] .article-page a.pocms-telemetry-pill:hover {
+  background: rgba(218, 145, 0, 0.14);
+  border-color: rgba(184, 115, 0, 0.45);
+  color: #7c4f00;
+}
+
+html[data-theme='light'] .pocms-utility-btn--copied {
+  background: rgba(22, 163, 74, 0.14);
+  border-color: rgba(22, 163, 74, 0.45);
+  color: #14532d;
+}
+
+html[data-theme='light'] .pocms-badge-subtle {
+  background: rgba(18, 20, 29, 0.06);
+  border-color: rgba(18, 20, 29, 0.14);
+  color: #3d3326;
+}
+
+html[data-theme='light'] .pocms-discovery-dock,
+html[data-theme='light'] .pocms-detail-dock,
+html[data-theme='light'] .pocms-contact-dock {
+  border-color: rgba(144, 98, 66, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 14px 32px rgba(18, 20, 29, 0.07);
+}
+
+html[data-theme='light'] .pocms-search-field__icon {
+  color: rgba(18, 20, 29, 0.5);
+}
+
+html[data-theme='light'] .pocms-search-field__input {
+  background: #ffffff;
+  border-color: rgba(18, 20, 29, 0.18);
+  color: #12141d;
+}
+
+html[data-theme='light'] .pocms-search-field__input::placeholder {
+  color: rgba(18, 20, 29, 0.48);
+}
+
+html[data-theme='light'] .pocms-search-field__kbd {
+  background: #f3ede0;
+  border-color: rgba(18, 20, 29, 0.15);
+  color: #463b2e;
+}
+
+html[data-theme='light'] .pocms-search-field__clear {
+  background: rgba(18, 20, 29, 0.09);
+  color: #12141d;
+}
+
+html[data-theme='light'] .pocms-pill-btn,
+html[data-theme='light'] .pocms-tech-chip,
+html[data-theme='light'] .pocms-jump-chip {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(18, 20, 29, 0.15);
+  color: #262936;
+}
+
+html[data-theme='light'] .pocms-pill-btn:hover,
+html[data-theme='light'] .pocms-tech-chip:hover,
+html[data-theme='light'] .pocms-jump-chip:hover {
+  border-color: rgba(184, 115, 0, 0.5);
+  background: rgba(218, 145, 0, 0.12);
+  color: #12141d;
+}
+
+html[data-theme='light'] .pocms-pill-btn.is-active,
+html[data-theme='light'] .pocms-tech-chip.is-active {
+  background: linear-gradient(135deg, #ffc448 0%, #da9100 100%);
+  border-color: #b87300;
+  color: #090b12;
+}
+
+html[data-theme='light'] .pocms-sort-select {
+  background: #ffffff;
+  border-color: rgba(18, 20, 29, 0.18);
+  color: #12141d;
+}
+
+html[data-theme='light'] .pocms-view-switcher {
+  background: #ebe3d2;
+  border-color: rgba(18, 20, 29, 0.12);
+}
+
+html[data-theme='light'] .pocms-view-switcher__btn {
+  color: #463b2e;
+}
+
+html[data-theme='light'] .pocms-view-switcher__btn:hover {
+  color: #12141d;
+}
+
+html[data-theme='light'] .pocms-view-switcher__btn.is-active {
+  background: #ffffff;
+  color: #7c4f00;
+  box-shadow:
+    0 1px 4px rgba(18, 20, 29, 0.1),
+    inset 0 0 0 1px rgba(184, 115, 0, 0.35);
+}
+
+html[data-theme='light'] .pocms-results-status,
+html[data-theme='light'] .pocms-article-meta-bar,
+html[data-theme='light'] .pocms-spec-cell__label {
+  color: #544535;
+}
+
+html[data-theme='light'] .pocms-spec-cell__value,
+html[data-theme='light'] .pocms-featured-hero__title,
+html[data-theme='light'] .pocms-featured-hero__title a,
+html[data-theme='light'] .article-page .pocms-featured-hero__title a,
+html[data-theme='light'] .pocms-stream-item__title,
+html[data-theme='light'] .pocms-stream-item__title a,
+html[data-theme='light'] .article-page .pocms-stream-item__title a,
+html[data-theme='light'] .pocms-card-title,
+html[data-theme='light'] .pocms-card-title a,
+html[data-theme='light'] .article-page .pocms-card-title a,
+html[data-theme='light'] .pocms-rail-ranked__link,
+html[data-theme='light'] .article-page a.pocms-rail-ranked__link,
+html[data-theme='light'] .pocms-continuation-card__title {
+  color: #12141d;
+}
+
+html[data-theme='light'] .pocms-featured-hero__excerpt,
+html[data-theme='light'] .pocms-stream-item__excerpt,
+html[data-theme='light'] .pocms-card-excerpt {
+  color: #3d4252;
+}
+
+html[data-theme='light'] .pocms-btn-ghost,
+html[data-theme='light'] .article-page a.pocms-btn-ghost {
+  background: rgba(18, 20, 29, 0.04);
+  border-color: rgba(18, 20, 29, 0.18);
+  color: #12141d !important;
+}
+
+html[data-theme='light'] .pocms-btn-ghost:hover,
+html[data-theme='light'] .article-page a.pocms-btn-ghost:hover {
+  background: rgba(218, 145, 0, 0.14);
+  border-color: rgba(184, 115, 0, 0.45);
+  color: #7c4f00 !important;
+}
+
+html[data-theme='light'] .pocms-toc-spy-item a {
+  color: #463b2e;
+}
+
+html[data-theme='light'] .pocms-toc-spy-item a:hover,
+html[data-theme='light'] .pocms-toc-spy-item.is-active a {
+  color: #8a5800;
+}
+
+/* `/contact` & Request-CV Form Controls */
+html[data-theme='light'] .pocms-contact-input,
+html[data-theme='light'] .pocms-contact-select,
+html[data-theme='light'] .pocms-contact-textarea {
+  background: #ffffff;
+  border-color: rgba(18, 20, 29, 0.2);
+  color: #12141d;
+}
+
+html[data-theme='light'] .pocms-contact-select option {
+  background: #ffffff;
+  color: #12141d;
+}
+
+html[data-theme='light'] .pocms-contact-input::placeholder,
+html[data-theme='light'] .pocms-contact-textarea::placeholder {
+  color: rgba(18, 20, 29, 0.44);
+}
+
+html[data-theme='light'] .pocms-contact-input:hover,
+html[data-theme='light'] .pocms-contact-select:hover,
+html[data-theme='light'] .pocms-contact-textarea:hover {
+  border-color: rgba(18, 20, 29, 0.36);
+}
+
+html[data-theme='light'] .pocms-contact-message-block,
+html[data-theme='light'] .pocms-contact-nav-link {
+  background: #f6f0e3;
+  border-color: rgba(18, 20, 29, 0.12);
+  color: #12141d;
+}
+
+html[data-theme='light'] .pocms-contact-alert {
+  background: rgba(220, 38, 38, 0.09);
+  border-color: rgba(220, 38, 38, 0.36);
+  color: #7f1d1d;
+}
+
+html[data-theme='light'] .pocms-contact-success {
+  background: rgba(22, 163, 74, 0.1);
+  border-color: rgba(22, 163, 74, 0.38);
+}
+
+html[data-theme='light'] .pocms-contact-success__title {
+  color: #14532d;
+}
+
+/* ── 6. Article & Case-Study Reading Workspace (`article.css`) ─────────── */
+html[data-theme='light'] .article-page {
+  color: #262936;
+}
+
+html[data-theme='light'] .article-page a {
+  color: #8a5800;
+}
+
+html[data-theme='light'] .article-page a:hover {
+  color: #5c3a00;
+}
+
+html[data-theme='light'] .article-page .article-title,
+html[data-theme='light'] .article-page .article-toc-title,
+html[data-theme='light'] .article-page .article-body h2,
+html[data-theme='light'] .article-page .article-body h3,
+html[data-theme='light'] .article-page .article-body h4,
+html[data-theme='light'] .article-page .rich-callout-title,
+html[data-theme='light'] .article-page .project-meta-value {
+  color: #12141d;
+}
+
+html[data-theme='light'] .article-page .article-excerpt {
+  color: #3d4252;
+}
+
+html[data-theme='light'] .article-page .article-meta,
+html[data-theme='light'] .article-page .rich-media-caption,
+html[data-theme='light'] .article-page .article-gallery__caption,
+html[data-theme='light'] .article-page .project-meta-label,
+html[data-theme='light'] .article-page .articles-hub-count,
+html[data-theme='light'] .article-page .projects-tech-filter-label {
+  color: #544535;
+}
+
+html[data-theme='light'] .article-page .article-cover,
+html[data-theme='light'] .article-page .article-gallery-grid__trigger,
+html[data-theme='light'] .article-page .article-gallery-thumbs__btn {
+  background: #efe9dc;
+  border-color: rgba(18, 20, 29, 0.12);
+  box-shadow: 0 14px 32px rgba(18, 20, 29, 0.09);
+}
+
+html[data-theme='light'] .article-page .article-toc,
+html[data-theme='light'] .article-page .project-meta-grid,
+html[data-theme='light'] .article-page .articles-hub-controls {
+  background: #ffffff;
+  border-color: rgba(144, 98, 66, 0.28);
+}
+
+html[data-theme='light'] .article-page .article-toc-item a {
+  color: #262936;
+}
+
+html[data-theme='light'] .article-page .article-toc-item a:hover {
+  color: #8a5800;
+}
+
+html[data-theme='light'] .article-page .article-body blockquote {
+  background: rgba(218, 145, 0, 0.08);
+  color: #2c241b;
+}
+
+html[data-theme='light'] .article-page .article-body :not(pre) > code {
+  background: #efe8d8;
+  color: #6e3b00;
+}
+
+html[data-theme='light'] .article-page .article-body th {
+  background: rgba(218, 145, 0, 0.14);
+  color: #12141d;
+}
+
+html[data-theme='light'] .article-page .article-body th,
+html[data-theme='light'] .article-page .article-body td,
+html[data-theme='light'] .article-page .article-footer-nav {
+  border-color: rgba(18, 20, 29, 0.15);
+}
+
+html[data-theme='light'] .article-page .rich-callout {
+  background: #ffffff;
+  border-color: rgba(18, 20, 29, 0.14);
+}
+
+html[data-theme='light'] .article-page .rich-callout-info {
+  background: rgba(14, 165, 233, 0.08);
+}
+
+html[data-theme='light'] .article-page .rich-callout-tip {
+  background: rgba(16, 185, 129, 0.08);
+}
+
+html[data-theme='light'] .article-page .rich-callout-warning {
+  background: rgba(218, 145, 0, 0.1);
+}
+
+html[data-theme='light'] .article-page .rich-callout-danger {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+html[data-theme='light'] .article-page .rich-metrics-heading {
+  color: #544535 !important;
+}
+
+html[data-theme='light'] .article-page .rich-metric-card {
+  background: linear-gradient(160deg, #ffffff 0%, #f6f0e3 100%);
+  border-color: rgba(18, 20, 29, 0.12);
+  box-shadow: 0 8px 20px rgba(18, 20, 29, 0.05);
+}
+
+html[data-theme='light'] .article-page .rich-metric-value {
+  color: #12141d;
+}
+
+html[data-theme='light'] .article-page .rich-metric-card--gold .rich-metric-value {
+  color: #8a5800;
+}
+
+html[data-theme='light'] .article-page .rich-metric-card--emerald .rich-metric-value {
+  color: #047857;
+}
+
+html[data-theme='light'] .article-page .rich-metric-card--cyan .rich-metric-value {
+  color: #0369a1;
+}
+
+html[data-theme='light'] .article-page .rich-metric-label {
+  color: #1e2230;
+}
+
+html[data-theme='light'] .article-page .rich-metric-context {
+  color: #544535;
+}
+
+html[data-theme='light'] .article-page .project-tech-pill {
+  background: rgba(218, 145, 0, 0.12);
+  border-color: rgba(144, 98, 66, 0.36);
+  color: #7c4f00;
+}
+
+html[data-theme='light'] .article-page .articles-hub-search {
+  background: #ffffff;
+  border-color: rgba(18, 20, 29, 0.2);
+  color: #12141d;
+}
+
+html[data-theme='light'] .article-page .articles-filter-btn {
+  border-color: rgba(18, 20, 29, 0.2);
+  color: #262936;
+}
+
+html[data-theme='light'] .article-page .articles-filter-btn:hover {
+  border-color: #b87300;
+  color: #8a5800;
+}

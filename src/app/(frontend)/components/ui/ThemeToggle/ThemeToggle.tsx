@@ -2,21 +2,24 @@
 
 import React, { useCallback, useEffect, useSyncExternalStore } from 'react'
 
+import './frontend-light-theme.css'
+import { POCMS_THEME_STORAGE_KEY } from './constants'
 import styles from './ThemeToggle.module.css'
 
 export type ThemeMode = 'light' | 'dark'
 
+export { POCMS_THEME_STORAGE_KEY }
+
 export interface ThemeToggleProps {
   /**
    * Optional controlled theme value. When omitted, `ThemeToggle` manages
-   * state via `useSyncExternalStore` (`localStorage` + `prefers-color-scheme`)
-   * and syncs `document.documentElement.dataset.theme`.
+   * state via `useSyncExternalStore` (`localStorage` persistence) and syncs
+   * `document.documentElement.dataset.theme`.
    */
   theme?: ThemeMode
   /**
-   * Initial fallback theme rendered during SSR and when no persisted or OS
-   * preference overrides it. Defaults to `'dark'` to match PoCMS's obsidian
-   * canvas (`#0d0f17`).
+   * Initial fallback theme rendered during SSR and when no persisted preference
+   * overrides it. Defaults to `'dark'` to preserve PoCMS's signature obsidian view.
    */
   defaultTheme?: ThemeMode
   /**
@@ -34,15 +37,27 @@ export interface ThemeToggleProps {
    */
   syncDocumentAttribute?: boolean
   /**
+   * When `true` and no explicit `localStorage` choice exists, follow OS
+   * `prefers-color-scheme`. Defaults to `false` so Dark mode remains the
+   * deterministic default until toggled by the visitor.
+   * @default false
+   */
+  followSystemPreference?: boolean
+  /**
    * Show the inline `"Dark"` / `"Light"` editorial pill label beside the switch track.
    * @default false
    */
   showLabel?: boolean
   /**
-   * Visual scale preset: `'md'` for discovery docks / topbars, `'sm'` for dense navbars.
+   * Visual scale preset: `'md'` for floating/discovery docks, `'sm'` for dense navbars.
    * @default 'md'
    */
   size?: 'sm' | 'md'
+  /**
+   * Render inside the fixed bottom-left floating corner dock.
+   * @default false
+   */
+  floating?: boolean
   /**
    * Optional extra class name applied to the outer wrapper.
    */
@@ -95,7 +110,11 @@ function applyDocumentTheme(mode: ThemeMode) {
   root.style.colorScheme = mode
 }
 
-function readClientThemeSnapshot(storageKey: string | null, fallback: ThemeMode): ThemeMode {
+function readClientThemeSnapshot(
+  storageKey: string | null,
+  fallback: ThemeMode,
+  followSystemPreference: boolean,
+): ThemeMode {
   if (typeof window === 'undefined') return fallback
 
   if (storageKey) {
@@ -118,7 +137,7 @@ function readClientThemeSnapshot(storageKey: string | null, fallback: ThemeMode)
     return rootAttr
   }
 
-  if (typeof window.matchMedia === 'function') {
+  if (followSystemPreference && typeof window.matchMedia === 'function') {
     if (window.matchMedia('(prefers-color-scheme: light)').matches) {
       return 'light'
     }
@@ -148,24 +167,25 @@ function subscribeToThemeStore(onStoreChange: () => void): () => void {
 
 /**
  * Decoupled Light/Dark theme switch tailored to the PoCMS Obsidian & Solar-Gold
- * design language. Self-contained via CSS Modules + React 19 `useSyncExternalStore`
- * with zero global style side effects or context provider boilerplate.
+ * design language. Self-contained via CSS Modules + React 19 `useSyncExternalStore`.
  */
 export function ThemeToggle({
   theme: controlledTheme,
   defaultTheme = 'dark',
   onThemeChange,
-  storageKey = 'pocms-theme',
+  storageKey = POCMS_THEME_STORAGE_KEY,
   syncDocumentAttribute = true,
+  followSystemPreference = false,
   showLabel = false,
   size = 'md',
+  floating = false,
   className,
 }: ThemeToggleProps) {
   const isControlled = controlledTheme !== undefined
 
   const getClientSnapshot = useCallback(
-    () => readClientThemeSnapshot(storageKey, defaultTheme),
-    [defaultTheme, storageKey],
+    () => readClientThemeSnapshot(storageKey, defaultTheme, followSystemPreference),
+    [defaultTheme, followSystemPreference, storageKey],
   )
   const getServerSnapshot = useCallback((): ThemeMode => defaultTheme, [defaultTheme])
 
@@ -212,6 +232,7 @@ export function ThemeToggle({
     styles.wrapper,
     isDark ? styles.isDark : styles.isLight,
     size === 'sm' ? styles.sizeSm : '',
+    floating ? styles.floatingDock : '',
     className ?? '',
   ]
     .filter(Boolean)
@@ -224,7 +245,7 @@ export function ThemeToggle({
     .filter(Boolean)
     .join(' ')
 
-  return (
+  const content = (
     <div className={wrapperClasses} data-theme-toggle-state={activeTheme}>
       <button
         type="button"
@@ -249,17 +270,30 @@ export function ThemeToggle({
         </span>
 
         {showLabel ? (
-          <span className={styles.labelGroup}>
+          <span className={styles.labelGroup} aria-hidden="true">
             <span className={styles.labelText}>{isDark ? 'Dark' : 'Light'}</span>
           </span>
         ) : null}
-
-        <span className={styles.srOnly} aria-live="polite">
-          {isDark ? 'Dark theme active' : 'Light theme active'}
-        </span>
       </button>
+
+      <span className={styles.srOnly} aria-live="polite">
+        {isDark ? 'Dark theme active' : 'Light theme active'}
+      </span>
     </div>
   )
+
+  if (floating) {
+    return <aside aria-label="Color theme">{content}</aside>
+  }
+
+  return content
+}
+
+/**
+ * Pre-configured floating bottom-left theme pill mounted inside `SiteChrome`.
+ */
+export function FloatingThemeToggle() {
+  return <ThemeToggle floating showLabel />
 }
 
 export default ThemeToggle
