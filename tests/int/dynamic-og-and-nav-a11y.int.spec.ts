@@ -1,14 +1,14 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
 import { describe, expect, it } from 'vitest'
 
 import { Navigation } from '@/app/(frontend)/components/layout/Navigation'
 
 describe('Front-End Accessibility & Infrastructure Hygiene', () => {
-  it('exposes accessible ARIA attributes on Navigation .navbar-toggler and toggles #navbarCollapse on click', async () => {
+  it('exposes accessible ARIA attributes on Navigation .navbar-toggler and toggles #navbarCollapse on click', () => {
     const { container } = render(React.createElement(Navigation))
 
     const toggler = screen.getByRole('button', { name: 'Toggle navigation' })
@@ -17,21 +17,15 @@ describe('Front-End Accessibility & Infrastructure Hygiene', () => {
 
     const collapseEl = container.querySelector('#navbarCollapse')
     expect(collapseEl).not.toBeNull()
+    expect(collapseEl?.classList.contains('show')).toBe(false)
 
     fireEvent.click(toggler)
-    await waitFor(() => {
-      expect(toggler.getAttribute('aria-expanded')).toBe('true')
-    })
-
-    // Simulate Bootstrap Collapse completing its show transition so classList stays aligned in jsdom
-    collapseEl?.classList.add('show')
-    fireEvent(collapseEl!, new Event('shown.bs.collapse'))
     expect(toggler.getAttribute('aria-expanded')).toBe('true')
+    expect(collapseEl?.classList.contains('show')).toBe(true)
 
     fireEvent.click(toggler)
-    await waitFor(() => {
-      expect(toggler.getAttribute('aria-expanded')).toBe('false')
-    })
+    expect(toggler.getAttribute('aria-expanded')).toBe('false')
+    expect(collapseEl?.classList.contains('show')).toBe(false)
   })
 
   it('keeps CI workflow, Docker Postgres 16 + standalone config, Open_Sans weights, and removed starter route aligned', () => {

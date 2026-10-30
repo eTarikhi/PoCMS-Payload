@@ -26,7 +26,7 @@ env:
 jobs:
   validate:
     name: Typecheck, Lint, Integration & Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     steps:
@@ -72,7 +72,7 @@ jobs:
 
   e2e:
     name: Playwright E2E & Accessibility
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
 
     services:

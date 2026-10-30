@@ -6,9 +6,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { DEFAULT_NAVIGATION } from '@/app/(frontend)/lib/mappers'
 import type { NavigationContent, NavigationItem } from '@/app/(frontend)/lib/types'
 
-// Ported from vTarikhi/components/navigation.jsx. The original called require('bootstrap') inside the handler.
-// The Bootstrap module is loaded dynamically so module-scope evaluation never touches `document` during SSR.
-
 export type NavigationProps = {
   navigation?: NavigationContent
 }
@@ -48,46 +45,12 @@ export function Navigation({ navigation = DEFAULT_NAVIGATION }: NavigationProps)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Keep `aria-expanded` synchronized with Bootstrap Collapse transitions.
-  useEffect(() => {
-    const navbarCollapse = document.getElementById('navbarCollapse')
-    if (!navbarCollapse) return
-
-    const handleShown = () => setIsExpanded(true)
-    const handleHidden = () => setIsExpanded(false)
-
-    navbarCollapse.addEventListener('shown.bs.collapse', handleShown)
-    navbarCollapse.addEventListener('hidden.bs.collapse', handleHidden)
-    return () => {
-      navbarCollapse.removeEventListener('shown.bs.collapse', handleShown)
-      navbarCollapse.removeEventListener('hidden.bs.collapse', handleHidden)
-    }
-  }, [])
-
-  const hideNavbarCollapse = useCallback(async () => {
-    const navbarCollapse = document.getElementById('navbarCollapse')
-    if (!navbarCollapse) return
-    try {
-      const { Collapse } = await import('bootstrap')
-      Collapse.getOrCreateInstance(navbarCollapse, { toggle: false }).hide()
-    } catch {
-      navbarCollapse.classList.remove('show')
-    }
+  const hideNavbarCollapse = useCallback(() => {
     setIsExpanded(false)
   }, [])
 
-  const toggleNavbarCollapse = useCallback(async () => {
-    const navbarCollapse = document.getElementById('navbarCollapse')
-    if (!navbarCollapse) return
-    const currentlyOpen = navbarCollapse.classList.contains('show')
-    try {
-      const { Collapse } = await import('bootstrap')
-      Collapse.getOrCreateInstance(navbarCollapse, { toggle: false }).toggle()
-      setIsExpanded(!currentlyOpen)
-    } catch {
-      navbarCollapse.classList.toggle('show', !currentlyOpen)
-      setIsExpanded(!currentlyOpen)
-    }
+  const toggleNavbarCollapse = useCallback(() => {
+    setIsExpanded((prev) => !prev)
   }, [])
 
   const leftItems = navigation.items.filter((item) => item.position === 'left')
@@ -113,7 +76,7 @@ export function Navigation({ navigation = DEFAULT_NAVIGATION }: NavigationProps)
         <span className="navbar-toggler-icon"></span>
       </button>
       <div
-        className="collapse navbar-collapse justify-content-between py-4 py-lg-0"
+        className={`collapse navbar-collapse justify-content-between py-4 py-lg-0${isExpanded ? ' show' : ''}`}
         id="navbarCollapse"
       >
         <div className="navbar-nav ms-auto py-0">
