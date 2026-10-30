@@ -295,7 +295,7 @@ export function ProjectsArchive({
                       <p className="pocms-section-kicker__title">Selected Portfolio & Builds</p>
                     </div>
                   )}
-                  <div className="row gy-3 gx-4 align-items-stretch">
+                  <div className="row g-4 align-items-stretch">
                     {showcaseBuilds.map((project) => (
                       <ArchiveProjectCard
                         key={project.id}
@@ -303,6 +303,7 @@ export function ProjectsArchive({
                         caseStudyLabel={labels.caseStudyLabel}
                         liveProjectLabel={labels.liveProjectLabel}
                         onSelectTech={(selected) => setTech(selected)}
+                        panOnHover
                       />
                     ))}
                   </div>
@@ -322,7 +323,7 @@ export function ProjectsArchive({
               ))}
             </div>
           ) : (
-            <div className="row gy-3 gx-4 align-items-stretch" data-archive-view="grid">
+            <div className="row g-4 align-items-stretch" data-archive-view="grid">
               {filtered.map((project) => (
                 <ArchiveProjectCard
                   key={project.id}
@@ -363,7 +364,7 @@ function ShowcaseCaseStudyCard({
   ].filter((part): part is string => Boolean(part))
 
   return (
-    <div className="pocms-showcase-card" data-case-study="true">
+    <div className="pocms-showcase-card pocms-showcase-card--pan-preview" data-case-study="true">
       <Link
         href={primaryHref}
         {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
@@ -375,8 +376,8 @@ function ShowcaseCaseStudyCard({
           blurDataURL={project.blurDataURL}
           fallbackSrc="/placeholder.svg"
           sizes="(max-width: 992px) 100vw, 50vw"
-          width={640}
-          height={360}
+          width={800}
+          height={520}
           className="img-fluid"
         />
         {project.mediaMode === 'gallery' && (project.galleryCount ?? 0) > 1 ? (
@@ -394,20 +395,17 @@ function ShowcaseCaseStudyCard({
           ))}
         </div>
 
-        <h2 className="h4 fw-bold text-white my-2">
+        <h2 className="pocms-card-title">
           <Link
             href={primaryHref}
             {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
-            className="text-white text-decoration-none"
           >
             {project.title}
           </Link>
         </h2>
 
         {project.excerpt && (
-          <p className="text-white-50 mb-3" style={{ fontSize: '0.96rem', lineHeight: 1.62 }}>
-            {project.excerpt}
-          </p>
+          <p className="pocms-card-excerpt">{project.excerpt}</p>
         )}
 
         <div className="mt-auto pt-2">
@@ -427,7 +425,7 @@ function ShowcaseCaseStudyCard({
             </div>
           )}
 
-          <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 pt-2 border-top border-secondary border-opacity-25">
+          <div className="pocms-card-footer mt-0">
             <span className="small text-white-50">{metaParts.join(' • ')}</span>
             <div className="d-flex flex-wrap gap-2">
               {project.pagePath && (
@@ -537,17 +535,21 @@ function ArchiveProjectCard({
   caseStudyLabel,
   liveProjectLabel,
   onSelectTech,
+  panOnHover = false,
 }: {
   project: ProjectItem
   caseStudyLabel: string
   liveProjectLabel: string
   onSelectTech: (tech: string) => void
+  panOnHover?: boolean
 }) {
   const hasExternalUrl =
     Boolean(project.url) && project.url !== '#' && !project.url.startsWith('/projects/')
   const primaryHref = project.pagePath ?? (project.url || '#')
   const isInternal = primaryHref.startsWith('/')
-  const coverSrc = project.thumbnailUrl || project.imageUrl
+  const coverSrc = panOnHover
+    ? project.imageUrl || project.thumbnailUrl
+    : project.thumbnailUrl || project.imageUrl
   const metaParts = [
     project.role,
     project.year,
@@ -559,81 +561,96 @@ function ArchiveProjectCard({
       className="col-lg-4 col-md-6"
       data-case-study={project.pagePath ? 'true' : undefined}
     >
-      <div className="service-item rounded h-100 p-1 my-2 d-flex flex-column">
+      <div
+        className={`pocms-showcase-card pocms-showcase-card--grid${
+          panOnHover ? ' pocms-showcase-card--pan-preview' : ''
+        }`}
+      >
         <Link
           href={primaryHref}
           {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
-          className="text-decoration-none"
+          className="pocms-showcase-card__media text-decoration-none position-relative"
         >
-          <div className="rounded overflow-hidden position-relative">
-            <CoverImage
-              src={coverSrc}
-              alt={project.title}
-              blurDataURL={project.blurDataURL}
-              fallbackSrc="/placeholder.svg"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              width={400}
-              height={255}
-              className="img-fluid"
-            />
-            {project.mediaMode === 'gallery' && (project.galleryCount ?? 0) > 1 ? (
-              <span className="pocms-gallery-pill">⧉ {project.galleryCount} photos</span>
-            ) : null}
-          </div>
-          <div className="p-2">
-            <div className="d-flex flex-wrap align-items-center gap-1 mb-2">
-              {project.pagePath ? (
-                <span className="featured-badge">{caseStudyLabel}</span>
-              ) : null}
-              {project.categories.map((cat) => (
-                <span key={cat} className="project-tech-pill">
-                  {CATEGORY_LABELS[cat] ?? cat}
-                </span>
-              ))}
-            </div>
-            <h2 className="h5 my-2 article-title text-white">{project.title}</h2>
-            {project.excerpt ? <p className="article-text">{project.excerpt}</p> : null}
-          </div>
+          <CoverImage
+            src={coverSrc}
+            alt={project.title}
+            blurDataURL={project.blurDataURL}
+            fallbackSrc="/placeholder.svg"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            width={560}
+            height={350}
+            className="img-fluid"
+          />
+          {project.mediaMode === 'gallery' && (project.galleryCount ?? 0) > 1 ? (
+            <span className="pocms-gallery-pill">⧉ {project.galleryCount} photos</span>
+          ) : null}
         </Link>
 
-        <div className="px-4 pb-4 mt-auto">
-          {project.techStack && project.techStack.length > 0 ? (
-            <div className="d-flex flex-wrap gap-1 mb-2">
-              {project.techStack.map((techName) => (
-                <button
-                  key={techName}
-                  type="button"
-                  className="project-tech-pill border-0 bg-transparent"
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => onSelectTech(techName)}
-                  title={`Filter by ${techName}`}
-                >
-                  {techName}
-                </button>
-              ))}
-            </div>
-          ) : null}
-
-          {metaParts.length > 0 ? (
-            <p className="text-xs text-muted-foreground mb-1">{metaParts.join(' • ')}</p>
-          ) : null}
-
-          <div className="d-flex flex-wrap gap-3">
+        <div className="pocms-showcase-card__body">
+          <div className="d-flex flex-wrap align-items-center gap-2 mb-1">
             {project.pagePath ? (
-              <Link href={project.pagePath} className="small">
-                {caseStudyLabel} →
-              </Link>
+              <span className="pocms-eyebrow">{caseStudyLabel}</span>
             ) : null}
-            {hasExternalUrl ? (
-              <a
-                href={project.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="small"
-              >
-                {liveProjectLabel} ↗
-              </a>
+            {project.categories.map((cat) => (
+              <span key={cat} className="pocms-badge-subtle">
+                {CATEGORY_LABELS[cat] ?? cat}
+              </span>
+            ))}
+          </div>
+
+          <h2 className="pocms-card-title">
+            <Link
+              href={primaryHref}
+              {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+            >
+              {project.title}
+            </Link>
+          </h2>
+
+          {project.excerpt ? <p className="pocms-card-excerpt">{project.excerpt}</p> : null}
+
+          <div className="mt-auto pt-1">
+            {project.techStack && project.techStack.length > 0 ? (
+              <div className="d-flex flex-wrap gap-1 mb-3">
+                {project.techStack.map((techName) => (
+                  <button
+                    key={techName}
+                    type="button"
+                    className="pocms-tech-chip"
+                    onClick={() => onSelectTech(techName)}
+                    title={`Filter by ${techName}`}
+                  >
+                    {techName}
+                  </button>
+                ))}
+              </div>
             ) : null}
+
+            <div className="pocms-card-footer mt-0">
+              {metaParts.length > 0 ? (
+                <span className="small text-white-50">{metaParts.join(' • ')}</span>
+              ) : (
+                <span />
+              )}
+
+              <div className="d-flex flex-wrap gap-2">
+                {project.pagePath ? (
+                  <Link href={project.pagePath} className="pocms-btn-gold pocms-btn-sm">
+                    {caseStudyLabel} →
+                  </Link>
+                ) : null}
+                {hasExternalUrl ? (
+                  <a
+                    href={project.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="pocms-btn-ghost pocms-btn-sm"
+                  >
+                    {liveProjectLabel} ↗
+                  </a>
+                ) : null}
+              </div>
+            </div>
           </div>
         </div>
       </div>

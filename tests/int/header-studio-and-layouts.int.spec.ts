@@ -234,10 +234,15 @@ describe('Unified 3-Type Header Studio, Creative Backgrounds & Subpage Layouts',
     const viewGroup = screen.getByRole('group', { name: 'Layout view' })
     fireEvent.click(within(viewGroup).getByRole('button', { name: 'List' }))
     expect(container.querySelector('[data-archive-view="list"]')).not.toBeNull()
+    expect(
+      container.querySelectorAll('[data-archive-view="list"] .pocms-btn-gold').length,
+    ).toBeGreaterThan(0)
 
     fireEvent.click(within(viewGroup).getByRole('button', { name: 'Grid' }))
     expect(container.querySelector('[data-archive-view="grid"]')).not.toBeNull()
     expect(container.querySelectorAll('article.col-lg-4')).toHaveLength(3)
+    expect(container.querySelectorAll('.pocms-showcase-card--grid')).toHaveLength(3)
+    expect(container.querySelectorAll('h2.pocms-card-title')).toHaveLength(3)
   })
 
   it('renders /projects Type 2 Header + Showcase layout (Case Studies Spotlight + Portfolio Builds) and Index table', () => {
@@ -282,13 +287,19 @@ describe('Unified 3-Type Header Studio, Creative Backgrounds & Subpage Layouts',
 
     expect(container.querySelector('[data-bg-preset="blueprint-spotlight"]')).not.toBeNull()
     expect(container.querySelector('[data-archive-view="showcase"]')).not.toBeNull()
+    expect(container.querySelectorAll('.pocms-showcase-card--pan-preview')).toHaveLength(2)
     expect(
       screen.getByRole('region', { name: 'Featured engineering case studies' }),
     ).toBeTruthy()
     expect(screen.getByRole('region', { name: 'Portfolio builds' })).toBeTruthy()
 
-    // Switch to Architectural Index view
+    // Switch to Grid view -> centered cards without hover vertical pan
     const viewGroup = screen.getByRole('group', { name: 'Layout view' })
+    fireEvent.click(within(viewGroup).getByRole('button', { name: 'Grid' }))
+    expect(container.querySelectorAll('.pocms-showcase-card--grid')).toHaveLength(2)
+    expect(container.querySelectorAll('.pocms-showcase-card--pan-preview')).toHaveLength(0)
+
+    // Switch to Architectural Index view
     fireEvent.click(within(viewGroup).getByRole('button', { name: 'Index' }))
     expect(container.querySelector('[data-archive-view="list"]')).not.toBeNull()
     expect(container.querySelectorAll('.pocms-index-row')).toHaveLength(2)

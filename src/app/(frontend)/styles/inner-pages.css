@@ -318,7 +318,9 @@
 }
 
 .pocms-telemetry-pill,
-.pocms-utility-btn {
+.pocms-utility-btn,
+.article-page a.pocms-telemetry-pill,
+.article-page a.pocms-utility-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.42rem;
@@ -329,7 +331,7 @@
   letter-spacing: 0.02em;
   background: rgba(255, 255, 255, 0.045);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.82);
+  color: rgba(255, 255, 255, 0.86);
   text-decoration: none;
   transition:
     border-color 0.16s ease,
@@ -348,7 +350,10 @@ button.pocms-utility-btn {
 
 .pocms-utility-btn:hover,
 .pocms-utility-btn:focus-visible,
-a.pocms-telemetry-pill:hover {
+a.pocms-telemetry-pill:hover,
+.article-page a.pocms-utility-btn:hover,
+.article-page a.pocms-utility-btn:focus-visible,
+.article-page a.pocms-telemetry-pill:hover {
   border-color: var(--pocms-border-accent);
   background: rgba(218, 145, 0, 0.14);
   color: var(--pocms-accent-primary);
@@ -783,46 +788,67 @@ a.pocms-tech-chip:hover {
   gap: 0.55rem;
 }
 
-.pocms-btn-gold {
+.pocms-btn-gold,
+.article-page a.pocms-btn-gold {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.42rem;
   padding: 0.5rem 1.05rem;
   border-radius: 999px;
   font-size: 0.85rem;
   font-weight: 700;
-  color: #090b12;
+  line-height: 1.25;
+  color: #090b12 !important;
   background: linear-gradient(135deg, var(--pocms-amber) 0%, var(--pocms-gold) 100%);
   border: 1px solid var(--pocms-amber);
-  text-decoration: none;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  text-decoration: none !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
 }
 
-.pocms-btn-gold:hover {
-  color: #090b12;
+.pocms-btn-gold:hover,
+.pocms-btn-gold:focus-visible,
+.article-page a.pocms-btn-gold:hover,
+.article-page a.pocms-btn-gold:focus-visible {
+  color: #090b12 !important;
+  text-decoration: none !important;
+  filter: brightness(1.05);
   transform: translateY(-1px);
-  box-shadow: 0 8px 22px rgba(218, 145, 0, 0.34);
+  box-shadow: 0 8px 22px rgba(218, 145, 0, 0.36);
 }
 
-.pocms-btn-ghost {
+.pocms-btn-ghost,
+.article-page a.pocms-btn-ghost {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.42rem;
   padding: 0.48rem 0.98rem;
   border-radius: 999px;
   font-size: 0.84rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.86);
+  line-height: 1.25;
+  color: rgba(255, 255, 255, 0.9) !important;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  text-decoration: none !important;
   transition: all 0.15s ease;
 }
 
-.pocms-btn-ghost:hover {
-  color: var(--pocms-accent-primary);
+.pocms-btn-ghost:hover,
+.pocms-btn-ghost:focus-visible,
+.article-page a.pocms-btn-ghost:hover,
+.article-page a.pocms-btn-ghost:focus-visible {
+  color: var(--pocms-accent-primary) !important;
   border-color: var(--pocms-border-accent);
-  background: rgba(218, 145, 0, 0.1);
+  background: rgba(218, 145, 0, 0.12);
+  text-decoration: none !important;
+}
+
+.pocms-btn-sm,
+.article-page a.pocms-btn-sm {
+  padding: 0.4rem 0.88rem;
+  font-size: 0.8rem;
 }
 
 /* ── Main Content Surface (/articles, /projects, and detail pages) ───── */
@@ -910,15 +936,19 @@ a.pocms-tech-chip:hover {
   font-size: clamp(1.45rem, 2.2vw, 1.95rem);
   font-weight: 800;
   line-height: 1.25;
+  color: #fff;
   margin: 0.65rem 0 0.8rem;
 }
 
-.pocms-featured-hero__title a {
+.pocms-featured-hero__title a,
+.article-page .pocms-featured-hero__title a {
   color: #fff;
   text-decoration: none;
+  transition: color 0.16s ease;
 }
 
-.pocms-featured-hero__title a:hover {
+.pocms-featured-hero__title a:hover,
+.article-page .pocms-featured-hero__title a:hover {
   color: var(--pocms-accent-primary);
 }
 
@@ -974,18 +1004,22 @@ a.pocms-tech-chip:hover {
 }
 
 .pocms-stream-item__title {
-  font-size: 1.2rem;
+  font-size: 1.22rem;
   font-weight: 700;
   line-height: 1.35;
+  color: #fff;
   margin: 0 0 0.45rem;
 }
 
-.pocms-stream-item__title a {
+.pocms-stream-item__title a,
+.article-page .pocms-stream-item__title a {
   color: #fff;
   text-decoration: none;
+  transition: color 0.16s ease;
 }
 
-.pocms-stream-item__title a:hover {
+.pocms-stream-item__title a:hover,
+.article-page .pocms-stream-item__title a:hover {
   color: var(--pocms-accent-primary);
 }
 
@@ -1064,19 +1098,21 @@ a.pocms-tech-chip:hover {
   padding-top: 0.1rem;
 }
 
-.pocms-rail-ranked__link {
-  color: rgba(255, 255, 255, 0.88);
+.pocms-rail-ranked__link,
+.article-page a.pocms-rail-ranked__link {
+  color: rgba(255, 255, 255, 0.9);
   font-size: 0.9rem;
   font-weight: 600;
   line-height: 1.4;
   text-decoration: none;
 }
 
-.pocms-rail-ranked__link:hover {
+.pocms-rail-ranked__link:hover,
+.article-page a.pocms-rail-ranked__link:hover {
   color: var(--pocms-accent-primary);
 }
 
-/* ── /projects Showcase & Architectural Index List ───────────────────── */
+/* ── /projects & /articles Showcase + Grid Cards & Architectural Index ── */
 .pocms-showcase-card {
   display: flex;
   flex-direction: column;
@@ -1086,26 +1122,62 @@ a.pocms-tech-chip:hover {
   background: linear-gradient(165deg, var(--pocms-surface-2) 0%, var(--pocms-surface-1) 100%);
   border: 1px solid var(--pocms-border-accent);
   box-shadow: 0 16px 38px rgba(4, 6, 14, 0.4);
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .pocms-showcase-card:hover {
   transform: translateY(-3px);
   border-color: var(--pocms-amber);
+  box-shadow: 0 20px 44px rgba(4, 6, 14, 0.52);
 }
 
 .pocms-showcase-card__media {
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   aspect-ratio: 16 / 9;
   background: #080a11;
   overflow: hidden;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.pocms-showcase-card--grid .pocms-showcase-card__media {
+  aspect-ratio: 16 / 10;
 }
 
 .pocms-showcase-card__media img {
   width: 100%;
   height: 100%;
+  margin: 0 auto;
   object-fit: cover;
+  object-position: center center;
   display: block;
+  transition: transform 0.4s ease;
+}
+
+.pocms-showcase-card--grid:hover .pocms-showcase-card__media img {
+  transform: scale(1.03);
+}
+
+/* Showcase View: show top ("upside") of tall project screenshots & pan smoothly on hover */
+.pocms-showcase-card--pan-preview .pocms-showcase-card__media img {
+  object-position: 50% 0%;
+  transition:
+    object-position 3.4s cubic-bezier(0.25, 0.1, 0.25, 1),
+    transform 0.35s ease;
+}
+
+.pocms-showcase-card--pan-preview:hover .pocms-showcase-card__media img,
+.pocms-showcase-card--pan-preview:focus-within .pocms-showcase-card__media img {
+  object-position: 50% 100%;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pocms-showcase-card--pan-preview .pocms-showcase-card__media img {
+    transition: none;
+  }
 }
 
 .pocms-showcase-card__body {
@@ -1113,6 +1185,57 @@ a.pocms-tech-chip:hover {
   display: flex;
   flex-direction: column;
   flex: 1;
+}
+
+.pocms-showcase-card--grid .pocms-showcase-card__body {
+  padding: 1.25rem 1.35rem 1.35rem;
+}
+
+.pocms-card-title {
+  font-size: 1.18rem;
+  font-weight: 700;
+  line-height: 1.36;
+  letter-spacing: -0.01em;
+  color: #fff;
+  margin: 0.25rem 0 0.55rem;
+}
+
+.pocms-showcase-card:not(.pocms-showcase-card--grid) .pocms-card-title {
+  font-size: 1.32rem;
+}
+
+.pocms-card-title a,
+.article-page .pocms-card-title a {
+  color: #fff;
+  text-decoration: none;
+  transition: color 0.16s ease;
+}
+
+.pocms-card-title a:hover,
+.article-page .pocms-card-title a:hover {
+  color: var(--pocms-accent-primary);
+}
+
+.pocms-card-excerpt {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  margin: 0 0 1rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pocms-card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem 0.85rem;
+  margin-top: auto;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .pocms-index-table {

@@ -320,7 +320,7 @@ export function ArticlesArchive({
               ))}
             </div>
           ) : (
-            <div className="row gy-3 gx-4 align-items-stretch" data-archive-view="grid">
+            <div className="row g-4 align-items-stretch" data-archive-view="grid">
               {filtered.map((article) => (
                 <ArchiveArticleCard
                   key={article.id}
@@ -478,9 +478,9 @@ function EditorialStreamRow({
 
         <p className="pocms-stream-item__excerpt">{article.excerpt}</p>
 
-        <div className="d-flex flex-wrap gap-3 align-items-center">
+        <div className="d-flex flex-wrap gap-2 align-items-center pt-1">
           {article.pagePath ? (
-            <Link href={article.pagePath} className="small fw-semibold">
+            <Link href={article.pagePath} className="pocms-btn-gold pocms-btn-sm">
               {readOnSiteLabel} →
             </Link>
           ) : article.link ? (
@@ -488,7 +488,7 @@ function EditorialStreamRow({
               href={article.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="small fw-semibold"
+              className="pocms-btn-gold pocms-btn-sm"
             >
               Read external ↗
             </a>
@@ -498,7 +498,7 @@ function EditorialStreamRow({
               href={article.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="small text-white-50"
+              className="pocms-btn-ghost pocms-btn-sm"
             >
               External ↗
             </a>
@@ -546,57 +546,80 @@ function ArchiveArticleCard({
       className="col-lg-4 col-md-6"
       data-featured={article.featured ? 'true' : undefined}
     >
-      <div className="service-item rounded h-100 p-1 my-2 d-flex flex-column">
-        <Link
-          href={primaryHref}
-          {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
-          className="text-decoration-none"
-        >
-          {hasMedia ? (
-            <div className="rounded overflow-hidden position-relative">
-              <CoverImage
-                src={article.imageUrl}
-                alt={article.title}
-                blurDataURL={article.blurDataURL}
-                fallbackSrc="/placeholder.svg"
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                width={400}
-                height={255}
-                className="img-fluid"
-              />
-              {article.mediaMode === 'gallery' && (article.galleryCount ?? 0) > 1 ? (
-                <span className="pocms-gallery-pill">⧉ {article.galleryCount} photos</span>
+      <div className="pocms-showcase-card pocms-showcase-card--grid">
+        {hasMedia ? (
+          <Link
+            href={primaryHref}
+            {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+            className="pocms-showcase-card__media text-decoration-none"
+          >
+            <CoverImage
+              src={article.imageUrl}
+              alt={article.title}
+              blurDataURL={article.blurDataURL}
+              fallbackSrc="/placeholder.svg"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              width={560}
+              height={350}
+              className="img-fluid"
+            />
+            {article.mediaMode === 'gallery' && (article.galleryCount ?? 0) > 1 ? (
+              <span className="pocms-gallery-pill">⧉ {article.galleryCount} photos</span>
+            ) : null}
+          </Link>
+        ) : null}
+
+        <div className="pocms-showcase-card__body">
+          <div className="d-flex flex-wrap align-items-center gap-2 mb-1">
+            {article.featured ? (
+              <span className="pocms-eyebrow">{featuredBadgeLabel}</span>
+            ) : null}
+            <span className="pocms-badge-subtle">
+              {article.pagePath ? 'Full On-Site Article' : 'External Note'}
+            </span>
+          </div>
+
+          <h2 className="pocms-card-title">
+            <Link
+              href={primaryHref}
+              {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+            >
+              {article.title}
+            </Link>
+          </h2>
+
+          <p className="pocms-card-excerpt">{article.excerpt}</p>
+
+          <div className="pocms-card-footer">
+            <span className="small text-white-50">
+              {article.author} • {article.readTime} read
+            </span>
+            <div className="d-flex flex-wrap gap-2">
+              {article.pagePath ? (
+                <Link href={article.pagePath} className="pocms-btn-gold pocms-btn-sm">
+                  {readOnSiteLabel} →
+                </Link>
+              ) : article.link ? (
+                <a
+                  href={article.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="pocms-btn-gold pocms-btn-sm"
+                >
+                  Read external ↗
+                </a>
+              ) : null}
+              {article.link && article.pagePath ? (
+                <a
+                  href={article.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="pocms-btn-ghost pocms-btn-sm"
+                >
+                  External ↗
+                </a>
               ) : null}
             </div>
-          ) : null}
-          <div className="p-2">
-            {article.featured ? (
-              <span className="featured-badge mb-2">{featuredBadgeLabel}</span>
-            ) : null}
-            <h2 className="h5 my-2 article-title text-white">{article.title}</h2>
-            <p className="article-text">{article.excerpt}</p>
-          </div>
-        </Link>
-        <div className="px-4 pb-4 mt-auto">
-          <p className="text-xs text-muted-foreground mb-1">
-            Issued: {article.author} • {article.readTime} read
-          </p>
-          <div className="d-flex flex-wrap gap-3">
-            {article.pagePath ? (
-              <Link href={article.pagePath} className="small">
-                {readOnSiteLabel}
-              </Link>
-            ) : null}
-            {article.link && article.pagePath ? (
-              <a
-                href={article.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="small"
-              >
-                External ↗
-              </a>
-            ) : null}
           </div>
         </div>
       </div>
