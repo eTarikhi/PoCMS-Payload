@@ -3,12 +3,12 @@
 import React, { useCallback, useEffect, useSyncExternalStore } from 'react'
 
 import './frontend-light-theme.css'
-import { POCMS_THEME_STORAGE_KEY } from './constants'
+import { ENABLE_FLOATING_THEME_TOGGLE, POCMS_THEME_STORAGE_KEY } from './constants'
 import styles from './ThemeToggle.module.css'
 
 export type ThemeMode = 'light' | 'dark'
 
-export { POCMS_THEME_STORAGE_KEY }
+export { ENABLE_FLOATING_THEME_TOGGLE, POCMS_THEME_STORAGE_KEY }
 
 export interface ThemeToggleProps {
   /**
@@ -291,8 +291,24 @@ export function ThemeToggle({
 
 /**
  * Pre-configured floating bottom-left theme pill mounted inside `SiteChrome`.
+ * Hidden while `ENABLE_FLOATING_THEME_TOGGLE` is `false` in `./constants.ts`
+ * (and ensures `data-theme` resets to `'dark'` so visitors are never left in Light mode).
  */
-export function FloatingThemeToggle() {
+export function FloatingThemeToggle({
+  enabled = ENABLE_FLOATING_THEME_TOGGLE,
+}: {
+  enabled?: boolean
+}) {
+  useEffect(() => {
+    if (!enabled) {
+      applyDocumentTheme('dark')
+    }
+  }, [enabled])
+
+  if (!enabled) {
+    return null
+  }
+
   return <ThemeToggle floating showLabel />
 }
 

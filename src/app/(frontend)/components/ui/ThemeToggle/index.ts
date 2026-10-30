@@ -1,4 +1,5 @@
 export {
+  ENABLE_FLOATING_THEME_TOGGLE,
   FloatingThemeToggle,
   POCMS_THEME_STORAGE_KEY,
   ThemeToggle,

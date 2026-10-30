@@ -4,12 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { SiteChrome } from '@/app/(frontend)/components/layout/SiteChrome'
 import {
+  ENABLE_FLOATING_THEME_TOGGLE,
   FloatingThemeToggle,
   ThemeInitScript,
   ThemeToggle,
 } from '@/app/(frontend)/components/ui/ThemeToggle'
 
-describe('Decoupled & Mounted ThemeToggle UI Component', () => {
+describe('Decoupled & Feature-Flagged ThemeToggle UI Component', () => {
   beforeEach(() => {
     window.localStorage.clear()
     delete document.documentElement.dataset.theme
@@ -44,7 +45,10 @@ describe('Decoupled & Mounted ThemeToggle UI Component', () => {
     expect(document.documentElement.dataset.theme).toBe('dark')
   })
 
-  it('mounts FloatingThemeToggle inside SiteChrome so every frontend page renders the visible corner toggle', () => {
+  it('hides the floating pill in SiteChrome while ENABLE_FLOATING_THEME_TOGGLE is false and resets stale light mode', () => {
+    expect(ENABLE_FLOATING_THEME_TOGGLE).toBe(false)
+    document.documentElement.dataset.theme = 'light'
+
     render(
       React.createElement(
         SiteChrome,
@@ -53,27 +57,23 @@ describe('Decoupled & Mounted ThemeToggle UI Component', () => {
       ),
     )
 
-    const region = screen.getByRole('complementary', { name: /Color theme/i })
-    expect(region).toBeTruthy()
-    const toggle = screen.getByRole('switch')
-    expect(toggle.getAttribute('aria-checked')).toBe('true')
-
-    fireEvent.click(toggle)
-    expect(toggle.getAttribute('aria-checked')).toBe('false')
-    expect(document.documentElement.dataset.theme).toBe('light')
+    expect(screen.queryByRole('switch')).toBeNull()
+    expect(document.documentElement.dataset.theme).toBe('dark')
   })
 
-  it('hydrates from persisted localStorage preference, supports controlled mode, and emits zero-FOUC init script', () => {
+  it('renders FloatingThemeToggle and ThemeInitScript when enabled=true and supports controlled mode', () => {
     const { container: initContainer, unmount: unmountInit } = render(
-      React.createElement(ThemeInitScript),
+      React.createElement(ThemeInitScript, { enabled: true }),
     )
     const scriptTag = initContainer.querySelector('script')
     expect(scriptTag?.innerHTML).toContain('pocms-theme')
     unmountInit()
 
     window.localStorage.setItem('pocms-theme', 'light')
-    const { unmount } = render(React.createElement(FloatingThemeToggle))
+    const { unmount } = render(React.createElement(FloatingThemeToggle, { enabled: true }))
 
+    const region = screen.getByRole('complementary', { name: /Color theme/i })
+    expect(region).toBeTruthy()
     const hydratedSwitch = screen.getByRole('switch')
     expect(hydratedSwitch.getAttribute('aria-checked')).toBe('false')
     expect(document.documentElement.dataset.theme).toBe('light')
