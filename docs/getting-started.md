@@ -75,6 +75,6 @@ Open:
 | `pnpm run seed` | Seed portfolio content, globals, and default forms into PostgreSQL |
 | `pnpm lint` | Run ESLint across the repository |
 | `pnpm run test:int` | Run the Vitest integration & component test suite |
-| `pnpm run test:e2e` | Run Playwright E2E + WCAG accessibility tests |
+| `pnpm run test:e2e` | Install Playwright Chromium (if missing via `pretest:e2e`) and run Playwright E2E + WCAG accessibility tests |
 | `pnpm test` | Run full verification (`tsc --noEmit`, `lint`, `test:int`, `test:e2e`, `playwright --list`) |
 | `pnpm run build` | Build optimized production bundle |

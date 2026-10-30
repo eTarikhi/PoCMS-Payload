@@ -4,19 +4,23 @@ import { login } from '../helpers/login'
 import { cleanupTestUser, seedTestUser, testUser } from '../helpers/seedUser'
 
 test.describe('PoCMS Admin Panel (RBAC, Content, SEO Tabs, Forms, Globals, Inbox & Database)', () => {
-  let context: BrowserContext
+  let context: BrowserContext | undefined
   let page: Page
+  let didSeedUser = false
 
   test.beforeAll(async ({ browser }) => {
-    await seedTestUser()
     context = await browser.newContext()
     page = await context.newPage()
+    await seedTestUser()
+    didSeedUser = true
     await login({ page, user: testUser })
   })
 
   test.afterAll(async () => {
     await context?.close()
-    await cleanupTestUser()
+    if (didSeedUser) {
+      await cleanupTestUser()
+    }
   })
 
   test('renders governed sidebar navigation across Content, Site settings, and Admin groups', async () => {

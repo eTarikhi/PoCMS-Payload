@@ -1,15 +1,24 @@
+import type { Payload } from 'payload'
+
 export const testUser = {
   email: 'dev@payloadcms.com',
   password: 'test-e2e-password-2026',
   name: 'Playwright Admin',
 }
 
-async function resolveTestPayload() {
-  const [{ getPayload }, { default: config }] = await Promise.all([
-    import('payload'),
-    import('../../src/payload.config.js'),
-  ])
-  return getPayload({ config })
+let cachedPayloadPromise: Promise<Payload> | null = null
+
+async function resolveTestPayload(): Promise<Payload> {
+  if (!cachedPayloadPromise) {
+    cachedPayloadPromise = (async () => {
+      const [{ getPayload }, { default: config }] = await Promise.all([
+        import('payload'),
+        import('../../src/payload.config.js'),
+      ])
+      return getPayload({ config })
+    })()
+  }
+  return cachedPayloadPromise
 }
 
 /**
@@ -87,33 +96,42 @@ export async function seedTestUser(): Promise<void> {
  * `keepAnAdministratorOnDelete` errors on single-admin test databases.
  */
 export async function cleanupTestUser(): Promise<void> {
+  if (!cachedPayloadPromise) return
   const payload = await resolveTestPayload()
 
-  const allUsers = await payload.find({
-    collection: 'users',
-    pagination: false,
-    depth: 1,
-    overrideAccess: true,
-  })
+  try {
+    const allUsers = await payload.find({
+      collection: 'users',
+      pagination: false,
+      depth: 1,
+      overrideAccess: true,
+    })
 
-  const otherAdmins = allUsers.docs.filter((doc) => {
-    if (doc.email === testUser.email) return false
-    const roles = Array.isArray(doc.roles) ? doc.roles : []
-    return roles.some(
-      (role) => typeof role === 'object' && role !== null && 'fullAccess' in role && role.fullAccess,
-    )
-  })
+    const otherAdmins = allUsers.docs.filter((doc) => {
+      if (doc.email === testUser.email) return false
+      const roles = Array.isArray(doc.roles) ? doc.roles : []
+      return roles.some(
+        (role) =>
+          typeof role === 'object' && role !== null && 'fullAccess' in role && role.fullAccess,
+      )
+    })
 
-  if (otherAdmins.length === 0) return
+    if (otherAdmins.length === 0) return
 
-  await payload.delete({
-    collection: 'users',
-    where: {
-      email: {
-        equals: testUser.email,
+    await payload.delete({
+      collection: 'users',
+      where: {
+        email: {
+          equals: testUser.email,
+        },
       },
-    },
-    overrideAccess: true,
-    context: { skipAuditLog: true },
-  })
+      overrideAccess: true,
+      context: { skipAuditLog: true },
+    })
+  } finally {
+    cachedPayloadPromise = null
+    if (typeof payload.db?.destroy === 'function') {
+      await payload.db.destroy().catch(() => undefined)
+    }
+  }
 }
