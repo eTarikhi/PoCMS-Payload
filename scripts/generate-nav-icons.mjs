@@ -39,6 +39,7 @@ const NAV_ICONS = {
   'nav-users': ['Users', 'teal'],
   'nav-roles': ['KeyRound', 'orange'],
   'nav-audit-logs': ['ScrollText', 'amber'],
+  'nav-inbox': ['Mail', 'blue'],
   'nav-view-site': ['ExternalLink', 'slate'],
   'nav-system': ['Activity', 'teal'],
   'nav-database': ['Database', 'green'],

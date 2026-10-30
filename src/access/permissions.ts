@@ -66,6 +66,12 @@ export const CAPABILITIES = [
       'PostgreSQL health & bloat monitoring, portable backups, transactional restore, repair tools, and serverless provider snapshots/branches.',
   },
   {
+    name: 'manageInbox',
+    label: 'Mail inbox',
+    description:
+      'Read, triage, label, and send inbound/outbound emails and form-bridged threads in the Mail inbox.',
+  },
+  {
     name: 'useDeveloperTools',
     label: 'Developer tools',
     description:

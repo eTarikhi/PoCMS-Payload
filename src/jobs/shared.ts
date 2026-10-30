@@ -82,6 +82,12 @@ export const REGISTERED_JOB_TASKS: readonly JobTaskMeta[] = [
     description:
       'Exports all public PostgreSQL tables & sequences as an AES-256-GCM encrypted archive into Vercel Blob with retention pruning.',
   },
+  {
+    slug: 'pruneWebhookLedger',
+    label: 'Prune mail webhook ledger',
+    description:
+      'Removes processed and ignored Resend webhook idempotency records older than 30 days.',
+  },
 ] as const
 
 /** Authenticates external cron runners (e.g. Vercel Cron) via `Authorization: Bearer <CRON_SECRET>`. */
@@ -165,6 +171,9 @@ export function mapJobDocsToSnapshot(
   const labelBySlug = new Map<string, string>([
     ...REGISTERED_JOB_TASKS.map((t): [string, string] => [t.slug, t.label]),
     ['schedulePublish', 'Scheduled publish'],
+    ['ingestInboundEmail', 'Ingest inbound email'],
+    ['sendOutboundEmail', 'Send outbound email'],
+    ['applyDeliveryTelemetry', 'Apply delivery telemetry'],
   ])
 
   const jobs: AdminJobRow[] = docs.map((doc) => {

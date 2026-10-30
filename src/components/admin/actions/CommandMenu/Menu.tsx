@@ -17,6 +17,7 @@ import {
   LayoutDashboardIcon,
   LoaderCircleIcon,
   LogOutIcon,
+  MailIcon,
   MoonIcon,
   PanelLeftIcon,
   PlusIcon,
@@ -243,6 +244,18 @@ export default function CommandMenu({
               ],
               icon: <DatabaseIcon aria-hidden />,
               run: () => go(`${admin}/database`),
+            },
+          ]
+        : []),
+      ...(hasCapability(user, 'manageInbox')
+        ? [
+            {
+              id: 'go:inbox',
+              group: 'Go to' as const,
+              label: 'Mail inbox',
+              keywords: ['email', 'resend', 'inbox', 'messages', 'threads', 'compose', 'reply'],
+              icon: <MailIcon aria-hidden />,
+              run: () => go(`${admin}/inbox`),
             },
           ]
         : []),

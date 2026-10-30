@@ -75,7 +75,8 @@ export const adminJobsEndpoints: Endpoint[] = [
               | 'consolidateLegacyMediaUrls'
               | 'purgeCompletedJobs'
               | 'pruneDocumentVersions'
-              | 'createDatabaseBackup',
+              | 'createDatabaseBackup'
+              | 'pruneWebhookLedger',
             input: (body.input ?? {}) as Record<string, never>,
             queue: body.queue?.trim() || 'default',
             ...(waitUntilDate ? { waitUntil: waitUntilDate } : {}),

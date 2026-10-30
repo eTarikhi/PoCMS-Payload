@@ -4,18 +4,27 @@ import React from 'react'
 
 import { hasCapability } from '@/access/permissions'
 
+import { InboxUnreadBadge } from './InboxUnreadBadge'
+
 /**
- * `admin.components.afterNavLinks`: "View site" for everyone and the component gallery for admins, styled with
- * Payload's own nav-link classes (icons come from nav-icons.css). The site URL is
+ * `admin.components.afterNavLinks`: "View site" for everyone and capability-gated Admin tools,
+ * styled with Payload's own nav-link classes (icons come from nav-icons.css). The site URL is
  * NEXT_PUBLIC_SITE_URL when set, otherwise the same origin.
  */
 export function NavExtraLinks({ payload, user }: ServerProps) {
   const siteURL = process.env.NEXT_PUBLIC_SITE_URL || '/'
   const adminRoute = payload.config.routes.admin
+  const apiRoute = payload.config.routes.api || '/api'
   const isDev = process.env.NODE_ENV !== 'production'
 
   return (
     <div className="nav-extra acn:mt-5 acn:flex acn:flex-col acn:self-stretch acn:border-t acn:border-border acn:pt-4">
+      {hasCapability(user, 'manageInbox') ? (
+        <Link className="nav__link" href={`${adminRoute}/inbox`} id="nav-inbox">
+          <span className="nav__link-label">Mail inbox</span>
+          <InboxUnreadBadge apiRoute={apiRoute} />
+        </Link>
+      ) : null}
       <a
         className="nav__link"
         href={siteURL}

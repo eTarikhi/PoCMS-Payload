@@ -136,6 +136,7 @@ export const dashboard: DashboardConfig = {
     const deployments = hasCapability(req.user, 'viewDeployments')
     const viewSystem = hasCapability(req.user, 'viewSystem')
     const manageDatabase = hasCapability(req.user, 'manageDatabase')
+    const manageInbox = hasCapability(req.user, 'manageInbox')
     const manageJobs = hasCapability(req.user, 'manageJobs')
     const layout: WidgetInstance[] = [
       { widgetSlug: 'welcome', width: 'full' },
@@ -160,6 +161,9 @@ export const dashboard: DashboardConfig = {
       ...(viewSystem ? ([{ widgetSlug: 'system-info', width: 'medium' }] as WidgetInstance[]) : []),
       ...(manageDatabase
         ? ([{ widgetSlug: 'database-health', width: 'medium' }] as WidgetInstance[])
+        : []),
+      ...(manageInbox
+        ? ([{ widgetSlug: 'mail-inbox', width: 'medium' }] as WidgetInstance[])
         : []),
       ...(manageJobs
         ? ([{ widgetSlug: 'scheduled-jobs', width: 'medium' }] as WidgetInstance[])

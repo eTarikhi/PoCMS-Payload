@@ -58,6 +58,10 @@ import {
   portfolioFormBuilderPlugin,
 } from './plugins/formBuilder'
 import {
+  MAIL_ATTACHMENTS_COLLECTION,
+  mailInboxPlugin,
+} from './plugins/mailInbox'
+import {
   portfolioRedirectsPlugin,
   portfolioSeoPlugin,
   REDIRECTS_COLLECTION,
@@ -330,6 +334,12 @@ export default buildConfig({
     await ensureDefaultForms(payload)
   },
   plugins: [
+    portfolioSeoPlugin(),
+    portfolioRedirectsPlugin(),
+    portfolioFormBuilderPlugin(),
+    mailInboxPlugin({
+      bridgeFormSubmissions: true,
+    }),
     vercelBlobStorage({
       // Only activate live Vercel Blob storage when BLOB_READ_WRITE_TOKEN is configured;
       // `alwaysInsertFields: true` keeps database/TypeScript/GraphQL schemas identical in local dev,
@@ -339,12 +349,12 @@ export default buildConfig({
       clientUploads: true,
       collections: {
         media: true,
+        [MAIL_ATTACHMENTS_COLLECTION]: {
+          prefix: 'mail-attachments',
+        },
       },
       token: process.env.BLOB_READ_WRITE_TOKEN || '',
     }),
-    portfolioSeoPlugin(),
-    portfolioRedirectsPlugin(),
-    portfolioFormBuilderPlugin(),
     auditLogPlugin(),
     databaseManagerPlugin(),
     // Last, so it sees every field other plugins add: TanStack list views, boolean cells (ADR 0007).
