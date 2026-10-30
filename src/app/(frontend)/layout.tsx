@@ -30,6 +30,7 @@ import {
 // Client islands that render Font Awesome set this too (see ProjectsGrid.tsx).
 config.autoAddCss = false
 
+// Open Sans weights 400–700 match all font-weight declarations across main.css and inner-pages.css.
 const openSans = Open_Sans({
   weight: ['400', '500', '600', '700'],
   style: ['normal'],

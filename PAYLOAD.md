@@ -1,67 +1,57 @@
-# Payload Blank Template
+# PoCMS — Payload CMS 3 Architecture & Quick Reference
 
-This template comes configured with the bare minimum to get started on anything you need.
+PoCMS runs **Payload CMS 3.90.2** embedded directly inside **Next.js 16 App Router**, backed by **PostgreSQL** (`@payloadcms/db-vercel-postgres` / Neon) and optional **Vercel Blob** object storage (`@payloadcms/storage-vercel-blob`).
 
-## Quick start
+---
 
-This template can be deployed directly from our Cloud hosting and it will setup MongoDB and cloud S3 object storage for media.
+## Local Setup
 
-## Quick Start - local setup
+1. Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+2. Generate a strong `PAYLOAD_SECRET` (`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`) and verify `POSTGRES_URL` points to a local PostgreSQL 16 database or Neon branch.
+3. Install dependencies, generate Payload artifacts, and start the dev server:
+   ```bash
+   pnpm install
+   pnpm run generate:all
+   pnpm dev
+   ```
+4. Open `http://localhost:3000` (public portfolio) or `http://localhost:3000/admin` (Payload Admin UI).
+   - To populate initial portfolio content, run `pnpm run seed`.
 
-To spin up this template locally, follow these steps:
+---
 
-### Clone
+## Docker Compose (PostgreSQL 16 + App)
 
-After you click the `Deploy` button above, you'll want to have standalone copy of this repo on your machine. If you've already cloned this repo, skip to [Development](#development).
+To run PostgreSQL 16 and the Next.js/Payload dev server via Docker Compose:
 
-### Development
+```bash
+cp .env.example .env
+docker compose up -d
+```
 
-1. First [clone the repo](#clone) if you have not done so already
-2. `cd my-project && cp .env.example .env` to copy the example environment variables. You'll need to add the `MONGODB_URL` from your Cloud project to your `.env` if you want to use S3 storage and the MongoDB database that was created for you.
+- PostgreSQL 16 listens on `localhost:5432` (`postgres://postgres:postgres@127.0.0.1:5432/pocms`).
+- Inside the Compose network, the `payload` service connects automatically via `postgres://postgres:postgres@postgres:5432/pocms`.
+- Production container builds (`docker build -t pocms .`) automatically set `DOCKER_BUILD=true` so `next.config.ts` emits `.next/standalone`.
 
-3. `pnpm install && pnpm dev` to install dependencies and start the dev server
-4. open `http://localhost:3000` to open the app in your browser
+---
 
-That's it! Changes made in `./src` will be reflected in your app. Follow the on-screen instructions to login and create your first admin user. Then check out [Production](#production) once you're ready to build and serve your app, and [Deployment](#deployment) when you're ready to go live.
-
-#### Docker (Optional)
-
-If you prefer to use Docker for local development instead of a local MongoDB instance, the provided docker-compose.yml file can be used.
-
-To do so, follow these steps:
-
-- Modify the `MONGODB_URL` in your `.env` file to `mongodb://127.0.0.1/<dbname>`
-- Modify the `docker-compose.yml` file's `MONGODB_URL` to match the above `<dbname>`
-- Run `docker-compose up` to start the database, optionally pass `-d` to run in the background.
-
-## How it works
-
-The Payload config is tailored specifically to the needs of most websites. It is pre-configured in the following ways:
+## Core Collections, Globals & Custom Plugins
 
 ### Collections
+- **Editorial & Portfolio**: `articles`, `projects` (drafts, scheduled publish, version retention pruning, two-block `primaryMedia` / `detailMedia`, Lexical case-study blocks, and tabbed SEO), `media` (focal points, WebP responsive sizes, `sharp` LQIP `blurDataURL`, hierarchical folders).
+- **Profile Sections**: `about`, `experiences`, `educations`, `certificates`, `services`, `skills`.
+- **Forms & Routing**: `forms`, `form-submissions` (`@payloadcms/plugin-form-builder` powering `/contact` and `Request CV`), `redirects` (`301`/`302` rules).
+- **Governance & Mail**: `users`, `roles` (capability-based RBAC), `audit-logs`, `mail-threads`, `mail-messages`, `mail-labels`, `mail-attachments`.
 
-See the [Collections](https://payloadcms.com/docs/configuration/collections) docs for details on how to extend this functionality.
+### Globals (`Site settings` group)
+- **`Header` (`header`)**: Hero profile configuration plus tabbed **Header Studio** presets (*Aurora Mesh*, *Blueprint Grid*, *Editorial Spotlight*, *Minimal*) and default archive layout modes.
+- **`SiteSettings` (`site-settings`)**: Canonical metadata, Hub SEO (`/articles`, `/projects`), social/Twitter attribution, search verification tags, indexing controls, and `Schema.org/Person` JSON-LD fields.
+- **`Navigation` (`navigation`) & `Footer` (`footer`)**: Split desktop/mobile navigation links, social links, and contact details.
+- **`Codes` (`custom-code`)**: Admin-governed `<head>` meta/links, site-wide CSS, after-footer HTML, and `<body>` scripts protected by `DISABLE_CUSTOM_CODE_INJECTION` / `NEXT_PUBLIC_DISABLE_CUSTOM_CODE` emergency kill-switches.
 
-- #### Users (Authentication)
-
-  Users are auth-enabled collections that have access to the admin panel.
-
-  For additional help, see the official [Auth Example](https://github.com/payloadcms/payload/tree/3.x/examples/auth) or the [Authentication](https://payloadcms.com/docs/authentication/overview#authentication-overview) docs.
-
-- #### Media
-
-  This is the uploads enabled collection. It features pre-configured sizes, focal point and manual resizing to help you manage your pictures.
-
-### Docker
-
-Alternatively, you can use [Docker](https://www.docker.com) to spin up this template locally. To do so, follow these steps:
-
-1. Follow [steps 1 and 2 from above](#development), the docker-compose file will automatically use the `.env` file in your project root
-1. Next run `docker-compose up`
-1. Follow [steps 4 and 5 from above](#development) to login and create your first admin user
-
-That's it! The Docker instance will help you get up and running quickly while also standardizing the development environment across your teams.
-
-## Questions
-
-If you have any issues or questions, reach out to us on [Discord](https://discord.com/invite/payload) or start a [GitHub discussion](https://github.com/payloadcms/payload/discussions).
+### Custom Plugins (`src/plugins/`)
+- **`mailInboxPlugin` (`src/plugins/mailInbox/`)**: Self-contained 3-pane Mail Inbox (`/admin/inbox`) with Resend outbound sending, Receiving API MIME + attachment ingestion, Standard Webhooks (`whsec_...`) HMAC-SHA256 verification (`POST /api/webhooks/resend`), PostgreSQL `LISTEN/NOTIFY` SSE real-time updates (`GET /api/mail/stream`), private RBAC attachments, and automatic `form-submissions` thread bridging.
+- **`databaseManagerPlugin` (`src/plugins/databaseManager/`)**: Two-tier PostgreSQL console (`/admin/database`) featuring pure-TypeScript logical backups (`.json`, `.ndjson`, `.sql`, `.csv`), AES-256-GCM encrypted Vercel Blob vault storage, dry-run & transactional restores, bloat/sequence repair, and optional Tier-2 serverless adapters (`@neon/sdk`, Supabase, Prisma Postgres).
+- **`auditLogPlugin` & `adminUIPlugin`**: Immutable audit trail, custom dashboard telemetry widgets (Vercel traffic/deployments, PageSpeed/CrUX, GitHub Actions CI, Content Health, Mail Inbox), `/admin/system`, and `/admin/jobs`.

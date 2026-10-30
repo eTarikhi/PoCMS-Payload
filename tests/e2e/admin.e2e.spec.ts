@@ -3,7 +3,7 @@ import { expect, type BrowserContext, type Page, test } from '@playwright/test'
 import { login } from '../helpers/login'
 import { cleanupTestUser, seedTestUser, testUser } from '../helpers/seedUser'
 
-test.describe('PoCMS Admin Panel (RBAC, Content, SEO Tabs, Forms & Globals)', () => {
+test.describe('PoCMS Admin Panel (RBAC, Content, SEO Tabs, Forms, Globals, Inbox & Database)', () => {
   let context: BrowserContext
   let page: Page
 
@@ -30,8 +30,13 @@ test.describe('PoCMS Admin Panel (RBAC, Content, SEO Tabs, Forms & Globals)', ()
     await expect(page.locator('#nav-redirects')).toBeVisible()
     await expect(page.locator('#nav-global-header')).toBeVisible()
     await expect(page.locator('#nav-global-site-settings')).toBeVisible()
+    await expect(page.locator('#nav-global-custom-code')).toBeVisible()
     await expect(page.locator('#nav-users')).toBeVisible()
     await expect(page.locator('#nav-roles')).toBeVisible()
+    await expect(page.locator('#nav-inbox')).toBeVisible()
+    await expect(page.locator('#nav-database')).toBeVisible()
+    await expect(page.locator('#nav-system')).toBeVisible()
+    await expect(page.locator('#nav-jobs')).toBeVisible()
   })
 
   test('navigates to Articles & Projects list views and renders Content + SEO tabs on create view', async () => {
@@ -48,7 +53,7 @@ test.describe('PoCMS Admin Panel (RBAC, Content, SEO Tabs, Forms & Globals)', ()
     await expect(page.locator('h1', { hasText: /Projects/i }).first()).toBeVisible()
   })
 
-  test('navigates to Forms, Form Submissions, Redirects, and Header Studio global', async () => {
+  test('navigates to Forms, Form Submissions, Redirects, Header Studio, and Codes globals', async () => {
     await page.goto('/admin/collections/forms')
     await expect(page).toHaveURL(/\/admin\/collections\/forms/)
     await expect(page.locator('h1', { hasText: /Forms/i }).first()).toBeVisible()
@@ -64,6 +69,22 @@ test.describe('PoCMS Admin Panel (RBAC, Content, SEO Tabs, Forms & Globals)', ()
     await page.goto('/admin/globals/header')
     await expect(page).toHaveURL(/\/admin\/globals\/header/)
     await expect(page.locator('h1', { hasText: /Header/i }).first()).toBeVisible()
+
+    await page.goto('/admin/globals/custom-code')
+    await expect(page).toHaveURL(/\/admin\/globals\/custom-code/)
+    await expect(page.locator('h1', { hasText: /Codes/i }).first()).toBeVisible()
+  })
+
+  test('navigates to 3-pane Mail Inbox (/admin/inbox) and Database Manager (/admin/database)', async () => {
+    await page.goto('/admin/inbox')
+    await expect(page).toHaveURL(/\/admin\/inbox/)
+    await expect(page.locator('h1', { hasText: /Mail inbox/i }).first()).toBeVisible()
+    await expect(page.getByRole('button', { name: /Compose/i }).first()).toBeVisible()
+
+    await page.goto('/admin/database')
+    await expect(page).toHaveURL(/\/admin\/database/)
+    await expect(page.getByTestId('database-view')).toBeVisible()
+    await expect(page.locator('h1', { hasText: /Database manager/i }).first()).toBeVisible()
   })
 
   test('navigates to Users and Roles RBAC administration views', async () => {

@@ -1,0 +1,137 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+      - admin-ui
+      - 'arena/**'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: '1'
+  PAYLOAD_SECRET: ci-verification-payload-secret-key-at-least-32-chars
+  NEXT_PUBLIC_SITE_URL: http://localhost:3000
+
+jobs:
+  validate:
+    name: Typecheck, Lint, Integration & Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.17.0'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Payload types, importMap, DB schema & nav icons
+        run: pnpm run generate:all
+
+      - name: Run TypeScript type check
+        run: pnpm exec tsc --noEmit
+
+      - name: Run ESLint
+        run: pnpm run lint
+
+      - name: Run Vitest integration suite
+        env:
+          POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/pocms
+        run: pnpm run test:int
+
+      - name: Verify Playwright E2E spec graph
+        run: pnpm exec playwright test --list
+
+      - name: Compile Next.js + Payload production bundle
+        env:
+          POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/pocms
+          NODE_OPTIONS: '--no-deprecation --max-old-space-size=6144'
+        run: pnpm exec next build --experimental-build-mode compile
+
+  e2e:
+    name: Playwright E2E & Accessibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pocms
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d pocms"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      CI: 'true'
+      POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/pocms
+      POSTGRES_URL_NON_POOLING: postgres://postgres:postgres@127.0.0.1:5432/pocms
+      PLAYWRIGHT_BASE_URL: http://localhost:3000
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.17.0'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Payload artifacts
+        run: pnpm run generate:all
+
+      - name: Install Playwright Chromium browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Bootstrap PostgreSQL schema & seed portfolio content
+        env:
+          NODE_ENV: development
+        run: pnpm run seed
+
+      - name: Run Playwright E2E & WCAG accessibility tests
+        run: pnpm run test:e2e
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

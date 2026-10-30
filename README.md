@@ -22,9 +22,12 @@ This project documentation is split across multiple files for easier maintenance
 
 ## Quick access
 
+- Public site: `http://localhost:3000`
 - Admin panel: `http://localhost:3000/admin`
-- API: `http://localhost:3000/api`
-- GraphQL: `http://localhost:3000/graphql`
+- Mail Inbox: `http://localhost:3000/admin/inbox`
+- Database Manager: `http://localhost:3000/admin/database`
+- REST API: `http://localhost:3000/api`
+- GraphQL API: `http://localhost:3000/api/graphql`
 
 ## Tech stack
 

@@ -12,6 +12,8 @@ const __filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(__filename)
 
 const nextConfig: NextConfig = {
+  // Enable `.next/standalone` bundle when building container images (`DOCKER_BUILD=true` in Dockerfile).
+  ...(process.env.DOCKER_BUILD === 'true' ? { output: 'standalone' as const } : {}),
   // Skip redundant zlib gzip compression on local dev bundles/HMR streams while keeping it in `next start`.
   compress: process.env.NODE_ENV !== 'development',
   // Dev-only indicator: bottom right, so it doesn't cover the admin sidebar's account controls.
@@ -41,6 +43,9 @@ const nextConfig: NextConfig = {
       },
       {
         pathname: '/api/media-frame',
+      },
+      {
+        pathname: '/og',
       },
       {
         // Static assets from public/images (vTarikhi portfolio). Without this entry,

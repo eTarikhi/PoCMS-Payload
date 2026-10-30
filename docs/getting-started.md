@@ -2,113 +2,79 @@
 
 ## Prerequisites
 
-- Node.js 18+
-- pnpm (or npm/yarn)
-- Git
-- Access to a PostgreSQL-compatible database such as Neon
-- A Vercel Blob token and Payload secret for full functionality
+- **Node.js 22+** (see `.nvmrc`)
+- **pnpm 10+** (`corepack enable pnpm`)
+- **PostgreSQL 16+** (local instance, `docker compose up -d postgres`, or a Neon serverless branch)
 
 ## Installation
 
 1. Clone the repository:
-
-```bash
-git clone https://github.com/eTarikhi/PoCMS-Payload.git
-cd PoCMS-Payload
-```
+   ```bash
+   git clone https://github.com/eTarikhi/PoCMS-Payload.git
+   cd PoCMS-Payload
+   ```
 
 2. Install dependencies:
+   ```bash
+   pnpm install --frozen-lockfile
+   ```
 
-```bash
-pnpm install --no-prod
-```
+3. Copy the documented environment template:
+   ```bash
+   cp .env.example .env
+   ```
 
-3. Approve build dependencies when prompted:
+4. Generate a secure `PAYLOAD_SECRET` and update `POSTGRES_URL` in `.env`:
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
 
-```bash
-pnpm approve-builds
-```
+5. Generate Payload TypeScript types, import map, Drizzle schema, GraphQL schema, and nav icons:
+   ```bash
+   pnpm run generate:all
+   ```
 
-4. Generate configuration files:
+## Core Environment Variables
 
-```bash
-pnpm generate:all
-```
+Every supported variable is documented with purpose, type, format, and examples in [`.env.example`](../.env.example). Minimal local configuration:
 
-5. Copy the example environment file:
-
-```bash
-cp .env.example .env.local
-```
-
-6. Update the file with your local values.
-
-## Environment variables
-
-Create a `.env.local` file in the project root with the following values:
-
-```env
-# Payload CMS
-PAYLOAD_SECRET=your-super-secret-key-here
-
-# Database (Neon PostgreSQL)
-DATABASE_URI=postgresql://user:password@ep-your-db.neon.tech/dbname
-
-# Vercel Blob Storage
-BLOB_READ_WRITE_TOKEN=your-vercel-blob-token
-
-# Node Environment
+```dotenv
 NODE_ENV=development
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+PAYLOAD_SECRET=replace-with-64-char-hex-secret
+POSTGRES_URL=postgres://postgres:postgres@127.0.0.1:5432/pocms
 
-# Application
-PAYLOAD_PUBLIC_SERVER_URL=http://localhost:3000
+# Optional locally (leave empty to use ./media disk storage and offline email/forms):
+BLOB_READ_WRITE_TOKEN=
+RESEND_API_KEY=
+RESEND_WEBHOOK_SECRET=
 ```
 
-### Generate a secure Payload secret
+## Seed Initial Content & Start Development Server
 
 ```bash
-openssl rand -base64 32
-```
+# Optional: seed portfolio sections, articles, projects, and Contact / Request-CV forms
+pnpm run seed
 
-## Database setup
-
-### Fresh database
-
-```bash
-npx payload migrate:fresh
-```
-
-### Create a custom migration
-
-```bash
-npx payload migrate:create
-```
-
-## Start the app
-
-```bash
+# Start Next.js + Payload dev server
 pnpm dev
 ```
 
-Then open:
+Open:
+- Public portfolio: `http://localhost:3000`
+- Payload Admin UI: `http://localhost:3000/admin`
+- REST API: `http://localhost:3000/api`
+- GraphQL API: `http://localhost:3000/api/graphql`
 
-- Admin panel: `http://localhost:3000/admin`
-- API: `http://localhost:3000/api`
+## Key Scripts (`package.json`)
 
-Follow the on-screen setup instructions to create your first admin user.
-
-## Useful scripts
-
-```bash
-# Development
-pnpm dev
-
-# Build / production
-pnpm build
-pnpm start
-
-# Database
-npx payload migrate
-npx payload migrate:fresh
-npx payload migrate:create
-```
+| Command | Description |
+| --- | --- |
+| `pnpm dev` | Start Next.js + Payload in development mode |
+| `pnpm run generate:all` | Generate `payload-types.ts`, `importMap.js`, DB schema, `schema.graphql`, and `nav-icons.css` |
+| `pnpm run seed` | Seed portfolio content, globals, and default forms into PostgreSQL |
+| `pnpm lint` | Run ESLint across the repository |
+| `pnpm run test:int` | Run the Vitest integration & component test suite |
+| `pnpm run test:e2e` | Run Playwright E2E + WCAG accessibility tests |
+| `pnpm test` | Run full verification (`tsc --noEmit`, `lint`, `test:int`, `test:e2e`, `playwright --list`) |
+| `pnpm run build` | Build optimized production bundle |

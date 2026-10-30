@@ -1,61 +1,54 @@
 # Deployment
 
-## Docker setup
+## Vercel Deployment (Recommended)
 
-The repository includes a `docker-compose.yml` file for local development and service orchestration.
+1. Push your branch to GitHub and import the repository in Vercel.
+2. Provision **Neon PostgreSQL** and **Vercel Blob** stores (via Vercel Marketplace or standalone).
+3. Configure the required production environment variables in Vercel Project Settings (see [`.env.example`](../.env.example) for full details and optional integrations):
+   - `PAYLOAD_SECRET` — at least 16 characters (64-char hex recommended; validated fail-fast in production)
+   - `POSTGRES_URL` — pooled PostgreSQL connection URI
+   - `POSTGRES_URL_NON_POOLING` — direct unpooled PostgreSQL URI (recommended for database maintenance & Mail SSE `LISTEN/NOTIFY`)
+   - `NEXT_PUBLIC_SITE_URL` — canonical `https://` origin without trailing slash (e.g., `https://vtarikhi.com`)
+   - `BLOB_READ_WRITE_TOKEN` — Vercel Blob read/write token (`vercel_blob_rw_<store_id>_<token>`)
+4. Optional production integrations:
+   - **Email & Mail Inbox**: `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET` (webhook target: `POST https://<your-domain>/api/webhooks/resend`), `CONTACT_NOTIFICATION_EMAIL`
+   - **Scheduled Jobs**: `CRON_SECRET`
+   - **Database Tier-2 & Encrypted Vault**: `NEON_API_KEY`, `DATABASE_BACKUP_SECRET`, `DATABASE_BLOB_READ_WRITE_TOKEN`
+   - **Admin Dashboard Widgets**: `VERCEL_TOKEN`, `VERCEL_PROJECT_ID`, `VERCEL_TEAM_ID`, `GOOGLE_API_KEY`, `GITHUB_REPOSITORY`, `GITHUB_TOKEN`
+5. Deploy!
 
-### Start local services
+---
+
+## Docker & Self-Hosted Deployment
+
+### Local Stack via Docker Compose
+`docker-compose.yml` orchestrates `postgres:16-alpine` + the `payload` app container:
 
 ```bash
-docker-compose up
+cp .env.example .env
+docker compose up -d
 ```
 
-Then, in another terminal, run:
+### Standalone Production Container (`Dockerfile`)
+`Dockerfile` automatically sets `DOCKER_BUILD=true`, activating `output: 'standalone'` in `next.config.ts` and running `pnpm run generate:all` prior to `pnpm run build`:
 
 ```bash
-npx payload migrate:fresh
+docker build -t pocms-payload .
+docker run --rm -p 3000:3000 \
+  -e NODE_ENV=production \
+  -e PAYLOAD_SECRET="$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")" \
+  -e POSTGRES_URL="postgres://postgres:postgres@host.docker.internal:5432/pocms" \
+  -e NEXT_PUBLIC_SITE_URL="http://localhost:3000" \
+  pocms-payload
 ```
 
-After that, open the admin UI at:
+---
 
-```text
-http://localhost:3000/admin
-```
+## Production Checklist
 
-### Docker notes
-
-The docker environment is intended to provide:
-
-- PostgreSQL connectivity
-- application service startup
-- hot-reload friendly development
-- isolated local environment
-
-## Vercel deployment
-
-1. Push the project to GitHub.
-2. Import the repo in Vercel.
-3. Add environment variables in the Vercel dashboard:
-   - `DATABASE_URI`
-   - `BLOB_READ_WRITE_TOKEN`
-   - `PAYLOAD_SECRET`
-   - `PAYLOAD_PUBLIC_SERVER_URL`
-4. Deploy the application.
-
-## Production environment checklist
-
-Before deployment, verify the following:
-
-- a secure `PAYLOAD_SECRET` is defined
-- the database connection string is valid
-- the blob token has read/write access
-- `PAYLOAD_PUBLIC_SERVER_URL` points to the production domain
-- `NODE_ENV` is set appropriately
-
-## Security notes
-
-- Keep `.env.local` out of source control
-- Use HTTPS in production
-- Rely on provider-managed database security and backups
-- Use Payload's built-in auth and access control features
-- Configure rate limiting and additional validation as needed
+- [ ] `PAYLOAD_SECRET` is a unique 32-byte (64-hex-character) random secret
+- [ ] `NEXT_PUBLIC_SITE_URL` matches the live HTTPS domain (no trailing slash)
+- [ ] `POSTGRES_URL` (pooled) and `POSTGRES_URL_NON_POOLING` (direct) are configured
+- [ ] `BLOB_READ_WRITE_TOKEN` is set for persistent media and private mail attachments
+- [ ] `RESEND_API_KEY` and `RESEND_WEBHOOK_SECRET` are set if inbound/outbound mail is enabled
+- [ ] GitHub Actions CI (`.github/workflows/ci.yml`) is green before merging to production

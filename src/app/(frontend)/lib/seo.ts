@@ -27,6 +27,63 @@ export const RSS_FEED_PATH = '/feed.xml'
 
 export const CONTACT_HUB_PATH = '/contact'
 
+export const OG_IMAGE_ROUTE_PATH = '/og'
+
+export type DynamicOgCardKind = 'article' | 'project' | 'hub' | 'site'
+
+export type DynamicOgImageParams = {
+  kind: DynamicOgCardKind
+  title: string
+  subtitle?: string | null
+  eyebrow?: string | null
+  meta?: string | null
+  tags?: readonly string[]
+  author?: string | null
+  siteName?: string | null
+}
+
+const clampOgParam = (value: string | null | undefined, maxLen: number): string | null => {
+  if (!value) return null
+  const normalized = value.replace(/\s+/g, ' ').trim()
+  if (!normalized) return null
+  return normalized.length <= maxLen ? normalized : `${normalized.slice(0, maxLen - 1).trimEnd()}…`
+}
+
+export const buildDynamicOgImageUrl = (
+  params: DynamicOgImageParams,
+  site: string = siteUrl(),
+): string => {
+  const search = new URLSearchParams()
+  search.set('kind', params.kind)
+  const title = clampOgParam(params.title, 120) || DEFAULT_SITE_SETTINGS.siteName
+  search.set('title', title)
+
+  const subtitle = clampOgParam(params.subtitle, 180)
+  if (subtitle) search.set('subtitle', subtitle)
+
+  const eyebrow = clampOgParam(params.eyebrow, 48)
+  if (eyebrow) search.set('eyebrow', eyebrow)
+
+  const meta = clampOgParam(params.meta, 64)
+  if (meta) search.set('meta', meta)
+
+  const cleanTags = (params.tags ?? [])
+    .map((tag) => clampOgParam(tag, 28))
+    .filter((tag): tag is string => Boolean(tag))
+    .slice(0, 4)
+  if (cleanTags.length > 0) {
+    search.set('tags', cleanTags.join(','))
+  }
+
+  const author = clampOgParam(params.author, 48)
+  if (author) search.set('author', author)
+
+  const siteName = clampOgParam(params.siteName, 56)
+  if (siteName) search.set('site', siteName)
+
+  return `${site.replace(/\/+$/, '')}${OG_IMAGE_ROUTE_PATH}?${search.toString()}`
+}
+
 export const siteUrl = (): string => {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim()
   return (configured && configured.length > 0 ? configured : DEFAULT_SITE_URL).replace(/\/+$/, '')
@@ -241,14 +298,45 @@ export const buildArticlesHubMetadata = (
 ): Metadata => {
   const url = articlesHubCanonicalUrl(site)
   const hubSeo = settings.articlesHubSeo
+  const headingTitle = hubSeo.metaTitle || settings.articlesSection.heading
   const title =
     hubSeo.metaTitle || `${settings.articlesSection.heading} | ${settings.siteName}`
   const description =
     hubSeo.metaDescription ||
     settings.articlesSection.archiveDescription ||
     settings.metaDescription
-  const chosenImage = hubSeo.ogImage ?? settings.ogImage
-  const imageUrl = absoluteUrl(chosenImage.url, site)
+  const hubKeywords = hubSeo.keywords
+    ? hubSeo.keywords
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : []
+  const image = hubSeo.ogImage
+    ? {
+        url: absoluteUrl(hubSeo.ogImage.url, site),
+        alt: hubSeo.ogImage.alt || settings.ownerName,
+        width: hubSeo.ogImage.width,
+        height: hubSeo.ogImage.height,
+        ...(hubSeo.ogImage.mimeType ? { type: hubSeo.ogImage.mimeType } : {}),
+      }
+    : {
+        url: buildDynamicOgImageUrl(
+          {
+            kind: 'hub',
+            eyebrow: 'Articles Archive',
+            title: headingTitle,
+            subtitle: description,
+            tags: hubKeywords,
+            author: settings.ownerName,
+            siteName: settings.siteName,
+          },
+          site,
+        ),
+        alt: title,
+        width: 1200,
+        height: 630,
+        type: 'image/png',
+      }
   const shouldIndex = settings.allowIndexing && !hubSeo.noIndex
 
   return {
@@ -269,21 +357,13 @@ export const buildArticlesHubMetadata = (
       description,
       url,
       locale: settings.locale,
-      images: [
-        {
-          url: imageUrl,
-          alt: chosenImage.alt || settings.ownerName,
-          width: chosenImage.width,
-          height: chosenImage.height,
-          ...(chosenImage.mimeType ? { type: chosenImage.mimeType } : {}),
-        },
-      ],
+      images: [image],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: [imageUrl],
+      images: [image.url],
       ...buildTwitterAttribution(settings),
     },
   }
@@ -331,15 +411,30 @@ export const buildArticleMetadata = (
   const seoKeywords = article.seo?.keywords ?? []
   const customImageUrl = article.seo?.imageUrl || article.coverUrl
   const customImageAlt = article.seo?.imageAlt || article.coverAlt
-  const twitterCard =
-    article.seo?.twitterCard || (customImageUrl ? 'summary_large_image' : 'summary')
+  const dynamicImageUrl = !customImageUrl
+    ? buildDynamicOgImageUrl(
+        {
+          kind: 'article',
+          eyebrow: article.category === 'others' ? 'Note' : 'Article',
+          title: socialTitle,
+          subtitle: socialDescription ?? null,
+          meta: [article.publishedDisplay, article.readTimeDisplay].filter(Boolean).join(' • '),
+          tags: seoKeywords,
+          author: settings.ownerName,
+          siteName: settings.siteName,
+        },
+        site,
+      )
+    : null
+  const twitterCard = article.seo?.twitterCard || 'summary_large_image'
   const image = customImageUrl
     ? { url: absoluteUrl(customImageUrl, site), alt: customImageAlt, width: 1200, height: 630 }
     : {
-        url: absoluteUrl(settings.ogImage.url, site),
-        alt: settings.ogImage.alt || settings.ownerName,
-        width: settings.ogImage.width,
-        height: settings.ogImage.height,
+        url: dynamicImageUrl!,
+        alt: socialTitle,
+        width: 1200,
+        height: 630,
+        type: 'image/png',
       }
 
   return {
@@ -383,8 +478,25 @@ export const buildBlogPostingJsonLd = (
   const { '@context': _context, ...author } = buildPersonJsonLd(header, footer, settings, site)
   const url = articleCanonicalUrl(article.slug, site)
   const description = article.seo?.description || article.excerpt
-  const imageUrl = article.seo?.imageUrl ?? article.coverUrl ?? settings.ogImage.url
   const seoKeywords = article.seo?.keywords ?? []
+  const resolvedImage =
+    article.seo?.imageUrl ??
+    article.coverUrl ??
+    (settings.ogImage.url !== DEFAULT_PROFILE_IMAGE_PATH
+      ? settings.ogImage.url
+      : buildDynamicOgImageUrl(
+          {
+            kind: 'article',
+            eyebrow: article.category === 'others' ? 'Note' : 'Article',
+            title: article.title,
+            subtitle: description ?? null,
+            meta: [article.publishedDisplay, article.readTimeDisplay].filter(Boolean).join(' • '),
+            tags: seoKeywords,
+            author: settings.ownerName,
+            siteName: settings.siteName,
+          },
+          site,
+        ))
 
   return {
     '@context': 'https://schema.org/',
@@ -394,7 +506,7 @@ export const buildBlogPostingJsonLd = (
     ...(article.publishedAt ? { datePublished: article.publishedAt } : {}),
     ...(seoKeywords.length > 0 ? { keywords: seoKeywords.join(', ') } : {}),
     author,
-    image: absoluteUrl(imageUrl, site),
+    image: absoluteUrl(resolvedImage, site),
     url,
     mainEntityOfPage: { '@type': 'WebPage', '@id': url },
   }
@@ -412,14 +524,45 @@ export const buildProjectsHubMetadata = (
 ): Metadata => {
   const url = projectsHubCanonicalUrl(site)
   const hubSeo = settings.projectsHubSeo
+  const headingTitle = hubSeo.metaTitle || settings.projectsSection.heading
   const title =
     hubSeo.metaTitle || `${settings.projectsSection.heading} | ${settings.siteName}`
   const description =
     hubSeo.metaDescription ||
     settings.projectsSection.archiveDescription ||
     settings.metaDescription
-  const chosenImage = hubSeo.ogImage ?? settings.ogImage
-  const imageUrl = absoluteUrl(chosenImage.url, site)
+  const hubKeywords = hubSeo.keywords
+    ? hubSeo.keywords
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : []
+  const image = hubSeo.ogImage
+    ? {
+        url: absoluteUrl(hubSeo.ogImage.url, site),
+        alt: hubSeo.ogImage.alt || settings.ownerName,
+        width: hubSeo.ogImage.width,
+        height: hubSeo.ogImage.height,
+        ...(hubSeo.ogImage.mimeType ? { type: hubSeo.ogImage.mimeType } : {}),
+      }
+    : {
+        url: buildDynamicOgImageUrl(
+          {
+            kind: 'hub',
+            eyebrow: 'Projects Showcase',
+            title: headingTitle,
+            subtitle: description,
+            tags: hubKeywords,
+            author: settings.ownerName,
+            siteName: settings.siteName,
+          },
+          site,
+        ),
+        alt: title,
+        width: 1200,
+        height: 630,
+        type: 'image/png',
+      }
   const shouldIndex = settings.allowIndexing && !hubSeo.noIndex
 
   return {
@@ -440,21 +583,13 @@ export const buildProjectsHubMetadata = (
       description,
       url,
       locale: settings.locale,
-      images: [
-        {
-          url: imageUrl,
-          alt: chosenImage.alt || settings.ownerName,
-          width: chosenImage.width,
-          height: chosenImage.height,
-          ...(chosenImage.mimeType ? { type: chosenImage.mimeType } : {}),
-        },
-      ],
+      images: [image],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: [imageUrl],
+      images: [image.url],
       ...buildTwitterAttribution(settings),
     },
   }
@@ -510,15 +645,33 @@ export const buildProjectMetadata = (
       : project.techStack
   const customImageUrl = project.seo?.imageUrl || project.coverUrl
   const customImageAlt = project.seo?.imageAlt || project.coverAlt
-  const twitterCard =
-    project.seo?.twitterCard || (customImageUrl ? 'summary_large_image' : 'summary')
+  const projectEyebrow =
+    [project.role, project.year].filter(Boolean).join(' • ') ||
+    settings.projectsSection.caseStudyLabel
+  const dynamicImageUrl = !customImageUrl
+    ? buildDynamicOgImageUrl(
+        {
+          kind: 'project',
+          eyebrow: projectEyebrow,
+          title: ogTitle,
+          subtitle: socialDescription,
+          meta: project.readTimeDisplay || null,
+          tags: seoKeywords,
+          author: settings.ownerName,
+          siteName: settings.siteName,
+        },
+        site,
+      )
+    : null
+  const twitterCard = project.seo?.twitterCard || 'summary_large_image'
   const image = customImageUrl
     ? { url: absoluteUrl(customImageUrl, site), alt: customImageAlt, width: 1200, height: 630 }
     : {
-        url: absoluteUrl(settings.ogImage.url, site),
-        alt: settings.ogImage.alt || settings.ownerName,
-        width: settings.ogImage.width,
-        height: settings.ogImage.height,
+        url: dynamicImageUrl!,
+        alt: ogTitle,
+        width: 1200,
+        height: 630,
+        type: 'image/png',
       }
 
   return {
@@ -561,11 +714,29 @@ export const buildProjectJsonLd = (
   const { '@context': _context, ...creator } = buildPersonJsonLd(header, footer, settings, site)
   const url = projectCanonicalUrl(project.slug, site)
   const description = project.seo?.description || project.excerpt
-  const imageUrl = project.seo?.imageUrl ?? project.coverUrl ?? settings.ogImage.url
   const effectiveKeywords =
     project.seo?.keywords && project.seo.keywords.length > 0
       ? project.seo.keywords
       : project.techStack
+  const resolvedImage =
+    project.seo?.imageUrl ??
+    project.coverUrl ??
+    (settings.ogImage.url !== DEFAULT_PROFILE_IMAGE_PATH
+      ? settings.ogImage.url
+      : buildDynamicOgImageUrl(
+          {
+            kind: 'project',
+            eyebrow:
+              [project.role, project.year].filter(Boolean).join(' • ') ||
+              settings.projectsSection.caseStudyLabel,
+            title: project.title,
+            subtitle: description ?? null,
+            tags: effectiveKeywords,
+            author: settings.ownerName,
+            siteName: settings.siteName,
+          },
+          site,
+        ))
 
   return {
     '@context': 'https://schema.org/',
@@ -575,7 +746,7 @@ export const buildProjectJsonLd = (
     ...(project.year ? { dateCreated: project.year } : {}),
     ...(effectiveKeywords.length > 0 ? { keywords: effectiveKeywords.join(', ') } : {}),
     creator,
-    image: absoluteUrl(imageUrl, site),
+    image: absoluteUrl(resolvedImage, site),
     url,
     ...(project.liveUrl ? { sameAs: project.liveUrl } : {}),
   }

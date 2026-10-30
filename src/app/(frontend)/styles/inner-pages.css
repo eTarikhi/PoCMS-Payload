@@ -415,7 +415,7 @@ a.pocms-telemetry-pill:hover,
 .pocms-stage-title {
   color: var(--pocms-text-strong);
   font-size: clamp(2rem, 3.8vw, 3.1rem);
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.15;
   letter-spacing: -0.022em;
   margin: 0 0 0.85rem;
@@ -698,7 +698,7 @@ a.pocms-tech-chip:hover {
   height: 2rem;
   border-radius: 999px;
   font-size: 0.78rem;
-  font-weight: 800;
+  font-weight: 700;
   color: #090b12;
   background: linear-gradient(135deg, var(--pocms-amber) 0%, var(--pocms-gold) 100%);
 }
@@ -934,7 +934,7 @@ a.pocms-tech-chip:hover {
 
 .pocms-featured-hero__title {
   font-size: clamp(1.45rem, 2.2vw, 1.95rem);
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.25;
   color: #fff;
   margin: 0.65rem 0 0.8rem;
@@ -1092,7 +1092,7 @@ a.pocms-tech-chip:hover {
 
 .pocms-rail-ranked__num {
   font-size: 0.82rem;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--pocms-gold);
   font-variant-numeric: tabular-nums;
   padding-top: 0.1rem;

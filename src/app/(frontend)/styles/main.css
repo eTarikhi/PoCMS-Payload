@@ -129,7 +129,7 @@ ul li {
 .p {
     /* font-family: Open Sans, sans-serif; */
     font-size: 1rem;
-    font-weight: 300;
+    font-weight: 400;
     line-height: 1.5;
 }
 .ml-4 {
@@ -140,7 +140,7 @@ article > .service-item {
 }
 .article-text {
     font-size: 1rem;
-    font-weight: 300;
+    font-weight: 400;
     line-height: 1.5;
     color: #cfc4ad !important;
     text-align: justify !important;
