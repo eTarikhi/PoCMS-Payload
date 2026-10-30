@@ -18,6 +18,7 @@ import {
   type GovernedEntity,
   type RoleLike,
   can,
+  canManageCustomCode,
   governedEntities,
   hasCapability,
   isAdmin,
@@ -88,6 +89,23 @@ export const globalAccess = (slug: string) => ({
   read: (() => true) satisfies Access,
   update: (({ req }) => can(req.user, slug, 'update')) satisfies Access,
 })
+
+/**
+ * High-privilege Global access for `custom-code`:
+ * - REST/GraphQL `read` & `readVersions` require `read` access on `custom-code` (Next.js SSR reads via Local API).
+ * - `update` requires Administrator (`fullAccess`) or BOTH `custom-code: edit` AND `manageCustomCode`.
+ */
+export const customCodeGlobalAccess = {
+  read: (({ req }) => can(req.user, 'custom-code', 'read')) satisfies Access,
+  readVersions: (({ req }) => can(req.user, 'custom-code', 'read')) satisfies Access,
+  update: (({ req }) => canManageCustomCode(req.user)) satisfies Access,
+}
+
+/** Field-level defense-in-depth for raw HTML/CSS/JS code fields (`docs/access-control/fields.mdx`). */
+export const customCodeFieldAccess = {
+  create: (({ req }) => canManageCustomCode(req.user)) satisfies FieldAccess,
+  update: (({ req }) => canManageCustomCode(req.user)) satisfies FieldAccess,
+}
 
 /**
  * `admin.hidden` for governed collections and globals: without read access the entry leaves the

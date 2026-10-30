@@ -15,6 +15,7 @@ export default async function ArticleNotFound() {
       navigation={content.navigation}
       footer={content.footer}
       footerLabels={footerLabels}
+      customCode={content.customCode}
     >
       <main id="main-content" className="article-page article-not-found">
         <h1 className="article-title">{articlesSection.notFoundTitle}</h1>

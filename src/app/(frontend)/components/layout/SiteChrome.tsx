@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react'
 
+import { CustomAfterFooterSlot } from '@/app/(frontend)/components/seo/CustomCodeInjection'
 import { DEFAULT_NAVIGATION, DEFAULT_SITE_SETTINGS } from '@/app/(frontend)/lib/mappers'
 import type {
+  CustomCodeContent,
   FooterContent,
   NavigationContent,
   SiteSettingsContent,
@@ -23,11 +25,13 @@ export function SiteChrome({
   navigation = DEFAULT_NAVIGATION,
   footer,
   footerLabels = DEFAULT_SITE_SETTINGS.footerLabels,
+  customCode,
   children,
 }: {
   navigation?: NavigationContent
   footer: FooterContent | null
   footerLabels?: SiteSettingsContent['footerLabels']
+  customCode?: CustomCodeContent | null
   children?: ReactNode
 }) {
   return (
@@ -38,6 +42,7 @@ export function SiteChrome({
       <Navigation navigation={navigation} />
       {children}
       {footer ? <Footer footer={footer} labels={footerLabels} /> : null}
+      <CustomAfterFooterSlot customCode={customCode} />
       <BackToTop />
       <BootstrapClient />
     </>

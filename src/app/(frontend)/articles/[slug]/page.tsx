@@ -71,6 +71,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         navigation={chrome.navigation}
         footer={chrome.footer}
         footerLabels={siteSettings.footerLabels}
+        customCode={chrome.customCode}
       >
         <main id="main-content" className="article-page p-0">
           {isDraft ? <DraftModeBanner currentPath={currentPath} /> : null}

@@ -13,6 +13,11 @@ import '@/app/(frontend)/styles/bootstrap.min.css'
 import '@/app/(frontend)/styles/main.css'
 import '@fortawesome/fontawesome-svg-core/styles.css'
 
+import {
+  CustomBodyEndSlot,
+  CustomBodyStartSlot,
+  CustomHeadSlot,
+} from '@/app/(frontend)/components/seo/CustomCodeInjection'
 import { getCachedSiteChrome } from '@/app/(frontend)/lib/cache'
 import {
   buildPortfolioMetadata,
@@ -48,14 +53,19 @@ export default async function FrontendLayout({ children }: { children: React.Rea
   preload('/images/bg-mobile.webp', { as: 'image' })
   preload('/images/bg-desktop.webp', { as: 'image' })
 
-  const { siteSettings } = await getCachedSiteChrome()
+  const { siteSettings, customCode } = await getCachedSiteChrome()
 
   return (
     <html lang={htmlLangFromLocale(siteSettings.locale)} className={openSans.className}>
+      <head>
+        <CustomHeadSlot customCode={customCode} />
+      </head>
       <body>
+        <CustomBodyStartSlot customCode={customCode} />
         {children}
         <Analytics />
         <SpeedInsights />
+        <CustomBodyEndSlot customCode={customCode} />
       </body>
     </html>
   )

@@ -72,6 +72,12 @@ export const CAPABILITIES = [
       'The header developer menu (generators, migrations, caches, GraphQL) and the component gallery.',
   },
   {
+    name: 'manageCustomCode',
+    label: 'Custom head, CSS & script injection',
+    description:
+      'Inject custom <head> meta/link tags, site-wide CSS styles, after-footer widgets, and body scripts.',
+  },
+  {
     name: 'useTerminal',
     label: 'Terminal',
     description:
@@ -147,6 +153,14 @@ export function hasCapability(user: unknown, capability: Capability): boolean {
   return Boolean(
     permissions && (permissions.fullAccess || permissions.capabilities.includes(capability)),
   )
+}
+
+/**
+ * Editing raw HTML/CSS/JS injection requires either Administrator (`fullAccess`) or BOTH
+ * `edit` access on `custom-code` AND the explicit `manageCustomCode` capability.
+ */
+export function canManageCustomCode(user: unknown): boolean {
+  return can(user, 'custom-code', 'update') && hasCapability(user, 'manageCustomCode')
 }
 
 /* -------------------------------------------------------------------------------------------- */

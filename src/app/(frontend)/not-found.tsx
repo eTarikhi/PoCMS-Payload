@@ -14,6 +14,7 @@ export default async function FrontendNotFound() {
       navigation={content.navigation}
       footer={content.footer}
       footerLabels={footerLabels}
+      customCode={content.customCode}
     >
       <main id="main-content" className="article-page article-not-found">
         <h1 className="article-title">Page not found</h1>

@@ -37,6 +37,7 @@ export default async function ContactPage(props?: { searchParams?: SearchParamsI
         navigation={chrome.navigation}
         footer={chrome.footer}
         footerLabels={siteSettings.footerLabels}
+        customCode={chrome.customCode}
       >
         <main id="main-content" className="article-page p-0">
           <CmsFormSection

@@ -21,6 +21,7 @@ export const CACHE_TAGS = {
   globalSiteSettings: 'global:site-settings',
   globalNavigation: 'global:navigation',
   globalFooter: 'global:footer',
+  globalCustomCode: 'global:custom-code',
   redirects: 'portfolio:redirects',
   feeds: 'portfolio:feeds',
   forms: 'forms:list',
@@ -57,7 +58,7 @@ export const revalidatePortfolio = (): void => {
   revalidateTags([PORTFOLIO_CACHE_TAG])
 }
 
-/** Invalidates all site chrome (`SiteSettings`, `Navigation`, `Footer`, `Header`) + Home + Feeds. */
+/** Invalidates all site chrome (`SiteSettings`, `Navigation`, `Footer`, `Header`, `CustomCode`) + Home + Feeds. */
 export const revalidateChrome = (): string[] =>
   revalidateTags([
     CACHE_TAGS.chrome,
@@ -65,12 +66,13 @@ export const revalidateChrome = (): string[] =>
     CACHE_TAGS.globalSiteSettings,
     CACHE_TAGS.globalNavigation,
     CACHE_TAGS.globalFooter,
+    CACHE_TAGS.globalCustomCode,
     CACHE_TAGS.homeHeader,
     CACHE_TAGS.home,
     CACHE_TAGS.feeds,
   ])
 
-/** Surgical invalidation when a single Global (`header`, `site-settings`, `navigation`, `footer`) changes. */
+/** Surgical invalidation when a single Global (`header`, `site-settings`, `navigation`, `footer`, `custom-code`) changes. */
 export const revalidateGlobalBySlug = (slug?: string | null): string[] => {
   switch (slug) {
     case 'header':
@@ -89,6 +91,12 @@ export const revalidateGlobalBySlug = (slug?: string | null): string[] => {
     case 'navigation':
       return revalidateTags([
         CACHE_TAGS.globalNavigation,
+        CACHE_TAGS.chrome,
+        CACHE_TAGS.home,
+      ])
+    case 'custom-code':
+      return revalidateTags([
+        CACHE_TAGS.globalCustomCode,
         CACHE_TAGS.chrome,
         CACHE_TAGS.home,
       ])

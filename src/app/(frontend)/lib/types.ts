@@ -418,6 +418,10 @@ export type FooterContent = {
   }
 }
 
+import type { CustomCodeContent } from './custom-code'
+
+export type { CustomCodeContent }
+
 /** Everything the home page renders. Singletons may be `null` when unseeded. */
 export type PortfolioContent = {
   siteSettings: SiteSettingsContent
@@ -433,4 +437,5 @@ export type PortfolioContent = {
   services: ServicesContent
   projects: ProjectsContent
   footer: FooterContent | null
+  customCode: CustomCodeContent
 }

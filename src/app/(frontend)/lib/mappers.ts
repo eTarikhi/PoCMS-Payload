@@ -14,6 +14,7 @@ import type {
   About,
   Article,
   Certificate,
+  CustomCode,
   Education,
   Experience,
   Footer,
@@ -27,6 +28,7 @@ import type {
 } from '@/payload-types'
 
 import { articlePagePath, hasArticlePage } from './article-page'
+import { DEFAULT_CUSTOM_CODE, mapCustomCode } from './custom-code'
 import { formatDisplayDate, formatReadTime, joinDisplay } from './format'
 import { calculateReadTimeMinutes } from './lexical'
 import { hasProjectPage, projectPagePath } from './project-page'
@@ -83,6 +85,7 @@ export type RawPortfolioDocs = {
   services: Service[]
   projects: Project[]
   footer: Footer | null
+  customCode?: Partial<CustomCode> | null
 }
 
 /** Measured from public/images/profile.webp. */
@@ -1693,6 +1696,8 @@ export const mapHiringCta = (doc: Footer | null): HiringCta | null => {
   return { label, url }
 }
 
+export { DEFAULT_CUSTOM_CODE, mapCustomCode }
+
 /** Builds the full home-page view model from raw documents. Pure and deterministic. */
 export const mapPortfolioContent = (raw: RawPortfolioDocs): PortfolioContent => {
   const siteSettings = mapSiteSettings(raw.siteSettings)
@@ -1712,5 +1717,6 @@ export const mapPortfolioContent = (raw: RawPortfolioDocs): PortfolioContent => 
     services: mapServices(raw.services, mapHiringCta(raw.footer)),
     projects: mapProjects(raw.projects, siteSettings.projectsSection),
     footer: mapFooter(raw.footer),
+    customCode: mapCustomCode(raw.customCode),
   }
 }

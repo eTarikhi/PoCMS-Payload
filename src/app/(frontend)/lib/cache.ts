@@ -1,5 +1,6 @@
 import { unstable_cache } from 'next/cache'
 
+import { mapCustomCode } from './custom-code'
 import {
   mapFooter,
   mapHeader,
@@ -9,6 +10,7 @@ import {
   mapSiteSettings,
 } from './mappers'
 import {
+  fetchCustomCodeGlobal,
   fetchFooterGlobal,
   fetchHeaderGlobal,
   fetchHomeProfileRawDocs,
@@ -60,6 +62,12 @@ export const getCachedFooterDoc = unstable_cache(
   { tags: [PORTFOLIO_CACHE_TAG, CACHE_TAGS.chrome, CACHE_TAGS.globalFooter] },
 )
 
+export const getCachedCustomCodeDoc = unstable_cache(
+  () => fetchCustomCodeGlobal(),
+  ['portfolio-global-custom-code-v1'],
+  { tags: [PORTFOLIO_CACHE_TAG, CACHE_TAGS.chrome, CACHE_TAGS.globalCustomCode] },
+)
+
 export const getCachedHomeProfileDocs = unstable_cache(
   () => fetchHomeProfileRawDocs(),
   ['portfolio-home-profile-v2'],
@@ -91,15 +99,16 @@ export const getCachedRawProjectCards = unstable_cache(
 )
 
 /**
- * Composes the 4 independently cached globals (`global:site-settings`, `global:navigation`,
- * `global:header`, `global:footer`).
+ * Composes the 5 independently cached globals (`global:site-settings`, `global:navigation`,
+ * `global:header`, `global:footer`, `global:custom-code`).
  */
 export const getCachedSiteChrome = async (): Promise<SiteChromeContent> => {
-  const [siteSettingsDoc, navigationDoc, headerDoc, footerDoc] = await Promise.all([
+  const [siteSettingsDoc, navigationDoc, headerDoc, footerDoc, customCodeDoc] = await Promise.all([
     getCachedSiteSettingsDoc(),
     getCachedNavigationDoc(),
     getCachedHeaderDoc(),
     getCachedFooterDoc(),
+    getCachedCustomCodeDoc(),
   ])
 
   return {
@@ -108,6 +117,7 @@ export const getCachedSiteChrome = async (): Promise<SiteChromeContent> => {
     header: mapHeader(headerDoc),
     headerStudio: mapHeaderStudio(headerDoc),
     footer: mapFooter(footerDoc),
+    customCode: mapCustomCode(customCodeDoc),
   }
 }
 
@@ -142,8 +152,8 @@ export const getCachedProjectsList: () => Promise<ProjectsContent> = unstable_ca
  * editing one slice never forces PostgreSQL to re-query the remaining 11 collections/globals.
  */
 export const getCachedPortfolioContent = async (): Promise<PortfolioContent> => {
-  const [siteSettings, navigation, header, profile, articles, projects, footer] = await Promise.all(
-    [
+  const [siteSettings, navigation, header, profile, articles, projects, footer, customCode] =
+    await Promise.all([
       getCachedSiteSettingsDoc(),
       getCachedNavigationDoc(),
       getCachedHeaderDoc(),
@@ -151,8 +161,8 @@ export const getCachedPortfolioContent = async (): Promise<PortfolioContent> => 
       getCachedRawArticleCards(),
       getCachedRawProjectCards(),
       getCachedFooterDoc(),
-    ],
-  )
+      getCachedCustomCodeDoc(),
+    ])
 
   return mapPortfolioContent({
     siteSettings,
@@ -167,5 +177,6 @@ export const getCachedPortfolioContent = async (): Promise<PortfolioContent> => 
     services: profile.services,
     projects,
     footer,
+    customCode,
   })
 }

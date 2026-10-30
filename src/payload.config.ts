@@ -17,6 +17,7 @@ import { ensureRoles } from './access/roles'
 import { ensureDefaultForms } from './seed/ensureForms'
 import { AuditLogs } from './collections/AuditLogs'
 import { createRoles } from './collections/Roles'
+import { CustomCode } from './globals/CustomCode'
 import { Footer } from './globals/Footer'
 import { Header } from './globals/Header'
 import { Navigation } from './globals/Navigation'
@@ -78,7 +79,7 @@ const contentCollections = [
   Skills,
 ]
 
-const globals = [Header, SiteSettings, Navigation, Footer]
+const globals = [Header, SiteSettings, Navigation, Footer, CustomCode]
 
 /** Includes plugin-registered collections (`redirects`, `forms`, `form-submissions`) so RBAC role fields match `payload.config`. */
 const roleGovernedCollections = [

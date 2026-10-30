@@ -68,12 +68,18 @@ describe('Drag-and-drop ordering & globals configuration', () => {
     )
   })
 
-  it('registers header, site-settings, navigation and footer globals with RBAC governance', async () => {
+  it('registers header, site-settings, navigation, footer and custom-code globals with RBAC governance', async () => {
     const sanitized = await config
     const globalSlugs = sanitized.globals.map((g) => g.slug)
-    expect(globalSlugs).toEqual(['header', 'site-settings', 'navigation', 'footer'])
+    expect(globalSlugs).toEqual([
+      'header',
+      'site-settings',
+      'navigation',
+      'footer',
+      'custom-code',
+    ])
 
-    for (const slug of ['header', 'site-settings', 'navigation', 'footer']) {
+    for (const slug of ['header', 'site-settings', 'navigation', 'footer', 'custom-code']) {
       const globalConfig = sanitized.globals.find((g) => g.slug === slug)
       expect(globalConfig?.admin.group).toBe('Site settings')
       const editViews = globalConfig?.admin.components?.views?.edit ?? {}
@@ -87,6 +93,7 @@ describe('Drag-and-drop ordering & globals configuration', () => {
       { slug: 'site-settings', field: 'siteSettings' },
       { slug: 'navigation', field: 'navigation' },
       { slug: 'footer', field: 'footer' },
+      { slug: 'custom-code', field: 'customCode' },
     ])
 
     const merged = mergeRoles(

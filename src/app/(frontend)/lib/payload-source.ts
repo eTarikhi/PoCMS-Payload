@@ -17,6 +17,8 @@ import type {
   ArticlesSelect,
   Certificate,
   CertificatesSelect,
+  CustomCode,
+  CustomCodeSelect,
   Education,
   EducationsSelect,
   Experience,
@@ -40,6 +42,7 @@ import type {
 } from '@/payload-types'
 
 import { hasArticlePage } from './article-page'
+import { type CustomCodeContent, mapCustomCode } from './custom-code'
 import {
   mapArticles,
   mapFooter,
@@ -308,12 +311,25 @@ export const REDIRECT_SELECT = {
   to: true,
 } satisfies RedirectsSelect
 
+export const CUSTOM_CODE_GLOBAL_SELECT = {
+  enabled: true,
+  skipInPreview: true,
+  metaTags: true,
+  linkTags: true,
+  headCode: true,
+  customCss: true,
+  afterFooter: true,
+  bodyStart: true,
+  bodyEnd: true,
+} satisfies CustomCodeSelect
+
 export type SiteChromeContent = {
   siteSettings: SiteSettingsContent
   navigation: NavigationContent
   header: HeaderContent | null
   headerStudio: HeaderStudioConfig
   footer: FooterContent | null
+  customCode: CustomCodeContent
 }
 
 export type HomeProfileRawDocs = {
@@ -362,6 +378,17 @@ export const fetchFooterGlobal = async (): Promise<Footer> => {
     depth: 0,
     select: FOOTER_GLOBAL_SELECT,
   })) as Footer
+}
+
+export const fetchCustomCodeGlobal = async (): Promise<CustomCode | null> => {
+  const payload = await getPayload({ config: configPromise })
+  return (await payload
+    .findGlobal({
+      slug: 'custom-code',
+      depth: 0,
+      select: CUSTOM_CODE_GLOBAL_SELECT,
+    })
+    .catch(() => null)) as CustomCode | null
 }
 
 /** Fetches the Home-only profile collections (`about`, `skills`, `experiences`, `educations`, `certificates`, `services`). */
@@ -459,15 +486,16 @@ export const fetchPublishedProjectCardDocs = async (): Promise<Project[]> => {
 }
 
 /**
- * Fetches only the site-wide chrome (`site-settings`, `navigation`, `header`, `footer`) — 4
- * projected global queries instead of loading all 12 home-page collections.
+ * Fetches only the site-wide chrome (`site-settings`, `navigation`, `header`, `footer`, `custom-code`)
+ * via projected global queries instead of loading all 12 home-page collections.
  */
 export const getSiteChromeContent = async (): Promise<SiteChromeContent> => {
-  const [siteSettingsDoc, navigationDoc, headerDoc, footerDoc] = await Promise.all([
+  const [siteSettingsDoc, navigationDoc, headerDoc, footerDoc, customCodeDoc] = await Promise.all([
     fetchSiteSettingsGlobal(),
     fetchNavigationGlobal(),
     fetchHeaderGlobal(),
     fetchFooterGlobal(),
+    fetchCustomCodeGlobal(),
   ])
 
   return {
@@ -476,6 +504,7 @@ export const getSiteChromeContent = async (): Promise<SiteChromeContent> => {
     header: mapHeader(headerDoc),
     headerStudio: mapHeaderStudio(headerDoc),
     footer: mapFooter(footerDoc),
+    customCode: mapCustomCode(customCodeDoc),
   }
 }
 
@@ -503,8 +532,8 @@ export const getPublishedProjectsList = async (): Promise<ProjectsContent> => {
 
 /** Fetches the raw Payload documents needed by the home page and site chrome. */
 export const fetchRawPortfolioDocs = async (): Promise<RawPortfolioDocs> => {
-  const [siteSettings, navigation, header, profile, articles, projects, footer] = await Promise.all(
-    [
+  const [siteSettings, navigation, header, profile, articles, projects, footer, customCode] =
+    await Promise.all([
       fetchSiteSettingsGlobal(),
       fetchNavigationGlobal(),
       fetchHeaderGlobal(),
@@ -512,8 +541,8 @@ export const fetchRawPortfolioDocs = async (): Promise<RawPortfolioDocs> => {
       fetchPublishedArticleCardDocs(),
       fetchPublishedProjectCardDocs(),
       fetchFooterGlobal(),
-    ],
-  )
+      fetchCustomCodeGlobal(),
+    ])
 
   return {
     siteSettings,
@@ -528,6 +557,7 @@ export const fetchRawPortfolioDocs = async (): Promise<RawPortfolioDocs> => {
     services: profile.services,
     projects,
     footer,
+    customCode,
   }
 }
 

@@ -23,6 +23,7 @@ export default async function HomePage() {
         navigation={content.navigation}
         footer={content.footer}
         footerLabels={siteSettings.footerLabels}
+        customCode={content.customCode}
       >
         {content.header ? <Hero header={content.header} labels={siteSettings.hero} /> : null}
         <main id="main-content" data-bs-spy="scroll" data-bs-target=".navbar" data-bs-offset="51">
