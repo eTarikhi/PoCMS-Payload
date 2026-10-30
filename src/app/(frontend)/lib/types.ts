@@ -370,8 +370,12 @@ export type ProjectItem = {
   thumbnailUrl: string
   /** Full-size image. */
   imageUrl: string
-  /** Optional base64 WebP blur placeholder generated via `sharp` on upload. */
+  /** Optional base64 WebP blur placeholder generated via `sharp` on upload or `/images/**` save. */
   blurDataURL?: string | null
+  /** Resolved case-study lead media display mode (`'none'` | `'single'` | `'gallery'`). */
+  mediaMode?: ArticleMediaMode
+  /** Number of resolved slides when `mediaMode === 'gallery'`. */
+  galleryCount?: number
   /** Live site or external project URL. */
   url: string
   /** Internal case-study page path, e.g. "/projects/alyapanel". Null when the project has no case study. */

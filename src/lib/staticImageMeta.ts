@@ -158,6 +158,54 @@ export async function listPublicImages(
   return items
 }
 
+async function resolveUrlMetaForInput(rawInput: unknown): Promise<StaticImageMeta | null> {
+  const trimmed = typeof rawInput === 'string' ? rawInput.trim() : ''
+  if (!trimmed) return null
+
+  if (trimmed.startsWith('/images/')) {
+    return extractStaticImageMeta(trimmed)
+  }
+
+  if (trimmed.startsWith('/api/media-frame')) {
+    try {
+      const parsed = new URL(trimmed, 'http://localhost')
+      const underlying = parsed.searchParams.get('src')?.trim() ?? ''
+      if (underlying.startsWith('/images/')) {
+        const innerMeta = await extractStaticImageMeta(underlying)
+        if (innerMeta) {
+          return {
+            src: trimmed,
+            width: 1600,
+            height: 900,
+            blurDataURL: innerMeta.blurDataURL,
+          }
+        }
+      }
+    } catch {
+      return null
+    }
+  }
+
+  return null
+}
+
+async function enrichGallerySlides(gallery: unknown): Promise<void> {
+  if (!Array.isArray(gallery)) return
+  for (const slide of gallery) {
+    if (!slide || typeof slide !== 'object') continue
+    const slideRec = slide as Record<string, unknown>
+    const slideUrl = typeof slideRec.imageUrl === 'string' ? slideRec.imageUrl.trim() : ''
+    if (!slideUrl) {
+      slideRec.urlMeta = null
+      continue
+    }
+    const meta = await resolveUrlMetaForInput(slideUrl)
+    if (meta) {
+      slideRec.urlMeta = meta
+    }
+  }
+}
+
 async function enrichLexicalMediaBlocks(node: unknown): Promise<void> {
   if (!node || typeof node !== 'object') return
   const record = node as Record<string, unknown>
@@ -170,13 +218,13 @@ async function enrichLexicalMediaBlocks(node: unknown): Promise<void> {
   ) {
     const fields = record.fields as Record<string, unknown>
     const imageUrl = typeof fields.imageUrl === 'string' ? fields.imageUrl.trim() : ''
-    if (imageUrl.startsWith('/images/')) {
-      const meta = await extractStaticImageMeta(imageUrl)
+    if (!imageUrl) {
+      fields.urlMeta = null
+    } else {
+      const meta = await resolveUrlMetaForInput(imageUrl)
       if (meta) {
         fields.urlMeta = meta
       }
-    } else if (!imageUrl) {
-      fields.urlMeta = null
     }
   }
 
@@ -199,24 +247,49 @@ export const enrichArticleStaticImageMetaBeforeChange: CollectionBeforeChangeHoo
   const record = data as Record<string, unknown>
 
   const coverUrl = typeof record.imageUrl === 'string' ? record.imageUrl.trim() : ''
-  if (coverUrl.startsWith('/images/')) {
-    record.imageUrlMeta = await extractStaticImageMeta(coverUrl)
-  } else if (!coverUrl) {
+  if (!coverUrl) {
     record.imageUrlMeta = null
-  }
-
-  if (Array.isArray(record.gallery)) {
-    for (const slide of record.gallery) {
-      if (!slide || typeof slide !== 'object') continue
-      const slideRec = slide as Record<string, unknown>
-      const slideUrl = typeof slideRec.imageUrl === 'string' ? slideRec.imageUrl.trim() : ''
-      if (slideUrl.startsWith('/images/')) {
-        slideRec.urlMeta = await extractStaticImageMeta(slideUrl)
-      } else if (!slideUrl) {
-        slideRec.urlMeta = null
-      }
+  } else {
+    const meta = await resolveUrlMetaForInput(coverUrl)
+    if (meta) {
+      record.imageUrlMeta = meta
     }
   }
+
+  await enrichGallerySlides(record.gallery)
+
+  if (record.content && typeof record.content === 'object') {
+    const root = (record.content as { root?: unknown }).root
+    if (root) {
+      await enrichLexicalMediaBlocks(root)
+    }
+  }
+
+  return data
+}
+
+/**
+ * Payload `beforeChange` hook on `Projects`: automatically computes `{ width, height, blurDataURL }`
+ * via `sharp` whenever an editor references an existing `/images/**` path on `src`,
+ * `gallery[].imageUrl`, or an in-body Lexical `mediaBlock`.
+ */
+export const enrichProjectStaticImageMetaBeforeChange: CollectionBeforeChangeHook = async ({
+  data,
+}) => {
+  if (!data || typeof data !== 'object') return data
+  const record = data as Record<string, unknown>
+
+  const srcUrl = typeof record.src === 'string' ? record.src.trim() : ''
+  if (!srcUrl) {
+    record.srcMeta = null
+  } else {
+    const meta = await resolveUrlMetaForInput(srcUrl)
+    if (meta) {
+      record.srcMeta = meta
+    }
+  }
+
+  await enrichGallerySlides(record.gallery)
 
   if (record.content && typeof record.content === 'object') {
     const root = (record.content as { root?: unknown }).root

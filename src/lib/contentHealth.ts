@@ -166,12 +166,26 @@ export function collectReferencedMediaIds(sources: MediaReferenceSources): Set<s
 
   for (const a of sources.articles ?? []) {
     add(a.image)
+    if (Array.isArray(a.gallery)) {
+      for (const slide of a.gallery) {
+        if (slide && typeof slide === 'object') {
+          add((slide as Record<string, unknown>).media)
+        }
+      }
+    }
     add((a.meta as Record<string, unknown> | undefined)?.image)
     extractLexicalMediaIds(a.content, ids)
   }
 
   for (const p of sources.projects ?? []) {
     add(p.image)
+    if (Array.isArray(p.gallery)) {
+      for (const slide of p.gallery) {
+        if (slide && typeof slide === 'object') {
+          add((slide as Record<string, unknown>).media)
+        }
+      }
+    }
     add((p.meta as Record<string, unknown> | undefined)?.image)
     extractLexicalMediaIds(p.content, ids)
   }
@@ -249,11 +263,31 @@ export async function auditContentHealth(
     payload.findGlobal({ slug: 'site-settings', depth: 0, overrideAccess: true, req }),
   ])
 
+  const hasGalleryItem = (gallery: unknown): boolean =>
+    Array.isArray(gallery) &&
+    gallery.some(
+      (item) =>
+        item &&
+        typeof item === 'object' &&
+        Boolean(
+          (item as Record<string, unknown>).media ||
+            String((item as Record<string, unknown>).imageUrl ?? '').trim(),
+        ),
+    )
+
   const missingArticleImages = articles.docs.filter(
-    (doc) => !doc.image && !doc.imageUrl?.trim(),
+    (doc) =>
+      doc.mediaMode !== 'none' &&
+      !doc.image &&
+      !doc.imageUrl?.trim() &&
+      !(doc.mediaMode === 'gallery' && hasGalleryItem(doc.gallery)),
   ).length
   const missingProjectImages = projects.docs.filter(
-    (doc) => !doc.image && !doc.src?.trim(),
+    (doc) =>
+      doc.mediaMode !== 'none' &&
+      !doc.image &&
+      !doc.src?.trim() &&
+      !(doc.mediaMode === 'gallery' && hasGalleryItem(doc.gallery)),
   ).length
 
   const missingArticleSeoDescriptions = articles.docs.filter(

@@ -6,25 +6,37 @@ import { describe, expect, it } from 'vitest'
 
 import { ArticleLayout } from '@/app/(frontend)/components/article/ArticleLayout'
 import { ArticlesArchive } from '@/app/(frontend)/components/article/ArticlesArchive'
+import { ProjectLayout } from '@/app/(frontend)/components/project/ProjectLayout'
+import { ProjectsArchive } from '@/app/(frontend)/components/project/ProjectsArchive'
 import { MediaBlockView } from '@/app/(frontend)/components/richtext/MediaBlockView'
 import { RichTextContent } from '@/app/(frontend)/components/richtext/RichTextContent'
 import { mapArticleDetail } from '@/app/(frontend)/lib/article-mappers'
-import { DEFAULT_SITE_SETTINGS, mapArticles, resolveArticleLeadMedia } from '@/app/(frontend)/lib/mappers'
+import {
+  DEFAULT_SITE_SETTINGS,
+  mapArticles,
+  mapProjects,
+  resolveArticleLeadMedia,
+  resolveProjectLeadMedia,
+} from '@/app/(frontend)/lib/mappers'
+import { mapProjectDetail } from '@/app/(frontend)/lib/project-mappers'
 import { MediaBlock } from '@/blocks/MediaBlock'
 import { Articles } from '@/collections/Articles'
 import { Media } from '@/collections/Media'
+import { Projects } from '@/collections/Projects'
 import {
   clampResponsiveFrameWidth,
   mediaFrameEndpoint,
   publicImagesEndpoint,
 } from '@/endpoints/publicImages'
+import { collectReferencedMediaIds } from '@/lib/contentHealth'
 import {
   enrichArticleStaticImageMetaBeforeChange,
+  enrichProjectStaticImageMetaBeforeChange,
   extractStaticImageMeta,
   listPublicImages,
   resolveSafePublicImagePath,
 } from '@/lib/staticImageMeta'
-import type { Article, Media as MediaDoc } from '@/payload-types'
+import type { Article, Media as MediaDoc, Project } from '@/payload-types'
 
 const sampleLexicalBody: Article['content'] = {
   root: {
@@ -402,5 +414,155 @@ describe('Article Media Management: Schema, Static Metadata, ImageResponse & Mod
     expect(richHtml).toContain('Inline drag-and-drop upload figure')
     expect(richHtml).toContain('article-media-block--size-medium')
     expect(richHtml).toContain('Medium 65% MediaBlock figure')
+  })
+
+  it('applies mediaMode (none, single upload/src, hybrid gallery), static meta enrichment, and orphan protection on Projects & /projects/[slug]', async () => {
+    const tabsField = Projects.fields.find((f) => f.type === 'tabs')
+    expect(tabsField && tabsField.type === 'tabs').toBe(true)
+    if (!tabsField || tabsField.type !== 'tabs') return
+
+    const contentTab = tabsField.tabs.find((t) => 'label' in t && t.label === 'Content')
+    const collapsible = contentTab?.fields.find(
+      (f) => f.type === 'collapsible' && f.label === 'Case Study Media & Card Preview',
+    )
+    expect(collapsible && collapsible.type === 'collapsible').toBe(true)
+    if (!collapsible || collapsible.type !== 'collapsible') return
+
+    const fieldNames = collapsible.fields
+      .filter((f): f is Extract<typeof f, { name: string }> => 'name' in f)
+      .map((f) => f.name)
+    expect(fieldNames).toEqual(
+      expect.arrayContaining([
+        'mediaMode',
+        'mediaSource',
+        'image',
+        'src',
+        'imageAlt',
+        'srcMeta',
+        'galleryLayout',
+        'gallery',
+        'placeHolder',
+      ]),
+    )
+
+    // Enrich Project src (/api/media-frame wrapper) + gallery + Lexical mediaBlock via beforeChange
+    const projectDraft: Record<string, unknown> = {
+      title: 'Project Meta Hook',
+      mediaMode: 'gallery',
+      src: '/api/media-frame?src=%2Fimages%2Farticles%2F1735708966846.webp&w=1200&mode=card',
+      gallery: [
+        {
+          source: 'url',
+          imageUrl: '/images/articles/1733263816314.webp',
+          caption: 'System blueprint',
+        },
+      ],
+    }
+    const enrichedProject = await enrichProjectStaticImageMetaBeforeChange({
+      data: projectDraft,
+    } as never)
+    expect((enrichedProject.srcMeta as { width?: number; blurDataURL?: string })?.width).toBe(1600)
+    expect((enrichedProject.srcMeta as { blurDataURL?: string })?.blurDataURL).toMatch(
+      /^data:image\/webp;base64,/,
+    )
+
+    const uploadDoc = sampleUploadedMedia(44, 'project-slide')
+
+    // Legacy Project without mediaMode defaults to 'single'
+    expect(
+      resolveProjectLeadMedia({
+        title: 'Legacy Project',
+        src: '/images/articles/1735708966846.webp',
+      }).mediaMode,
+    ).toBe('single')
+
+    // 'none' hides /projects/[slug] cover while preserving home-page portfolio card thumbnail
+    const noneProject: Project = {
+      id: 11,
+      title: 'Text-Only Case Study',
+      slug: 'text-only-case-study',
+      excerpt: 'Deep backend architecture postmortem.',
+      categories: ['back-end'],
+      mediaMode: 'none',
+      placeHolder: '/images/articles/1733263816314.webp',
+      src: '/images/articles/1735708966846.webp',
+      content: sampleLexicalBody,
+      updatedAt: '2026-03-01T00:00:00.000Z',
+      createdAt: '2026-03-01T00:00:00.000Z',
+    }
+
+    const galleryProject: Project = {
+      id: 12,
+      title: 'Gallery Case Study',
+      slug: 'gallery-case-study',
+      excerpt: 'Full-stack platform showcase.',
+      categories: ['front-end', 'cms-crm'],
+      mediaMode: 'gallery',
+      galleryLayout: 'carousel',
+      gallery: [
+        {
+          id: 'p1',
+          source: 'upload',
+          media: uploadDoc,
+          caption: 'Admin control plane',
+        },
+        {
+          id: 'p2',
+          source: 'url',
+          imageUrl: '/images/articles/1735708966846.webp',
+          caption: 'Edge delivery pipeline',
+        },
+      ],
+      content: sampleLexicalBody,
+      updatedAt: '2026-03-02T00:00:00.000Z',
+      createdAt: '2026-03-02T00:00:00.000Z',
+    }
+
+    const mappedProjects = mapProjects([noneProject, galleryProject])
+    // Home-page card thumbnail & image remain intact on 'none' project!
+    expect(mappedProjects.items[0]?.thumbnailUrl).toBe('/images/articles/1733263816314.webp')
+    expect(mappedProjects.items[0]?.imageUrl).toBe('/images/articles/1735708966846.webp')
+    expect(mappedProjects.items[0]?.mediaMode).toBe('none')
+
+    // Gallery project falls back card thumbnail to Slide #1 and exposes galleryCount
+    expect(mappedProjects.items[1]?.mediaMode).toBe('gallery')
+    expect(mappedProjects.items[1]?.galleryCount).toBe(2)
+    expect(mappedProjects.items[1]?.thumbnailUrl).toBe(
+      '/api/media/file/project-slide-400x300.webp',
+    )
+
+    const noneProjectDetail = mapProjectDetail(noneProject)!
+    expect(noneProjectDetail.mediaMode).toBe('none')
+    expect(noneProjectDetail.coverUrl).toBeNull()
+    const noneProjectHtml = renderToStaticMarkup(
+      React.createElement(ProjectLayout, { project: noneProjectDetail }),
+    )
+    expect(noneProjectHtml).not.toContain('article-cover')
+    expect(noneProjectHtml).not.toContain('article-gallery')
+
+    const galleryProjectDetail = mapProjectDetail(galleryProject)!
+    expect(galleryProjectDetail.mediaMode).toBe('gallery')
+    expect(galleryProjectDetail.gallery).toHaveLength(2)
+    const galleryProjectHtml = renderToStaticMarkup(
+      React.createElement(ProjectLayout, { project: galleryProjectDetail }),
+    )
+    expect(galleryProjectHtml).toContain('article-gallery-carousel')
+    expect(galleryProjectHtml).toContain('Admin control plane')
+
+    const projectsArchiveHtml = renderToStaticMarkup(
+      React.createElement(ProjectsArchive, {
+        projects: mappedProjects.items,
+        labels: DEFAULT_SITE_SETTINGS.projectsSection,
+      }),
+    )
+    expect(projectsArchiveHtml).toContain('2 photos')
+
+    // Content Health orphan protection counts gallery[].media on both articles & projects
+    const referencedIds = collectReferencedMediaIds({
+      projects: [{ gallery: [{ media: 44 }] }],
+      articles: [{ gallery: [{ media: 88 }] }],
+    })
+    expect(referencedIds.has('44')).toBe(true)
+    expect(referencedIds.has('88')).toBe(true)
   })
 })

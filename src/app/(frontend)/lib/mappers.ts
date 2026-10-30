@@ -476,6 +476,170 @@ export const resolveArticleLeadMedia = (doc: Partial<Article>): ResolvedArticleL
   }
 }
 
+/**
+ * Resolves a `Project` case-study's lead media mode (`none` | `single` | `gallery`) across both
+ * direct `Media` uploads and pre-uploaded `src` / `imageUrl` paths on `/projects/[slug]`.
+ */
+export const resolveProjectLeadMedia = (doc: Partial<Project>): ResolvedArticleLeadMedia => {
+  const fallbackAlt = doc.title?.trim() || 'Project illustration'
+  const rawMode = doc.mediaMode
+
+  if (rawMode === 'none') {
+    return {
+      mediaMode: 'none',
+      cardUrl: '',
+      heroUrl: null,
+      blurDataURL: null,
+      coverAlt: fallbackAlt,
+      galleryLayout: 'carousel',
+      gallery: [],
+    }
+  }
+
+  if (rawMode === 'gallery') {
+    const galleryLayout: ArticleGalleryLayout =
+      doc.galleryLayout === 'grid' ? 'grid' : 'carousel'
+    const slides: ArticleGallerySlide[] = []
+
+    for (const [idx, slide] of (doc.gallery ?? []).entries()) {
+      if (!slide) continue
+      const inferredSource =
+        slide.source ?? (slide.imageUrl && !slide.media ? 'url' : 'upload')
+
+      if (inferredSource === 'url') {
+        const urlStr = slide.imageUrl?.trim() || ''
+        if (!urlStr) continue
+        const meta = parseStoredUrlMeta(slide.urlMeta)
+        slides.push({
+          id: slide.id || `slide-${idx + 1}`,
+          src: urlStr,
+          thumbSrc: urlStr,
+          width: meta?.width ?? 1200,
+          height: meta?.height ?? 675,
+          alt: slide.alt?.trim() || slide.caption?.trim() || `${fallbackAlt} (${idx + 1})`,
+          caption: slide.caption?.trim() || null,
+          ...(meta?.blurDataURL ? { blurDataURL: meta.blurDataURL } : {}),
+        })
+      } else {
+        const heroSrc =
+          resolveMediaSizeUrl(slide.media, 'hero') ?? (slide.imageUrl?.trim() || null)
+        if (!heroSrc) continue
+        const thumbSrc = resolveMediaSizeUrl(slide.media, 'thumbnail') ?? heroSrc
+        const mediaObj = slide.media && typeof slide.media === 'object' ? slide.media : null
+        const blur = resolveMediaBlurDataURL(slide.media)
+        const objectPosition = resolveMediaObjectPosition(slide.media)
+        slides.push({
+          id: slide.id || `slide-${idx + 1}`,
+          src: heroSrc,
+          thumbSrc,
+          width: mediaObj?.width ?? 1200,
+          height: mediaObj?.height ?? 675,
+          alt:
+            slide.alt?.trim() ||
+            mediaObj?.alt?.trim() ||
+            slide.caption?.trim() ||
+            `${fallbackAlt} (${idx + 1})`,
+          caption: slide.caption?.trim() || null,
+          ...(blur ? { blurDataURL: blur } : {}),
+          ...(objectPosition ? { objectPosition } : {}),
+        })
+      }
+    }
+
+    if (slides.length === 0) {
+      return {
+        mediaMode: 'none',
+        cardUrl: '',
+        heroUrl: null,
+        blurDataURL: null,
+        coverAlt: fallbackAlt,
+        galleryLayout,
+        gallery: [],
+      }
+    }
+
+    const lead = slides[0]!
+    return {
+      mediaMode: 'gallery',
+      cardUrl:
+        resolveMediaSizeUrl((doc.gallery?.[0] ?? undefined)?.media, 'card') ?? lead.src,
+      heroUrl: lead.src,
+      blurDataURL: lead.blurDataURL ?? null,
+      coverAlt: lead.alt,
+      ...(lead.objectPosition ? { coverObjectPosition: lead.objectPosition } : {}),
+      galleryLayout,
+      gallery: slides,
+    }
+  }
+
+  const inferredSingleSource =
+    doc.mediaSource ?? (doc.src && !doc.image ? 'url' : 'upload')
+
+  if (inferredSingleSource === 'url') {
+    const rawUrl = doc.src?.trim() || ''
+    if (!rawUrl) {
+      return {
+        mediaMode: 'none',
+        cardUrl: '',
+        heroUrl: null,
+        blurDataURL: null,
+        coverAlt: fallbackAlt,
+        galleryLayout: 'carousel',
+        gallery: [],
+      }
+    }
+    const meta = parseStoredUrlMeta(doc.srcMeta)
+    return {
+      mediaMode: 'single',
+      cardUrl: rawUrl,
+      heroUrl: rawUrl,
+      blurDataURL: meta?.blurDataURL ?? null,
+      coverAlt: doc.imageAlt?.trim() || fallbackAlt,
+      galleryLayout: 'carousel',
+      gallery: [],
+    }
+  }
+
+  const uploadCard = resolveMediaSizeUrl(doc.image, 'card')
+  const uploadHero = resolveMediaSizeUrl(doc.image, 'hero')
+  const legacyUrl = doc.src?.trim() || ''
+  const cardUrl = uploadCard ?? legacyUrl
+  const heroUrl = uploadHero ?? (legacyUrl || null)
+
+  if (!heroUrl) {
+    return {
+      mediaMode: 'none',
+      cardUrl: '',
+      heroUrl: null,
+      blurDataURL: null,
+      coverAlt: fallbackAlt,
+      galleryLayout: 'carousel',
+      gallery: [],
+    }
+  }
+
+  const uploadBlur =
+    resolveMediaBlurDataURL(doc.image) ??
+    parseStoredUrlMeta(doc.srcMeta)?.blurDataURL ??
+    null
+  const mediaAlt =
+    doc.image && typeof doc.image === 'object' && doc.image.alt?.trim()
+      ? doc.image.alt.trim()
+      : null
+  const coverObjectPosition = resolveMediaObjectPosition(doc.image)
+
+  return {
+    mediaMode: 'single',
+    cardUrl,
+    heroUrl,
+    blurDataURL: uploadBlur,
+    coverAlt: doc.imageAlt?.trim() || mediaAlt || fallbackAlt,
+    ...(coverObjectPosition ? { coverObjectPosition } : {}),
+    galleryLayout: 'carousel',
+    gallery: [],
+  }
+}
+
 /** Extracts clean per-document SEO overrides from `@payloadcms/plugin-seo`'s `meta` group. */
 export const mapSeoOverride = (
   meta?: {
@@ -1179,9 +1343,11 @@ export const mapProjects = (
   caseStudyLabel: projectsLabels.caseStudyLabel,
   filters: buildProjectFilters(projectsLabels.allFilterLabel),
   items: docs.map((doc): ProjectItem => {
+    const leadMedia = resolveProjectLeadMedia(doc)
     const thumbUploadUrl = resolveMediaSizeUrl(doc.image, 'thumbnail')
     const fullUploadUrl = resolveMediaSizeUrl(doc.image, 'hero')
-    const blurDataURL = resolveMediaBlurDataURL(doc.image)
+    const blurDataURL =
+      resolveMediaBlurDataURL(doc.image) ?? leadMedia.blurDataURL ?? null
     const caseStudyPath = doc.slug && hasProjectPage(doc) ? projectPagePath(doc.slug) : null
     const minutes = caseStudyPath
       ? calculateReadTimeMinutes({ content: doc.content, fallbackReadTime: doc.readTime })
@@ -1195,9 +1361,14 @@ export const mapProjects = (
       role: doc.role?.trim() || null,
       year: doc.year?.trim() || null,
       readTime: minutes ? formatReadTime(minutes) : null,
-      thumbnailUrl: withFallback(doc.placeHolder, thumbUploadUrl ?? ''),
-      imageUrl: fullUploadUrl ?? withFallback(doc.src, ''),
+      thumbnailUrl: withFallback(
+        doc.placeHolder,
+        thumbUploadUrl ?? leadMedia.gallery[0]?.thumbSrc ?? '',
+      ),
+      imageUrl: fullUploadUrl ?? withFallback(doc.src, leadMedia.heroUrl ?? ''),
       ...(blurDataURL ? { blurDataURL } : {}),
+      mediaMode: leadMedia.mediaMode,
+      ...(leadMedia.mediaMode === 'gallery' ? { galleryCount: leadMedia.gallery.length } : {}),
       url: withFallback(doc.url, caseStudyPath ?? '#'),
       pagePath: caseStudyPath,
     }

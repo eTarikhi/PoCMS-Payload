@@ -6,9 +6,14 @@ import {
   extractTableOfContents,
   type TocItem,
 } from './lexical'
-import { mapSeoOverride, resolveMediaBlurDataURL, resolveMediaSizeUrl } from './mappers'
+import { mapSeoOverride, resolveProjectLeadMedia } from './mappers'
 import { hasProjectPage } from './project-page'
-import type { SeoOverride } from './types'
+import type {
+  ArticleGalleryLayout,
+  ArticleGallerySlide,
+  ArticleMediaMode,
+  SeoOverride,
+} from './types'
 
 const CATEGORY_LABELS: Record<string, string> = {
   'front-end': 'Front-End',
@@ -28,9 +33,16 @@ export type ProjectDetail = {
   year: string | null
   techStack: string[]
   readTimeDisplay: string
+  /** Resolved case-study lead media preview mode (`'none'` | `'single'` | `'gallery'`). */
+  mediaMode?: ArticleMediaMode
   coverUrl: string | null
   coverBlurDataURL?: string | null
+  coverObjectPosition?: string
   coverAlt: string
+  /** Gallery display layout when `mediaMode === 'gallery'`. */
+  galleryLayout?: ArticleGalleryLayout
+  /** Resolved gallery slides when `mediaMode === 'gallery'`. */
+  gallery?: ArticleGallerySlide[]
   liveUrl: string | null
   readMoreUrl: string | null
   content: Project['content']
@@ -51,8 +63,7 @@ export const mapProjectDetail = (doc: Project): ProjectDetail | null => {
     fallbackReadTime: doc.readTime,
   })
   const categories = doc.categories ?? []
-  const uploadUrl = resolveMediaSizeUrl(doc.image, 'hero')
-  const coverBlurDataURL = resolveMediaBlurDataURL(doc.image)
+  const leadMedia = resolveProjectLeadMedia(doc)
 
   return {
     id: doc.id,
@@ -66,9 +77,15 @@ export const mapProjectDetail = (doc: Project): ProjectDetail | null => {
     year: doc.year?.trim() || null,
     techStack: (doc.techStack ?? []).map((item) => item.trim()).filter(Boolean),
     readTimeDisplay: formatReadTime(minutes),
-    coverUrl: uploadUrl ?? (doc.src?.trim() || null),
-    ...(coverBlurDataURL ? { coverBlurDataURL } : {}),
-    coverAlt: (typeof doc.image === 'object' && doc.image?.alt) || doc.title,
+    mediaMode: leadMedia.mediaMode,
+    coverUrl: leadMedia.heroUrl,
+    ...(leadMedia.blurDataURL ? { coverBlurDataURL: leadMedia.blurDataURL } : {}),
+    ...(leadMedia.coverObjectPosition
+      ? { coverObjectPosition: leadMedia.coverObjectPosition }
+      : {}),
+    coverAlt: leadMedia.coverAlt,
+    galleryLayout: leadMedia.galleryLayout,
+    gallery: leadMedia.gallery,
     liveUrl: doc.url?.trim() || null,
     readMoreUrl: doc.readMoreUrl?.trim() || null,
     content: doc.content,

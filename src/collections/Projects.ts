@@ -3,6 +3,7 @@ import type { CollectionConfig } from 'payload'
 import { draftContentAccess, hiddenWithout } from '@/access/roles'
 import { hasProjectPage, projectPagePath } from '@/app/(frontend)/lib/project-page'
 import { contentLexicalEditor } from '@/fields/richText'
+import { enrichProjectStaticImageMetaBeforeChange } from '@/lib/staticImageMeta'
 
 import {
   computeReadTimeBeforeChange,
@@ -23,7 +24,7 @@ export const Projects: CollectionConfig = {
   },
   hooks: {
     beforeValidate: [projectSlugBeforeValidate],
-    beforeChange: [computeReadTimeBeforeChange],
+    beforeChange: [computeReadTimeBeforeChange, enrichProjectStaticImageMetaBeforeChange],
     afterChange: [projectAfterChange],
     afterDelete: [projectAfterDelete],
   },
@@ -57,7 +58,8 @@ export const Projects: CollectionConfig = {
               name: 'excerpt',
               type: 'textarea',
               admin: {
-                description: 'Short overview shown at the top of the case study and in SEO metadata.',
+                description:
+                  'Short overview shown at the top of the case study and in SEO metadata.',
               },
             },
             {
@@ -81,30 +83,224 @@ export const Projects: CollectionConfig = {
               ],
             },
             {
+              type: 'collapsible',
+              label: 'Case Study Media & Card Preview',
+              admin: {
+                initCollapsed: false,
+                description:
+                  'Choose how lead media appears on /projects/[slug]: No picture, Single image preview, or Gallery view. Portfolio card thumbnails remain configurable below.',
+              },
+              fields: [
+                {
+                  name: 'mediaMode',
+                  type: 'radio',
+                  label: 'Case Study Media Preview Mode',
+                  defaultValue: 'single',
+                  options: [
+                    { label: 'No picture', value: 'none' },
+                    { label: 'Single image preview', value: 'single' },
+                    { label: 'Gallery view', value: 'gallery' },
+                  ],
+                  admin: {
+                    layout: 'horizontal',
+                  },
+                },
+                {
+                  name: 'mediaSource',
+                  type: 'radio',
+                  label: 'Image Source',
+                  defaultValue: 'upload',
+                  options: [
+                    { label: 'Direct Upload / Media Library', value: 'upload' },
+                    { label: 'Existing Image URL / Path', value: 'url' },
+                  ],
+                  admin: {
+                    layout: 'horizontal',
+                    condition: (_, siblingData) =>
+                      (siblingData?.mediaMode ?? 'single') === 'single',
+                  },
+                },
+                {
+                  name: 'image',
+                  type: 'upload',
+                  relationTo: 'media',
+                  label: 'Uploaded Case Study Image',
+                  admin: {
+                    description:
+                      'Used as the case-study cover image and as the portfolio card thumbnail when no Card Thumbnail URL override is set below.',
+                    condition: (_, siblingData) => {
+                      if ((siblingData?.mediaMode ?? 'single') !== 'single') return false
+                      const inferred =
+                        siblingData?.mediaSource ??
+                        (siblingData?.src && !siblingData?.image ? 'url' : 'upload')
+                      return inferred === 'upload'
+                    },
+                  },
+                },
+                {
+                  name: 'src',
+                  label: 'Existing Image URL or Public Path',
+                  type: 'text',
+                  admin: {
+                    placeholder: '/images/projects/portfolio-preview.webp',
+                    description:
+                      'Reference an already-uploaded image path (e.g. "/images/projects/...") or Vercel Blob URL.',
+                    condition: (_, siblingData) => {
+                      if ((siblingData?.mediaMode ?? 'single') !== 'single') return false
+                      const inferred =
+                        siblingData?.mediaSource ??
+                        (siblingData?.src && !siblingData?.image ? 'url' : 'upload')
+                      return inferred === 'url'
+                    },
+                    components: {
+                      afterInput: [
+                        '/components/admin/fields/PublicImagePreview#PublicImagePreview',
+                      ],
+                    },
+                  },
+                },
+                {
+                  name: 'imageAlt',
+                  type: 'text',
+                  label: 'Cover Alt Text Override',
+                  admin: {
+                    placeholder: 'Descriptive alt text (falls back to Media alt or Project title)',
+                    condition: (_, siblingData) =>
+                      (siblingData?.mediaMode ?? 'single') === 'single',
+                  },
+                },
+                {
+                  name: 'srcMeta',
+                  type: 'json',
+                  admin: { hidden: true },
+                },
+                {
+                  name: 'galleryLayout',
+                  type: 'select',
+                  label: 'Gallery Display Style',
+                  defaultValue: 'carousel',
+                  options: [
+                    { label: 'Interactive Carousel + Thumbnail Strip', value: 'carousel' },
+                    { label: 'Editorial Grid + Lightbox', value: 'grid' },
+                  ],
+                  admin: {
+                    width: '50%',
+                    condition: (_, siblingData) => siblingData?.mediaMode === 'gallery',
+                  },
+                },
+                {
+                  name: 'gallery',
+                  type: 'array',
+                  label: 'Gallery Images',
+                  maxRows: 20,
+                  labels: {
+                    singular: 'Gallery Image',
+                    plural: 'Gallery Images',
+                  },
+                  admin: {
+                    initCollapsed: false,
+                    condition: (_, siblingData) => siblingData?.mediaMode === 'gallery',
+                    description:
+                      'Add case-study screenshots or architecture slides via direct upload or an already-uploaded image URL/path.',
+                  },
+                  fields: [
+                    {
+                      name: 'source',
+                      type: 'radio',
+                      label: 'Image Source',
+                      defaultValue: 'upload',
+                      options: [
+                        { label: 'Direct Upload / Media Library', value: 'upload' },
+                        { label: 'Existing Image URL / Path', value: 'url' },
+                      ],
+                      admin: { layout: 'horizontal' },
+                    },
+                    {
+                      name: 'media',
+                      type: 'upload',
+                      relationTo: 'media',
+                      admin: {
+                        condition: (_, siblingData) => {
+                          const inferred =
+                            siblingData?.source ??
+                            (siblingData?.imageUrl && !siblingData?.media ? 'url' : 'upload')
+                          return inferred === 'upload'
+                        },
+                      },
+                    },
+                    {
+                      name: 'imageUrl',
+                      type: 'text',
+                      label: 'Existing Image URL or Public Path',
+                      admin: {
+                        placeholder: '/images/projects/portfolio-preview.webp',
+                        condition: (_, siblingData) => {
+                          const inferred =
+                            siblingData?.source ??
+                            (siblingData?.imageUrl && !siblingData?.media ? 'url' : 'upload')
+                          return inferred === 'url'
+                        },
+                        components: {
+                          afterInput: [
+                            '/components/admin/fields/PublicImagePreview#PublicImagePreview',
+                          ],
+                        },
+                      },
+                    },
+                    {
+                      type: 'row',
+                      fields: [
+                        {
+                          name: 'caption',
+                          type: 'text',
+                          admin: {
+                            width: '60%',
+                            placeholder: 'Optional slide caption',
+                          },
+                        },
+                        {
+                          name: 'alt',
+                          type: 'text',
+                          admin: {
+                            width: '40%',
+                            placeholder: 'Alt text (overrides Media alt)',
+                          },
+                        },
+                      ],
+                    },
+                    {
+                      name: 'urlMeta',
+                      type: 'json',
+                      admin: { hidden: true },
+                    },
+                  ],
+                },
+                {
+                  name: 'placeHolder',
+                  label: 'Portfolio Card Thumbnail URL (Optional Override)',
+                  type: 'text',
+                  admin: {
+                    placeholder: '/images/projects/thumb.webp',
+                    description:
+                      'Optional dedicated thumbnail path for portfolio grid cards (preserves home-page card appearance even when case-study preview mode is No picture or Gallery).',
+                    components: {
+                      afterInput: [
+                        '/components/admin/fields/PublicImagePreview#PublicImagePreview',
+                      ],
+                    },
+                  },
+                },
+              ],
+            },
+            {
               name: 'content',
               type: 'richText',
               label: 'Case Study Body',
               editor: contentLexicalEditor,
               admin: {
                 description:
-                  'Rich-text case study with headings (Table of Contents), Code, Callout, and Media blocks. Leave empty when the project only links out externally.',
+                  'Rich-text case study with headings (Table of Contents), Code, Callout, and resizable Media blocks. Leave empty when the project only links out externally.',
               },
-            },
-            {
-              name: 'image',
-              type: 'upload',
-              relationTo: 'media',
-              admin: {
-                description:
-                  'Used as the full image when the Image URL below is empty. It is also the thumbnail when the Place Holder Image URL is empty.',
-              },
-            },
-            {
-              type: 'row',
-              fields: [
-                { name: 'src', label: 'Image URL', type: 'text' },
-                { name: 'placeHolder', label: 'Place Holder Image URL', type: 'text' },
-              ],
             },
             {
               type: 'row',

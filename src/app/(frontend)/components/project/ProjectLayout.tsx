@@ -5,6 +5,7 @@ import type { ProjectDetail } from '@/app/(frontend)/lib/project-mappers'
 import { PROJECTS_HUB_PATH } from '@/app/(frontend)/lib/project-page'
 import type { ProjectDetailHeaderConfig, ProjectItem } from '@/app/(frontend)/lib/types'
 import { ArticleCover } from '../article/ArticleCover'
+import { ArticleGallery } from '../article/ArticleGallery'
 import { ReadingProgress } from '../article/ReadingProgress'
 import { DetailPageHeader } from '../headers/DetailPageHeader'
 import { MobileTocDrawer, StickyTocRail } from '../headers/StickyTocRail'
@@ -53,7 +54,7 @@ export function ProjectLayout({
         badges={badges}
         title={project.title}
         excerpt={project.excerpt}
-        coverUrl={project.coverUrl}
+        coverUrl={project.mediaMode === 'none' ? null : project.coverUrl}
         backgroundPreset={effectiveHeader.backgroundPreset}
         accentTone={effectiveHeader.accentTone}
         showBreadcrumbs={effectiveHeader.showBreadcrumbs}
@@ -82,13 +83,19 @@ export function ProjectLayout({
           >
             <div className="pocms-reading-main">
               <article className="article-layout project-layout">
-              {project.coverUrl ? (
-                <ArticleCover
-                  src={project.coverUrl}
-                  alt={project.coverAlt}
-                  blurDataURL={project.coverBlurDataURL}
-                />
-              ) : null}
+                {project.mediaMode === 'gallery' && (project.gallery?.length ?? 0) > 0 ? (
+                  <ArticleGallery
+                    slides={project.gallery ?? []}
+                    layout={project.galleryLayout ?? 'carousel'}
+                  />
+                ) : project.mediaMode !== 'none' && project.coverUrl ? (
+                  <ArticleCover
+                    src={project.coverUrl}
+                    alt={project.coverAlt}
+                    blurDataURL={project.coverBlurDataURL}
+                    objectPosition={project.coverObjectPosition}
+                  />
+                ) : null}
 
                 {hasStickyRail ? (
                   <MobileTocDrawer items={tocItems} />

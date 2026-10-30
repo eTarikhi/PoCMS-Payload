@@ -367,7 +367,7 @@ function ShowcaseCaseStudyCard({
       <Link
         href={primaryHref}
         {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
-        className="pocms-showcase-card__media text-decoration-none"
+        className="pocms-showcase-card__media text-decoration-none position-relative"
       >
         <CoverImage
           src={coverSrc}
@@ -379,6 +379,9 @@ function ShowcaseCaseStudyCard({
           height={360}
           className="img-fluid"
         />
+        {project.mediaMode === 'gallery' && (project.galleryCount ?? 0) > 1 ? (
+          <span className="pocms-gallery-pill">⧉ {project.galleryCount} photos</span>
+        ) : null}
       </Link>
 
       <div className="pocms-showcase-card__body">
@@ -562,7 +565,7 @@ function ArchiveProjectCard({
           {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
           className="text-decoration-none"
         >
-          <div className="rounded overflow-hidden">
+          <div className="rounded overflow-hidden position-relative">
             <CoverImage
               src={coverSrc}
               alt={project.title}
@@ -573,6 +576,9 @@ function ArchiveProjectCard({
               height={255}
               className="img-fluid"
             />
+            {project.mediaMode === 'gallery' && (project.galleryCount ?? 0) > 1 ? (
+              <span className="pocms-gallery-pill">⧉ {project.galleryCount} photos</span>
+            ) : null}
           </div>
           <div className="p-2">
             <div className="d-flex flex-wrap align-items-center gap-1 mb-2">
