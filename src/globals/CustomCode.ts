@@ -38,7 +38,7 @@ const buildScopeField = (width = '65%'): Field => ({
 
 export const CustomCode: GlobalConfig = {
   slug: 'custom-code',
-  label: 'Custom Code',
+  label: 'Codes',
   versions: {
     max: DEFAULT_MAX_VERSIONS_PER_DOC,
   },
