@@ -6,6 +6,8 @@ import { capabilityAccess } from '@/access/roles'
 import { CACHE_TAGS, PORTFOLIO_CACHE_TAG } from '@/app/(frontend)/lib/revalidate'
 import { auditContentHealth } from '@/lib/contentHealth'
 import { consolidateLegacyMediaUrls } from '@/lib/legacyMediaConsolidation'
+import { pruneContentVersions } from '@/lib/versionRetention'
+import { DEFAULT_RETENTION_KEEP_PER_DOC } from '@/lib/versionRetentionShared'
 
 import {
   classifyJobStatus,
@@ -164,6 +166,62 @@ const tasks: NonNullable<JobsConfig['tasks']> = [
         output: {
           deletedCount: deleted.docs.length,
           cutoffIso: cutoff,
+        },
+      }
+    },
+  },
+  {
+    slug: 'pruneDocumentVersions',
+    label: 'Prune old document versions',
+    retries: 0,
+    inputSchema: [
+      {
+        name: 'keepLatestPerDoc',
+        type: 'number',
+        defaultValue: DEFAULT_RETENTION_KEEP_PER_DOC,
+      },
+      { name: 'maxAgeDays', type: 'number' },
+      { name: 'pruneAutosaveSnapshots', type: 'checkbox', defaultValue: true },
+    ],
+    outputSchema: [
+      { name: 'executedAt', type: 'text' },
+      { name: 'totalScanned', type: 'number' },
+      { name: 'totalProtected', type: 'number' },
+      { name: 'totalDeleted', type: 'number' },
+      { name: 'articlesDeleted', type: 'number' },
+      { name: 'projectsDeleted', type: 'number' },
+    ],
+    handler: async ({ input, req }) => {
+      const report = await pruneContentVersions({
+        payload: req.payload,
+        policy: {
+          keepLatestPerDoc:
+            typeof input?.keepLatestPerDoc === 'number'
+              ? input.keepLatestPerDoc
+              : DEFAULT_RETENTION_KEEP_PER_DOC,
+          maxAgeDays:
+            typeof input?.maxAgeDays === 'number' && input.maxAgeDays > 0
+              ? input.maxAgeDays
+              : null,
+          pruneAutosaveSnapshots: input?.pruneAutosaveSnapshots !== false,
+        },
+        dryRun: false,
+        req,
+      })
+
+      const articlesDeleted =
+        report.collections.find((c) => c.collection === 'articles')?.deletedVersions ?? 0
+      const projectsDeleted =
+        report.collections.find((c) => c.collection === 'projects')?.deletedVersions ?? 0
+
+      return {
+        output: {
+          executedAt: report.executedAt,
+          totalScanned: report.totalScanned,
+          totalProtected: report.totalProtected,
+          totalDeleted: report.totalDeleted,
+          articlesDeleted,
+          projectsDeleted,
         },
       }
     },

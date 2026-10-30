@@ -55,7 +55,7 @@ export function ArticleLayout({
         badges={badges}
         title={article.title}
         excerpt={article.excerpt}
-        coverUrl={article.coverUrl}
+        coverUrl={article.mediaMode === 'none' ? null : article.coverUrl}
         backgroundPreset={effectiveHeader.backgroundPreset}
         accentTone={effectiveHeader.accentTone}
         showBreadcrumbs={effectiveHeader.showBreadcrumbs}

@@ -165,7 +165,15 @@ export async function consolidateLegacyMediaUrls(args: {
     await payload.update({
       collection: 'articles',
       id: article.id,
-      data: { image: mediaId as number },
+      data: {
+        image: mediaId as number,
+        primaryMedia: {
+          ...(article.primaryMedia ?? {}),
+          mode: article.primaryMedia?.mode === 'none' ? 'none' : 'single',
+          source: 'upload',
+          media: mediaId as number,
+        },
+      },
       draft: (article as { _status?: string })._status === 'draft',
       overrideAccess: true,
       context: { skipRevalidate: true },
@@ -192,7 +200,18 @@ export async function consolidateLegacyMediaUrls(args: {
     await payload.update({
       collection: 'projects',
       id: project.id,
-      data: { image: mediaId as number },
+      data: {
+        image: mediaId as number,
+        primaryMedia: {
+          ...(project.primaryMedia ?? {}),
+          mode: project.primaryMedia?.mode === 'none' ? 'none' : 'single',
+          source: 'upload',
+          media: mediaId as number,
+          ...(project.placeHolder?.trim()
+            ? { thumbnailUrl: project.placeHolder.trim() }
+            : {}),
+        },
+      },
       draft: (project as { _status?: string })._status === 'draft',
       overrideAccess: true,
       context: { skipRevalidate: true },

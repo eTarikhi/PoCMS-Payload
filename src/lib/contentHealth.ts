@@ -164,30 +164,37 @@ export function collectReferencedMediaIds(sources: MediaReferenceSources): Set<s
     add((h.projectDetailHeader as Record<string, unknown> | undefined)?.backgroundImage)
   }
 
-  for (const a of sources.articles ?? []) {
-    add(a.image)
-    if (Array.isArray(a.gallery)) {
-      for (const slide of a.gallery) {
+  const collectContentDocMedia = (doc: Record<string, unknown>) => {
+    add(doc.image)
+    const pm = doc.primaryMedia as Record<string, unknown> | undefined
+    if (pm && typeof pm === 'object') {
+      add(pm.media)
+    }
+    const dm = doc.detailMedia as Record<string, unknown> | undefined
+    if (dm && typeof dm === 'object' && Array.isArray(dm.items)) {
+      for (const slide of dm.items) {
         if (slide && typeof slide === 'object') {
           add((slide as Record<string, unknown>).media)
         }
       }
     }
-    add((a.meta as Record<string, unknown> | undefined)?.image)
-    extractLexicalMediaIds(a.content, ids)
+    if (Array.isArray(doc.gallery)) {
+      for (const slide of doc.gallery) {
+        if (slide && typeof slide === 'object') {
+          add((slide as Record<string, unknown>).media)
+        }
+      }
+    }
+    add((doc.meta as Record<string, unknown> | undefined)?.image)
+    extractLexicalMediaIds(doc.content, ids)
+  }
+
+  for (const a of sources.articles ?? []) {
+    collectContentDocMedia(a)
   }
 
   for (const p of sources.projects ?? []) {
-    add(p.image)
-    if (Array.isArray(p.gallery)) {
-      for (const slide of p.gallery) {
-        if (slide && typeof slide === 'object') {
-          add((slide as Record<string, unknown>).media)
-        }
-      }
-    }
-    add((p.meta as Record<string, unknown> | undefined)?.image)
-    extractLexicalMediaIds(p.content, ids)
+    collectContentDocMedia(p)
   }
 
   if (sources.siteSettings) {
@@ -275,20 +282,35 @@ export async function auditContentHealth(
         ),
     )
 
-  const missingArticleImages = articles.docs.filter(
-    (doc) =>
-      doc.mediaMode !== 'none' &&
-      !doc.image &&
-      !doc.imageUrl?.trim() &&
-      !(doc.mediaMode === 'gallery' && hasGalleryItem(doc.gallery)),
-  ).length
-  const missingProjectImages = projects.docs.filter(
-    (doc) =>
-      doc.mediaMode !== 'none' &&
-      !doc.image &&
-      !doc.src?.trim() &&
-      !(doc.mediaMode === 'gallery' && hasGalleryItem(doc.gallery)),
-  ).length
+  const missingArticleImages = articles.docs.filter((doc) => {
+    const pmMode = doc.primaryMedia?.mode ?? doc.mediaMode
+    if (pmMode === 'none') return false
+    const hasPrimary = Boolean(doc.primaryMedia?.media || doc.primaryMedia?.imageUrl?.trim())
+    const hasDetail = hasGalleryItem(doc.detailMedia?.items)
+    const hasLegacy = Boolean(
+      doc.image || doc.imageUrl?.trim() || (doc.mediaMode === 'gallery' && hasGalleryItem(doc.gallery)),
+    )
+    return !hasPrimary && !hasDetail && !hasLegacy
+  }).length
+
+  const missingProjectImages = projects.docs.filter((doc) => {
+    const pmMode = doc.primaryMedia?.mode
+    if (pmMode === 'none') return false
+    const hasPrimary = Boolean(
+      doc.primaryMedia?.media ||
+        doc.primaryMedia?.imageUrl?.trim() ||
+        doc.primaryMedia?.thumbnailUrl?.trim(),
+    )
+    const hasDetail = hasGalleryItem(doc.detailMedia?.items)
+    const hasLegacy = Boolean(
+      doc.image ||
+        doc.src?.trim() ||
+        doc.placeHolder?.trim() ||
+        (doc.mediaMode === 'gallery' && hasGalleryItem(doc.gallery)),
+    )
+    if (!hasPrimary && !hasDetail && !hasLegacy && doc.mediaMode === 'none') return false
+    return !hasPrimary && !hasDetail && !hasLegacy
+  }).length
 
   const missingArticleSeoDescriptions = articles.docs.filter(
     (doc) => !doc.meta?.description?.trim() && !doc.excerpt?.trim(),

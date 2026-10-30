@@ -99,35 +99,54 @@ describe('Article Media Management: Schema, Static Metadata, ImageResponse & Mod
     expect(sizeNames).toEqual(['thumbnail', 'card', 'content', 'hero', 'og'])
   })
 
-  it('registers mediaMode, mediaSource, imageUrl picker, and gallery fields on Articles', () => {
+  it('registers decoupled Primary Media Block (none | single) and Detail Media Block (none | single | gallery) on Articles', () => {
     const tabsField = Articles.fields.find((f) => f.type === 'tabs')
     expect(tabsField && tabsField.type === 'tabs').toBe(true)
     if (!tabsField || tabsField.type !== 'tabs') return
 
     const contentTab = tabsField.tabs.find((t) => 'label' in t && t.label === 'Content')
     expect(contentTab).toBeDefined()
-    const collapsible = contentTab?.fields.find(
-      (f) => f.type === 'collapsible' && f.label === 'Article Media & Preview',
-    )
-    expect(collapsible && collapsible.type === 'collapsible').toBe(true)
-    if (!collapsible || collapsible.type !== 'collapsible') return
 
-    const fieldNames = collapsible.fields
-      .filter((f): f is Extract<typeof f, { name: string }> => 'name' in f)
-      .map((f) => f.name)
-
-    expect(fieldNames).toEqual(
-      expect.arrayContaining([
-        'mediaMode',
-        'mediaSource',
-        'image',
-        'imageUrl',
-        'imageAlt',
-        'imageUrlMeta',
-        'galleryLayout',
-        'gallery',
-      ]),
+    const primaryCollapsible = contentTab?.fields.find(
+      (f) => f.type === 'collapsible' && f.label === 'Primary Media Block (Home & Directory Cards)',
     )
+    expect(primaryCollapsible && primaryCollapsible.type === 'collapsible').toBe(true)
+    if (!primaryCollapsible || primaryCollapsible.type !== 'collapsible') return
+    const primaryGroup = primaryCollapsible.fields.find(
+      (f) => f.type === 'group' && 'name' in f && f.name === 'primaryMedia',
+    )
+    expect(primaryGroup && primaryGroup.type === 'group').toBe(true)
+    if (!primaryGroup || primaryGroup.type !== 'group') return
+    const primaryModeField = primaryGroup.fields.find(
+      (f) => f.type === 'radio' && f.name === 'mode',
+    )
+    expect(primaryModeField && primaryModeField.type === 'radio').toBe(true)
+    if (primaryModeField && primaryModeField.type === 'radio') {
+      const modeVals = primaryModeField.options.map((o) =>
+        typeof o === 'string' ? o : o.value,
+      )
+      expect(modeVals).toEqual(['none', 'single'])
+    }
+
+    const detailCollapsible = contentTab?.fields.find(
+      (f) => f.type === 'collapsible' && f.label === 'Detail Media Block (Slug Detail Page)',
+    )
+    expect(detailCollapsible && detailCollapsible.type === 'collapsible').toBe(true)
+    if (!detailCollapsible || detailCollapsible.type !== 'collapsible') return
+    const detailGroup = detailCollapsible.fields.find(
+      (f) => f.type === 'group' && 'name' in f && f.name === 'detailMedia',
+    )
+    expect(detailGroup && detailGroup.type === 'group').toBe(true)
+    if (!detailGroup || detailGroup.type !== 'group') return
+    const detailModeField = detailGroup.fields.find(
+      (f) => f.type === 'radio' && f.name === 'mode',
+    )
+    if (detailModeField && detailModeField.type === 'radio') {
+      const modeVals = detailModeField.options.map((o) =>
+        typeof o === 'string' ? o : o.value,
+      )
+      expect(modeVals).toEqual(['none', 'single', 'gallery'])
+    }
   })
 
   it('extracts width, height, and sharp WebP blurDataURL for /images/articles/* while blocking traversal', async () => {
@@ -260,8 +279,8 @@ describe('Article Media Management: Schema, Static Metadata, ImageResponse & Mod
     }
 
     const mappedGalleryCard = mapArticles([galleryArticle])[0]!
-    expect(mappedGalleryCard.mediaMode).toBe('gallery')
-    expect(mappedGalleryCard.galleryCount).toBe(2)
+    // Listing cards use Primary Media ('none' | 'single' only — never 'gallery'), falling back to Slide #1 on legacy rows
+    expect(mappedGalleryCard.mediaMode).toBe('single')
     expect(mappedGalleryCard.imageUrl).toBe('/api/media/file/cover-800x520.webp')
 
     const mappedGalleryDetail = mapArticleDetail(galleryArticle)!
@@ -303,7 +322,7 @@ describe('Article Media Management: Schema, Static Metadata, ImageResponse & Mod
         labels: DEFAULT_SITE_SETTINGS.articlesSection,
       }),
     )
-    expect(archiveHtml).toContain('2 photos')
+    expect(archiveHtml).toContain('Multi-Slide Release Notes')
     expect(archiveHtml).toContain('No Picture Essay')
   })
 
@@ -416,34 +435,20 @@ describe('Article Media Management: Schema, Static Metadata, ImageResponse & Mod
     expect(richHtml).toContain('Medium 65% MediaBlock figure')
   })
 
-  it('applies mediaMode (none, single upload/src, hybrid gallery), static meta enrichment, and orphan protection on Projects & /projects/[slug]', async () => {
+  it('applies decoupled Primary & Detail Media blocks, static meta enrichment, and orphan protection on Projects & /projects/[slug]', async () => {
     const tabsField = Projects.fields.find((f) => f.type === 'tabs')
     expect(tabsField && tabsField.type === 'tabs').toBe(true)
     if (!tabsField || tabsField.type !== 'tabs') return
 
     const contentTab = tabsField.tabs.find((t) => 'label' in t && t.label === 'Content')
-    const collapsible = contentTab?.fields.find(
-      (f) => f.type === 'collapsible' && f.label === 'Case Study Media & Card Preview',
+    const primaryCollapsible = contentTab?.fields.find(
+      (f) => f.type === 'collapsible' && f.label === 'Primary Media Block (Home & Directory Cards)',
     )
-    expect(collapsible && collapsible.type === 'collapsible').toBe(true)
-    if (!collapsible || collapsible.type !== 'collapsible') return
-
-    const fieldNames = collapsible.fields
-      .filter((f): f is Extract<typeof f, { name: string }> => 'name' in f)
-      .map((f) => f.name)
-    expect(fieldNames).toEqual(
-      expect.arrayContaining([
-        'mediaMode',
-        'mediaSource',
-        'image',
-        'src',
-        'imageAlt',
-        'srcMeta',
-        'galleryLayout',
-        'gallery',
-        'placeHolder',
-      ]),
+    const detailCollapsible = contentTab?.fields.find(
+      (f) => f.type === 'collapsible' && f.label === 'Detail Media Block (Slug Detail Page)',
     )
+    expect(primaryCollapsible && primaryCollapsible.type === 'collapsible').toBe(true)
+    expect(detailCollapsible && detailCollapsible.type === 'collapsible').toBe(true)
 
     // Enrich Project src (/api/media-frame wrapper) + gallery + Lexical mediaBlock via beforeChange
     const projectDraft: Record<string, unknown> = {
@@ -519,14 +524,13 @@ describe('Article Media Management: Schema, Static Metadata, ImageResponse & Mod
     }
 
     const mappedProjects = mapProjects([noneProject, galleryProject])
-    // Home-page card thumbnail & image remain intact on 'none' project!
+    // Legacy project with case-study mediaMode='none' + placeHolder/src keeps card thumbnail & image intact!
     expect(mappedProjects.items[0]?.thumbnailUrl).toBe('/images/articles/1733263816314.webp')
     expect(mappedProjects.items[0]?.imageUrl).toBe('/images/articles/1735708966846.webp')
-    expect(mappedProjects.items[0]?.mediaMode).toBe('none')
+    expect(mappedProjects.items[0]?.mediaMode).toBe('single')
 
-    // Gallery project falls back card thumbnail to Slide #1 and exposes galleryCount
-    expect(mappedProjects.items[1]?.mediaMode).toBe('gallery')
-    expect(mappedProjects.items[1]?.galleryCount).toBe(2)
+    // Legacy gallery project falls back card thumbnail to Slide #1 as 'single'
+    expect(mappedProjects.items[1]?.mediaMode).toBe('single')
     expect(mappedProjects.items[1]?.thumbnailUrl).toBe(
       '/api/media/file/project-slide-400x300.webp',
     )
@@ -555,7 +559,7 @@ describe('Article Media Management: Schema, Static Metadata, ImageResponse & Mod
         labels: DEFAULT_SITE_SETTINGS.projectsSection,
       }),
     )
-    expect(projectsArchiveHtml).toContain('2 photos')
+    expect(projectsArchiveHtml).toContain('Gallery Case Study')
 
     // Content Health orphan protection counts gallery[].media on both articles & projects
     const referencedIds = collectReferencedMediaIds({

@@ -71,6 +71,12 @@ export const REGISTERED_JOB_TASKS: readonly JobTaskMeta[] = [
     description: 'Removes completed job records older than 72 hours from payload-jobs.',
   },
   {
+    slug: 'pruneDocumentVersions',
+    label: 'Prune old document versions',
+    description:
+      'Deletes obsolete draft and historical snapshots on Articles & Projects while preserving active latest and published versions.',
+  },
+  {
     slug: 'createDatabaseBackup',
     label: 'Encrypted cloud database backup',
     description:

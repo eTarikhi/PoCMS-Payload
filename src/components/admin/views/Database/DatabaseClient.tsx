@@ -12,6 +12,7 @@ import {
   FileCode2Icon,
   GitBranchIcon,
   HardDriveDownloadIcon,
+  HistoryIcon,
   PlayIcon,
   RefreshCwIcon,
   SearchCodeIcon,
@@ -67,6 +68,8 @@ import {
   type RestoreExecutionResult,
   type SeedGenMode,
 } from '@/plugins/databaseManager/shared'
+
+import { VersionRetentionPanel } from './VersionRetentionPanel'
 
 const formatDateShort = (iso: string | null | undefined): string => {
   if (!iso) return '—'
@@ -505,6 +508,10 @@ export function DatabaseClient({
           <TabsTrigger value="repair">
             <WrenchIcon aria-hidden className="acn:size-4" />
             Repair &amp; Maintenance
+          </TabsTrigger>
+          <TabsTrigger value="retention">
+            <HistoryIcon aria-hidden className="acn:size-4" />
+            Version Retention
           </TabsTrigger>
           <TabsTrigger value="provider">
             <SparklesIcon aria-hidden className="acn:size-4" />
@@ -1746,7 +1753,12 @@ export function DatabaseClient({
           </Card>
         </TabsContent>
 
-        {/* TAB 4: SERVERLESS PROVIDER ADAPTERS */}
+        {/* TAB 6: VERSION RETENTION & BULK PRUNING */}
+        <TabsContent value="retention" className="acn:space-y-6">
+          <VersionRetentionPanel apiRoute={apiRoute} onPruned={() => void refresh()} />
+        </TabsContent>
+
+        {/* TAB 7: SERVERLESS PROVIDER ADAPTERS */}
         <TabsContent value="provider" className="acn:space-y-6">
           <div className="acn:flex acn:flex-wrap acn:gap-2">
             {snapshot.providers.map((prov) => (

@@ -213,14 +213,13 @@ export const ARTICLE_CARD_SELECT = {
   category: true,
   publishedAt: true,
   readTime: true,
+  primaryMedia: true,
   mediaMode: true,
   mediaSource: true,
   image: true,
   imageUrl: true,
   imageAlt: true,
   imageUrlMeta: true,
-  galleryLayout: true,
-  gallery: true,
   link: true,
 } satisfies ArticlesSelect
 
@@ -232,6 +231,9 @@ export const ARTICLE_SLUG_SELECT = {
 
 export const ARTICLE_DETAIL_SELECT = {
   ...ARTICLE_CARD_SELECT,
+  detailMedia: true,
+  galleryLayout: true,
+  gallery: true,
   meta: true,
 } satisfies ArticlesSelect
 
@@ -258,14 +260,13 @@ export const PROJECT_CARD_SELECT = {
   year: true,
   techStack: true,
   content: true,
+  primaryMedia: true,
   mediaMode: true,
   mediaSource: true,
   image: true,
   src: true,
   imageAlt: true,
   srcMeta: true,
-  galleryLayout: true,
-  gallery: true,
   placeHolder: true,
   url: true,
   categories: true,
@@ -279,6 +280,9 @@ export const PROJECT_SLUG_SELECT = {
 
 export const PROJECT_DETAIL_SELECT = {
   ...PROJECT_CARD_SELECT,
+  detailMedia: true,
+  galleryLayout: true,
+  gallery: true,
   client: true,
   readMoreUrl: true,
   meta: true,

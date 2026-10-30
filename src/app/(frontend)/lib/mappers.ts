@@ -300,6 +300,18 @@ const resolveMediaObjectPosition = (
     : undefined
 }
 
+export type PrimaryMediaMode = 'none' | 'single'
+
+export type ResolvedPrimaryMedia = {
+  mode: PrimaryMediaMode
+  cardUrl: string
+  heroUrl: string | null
+  thumbnailUrl: string
+  blurDataURL: string | null
+  alt: string
+  objectPosition?: string
+}
+
 export type ResolvedArticleLeadMedia = {
   mediaMode: ArticleMediaMode
   cardUrl: string
@@ -311,180 +323,387 @@ export type ResolvedArticleLeadMedia = {
   gallery: ArticleGallerySlide[]
 }
 
-/**
- * Resolves an article's display mode (`none` | `single` | `gallery`) across both direct `Media`
- * uploads and pre-uploaded `imageUrl` paths (e.g. `"/images/articles/1735708966846.webp"`).
- */
-export const resolveArticleLeadMedia = (doc: Partial<Article>): ResolvedArticleLeadMedia => {
-  const fallbackAlt = doc.title?.trim() || 'Article illustration'
-  const rawMode = doc.mediaMode
+type RawSlideLike = {
+  id?: string | null
+  source?: ('upload' | 'url') | null
+  media?: (number | null) | Media
+  imageUrl?: string | null
+  caption?: string | null
+  alt?: string | null
+  urlMeta?: unknown
+}
 
-  if (rawMode === 'none') {
+const mapRawSlidesToGallery = (
+  rawItems: readonly (RawSlideLike | null | undefined)[] | null | undefined,
+  fallbackAlt: string,
+): { slides: ArticleGallerySlide[]; firstCardUrl: string } => {
+  const slides: ArticleGallerySlide[] = []
+  let firstCardUrl = ''
+
+  for (const [idx, slide] of (rawItems ?? []).entries()) {
+    if (!slide) continue
+    const inferredSource = slide.source ?? (slide.imageUrl && !slide.media ? 'url' : 'upload')
+
+    if (inferredSource === 'url') {
+      const urlStr = slide.imageUrl?.trim() || ''
+      if (!urlStr) continue
+      const meta = parseStoredUrlMeta(slide.urlMeta)
+      if (!firstCardUrl) firstCardUrl = urlStr
+      slides.push({
+        id: slide.id || `slide-${idx + 1}`,
+        src: urlStr,
+        thumbSrc: urlStr,
+        width: meta?.width ?? 1200,
+        height: meta?.height ?? 675,
+        alt: slide.alt?.trim() || slide.caption?.trim() || `${fallbackAlt} (${idx + 1})`,
+        caption: slide.caption?.trim() || null,
+        ...(meta?.blurDataURL ? { blurDataURL: meta.blurDataURL } : {}),
+      })
+    } else {
+      const heroSrc =
+        resolveMediaSizeUrl(slide.media, 'hero') ?? (slide.imageUrl?.trim() || null)
+      if (!heroSrc) continue
+      const thumbSrc = resolveMediaSizeUrl(slide.media, 'thumbnail') ?? heroSrc
+      const cardSrc = resolveMediaSizeUrl(slide.media, 'card') ?? heroSrc
+      if (!firstCardUrl) firstCardUrl = cardSrc
+      const mediaObj = slide.media && typeof slide.media === 'object' ? slide.media : null
+      const blur =
+        resolveMediaBlurDataURL(slide.media) ??
+        parseStoredUrlMeta(slide.urlMeta)?.blurDataURL ??
+        null
+      const objectPosition = resolveMediaObjectPosition(slide.media)
+      slides.push({
+        id: slide.id || `slide-${idx + 1}`,
+        src: heroSrc,
+        thumbSrc,
+        width: mediaObj?.width ?? 1200,
+        height: mediaObj?.height ?? 675,
+        alt:
+          slide.alt?.trim() ||
+          mediaObj?.alt?.trim() ||
+          slide.caption?.trim() ||
+          `${fallbackAlt} (${idx + 1})`,
+        caption: slide.caption?.trim() || null,
+        ...(blur ? { blurDataURL: blur } : {}),
+        ...(objectPosition ? { objectPosition } : {}),
+      })
+    }
+  }
+
+  return { slides, firstCardUrl }
+}
+
+/**
+ * Resolves an `Article`'s Primary Media Block (`none` | `single` only — never `gallery`)
+ * for Home (`/`) and `/articles` directory cards, with transparent fallback to legacy root fields.
+ */
+export const resolveArticlePrimaryMedia = (doc: Partial<Article>): ResolvedPrimaryMedia => {
+  const fallbackAlt = doc.title?.trim() || 'Article illustration'
+  const pm = doc.primaryMedia
+
+  if (pm?.mode === 'none') {
     return {
-      mediaMode: 'none',
+      mode: 'none',
       cardUrl: '',
       heroUrl: null,
+      thumbnailUrl: '',
       blurDataURL: null,
-      coverAlt: fallbackAlt,
-      galleryLayout: 'carousel',
-      gallery: [],
+      alt: fallbackAlt,
     }
   }
 
-  if (rawMode === 'gallery') {
-    const galleryLayout: ArticleGalleryLayout =
-      doc.galleryLayout === 'grid' ? 'grid' : 'carousel'
-    const slides: ArticleGallerySlide[] = []
-
-    for (const [idx, slide] of (doc.gallery ?? []).entries()) {
-      if (!slide) continue
-      const inferredSource =
-        slide.source ?? (slide.imageUrl && !slide.media ? 'url' : 'upload')
-
-      if (inferredSource === 'url') {
-        const urlStr = slide.imageUrl?.trim() || ''
-        if (!urlStr) continue
-        const meta = parseStoredUrlMeta(slide.urlMeta)
-        slides.push({
-          id: slide.id || `slide-${idx + 1}`,
-          src: urlStr,
-          thumbSrc: urlStr,
-          width: meta?.width ?? 1200,
-          height: meta?.height ?? 675,
-          alt: slide.alt?.trim() || slide.caption?.trim() || `${fallbackAlt} (${idx + 1})`,
-          caption: slide.caption?.trim() || null,
-          ...(meta?.blurDataURL ? { blurDataURL: meta.blurDataURL } : {}),
-        })
-      } else {
-        const heroSrc =
-          resolveMediaSizeUrl(slide.media, 'hero') ?? (slide.imageUrl?.trim() || null)
-        if (!heroSrc) continue
-        const thumbSrc = resolveMediaSizeUrl(slide.media, 'thumbnail') ?? heroSrc
-        const mediaObj = slide.media && typeof slide.media === 'object' ? slide.media : null
-        const blur = resolveMediaBlurDataURL(slide.media)
-        const objectPosition = resolveMediaObjectPosition(slide.media)
-        slides.push({
-          id: slide.id || `slide-${idx + 1}`,
-          src: heroSrc,
-          thumbSrc,
-          width: mediaObj?.width ?? 1200,
-          height: mediaObj?.height ?? 675,
-          alt:
-            slide.alt?.trim() ||
-            mediaObj?.alt?.trim() ||
-            slide.caption?.trim() ||
-            `${fallbackAlt} (${idx + 1})`,
-          caption: slide.caption?.trim() || null,
-          ...(blur ? { blurDataURL: blur } : {}),
-          ...(objectPosition ? { objectPosition } : {}),
-        })
+  const hasPmData = Boolean(pm?.media || pm?.imageUrl?.trim())
+  if (hasPmData && pm) {
+    const inferredSource = pm.source ?? (pm.imageUrl && !pm.media ? 'url' : 'upload')
+    if (inferredSource === 'url') {
+      const rawUrl = pm.imageUrl?.trim() || ''
+      if (!rawUrl) {
+        return {
+          mode: 'none',
+          cardUrl: '',
+          heroUrl: null,
+          thumbnailUrl: '',
+          blurDataURL: null,
+          alt: fallbackAlt,
+        }
+      }
+      const meta = parseStoredUrlMeta(pm.urlMeta)
+      return {
+        mode: 'single',
+        cardUrl: rawUrl,
+        heroUrl: rawUrl,
+        thumbnailUrl: rawUrl,
+        blurDataURL: meta?.blurDataURL ?? null,
+        alt: pm.alt?.trim() || fallbackAlt,
       }
     }
 
-    if (slides.length === 0) {
+    const uploadCard = resolveMediaSizeUrl(pm.media, 'card')
+    const uploadHero = resolveMediaSizeUrl(pm.media, 'hero')
+    const uploadThumb = resolveMediaSizeUrl(pm.media, 'thumbnail')
+    const fallbackUrl = pm.imageUrl?.trim() || ''
+    const cardUrl = uploadCard ?? fallbackUrl
+    const heroUrl = uploadHero ?? (fallbackUrl || null)
+    if (!heroUrl) {
       return {
-        mediaMode: 'none',
+        mode: 'none',
         cardUrl: '',
         heroUrl: null,
+        thumbnailUrl: '',
         blurDataURL: null,
-        coverAlt: fallbackAlt,
-        galleryLayout,
-        gallery: [],
+        alt: fallbackAlt,
       }
     }
-
-    const lead = slides[0]!
+    const blurDataURL =
+      resolveMediaBlurDataURL(pm.media) ?? parseStoredUrlMeta(pm.urlMeta)?.blurDataURL ?? null
+    const mediaAlt =
+      pm.media && typeof pm.media === 'object' && pm.media.alt?.trim()
+        ? pm.media.alt.trim()
+        : null
+    const objectPosition = resolveMediaObjectPosition(pm.media)
     return {
-      mediaMode: 'gallery',
-      cardUrl:
-        resolveMediaSizeUrl((doc.gallery?.[0] ?? undefined)?.media, 'card') ?? lead.src,
-      heroUrl: lead.src,
-      blurDataURL: lead.blurDataURL ?? null,
-      coverAlt: lead.alt,
-      ...(lead.objectPosition ? { coverObjectPosition: lead.objectPosition } : {}),
-      galleryLayout,
-      gallery: slides,
+      mode: 'single',
+      cardUrl,
+      heroUrl,
+      thumbnailUrl: uploadThumb ?? cardUrl,
+      blurDataURL,
+      alt: pm.alt?.trim() || mediaAlt || fallbackAlt,
+      ...(objectPosition ? { objectPosition } : {}),
     }
   }
 
-  // Default / 'single' mode (handles both explicit `mediaSource` and legacy pre-migration rows)
-  const inferredSingleSource =
-    doc.mediaSource ?? (doc.imageUrl && !doc.image ? 'url' : 'upload')
-
-  if (inferredSingleSource === 'url') {
-    const rawUrl = doc.imageUrl?.trim() || ''
-    if (!rawUrl) {
-      return {
-        mediaMode: 'none',
-        cardUrl: '',
-        heroUrl: null,
-        blurDataURL: null,
-        coverAlt: fallbackAlt,
-        galleryLayout: 'carousel',
-        gallery: [],
-      }
+  // Legacy fallback for pre-migration rows
+  if (!pm?.mode && doc.mediaMode === 'none') {
+    return {
+      mode: 'none',
+      cardUrl: '',
+      heroUrl: null,
+      thumbnailUrl: '',
+      blurDataURL: null,
+      alt: fallbackAlt,
     }
+  }
+
+  const legacySource = doc.mediaSource ?? (doc.imageUrl && !doc.image ? 'url' : 'upload')
+  if (legacySource === 'url' && doc.imageUrl?.trim()) {
+    const rawUrl = doc.imageUrl.trim()
     const meta = parseStoredUrlMeta(doc.imageUrlMeta)
     return {
-      mediaMode: 'single',
+      mode: 'single',
       cardUrl: rawUrl,
       heroUrl: rawUrl,
+      thumbnailUrl: rawUrl,
       blurDataURL: meta?.blurDataURL ?? null,
-      coverAlt: doc.imageAlt?.trim() || fallbackAlt,
-      galleryLayout: 'carousel',
-      gallery: [],
+      alt: doc.imageAlt?.trim() || fallbackAlt,
     }
   }
 
   const uploadCard = resolveMediaSizeUrl(doc.image, 'card')
   const uploadHero = resolveMediaSizeUrl(doc.image, 'hero')
+  const uploadThumb = resolveMediaSizeUrl(doc.image, 'thumbnail')
   const legacyUrl = doc.imageUrl?.trim() || ''
   const cardUrl = uploadCard ?? legacyUrl
   const heroUrl = uploadHero ?? (legacyUrl || null)
 
-  if (!heroUrl) {
+  if (heroUrl) {
+    const blurDataURL =
+      resolveMediaBlurDataURL(doc.image) ??
+      parseStoredUrlMeta(doc.imageUrlMeta)?.blurDataURL ??
+      null
+    const mediaAlt =
+      doc.image && typeof doc.image === 'object' && doc.image.alt?.trim()
+        ? doc.image.alt.trim()
+        : null
+    const objectPosition = resolveMediaObjectPosition(doc.image)
     return {
-      mediaMode: 'none',
-      cardUrl: '',
-      heroUrl: null,
-      blurDataURL: null,
-      coverAlt: fallbackAlt,
-      galleryLayout: 'carousel',
-      gallery: [],
+      mode: 'single',
+      cardUrl,
+      heroUrl,
+      thumbnailUrl: uploadThumb ?? cardUrl,
+      blurDataURL,
+      alt: doc.imageAlt?.trim() || mediaAlt || fallbackAlt,
+      ...(objectPosition ? { objectPosition } : {}),
     }
   }
 
-  const uploadBlur =
-    resolveMediaBlurDataURL(doc.image) ??
-    parseStoredUrlMeta(doc.imageUrlMeta)?.blurDataURL ??
-    null
-  const mediaAlt =
-    doc.image && typeof doc.image === 'object' && doc.image.alt?.trim()
-      ? doc.image.alt.trim()
-      : null
-  const coverObjectPosition = resolveMediaObjectPosition(doc.image)
+  // Legacy gallery-only row fallback for cards when primaryMedia wasn't saved yet
+  if (doc.mediaMode === 'gallery' && (doc.gallery?.length ?? 0) > 0) {
+    const { slides, firstCardUrl } = mapRawSlidesToGallery(doc.gallery, fallbackAlt)
+    if (slides[0]) {
+      return {
+        mode: 'single',
+        cardUrl: firstCardUrl || slides[0].src,
+        heroUrl: slides[0].src,
+        thumbnailUrl: slides[0].thumbSrc,
+        blurDataURL: slides[0].blurDataURL ?? null,
+        alt: slides[0].alt,
+        ...(slides[0].objectPosition ? { objectPosition: slides[0].objectPosition } : {}),
+      }
+    }
+  }
 
   return {
-    mediaMode: 'single',
-    cardUrl,
-    heroUrl,
-    blurDataURL: uploadBlur,
-    coverAlt: doc.imageAlt?.trim() || mediaAlt || fallbackAlt,
-    ...(coverObjectPosition ? { coverObjectPosition } : {}),
-    galleryLayout: 'carousel',
-    gallery: [],
+    mode: 'none',
+    cardUrl: '',
+    heroUrl: null,
+    thumbnailUrl: '',
+    blurDataURL: null,
+    alt: fallbackAlt,
   }
 }
 
 /**
- * Resolves a `Project` case-study's lead media mode (`none` | `single` | `gallery`) across both
- * direct `Media` uploads and pre-uploaded `src` / `imageUrl` paths on `/projects/[slug]`.
+ * Resolves a `Project`'s Primary Media Block (`none` | `single` only — never `gallery`)
+ * for Home (`/`) and `/projects` directory cards, with transparent fallback to legacy root fields.
  */
-export const resolveProjectLeadMedia = (doc: Partial<Project>): ResolvedArticleLeadMedia => {
+export const resolveProjectPrimaryMedia = (doc: Partial<Project>): ResolvedPrimaryMedia => {
   const fallbackAlt = doc.title?.trim() || 'Project illustration'
-  const rawMode = doc.mediaMode
+  const pm = doc.primaryMedia
 
-  if (rawMode === 'none') {
+  if (pm?.mode === 'none') {
+    return {
+      mode: 'none',
+      cardUrl: '',
+      heroUrl: null,
+      thumbnailUrl: '',
+      blurDataURL: null,
+      alt: fallbackAlt,
+    }
+  }
+
+  const pmThumbOverride = pm?.thumbnailUrl?.trim() || ''
+  const hasPmData = Boolean(pm?.media || pm?.imageUrl?.trim() || pmThumbOverride)
+
+  if (hasPmData && pm) {
+    const inferredSource = pm.source ?? (pm.imageUrl && !pm.media ? 'url' : 'upload')
+    const legacyPlaceHolder = doc.placeHolder?.trim() || ''
+
+    if (inferredSource === 'url') {
+      const rawUrl = pm.imageUrl?.trim() || ''
+      const effectiveFull = rawUrl || pmThumbOverride
+      const effectiveThumb = pmThumbOverride || legacyPlaceHolder || rawUrl
+      if (!effectiveFull && !effectiveThumb) {
+        return {
+          mode: 'none',
+          cardUrl: '',
+          heroUrl: null,
+          thumbnailUrl: '',
+          blurDataURL: null,
+          alt: fallbackAlt,
+        }
+      }
+      const meta = parseStoredUrlMeta(pm.urlMeta)
+      return {
+        mode: 'single',
+        cardUrl: effectiveFull || effectiveThumb,
+        heroUrl: effectiveFull || effectiveThumb,
+        thumbnailUrl: effectiveThumb || effectiveFull,
+        blurDataURL: meta?.blurDataURL ?? null,
+        alt: pm.alt?.trim() || fallbackAlt,
+      }
+    }
+
+    const uploadHero = resolveMediaSizeUrl(pm.media, 'hero')
+    const uploadThumb = resolveMediaSizeUrl(pm.media, 'thumbnail')
+    const rawUrl = pm.imageUrl?.trim() || ''
+    const heroUrl = uploadHero ?? (rawUrl || pmThumbOverride || null)
+    const thumbnailUrl = pmThumbOverride || legacyPlaceHolder || uploadThumb || rawUrl || heroUrl || ''
+
+    if (!heroUrl && !thumbnailUrl) {
+      return {
+        mode: 'none',
+        cardUrl: '',
+        heroUrl: null,
+        thumbnailUrl: '',
+        blurDataURL: null,
+        alt: fallbackAlt,
+      }
+    }
+
+    const blurDataURL =
+      resolveMediaBlurDataURL(pm.media) ?? parseStoredUrlMeta(pm.urlMeta)?.blurDataURL ?? null
+    const mediaAlt =
+      pm.media && typeof pm.media === 'object' && pm.media.alt?.trim()
+        ? pm.media.alt.trim()
+        : null
+    const objectPosition = resolveMediaObjectPosition(pm.media)
+
+    return {
+      mode: 'single',
+      cardUrl: heroUrl ?? thumbnailUrl,
+      heroUrl: heroUrl ?? thumbnailUrl,
+      thumbnailUrl,
+      blurDataURL,
+      alt: pm.alt?.trim() || mediaAlt || fallbackAlt,
+      ...(objectPosition ? { objectPosition } : {}),
+    }
+  }
+
+  // Legacy fallback for pre-migration rows (preserves home-page & archive cards even if legacy case-study `mediaMode` was 'none')
+  const legacyPlaceHolder = doc.placeHolder?.trim() || ''
+  const legacySrc = doc.src?.trim() || ''
+  const uploadHero = resolveMediaSizeUrl(doc.image, 'hero')
+  const uploadThumb = resolveMediaSizeUrl(doc.image, 'thumbnail')
+  const heroUrl = uploadHero ?? (legacySrc || null)
+  const thumbnailUrl = legacyPlaceHolder || uploadThumb || legacySrc || ''
+
+  if (heroUrl || thumbnailUrl) {
+    const blurDataURL =
+      resolveMediaBlurDataURL(doc.image) ?? parseStoredUrlMeta(doc.srcMeta)?.blurDataURL ?? null
+    const mediaAlt =
+      doc.image && typeof doc.image === 'object' && doc.image.alt?.trim()
+        ? doc.image.alt.trim()
+        : null
+    const objectPosition = resolveMediaObjectPosition(doc.image)
+
+    return {
+      mode: 'single',
+      cardUrl: heroUrl ?? thumbnailUrl,
+      heroUrl: heroUrl ?? thumbnailUrl,
+      thumbnailUrl: thumbnailUrl || (heroUrl ?? ''),
+      blurDataURL,
+      alt: doc.imageAlt?.trim() || mediaAlt || fallbackAlt,
+      ...(objectPosition ? { objectPosition } : {}),
+    }
+  }
+
+  if (doc.mediaMode === 'gallery' && (doc.gallery?.length ?? 0) > 0) {
+    const { slides, firstCardUrl } = mapRawSlidesToGallery(doc.gallery, fallbackAlt)
+    if (slides[0]) {
+      return {
+        mode: 'single',
+        cardUrl: firstCardUrl || slides[0].src,
+        heroUrl: slides[0].src,
+        thumbnailUrl: slides[0].thumbSrc,
+        blurDataURL: slides[0].blurDataURL ?? null,
+        alt: slides[0].alt,
+        ...(slides[0].objectPosition ? { objectPosition: slides[0].objectPosition } : {}),
+      }
+    }
+  }
+
+  return {
+    mode: 'none',
+    cardUrl: '',
+    heroUrl: null,
+    thumbnailUrl: '',
+    blurDataURL: null,
+    alt: fallbackAlt,
+  }
+}
+
+/**
+ * Resolves an `Article`'s Detail Media Block (`none` | `single` | `gallery`) strictly for `/articles/[slug]`.
+ * In `'single'` mode (the default), renders `detailMedia.items[0]`, automatically falling back to
+ * Primary Media when `items` is empty.
+ */
+export const resolveArticleDetailMedia = (doc: Partial<Article>): ResolvedArticleLeadMedia => {
+  const fallbackAlt = doc.title?.trim() || 'Article illustration'
+  const dm = doc.detailMedia
+  const effectiveMode: ArticleMediaMode =
+    dm?.mode ?? (doc.mediaMode === 'none' || doc.mediaMode === 'gallery' ? doc.mediaMode : 'single')
+
+  if (effectiveMode === 'none') {
     return {
       mediaMode: 'none',
       cardUrl: '',
@@ -496,55 +715,11 @@ export const resolveProjectLeadMedia = (doc: Partial<Project>): ResolvedArticleL
     }
   }
 
-  if (rawMode === 'gallery') {
+  if (effectiveMode === 'gallery') {
     const galleryLayout: ArticleGalleryLayout =
-      doc.galleryLayout === 'grid' ? 'grid' : 'carousel'
-    const slides: ArticleGallerySlide[] = []
-
-    for (const [idx, slide] of (doc.gallery ?? []).entries()) {
-      if (!slide) continue
-      const inferredSource =
-        slide.source ?? (slide.imageUrl && !slide.media ? 'url' : 'upload')
-
-      if (inferredSource === 'url') {
-        const urlStr = slide.imageUrl?.trim() || ''
-        if (!urlStr) continue
-        const meta = parseStoredUrlMeta(slide.urlMeta)
-        slides.push({
-          id: slide.id || `slide-${idx + 1}`,
-          src: urlStr,
-          thumbSrc: urlStr,
-          width: meta?.width ?? 1200,
-          height: meta?.height ?? 675,
-          alt: slide.alt?.trim() || slide.caption?.trim() || `${fallbackAlt} (${idx + 1})`,
-          caption: slide.caption?.trim() || null,
-          ...(meta?.blurDataURL ? { blurDataURL: meta.blurDataURL } : {}),
-        })
-      } else {
-        const heroSrc =
-          resolveMediaSizeUrl(slide.media, 'hero') ?? (slide.imageUrl?.trim() || null)
-        if (!heroSrc) continue
-        const thumbSrc = resolveMediaSizeUrl(slide.media, 'thumbnail') ?? heroSrc
-        const mediaObj = slide.media && typeof slide.media === 'object' ? slide.media : null
-        const blur = resolveMediaBlurDataURL(slide.media)
-        const objectPosition = resolveMediaObjectPosition(slide.media)
-        slides.push({
-          id: slide.id || `slide-${idx + 1}`,
-          src: heroSrc,
-          thumbSrc,
-          width: mediaObj?.width ?? 1200,
-          height: mediaObj?.height ?? 675,
-          alt:
-            slide.alt?.trim() ||
-            mediaObj?.alt?.trim() ||
-            slide.caption?.trim() ||
-            `${fallbackAlt} (${idx + 1})`,
-          caption: slide.caption?.trim() || null,
-          ...(blur ? { blurDataURL: blur } : {}),
-          ...(objectPosition ? { objectPosition } : {}),
-        })
-      }
-    }
+      (dm?.galleryLayout ?? doc.galleryLayout) === 'grid' ? 'grid' : 'carousel'
+    const rawSlides = (dm?.items?.length ?? 0) > 0 ? dm?.items : doc.gallery
+    const { slides, firstCardUrl } = mapRawSlidesToGallery(rawSlides, fallbackAlt)
 
     if (slides.length === 0) {
       return {
@@ -561,8 +736,7 @@ export const resolveProjectLeadMedia = (doc: Partial<Project>): ResolvedArticleL
     const lead = slides[0]!
     return {
       mediaMode: 'gallery',
-      cardUrl:
-        resolveMediaSizeUrl((doc.gallery?.[0] ?? undefined)?.media, 'card') ?? lead.src,
+      cardUrl: firstCardUrl || lead.src,
       heroUrl: lead.src,
       blurDataURL: lead.blurDataURL ?? null,
       coverAlt: lead.alt,
@@ -572,41 +746,49 @@ export const resolveProjectLeadMedia = (doc: Partial<Project>): ResolvedArticleL
     }
   }
 
-  const inferredSingleSource =
-    doc.mediaSource ?? (doc.src && !doc.image ? 'url' : 'upload')
-
-  if (inferredSingleSource === 'url') {
-    const rawUrl = doc.src?.trim() || ''
-    if (!rawUrl) {
+  // 'single' mode: render `detailMedia.items[0]` when present, else map Primary Media automatically
+  if ((dm?.items?.length ?? 0) > 0) {
+    const { slides, firstCardUrl } = mapRawSlidesToGallery(dm?.items?.slice(0, 1), fallbackAlt)
+    const first = slides[0]
+    if (first) {
       return {
-        mediaMode: 'none',
-        cardUrl: '',
-        heroUrl: null,
-        blurDataURL: null,
-        coverAlt: fallbackAlt,
+        mediaMode: 'single',
+        cardUrl: firstCardUrl || first.src,
+        heroUrl: first.src,
+        blurDataURL: first.blurDataURL ?? null,
+        coverAlt: first.alt,
+        ...(first.objectPosition ? { coverObjectPosition: first.objectPosition } : {}),
         galleryLayout: 'carousel',
         gallery: [],
       }
     }
-    const meta = parseStoredUrlMeta(doc.srcMeta)
-    return {
-      mediaMode: 'single',
-      cardUrl: rawUrl,
-      heroUrl: rawUrl,
-      blurDataURL: meta?.blurDataURL ?? null,
-      coverAlt: doc.imageAlt?.trim() || fallbackAlt,
-      galleryLayout: 'carousel',
-      gallery: [],
-    }
   }
 
-  const uploadCard = resolveMediaSizeUrl(doc.image, 'card')
-  const uploadHero = resolveMediaSizeUrl(doc.image, 'hero')
-  const legacyUrl = doc.src?.trim() || ''
-  const cardUrl = uploadCard ?? legacyUrl
-  const heroUrl = uploadHero ?? (legacyUrl || null)
+  const primary = resolveArticlePrimaryMedia(doc)
+  if (primary.mode === 'none' || !primary.heroUrl) {
+    // Also check legacy root image/imageUrl directly in case primaryMedia was explicitly set to 'none'
+    // on an unmigrated doc that hasn't populated detailMedia.items yet
+    if (!dm?.mode && (doc.image || doc.imageUrl?.trim())) {
+      const legacyHero = resolveMediaSizeUrl(doc.image, 'hero') ?? (doc.imageUrl?.trim() || null)
+      if (legacyHero) {
+        return {
+          mediaMode: 'single',
+          cardUrl: resolveMediaSizeUrl(doc.image, 'card') ?? legacyHero,
+          heroUrl: legacyHero,
+          blurDataURL:
+            resolveMediaBlurDataURL(doc.image) ??
+            parseStoredUrlMeta(doc.imageUrlMeta)?.blurDataURL ??
+            null,
+          coverAlt: doc.imageAlt?.trim() || fallbackAlt,
+          ...(resolveMediaObjectPosition(doc.image)
+            ? { coverObjectPosition: resolveMediaObjectPosition(doc.image) }
+            : {}),
+          galleryLayout: 'carousel',
+          gallery: [],
+        }
+      }
+    }
 
-  if (!heroUrl) {
     return {
       mediaMode: 'none',
       cardUrl: '',
@@ -618,27 +800,138 @@ export const resolveProjectLeadMedia = (doc: Partial<Project>): ResolvedArticleL
     }
   }
 
-  const uploadBlur =
-    resolveMediaBlurDataURL(doc.image) ??
-    parseStoredUrlMeta(doc.srcMeta)?.blurDataURL ??
-    null
-  const mediaAlt =
-    doc.image && typeof doc.image === 'object' && doc.image.alt?.trim()
-      ? doc.image.alt.trim()
-      : null
-  const coverObjectPosition = resolveMediaObjectPosition(doc.image)
-
   return {
     mediaMode: 'single',
-    cardUrl,
-    heroUrl,
-    blurDataURL: uploadBlur,
-    coverAlt: doc.imageAlt?.trim() || mediaAlt || fallbackAlt,
-    ...(coverObjectPosition ? { coverObjectPosition } : {}),
+    cardUrl: primary.cardUrl,
+    heroUrl: primary.heroUrl,
+    blurDataURL: primary.blurDataURL,
+    coverAlt: primary.alt,
+    ...(primary.objectPosition ? { coverObjectPosition: primary.objectPosition } : {}),
     galleryLayout: 'carousel',
     gallery: [],
   }
 }
+
+/**
+ * Resolves a `Project`'s Detail Media Block (`none` | `single` | `gallery`) strictly for `/projects/[slug]`.
+ * In `'single'` mode (the default), renders `detailMedia.items[0]`, automatically falling back to
+ * Primary Media when `items` is empty.
+ */
+export const resolveProjectDetailMedia = (doc: Partial<Project>): ResolvedArticleLeadMedia => {
+  const fallbackAlt = doc.title?.trim() || 'Project illustration'
+  const dm = doc.detailMedia
+  const effectiveMode: ArticleMediaMode =
+    dm?.mode ?? (doc.mediaMode === 'none' || doc.mediaMode === 'gallery' ? doc.mediaMode : 'single')
+
+  if (effectiveMode === 'none') {
+    return {
+      mediaMode: 'none',
+      cardUrl: '',
+      heroUrl: null,
+      blurDataURL: null,
+      coverAlt: fallbackAlt,
+      galleryLayout: 'carousel',
+      gallery: [],
+    }
+  }
+
+  if (effectiveMode === 'gallery') {
+    const galleryLayout: ArticleGalleryLayout =
+      (dm?.galleryLayout ?? doc.galleryLayout) === 'grid' ? 'grid' : 'carousel'
+    const rawSlides = (dm?.items?.length ?? 0) > 0 ? dm?.items : doc.gallery
+    const { slides, firstCardUrl } = mapRawSlidesToGallery(rawSlides, fallbackAlt)
+
+    if (slides.length === 0) {
+      return {
+        mediaMode: 'none',
+        cardUrl: '',
+        heroUrl: null,
+        blurDataURL: null,
+        coverAlt: fallbackAlt,
+        galleryLayout,
+        gallery: [],
+      }
+    }
+
+    const lead = slides[0]!
+    return {
+      mediaMode: 'gallery',
+      cardUrl: firstCardUrl || lead.src,
+      heroUrl: lead.src,
+      blurDataURL: lead.blurDataURL ?? null,
+      coverAlt: lead.alt,
+      ...(lead.objectPosition ? { coverObjectPosition: lead.objectPosition } : {}),
+      galleryLayout,
+      gallery: slides,
+    }
+  }
+
+  if ((dm?.items?.length ?? 0) > 0) {
+    const { slides, firstCardUrl } = mapRawSlidesToGallery(dm?.items?.slice(0, 1), fallbackAlt)
+    const first = slides[0]
+    if (first) {
+      return {
+        mediaMode: 'single',
+        cardUrl: firstCardUrl || first.src,
+        heroUrl: first.src,
+        blurDataURL: first.blurDataURL ?? null,
+        coverAlt: first.alt,
+        ...(first.objectPosition ? { coverObjectPosition: first.objectPosition } : {}),
+        galleryLayout: 'carousel',
+        gallery: [],
+      }
+    }
+  }
+
+  const primary = resolveProjectPrimaryMedia(doc)
+  if (primary.mode === 'none' || !primary.heroUrl) {
+    if (!dm?.mode && (doc.image || doc.src?.trim())) {
+      const legacyHero = resolveMediaSizeUrl(doc.image, 'hero') ?? (doc.src?.trim() || null)
+      if (legacyHero) {
+        return {
+          mediaMode: 'single',
+          cardUrl: resolveMediaSizeUrl(doc.image, 'card') ?? legacyHero,
+          heroUrl: legacyHero,
+          blurDataURL:
+            resolveMediaBlurDataURL(doc.image) ??
+            parseStoredUrlMeta(doc.srcMeta)?.blurDataURL ??
+            null,
+          coverAlt: doc.imageAlt?.trim() || fallbackAlt,
+          ...(resolveMediaObjectPosition(doc.image)
+            ? { coverObjectPosition: resolveMediaObjectPosition(doc.image) }
+            : {}),
+          galleryLayout: 'carousel',
+          gallery: [],
+        }
+      }
+    }
+
+    return {
+      mediaMode: 'none',
+      cardUrl: '',
+      heroUrl: null,
+      blurDataURL: null,
+      coverAlt: fallbackAlt,
+      galleryLayout: 'carousel',
+      gallery: [],
+    }
+  }
+
+  return {
+    mediaMode: 'single',
+    cardUrl: primary.cardUrl,
+    heroUrl: primary.heroUrl,
+    blurDataURL: primary.blurDataURL,
+    coverAlt: primary.alt,
+    ...(primary.objectPosition ? { coverObjectPosition: primary.objectPosition } : {}),
+    galleryLayout: 'carousel',
+    gallery: [],
+  }
+}
+
+/** Backward-compatible aliases pointing to the slug-page detail media resolvers. */
+export const resolveArticleLeadMedia = resolveArticleDetailMedia
+export const resolveProjectLeadMedia = resolveProjectDetailMedia
 
 /** Extracts clean per-document SEO overrides from `@payloadcms/plugin-seo`'s `meta` group. */
 export const mapSeoOverride = (
@@ -1294,7 +1587,7 @@ export const mapCertificates = (docs: Certificate[]): CertificateItem[] =>
   }))
 
 /**
- * Maps articles to their card/archive view models.
+ * Maps articles to their card/archive view models using `resolveArticlePrimaryMedia` (`none` | `single`).
  * `readTime` prefers auto-calculated minutes from `content` / `description`, falling back to `doc.readTime`.
  */
 export const mapArticles = (docs: Article[]): ArticleItem[] =>
@@ -1306,7 +1599,7 @@ export const mapArticles = (docs: Article[]): ArticleItem[] =>
         description: doc.description,
         fallbackReadTime: doc.readTime,
       })
-    const leadMedia = resolveArticleLeadMedia(doc)
+    const primaryMedia = resolveArticlePrimaryMedia(doc)
 
     return {
       id: idToString(doc.id),
@@ -1314,10 +1607,9 @@ export const mapArticles = (docs: Article[]): ArticleItem[] =>
       excerpt: doc.excerpt,
       author: formatDisplayDate(doc.publishedAt),
       readTime: formatReadTime(minutes),
-      imageUrl: leadMedia.cardUrl,
-      ...(leadMedia.blurDataURL ? { blurDataURL: leadMedia.blurDataURL } : {}),
-      mediaMode: leadMedia.mediaMode,
-      ...(leadMedia.mediaMode === 'gallery' ? { galleryCount: leadMedia.gallery.length } : {}),
+      imageUrl: primaryMedia.cardUrl,
+      ...(primaryMedia.blurDataURL ? { blurDataURL: primaryMedia.blurDataURL } : {}),
+      mediaMode: primaryMedia.mode,
       link: doc.link ?? '',
       pagePath: doc.slug && hasArticlePage(doc) ? articlePagePath(doc.slug) : null,
       featured: Boolean(doc.featured),
@@ -1343,11 +1635,7 @@ export const mapProjects = (
   caseStudyLabel: projectsLabels.caseStudyLabel,
   filters: buildProjectFilters(projectsLabels.allFilterLabel),
   items: docs.map((doc): ProjectItem => {
-    const leadMedia = resolveProjectLeadMedia(doc)
-    const thumbUploadUrl = resolveMediaSizeUrl(doc.image, 'thumbnail')
-    const fullUploadUrl = resolveMediaSizeUrl(doc.image, 'hero')
-    const blurDataURL =
-      resolveMediaBlurDataURL(doc.image) ?? leadMedia.blurDataURL ?? null
+    const primaryMedia = resolveProjectPrimaryMedia(doc)
     const caseStudyPath = doc.slug && hasProjectPage(doc) ? projectPagePath(doc.slug) : null
     const minutes = caseStudyPath
       ? calculateReadTimeMinutes({ content: doc.content, fallbackReadTime: doc.readTime })
@@ -1361,14 +1649,10 @@ export const mapProjects = (
       role: doc.role?.trim() || null,
       year: doc.year?.trim() || null,
       readTime: minutes ? formatReadTime(minutes) : null,
-      thumbnailUrl: withFallback(
-        doc.placeHolder,
-        thumbUploadUrl ?? leadMedia.gallery[0]?.thumbSrc ?? '',
-      ),
-      imageUrl: fullUploadUrl ?? withFallback(doc.src, leadMedia.heroUrl ?? ''),
-      ...(blurDataURL ? { blurDataURL } : {}),
-      mediaMode: leadMedia.mediaMode,
-      ...(leadMedia.mediaMode === 'gallery' ? { galleryCount: leadMedia.gallery.length } : {}),
+      thumbnailUrl: primaryMedia.thumbnailUrl,
+      imageUrl: primaryMedia.cardUrl,
+      ...(primaryMedia.blurDataURL ? { blurDataURL: primaryMedia.blurDataURL } : {}),
+      mediaMode: primaryMedia.mode,
       url: withFallback(doc.url, caseStudyPath ?? '#'),
       pagePath: caseStudyPath,
     }

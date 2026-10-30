@@ -2,8 +2,17 @@ import type { CollectionConfig } from 'payload'
 
 import { draftContentAccess, hiddenWithout } from '@/access/roles'
 import { articlePagePath, hasArticlePage } from '@/app/(frontend)/lib/article-page'
+import {
+  buildDetailMediaCollapsible,
+  buildHiddenLegacyArticleMediaFields,
+  buildPrimaryMediaCollapsible,
+} from '@/fields/contentMedia'
 import { contentLexicalEditor } from '@/fields/richText'
-import { enrichArticleStaticImageMetaBeforeChange } from '@/lib/staticImageMeta'
+import {
+  enrichArticleStaticImageMetaBeforeChange,
+  syncArticleMediaBlocksBeforeValidate,
+} from '@/lib/staticImageMeta'
+import { DEFAULT_MAX_VERSIONS_PER_DOC } from '@/lib/versionRetentionShared'
 
 import {
   articleAfterChange,
@@ -15,14 +24,14 @@ import {
 export const Articles: CollectionConfig = {
   slug: 'articles',
   versions: {
-    maxPerDoc: 25,
+    maxPerDoc: DEFAULT_MAX_VERSIONS_PER_DOC,
     drafts: {
       autosave: { interval: 1000 },
       schedulePublish: true,
     },
   },
   hooks: {
-    beforeValidate: [articleSlugBeforeValidate],
+    beforeValidate: [articleSlugBeforeValidate, syncArticleMediaBlocksBeforeValidate],
     beforeChange: [computeReadTimeBeforeChange, enrichArticleStaticImageMetaBeforeChange],
     afterChange: [articleAfterChange],
     afterDelete: [articleAfterDelete],
@@ -57,199 +66,15 @@ export const Articles: CollectionConfig = {
           fields: [
             { name: 'title', type: 'text', required: true },
             { name: 'excerpt', type: 'textarea', required: true },
-            {
-              type: 'collapsible',
-              label: 'Article Media & Preview',
-              admin: {
-                initCollapsed: false,
-                description:
-                  'Choose how lead media appears on /articles and /articles/[slug]: No picture, Single image preview, or Gallery view.',
-              },
-              fields: [
-                {
-                  name: 'mediaMode',
-                  type: 'radio',
-                  label: 'Media Preview Mode',
-                  defaultValue: 'single',
-                  options: [
-                    { label: 'No picture', value: 'none' },
-                    { label: 'Single image preview', value: 'single' },
-                    { label: 'Gallery view', value: 'gallery' },
-                  ],
-                  admin: {
-                    layout: 'horizontal',
-                  },
-                },
-                {
-                  name: 'mediaSource',
-                  type: 'radio',
-                  label: 'Image Source',
-                  defaultValue: 'upload',
-                  options: [
-                    { label: 'Direct Upload / Media Library', value: 'upload' },
-                    { label: 'Existing Image URL / Path', value: 'url' },
-                  ],
-                  admin: {
-                    layout: 'horizontal',
-                    condition: (_, siblingData) =>
-                      (siblingData?.mediaMode ?? 'single') === 'single',
-                  },
-                },
-                {
-                  name: 'image',
-                  type: 'upload',
-                  relationTo: 'media',
-                  label: 'Uploaded Cover Image',
-                  admin: {
-                    condition: (_, siblingData) => {
-                      if ((siblingData?.mediaMode ?? 'single') !== 'single') return false
-                      const inferred =
-                        siblingData?.mediaSource ??
-                        (siblingData?.imageUrl && !siblingData?.image ? 'url' : 'upload')
-                      return inferred === 'upload'
-                    },
-                  },
-                },
-                {
-                  name: 'imageUrl',
-                  type: 'text',
-                  label: 'Existing Image URL or Public Path',
-                  admin: {
-                    placeholder: '/images/articles/1735708966846.webp',
-                    description:
-                      'Reference an already-uploaded image path (e.g. "/images/articles/1735708966846.webp") or Vercel Blob URL.',
-                    condition: (_, siblingData) => {
-                      if ((siblingData?.mediaMode ?? 'single') !== 'single') return false
-                      const inferred =
-                        siblingData?.mediaSource ??
-                        (siblingData?.imageUrl && !siblingData?.image ? 'url' : 'upload')
-                      return inferred === 'url'
-                    },
-                    components: {
-                      afterInput: [
-                        '/components/admin/fields/PublicImagePreview#PublicImagePreview',
-                      ],
-                    },
-                  },
-                },
-                {
-                  name: 'imageAlt',
-                  type: 'text',
-                  label: 'Cover Alt Text Override',
-                  admin: {
-                    placeholder: 'Descriptive alt text (falls back to Media alt or Article title)',
-                    condition: (_, siblingData) =>
-                      (siblingData?.mediaMode ?? 'single') === 'single',
-                  },
-                },
-                {
-                  name: 'imageUrlMeta',
-                  type: 'json',
-                  admin: { hidden: true },
-                },
-                {
-                  name: 'galleryLayout',
-                  type: 'select',
-                  label: 'Gallery Display Style',
-                  defaultValue: 'carousel',
-                  options: [
-                    { label: 'Interactive Carousel + Thumbnail Strip', value: 'carousel' },
-                    { label: 'Editorial Grid + Lightbox', value: 'grid' },
-                  ],
-                  admin: {
-                    width: '50%',
-                    condition: (_, siblingData) => siblingData?.mediaMode === 'gallery',
-                  },
-                },
-                {
-                  name: 'gallery',
-                  type: 'array',
-                  label: 'Gallery Images',
-                  maxRows: 20,
-                  labels: {
-                    singular: 'Gallery Image',
-                    plural: 'Gallery Images',
-                  },
-                  admin: {
-                    initCollapsed: false,
-                    condition: (_, siblingData) => siblingData?.mediaMode === 'gallery',
-                    description:
-                      'Add slides via direct file upload or an already-uploaded image URL/path.',
-                  },
-                  fields: [
-                    {
-                      name: 'source',
-                      type: 'radio',
-                      label: 'Image Source',
-                      defaultValue: 'upload',
-                      options: [
-                        { label: 'Direct Upload / Media Library', value: 'upload' },
-                        { label: 'Existing Image URL / Path', value: 'url' },
-                      ],
-                      admin: { layout: 'horizontal' },
-                    },
-                    {
-                      name: 'media',
-                      type: 'upload',
-                      relationTo: 'media',
-                      admin: {
-                        condition: (_, siblingData) => {
-                          const inferred =
-                            siblingData?.source ??
-                            (siblingData?.imageUrl && !siblingData?.media ? 'url' : 'upload')
-                          return inferred === 'upload'
-                        },
-                      },
-                    },
-                    {
-                      name: 'imageUrl',
-                      type: 'text',
-                      label: 'Existing Image URL or Public Path',
-                      admin: {
-                        placeholder: '/images/articles/1735708966846.webp',
-                        condition: (_, siblingData) => {
-                          const inferred =
-                            siblingData?.source ??
-                            (siblingData?.imageUrl && !siblingData?.media ? 'url' : 'upload')
-                          return inferred === 'url'
-                        },
-                        components: {
-                          afterInput: [
-                            '/components/admin/fields/PublicImagePreview#PublicImagePreview',
-                          ],
-                        },
-                      },
-                    },
-                    {
-                      type: 'row',
-                      fields: [
-                        {
-                          name: 'caption',
-                          type: 'text',
-                          admin: {
-                            width: '60%',
-                            placeholder: 'Optional slide caption',
-                          },
-                        },
-                        {
-                          name: 'alt',
-                          type: 'text',
-                          admin: {
-                            width: '40%',
-                            placeholder: 'Alt text (overrides Media alt)',
-                          },
-                        },
-                      ],
-                    },
-                    {
-                      name: 'urlMeta',
-                      type: 'json',
-                      admin: { hidden: true },
-                    },
-                  ],
-                },
-              ],
-            },
+            buildPrimaryMediaCollapsible({
+              entityLabel: 'article',
+              urlPlaceholder: '/images/articles/1735708966846.webp',
+            }),
+            buildDetailMediaCollapsible({
+              slugRouteExample: '/articles/[slug]',
+              urlPlaceholder: '/images/articles/1735708966846.webp',
+            }),
+            ...buildHiddenLegacyArticleMediaFields(),
             {
               name: 'content',
               type: 'richText',
@@ -333,6 +158,16 @@ export const Articles: CollectionConfig = {
         position: 'sidebar',
         description:
           'Minutes ("{n} min"). Auto-calculated on save from the article body (~200 words/min); enter manually only for external link-out articles.',
+      },
+    },
+    {
+      name: 'versionRetentionSidebar',
+      type: 'ui',
+      admin: {
+        position: 'sidebar',
+        components: {
+          Field: '/components/admin/fields/DocumentVersionRetention#DocumentVersionRetention',
+        },
       },
     },
   ],

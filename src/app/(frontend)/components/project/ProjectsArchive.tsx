@@ -357,6 +357,7 @@ function ShowcaseCaseStudyCard({
   const primaryHref = project.pagePath ?? (project.url || '#')
   const isInternal = primaryHref.startsWith('/')
   const coverSrc = project.imageUrl || project.thumbnailUrl
+  const hasMedia = project.mediaMode !== 'none' && Boolean(coverSrc)
   const metaParts = [
     project.role,
     project.year,
@@ -365,25 +366,24 @@ function ShowcaseCaseStudyCard({
 
   return (
     <div className="pocms-showcase-card pocms-showcase-card--pan-preview" data-case-study="true">
-      <Link
-        href={primaryHref}
-        {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
-        className="pocms-showcase-card__media text-decoration-none position-relative"
-      >
-        <CoverImage
-          src={coverSrc}
-          alt={project.title}
-          blurDataURL={project.blurDataURL}
-          fallbackSrc="/placeholder.svg"
-          sizes="(max-width: 992px) 100vw, 50vw"
-          width={800}
-          height={520}
-          className="img-fluid"
-        />
-        {project.mediaMode === 'gallery' && (project.galleryCount ?? 0) > 1 ? (
-          <span className="pocms-gallery-pill">⧉ {project.galleryCount} photos</span>
-        ) : null}
-      </Link>
+      {hasMedia ? (
+        <Link
+          href={primaryHref}
+          {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+          className="pocms-showcase-card__media text-decoration-none position-relative"
+        >
+          <CoverImage
+            src={coverSrc}
+            alt={project.title}
+            blurDataURL={project.blurDataURL}
+            fallbackSrc="/placeholder.svg"
+            sizes="(max-width: 992px) 100vw, 50vw"
+            width={800}
+            height={520}
+            className="img-fluid"
+          />
+        </Link>
+      ) : null}
 
       <div className="pocms-showcase-card__body">
         <div className="d-flex flex-wrap align-items-center gap-2 mb-2">
@@ -550,6 +550,7 @@ function ArchiveProjectCard({
   const coverSrc = panOnHover
     ? project.imageUrl || project.thumbnailUrl
     : project.thumbnailUrl || project.imageUrl
+  const hasMedia = project.mediaMode !== 'none' && Boolean(coverSrc)
   const metaParts = [
     project.role,
     project.year,
@@ -566,25 +567,24 @@ function ArchiveProjectCard({
           panOnHover ? ' pocms-showcase-card--pan-preview' : ''
         }`}
       >
-        <Link
-          href={primaryHref}
-          {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
-          className="pocms-showcase-card__media text-decoration-none position-relative"
-        >
-          <CoverImage
-            src={coverSrc}
-            alt={project.title}
-            blurDataURL={project.blurDataURL}
-            fallbackSrc="/placeholder.svg"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            width={560}
-            height={350}
-            className="img-fluid"
-          />
-          {project.mediaMode === 'gallery' && (project.galleryCount ?? 0) > 1 ? (
-            <span className="pocms-gallery-pill">⧉ {project.galleryCount} photos</span>
-          ) : null}
-        </Link>
+        {hasMedia ? (
+          <Link
+            href={primaryHref}
+            {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+            className="pocms-showcase-card__media text-decoration-none position-relative"
+          >
+            <CoverImage
+              src={coverSrc}
+              alt={project.title}
+              blurDataURL={project.blurDataURL}
+              fallbackSrc="/placeholder.svg"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              width={560}
+              height={350}
+              className="img-fluid"
+            />
+          </Link>
+        ) : null}
 
         <div className="pocms-showcase-card__body">
           <div className="d-flex flex-wrap align-items-center gap-2 mb-1">

@@ -6,7 +6,7 @@ import {
   extractTableOfContents,
   type TocItem,
 } from './lexical'
-import { mapSeoOverride, resolveProjectLeadMedia } from './mappers'
+import { mapSeoOverride, resolveProjectDetailMedia } from './mappers'
 import { hasProjectPage } from './project-page'
 import type {
   ArticleGalleryLayout,
@@ -63,7 +63,7 @@ export const mapProjectDetail = (doc: Project): ProjectDetail | null => {
     fallbackReadTime: doc.readTime,
   })
   const categories = doc.categories ?? []
-  const leadMedia = resolveProjectLeadMedia(doc)
+  const leadMedia = resolveProjectDetailMedia(doc)
 
   return {
     id: doc.id,

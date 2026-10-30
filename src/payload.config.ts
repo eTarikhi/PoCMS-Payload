@@ -24,6 +24,7 @@ import { SiteSettings } from './globals/SiteSettings'
 
 import { Users } from './collections/Users'
 import { adminJobsEndpoints } from './endpoints/adminJobs'
+import { adminVersionsEndpoints } from './endpoints/adminVersions'
 import { draftPreviewEndpoint, exitDraftPreviewEndpoint } from './endpoints/draftPreview'
 import { devGenerateEndpoint } from './endpoints/devGenerate'
 import { devMigrateEndpoint } from './endpoints/devMigrate'
@@ -312,6 +313,7 @@ export default buildConfig({
     publicImagesEndpoint,
     mediaFrameEndpoint,
     ...adminJobsEndpoints,
+    ...adminVersionsEndpoints,
     // Development only (they return 404 in production).
     resetBundlerCacheEndpoint,
     devGenerateEndpoint,

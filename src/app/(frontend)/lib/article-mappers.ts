@@ -10,7 +10,7 @@ import {
   plainTextToLexical,
   type TocItem,
 } from './lexical'
-import { mapSeoOverride, resolveArticleLeadMedia } from './mappers'
+import { mapSeoOverride, resolveArticleDetailMedia } from './mappers'
 import type {
   ArticleGalleryLayout,
   ArticleGallerySlide,
@@ -77,7 +77,7 @@ export const mapArticleDetail = (doc: Article): ArticleDetail | null => {
   const paragraphs = hasRichContent
     ? splitArticleBody(extractLexicalText(doc.content))
     : splitArticleBody(doc.description ?? '')
-  const leadMedia = resolveArticleLeadMedia(doc)
+  const leadMedia = resolveArticleDetailMedia(doc)
 
   return {
     id: doc.id,

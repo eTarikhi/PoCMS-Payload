@@ -98,7 +98,7 @@ describe('Milestone 2.1: Drafts, Version History, Autosave, Scheduled Publishing
     const projects = sanitized.collections.find((c) => c.slug === 'projects')
 
     expect(articles?.versions).toBeTruthy()
-    expect(typeof articles?.versions === 'object' && articles.versions.maxPerDoc).toBe(25)
+    expect(typeof articles?.versions === 'object' && articles.versions.maxPerDoc).toBe(10)
     expect(
       typeof articles?.versions === 'object' &&
         typeof articles.versions.drafts === 'object' &&
@@ -106,7 +106,7 @@ describe('Milestone 2.1: Drafts, Version History, Autosave, Scheduled Publishing
     ).toBe(true)
 
     expect(projects?.versions).toBeTruthy()
-    expect(typeof projects?.versions === 'object' && projects.versions.maxPerDoc).toBe(25)
+    expect(typeof projects?.versions === 'object' && projects.versions.maxPerDoc).toBe(10)
     expect(
       typeof projects?.versions === 'object' &&
         typeof projects.versions.drafts === 'object' &&

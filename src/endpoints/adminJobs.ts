@@ -72,7 +72,9 @@ export const adminJobsEndpoints: Endpoint[] = [
             task: task as
               | 'refreshSiteCache'
               | 'verifyContentHealth'
+              | 'consolidateLegacyMediaUrls'
               | 'purgeCompletedJobs'
+              | 'pruneDocumentVersions'
               | 'createDatabaseBackup',
             input: (body.input ?? {}) as Record<string, never>,
             queue: body.queue?.trim() || 'default',
