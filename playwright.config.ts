@@ -1,11 +1,17 @@
-import { defineConfig, devices } from '@playwright/test'
+import { chromium, defineConfig, devices } from '@playwright/test'
 import 'dotenv/config'
 
+import { resolvePlaywrightBrowserUse } from './tests/helpers/playwrightBrowser'
+
 const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000'
+const browserUse = resolvePlaywrightBrowserUse({
+  bundledChromiumExecutablePath: chromium.executablePath(),
+})
 
 /**
  * End-to-End & Accessibility test configuration (Playwright + @axe-core/playwright).
- * Override target host via `PLAYWRIGHT_BASE_URL` when running against a preview deployment.
+ * Uses Playwright's bundled Chromium when installed, and automatically falls back to a locally
+ * installed Chrome / Microsoft Edge / Chromium binary when `cdn.playwright.dev` is unreachable.
  */
 export default defineConfig({
   testDir: './tests/e2e',
@@ -27,7 +33,10 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        ...browserUse,
+      },
     },
   ],
   webServer: {
