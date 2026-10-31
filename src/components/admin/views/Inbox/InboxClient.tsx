@@ -293,39 +293,99 @@ export function InboxClient({
     return () => clearTimeout(timer)
   }, [openThreadId, fetchThreadDetail])
 
-  // Subscribe to SSE `/api/mail/stream` for real-time inbound & delivery telemetry updates
+  // Subscribe to SSE `/api/mail/stream` while the tab is visible; suspend after 30s in hidden
+  // background tabs so Neon serverless compute can scale to zero (`suspend_timeout_seconds`).
   useEffect(() => {
     if (typeof EventSource === 'undefined') return
-    const es = new EventSource(`${apiRoute}/mail/stream`, { withCredentials: true })
 
-    es.onopen = () => {
-      setStreamConnected(true)
-    }
-    es.onerror = () => {
+    let es: EventSource | null = null
+    let hideGraceTimer: ReturnType<typeof setTimeout> | null = null
+    let disposed = false
+
+    const closeStream = () => {
+      if (es) {
+        es.close()
+        es = null
+      }
       setStreamConnected(false)
     }
-    es.addEventListener('mail', (rawEvt) => {
-      setStreamConnected(true)
-      try {
-        const parsed = JSON.parse((rawEvt as MessageEvent<string>).data) as MailStreamEvent
-        if (parsed.type === 'snapshot') {
-          if (typeof parsed.unreadCount === 'number') {
-            setCounts((prev) => ({ ...prev, inboxUnread: parsed.unreadCount! }))
-          }
-          return
-        }
-        void fetchInboxList({ silent: true })
-        const currentOpen = activeFiltersRef.current.openThreadId
-        if (currentOpen !== null && String(parsed.threadId) === String(currentOpen)) {
-          void fetchThreadDetail(currentOpen, true)
-        }
-      } catch {
-        // Ignore non-JSON frame
+
+    const openStream = () => {
+      if (disposed || es) return
+      const source = new EventSource(`${apiRoute}/mail/stream`, { withCredentials: true })
+      es = source
+
+      source.onopen = () => {
+        if (!disposed) setStreamConnected(true)
       }
-    })
+      source.onerror = () => {
+        if (!disposed) setStreamConnected(false)
+      }
+      source.addEventListener('mail', (rawEvt) => {
+        if (disposed) return
+        setStreamConnected(true)
+        try {
+          const parsed = JSON.parse((rawEvt as MessageEvent<string>).data) as MailStreamEvent
+          if (parsed.type === 'snapshot') {
+            if (typeof parsed.unreadCount === 'number') {
+              setCounts((prev) => ({ ...prev, inboxUnread: parsed.unreadCount! }))
+            }
+            return
+          }
+          void fetchInboxList({ silent: true })
+          const currentOpen = activeFiltersRef.current.openThreadId
+          if (currentOpen !== null && String(parsed.threadId) === String(currentOpen)) {
+            void fetchThreadDetail(currentOpen, true)
+          }
+        } catch {
+          // Ignore non-JSON frame
+        }
+      })
+    }
+
+    if (typeof document === 'undefined' || document.visibilityState !== 'hidden') {
+      openStream()
+    }
+
+    const handleVisibilityChange = () => {
+      if (disposed) return
+      if (document.visibilityState === 'hidden') {
+        if (!hideGraceTimer) {
+          hideGraceTimer = setTimeout(() => {
+            hideGraceTimer = null
+            if (!disposed && document.visibilityState === 'hidden') {
+              closeStream()
+            }
+          }, 30_000)
+        }
+      } else {
+        if (hideGraceTimer) {
+          clearTimeout(hideGraceTimer)
+          hideGraceTimer = null
+        }
+        if (!es) {
+          openStream()
+          void fetchInboxList({ silent: true })
+        }
+      }
+    }
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+    }
 
     return () => {
-      es.close()
+      disposed = true
+      if (hideGraceTimer) {
+        clearTimeout(hideGraceTimer)
+      }
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+      }
+      if (es) {
+        es.close()
+        es = null
+      }
     }
   }, [apiRoute, fetchInboxList, fetchThreadDetail])
 

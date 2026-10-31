@@ -199,15 +199,37 @@ export async function countOrphanedMediaRecords(executor: SqlExecutor): Promise<
   }
 }
 
+export const MIN_STATS_UPTIME_SECONDS_FOR_UNUSED_INDEX_DROP = 86_400 // 24 hours
+
+export async function inspectStatsUptimeSeconds(executor: SqlExecutor): Promise<number | null> {
+  try {
+    const res = await executor.query<{ stats_age_seconds: string | number | null }>(`
+      SELECT
+        EXTRACT(EPOCH FROM (now() - COALESCE(s.stats_reset, pg_postmaster_start_time())))::bigint AS stats_age_seconds
+      FROM pg_stat_database s
+      WHERE s.datname = current_database()
+      LIMIT 1
+    `)
+    const raw = res.rows[0]?.stats_age_seconds
+    if (raw === undefined || raw === null) return null
+    const parsed = Number(raw)
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null
+  } catch {
+    return null
+  }
+}
+
 export async function collectDatabaseAdvisorReport(
   executor: SqlExecutor,
 ): Promise<DatabaseAdvisorReport> {
-  const [missingFkIndexes, unusedIndexes, slowStats, orphanedMediaCount] = await Promise.all([
-    findMissingForeignKeyIndexes(executor),
-    findUnusedIndexes(executor),
-    inspectSlowQueries(executor),
-    countOrphanedMediaRecords(executor),
-  ])
+  const [missingFkIndexes, unusedIndexes, slowStats, orphanedMediaCount, statsAgeSeconds] =
+    await Promise.all([
+      findMissingForeignKeyIndexes(executor),
+      findUnusedIndexes(executor),
+      inspectSlowQueries(executor),
+      countOrphanedMediaRecords(executor),
+      inspectStatsUptimeSeconds(executor),
+    ])
 
   const recommendations: string[] = []
   if (missingFkIndexes.length > 0) {
@@ -216,9 +238,19 @@ export async function collectDatabaseAdvisorReport(
     )
   }
   if (unusedIndexes.length > 3) {
-    recommendations.push(
-      `${unusedIndexes.length} non-unique index(es) have 0 index scans since stats reset — review write amplification if tables grow large.`,
-    )
+    if (
+      statsAgeSeconds !== null &&
+      statsAgeSeconds < MIN_STATS_UPTIME_SECONDS_FOR_UNUSED_INDEX_DROP
+    ) {
+      const minutes = Math.max(1, Math.round(statsAgeSeconds / 60))
+      recommendations.push(
+        `PostgreSQL cumulative stats reset ${minutes}m ago (e.g. after a Neon scale-from-zero resume); wait >= 24h of live traffic before acting on ${unusedIndexes.length} zero-scan index(es).`,
+      )
+    } else {
+      recommendations.push(
+        `${unusedIndexes.length} non-unique index(es) have 0 index scans since stats reset — review write amplification if tables grow large.`,
+      )
+    }
   }
   if (typeof orphanedMediaCount === 'number' && orphanedMediaCount > 0) {
     recommendations.push(

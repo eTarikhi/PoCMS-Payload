@@ -1,6 +1,8 @@
 import type { Payload } from 'payload'
 import { generateNKeysBetween } from 'payload/shared'
 
+import { executePayloadSql, qualifiedPayloadTable, quoteSqlIdent } from '@/lib/payloadSql'
+
 export const ORDERABLE_COLLECTIONS = [
   'projects',
   'services',
@@ -12,6 +14,38 @@ export const ORDERABLE_COLLECTIONS = [
 export type OrderableCollectionSlug = (typeof ORDERABLE_COLLECTIONS)[number]
 
 /**
+ * Short-circuits all 5 orderable collections in a single SQL `SELECT EXISTS (...)` round-trip
+ * rather than 5 sequential `COUNT(*)` table scans on every cold start.
+ * Returns `null` when no live SQL client is attached (e.g. unit-test mocks).
+ */
+async function probeCollectionsMissingOrderViaSql(
+  payload: Payload,
+): Promise<Set<OrderableCollectionSlug> | null> {
+  try {
+    const projections = ORDERABLE_COLLECTIONS.map((slug) => {
+      const table = qualifiedPayloadTable(payload, slug)
+      return `EXISTS (SELECT 1 FROM ${table} WHERE "_order" IS NULL OR "_order" = '') AS ${quoteSqlIdent(slug)}`
+    })
+    const res = await executePayloadSql<Record<string, boolean>>(
+      payload,
+      `SELECT ${projections.join(', ')}`,
+    )
+    if (!res || !res.rows[0]) return null
+
+    const row = res.rows[0]
+    const missing = new Set<OrderableCollectionSlug>()
+    for (const slug of ORDERABLE_COLLECTIONS) {
+      if (Boolean(row[slug])) {
+        missing.add(slug)
+      }
+    }
+    return missing
+  } catch {
+    return null
+  }
+}
+
+/**
  * Ensures every document in an `orderable: true` collection has a valid fractional `_order` key.
  *
  * New documents get `_order` automatically from Payload's built-in `beforeChange` hook, while
@@ -20,15 +54,36 @@ export type OrderableCollectionSlug = (typeof ORDERABLE_COLLECTIONS)[number]
  * editor drags any rows.
  */
 export async function ensureOrderable(payload: Payload): Promise<void> {
-  for (const collection of ORDERABLE_COLLECTIONS) {
-    try {
-      const { totalDocs: missingCount } = await payload.count({
-        collection,
-        where: { or: [{ _order: { exists: false } }, { _order: { equals: null } }] },
-        overrideAccess: true,
-      })
-      if (missingCount === 0) continue
+  const sqlMissingSet = await probeCollectionsMissingOrderViaSql(payload)
 
+  let collectionsToBackfill: OrderableCollectionSlug[]
+  if (sqlMissingSet) {
+    collectionsToBackfill = ORDERABLE_COLLECTIONS.filter((slug) => sqlMissingSet.has(slug))
+  } else {
+    const counts = await Promise.all(
+      ORDERABLE_COLLECTIONS.map(async (collection) => {
+        try {
+          const { totalDocs } = await payload.count({
+            collection,
+            where: { or: [{ _order: { exists: false } }, { _order: { equals: null } }] },
+            overrideAccess: true,
+          })
+          return { collection, totalDocs }
+        } catch (error) {
+          payload.logger.error(
+            `[orderable] Could not verify _order keys on ${collection}: ${error instanceof Error ? error.message : String(error)}`,
+          )
+          return { collection, totalDocs: 0 }
+        }
+      }),
+    )
+    collectionsToBackfill = counts
+      .filter((entry) => entry.totalDocs > 0)
+      .map((entry) => entry.collection)
+  }
+
+  for (const collection of collectionsToBackfill) {
+    try {
       const { docs } = await payload.find({
         collection,
         depth: 0,

@@ -1,32 +1,60 @@
 import { EventEmitter } from 'node:events'
 import type { Payload } from 'payload'
 
+import { resolvePayloadPoolClient } from '@/lib/payloadSql'
+import { isServerlessAutoscalingPostgresUrl } from '@/lib/postgresAdapterConfig'
+
 import { MAIL_PG_CHANNEL } from '../constants'
 import type { MailStreamEvent } from '../types'
 
 /**
  * Dual-mode Mail Realtime Bus:
  * 1. Immediate in-process `EventEmitter` (`maxListeners = 150`) for single-instance & dev SSE streams.
- * 2. PostgreSQL `NOTIFY pocms_mail_events` (<512B JSON payload) for multi-instance deployments when
- *    a direct (non-`-pooler`) `POSTGRES_URL_NON_POOLING` connection is available.
+ * 2. PostgreSQL `NOTIFY pocms_mail_events` (<1KB JSON payload) via Payload's active primary pool
+ *    (`db.pool` or `db.drizzle.$client`).
+ *
+ * Neon Scale-to-Zero Safeguard:
+ * Dedicated unpooled `LISTEN` sessions hold an open backend PID that blocks Neon's
+ * `suspend_timeout_seconds` scale-to-zero. On serverless autoscaling hosts (`*.neon.tech`,
+ * `vercel-storage.com`), `LISTEN` defaults to `false` unless `MAIL_STREAM_PG_LISTEN=true` is
+ * explicitly configured; on local/self-hosted PostgreSQL it defaults to `true`.
  */
 
 const emitter = new EventEmitter()
 emitter.setMaxListeners(150)
 
-export function hasDirectUnpooledPostgresUrl(env: NodeJS.ProcessEnv = process.env): {
+export function hasDirectUnpooledPostgresUrl(
+  env: Record<string, string | undefined> = process.env,
+): {
   supported: boolean
   connectionString: string
 } {
+  const explicitFlag = (env.MAIL_STREAM_PG_LISTEN ?? '').trim().toLowerCase()
+  if (explicitFlag === 'false' || explicitFlag === '0') {
+    return { supported: false, connectionString: '' }
+  }
+
   const unpooled = (env.POSTGRES_URL_NON_POOLING ?? env.DATABASE_URL_UNPOOLED ?? '').trim()
-  if (unpooled && !unpooled.includes('-pooler.')) {
-    return { supported: true, connectionString: unpooled }
-  }
   const primary = (env.POSTGRES_URL ?? '').trim()
-  if (primary && !primary.includes('-pooler.') && !primary.includes('pgbouncer=true')) {
-    return { supported: true, connectionString: primary }
+
+  const candidate =
+    unpooled && !unpooled.includes('-pooler.') && !unpooled.includes('pgbouncer=true')
+      ? unpooled
+      : primary && !primary.includes('-pooler.') && !primary.includes('pgbouncer=true')
+        ? primary
+        : ''
+
+  if (!candidate) {
+    return { supported: false, connectionString: '' }
   }
-  return { supported: false, connectionString: '' }
+
+  if (explicitFlag !== 'true' && explicitFlag !== '1') {
+    if (isServerlessAutoscalingPostgresUrl(candidate)) {
+      return { supported: false, connectionString: '' }
+    }
+  }
+
+  return { supported: true, connectionString: candidate }
 }
 
 export function subscribeLocalMailEvents(
@@ -49,8 +77,8 @@ export async function publishMailStreamEvent(
 
   emitter.emit('mail-event', fullEvent)
 
-  const dbPool = (payload?.db as { pool?: { query?: (sql: string, params?: unknown[]) => Promise<unknown> } } | undefined)?.pool
-  if (typeof dbPool?.query === 'function') {
+  const dbPool = resolvePayloadPoolClient(payload)
+  if (dbPool) {
     try {
       const compactJson = JSON.stringify(fullEvent).slice(0, 1000)
       await dbPool.query(`SELECT pg_notify($1, $2)`, [MAIL_PG_CHANNEL, compactJson])

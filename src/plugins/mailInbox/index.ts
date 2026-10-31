@@ -190,10 +190,16 @@ export const mailInboxPlugin =
           }
         : undefined,
       onInit: async (payload) => {
-        if (prevOnInit) {
-          await prevOnInit(payload)
+        if (process.env.PAYLOAD_SKIP_ON_INIT_CHECKS === 'true') {
+          if (prevOnInit) {
+            await prevOnInit(payload)
+          }
+          return
         }
-        await ensureDefaultMailLabels(payload)
+        await Promise.all([
+          prevOnInit ? prevOnInit(payload) : Promise.resolve(),
+          ensureDefaultMailLabels(payload),
+        ])
       },
     }
   }

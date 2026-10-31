@@ -2,6 +2,8 @@ import { sql } from '@payloadcms/db-vercel-postgres'
 import pg from 'pg'
 import type { Payload } from 'payload'
 
+import { resolvePayloadPoolClient } from '@/lib/payloadSql'
+
 import { parsePostgresDiagnostics, type ConnectionDiagnostics } from '../shared'
 
 export type SqlQueryResult<T = Record<string, unknown>> = {
@@ -56,28 +58,25 @@ export function createPayloadSqlExecutor(
   payload: Payload,
   env: NodeJS.ProcessEnv = process.env,
 ): SqlExecutor | null {
-  const dbRecord = (payload?.db ?? {}) as {
-    pool?: {
-      query?: (text: string, values?: unknown[]) => Promise<{ rows?: unknown[]; rowCount?: number | null }>
-    }
-    drizzle?: {
-      execute?: (query: unknown) => Promise<{ rows?: unknown[]; rowCount?: number | null }>
-    }
-  }
-
-  if (typeof dbRecord.pool?.query === 'function') {
-    const pool = dbRecord.pool
+  const resolvedPool = resolvePayloadPoolClient(payload)
+  if (resolvedPool) {
     return {
       async query<T extends Record<string, unknown> = Record<string, unknown>>(
         text: string,
         values?: unknown[],
       ): Promise<SqlQueryResult<T>> {
-        const res = await pool.query!(text, values)
+        const res = await resolvedPool.query(text, values)
         return {
           rows: (res?.rows ?? []) as T[],
           rowCount: res?.rowCount ?? null,
         }
       },
+    }
+  }
+
+  const dbRecord = (payload?.db ?? {}) as {
+    drizzle?: {
+      execute?: (query: unknown) => Promise<{ rows?: unknown[]; rowCount?: number | null }>
     }
   }
 
@@ -145,10 +144,15 @@ export const withDirectPostgresClient: DirectClientRunner = async (fn, options =
     (preferUnpooled && unpooledUrl) || (!diagnostics.pooled && pooledUrl),
   )
 
+  // PgBouncer transaction poolers (`-pooler.`) reject `options=-c statement_timeout=...` in the
+  // PostgreSQL startup packet unless allowlisted in `ignore_startup_parameters`. Only send
+  // startup `statement_timeout` on direct/unpooled connections, while enforcing `query_timeout`
+  // client-side in both modes.
   const client = new pg.Client({
     connectionString: chosenUrl,
     connectionTimeoutMillis: 8_000,
-    statement_timeout: statementTimeoutMs,
+    query_timeout: statementTimeoutMs,
+    ...(usedUnpooledConnection ? { statement_timeout: statementTimeoutMs } : {}),
   })
 
   await client.connect()

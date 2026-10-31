@@ -1,6 +1,8 @@
 import crypto from 'node:crypto'
 import type { CollectionSlug, Payload, PayloadRequest, Where } from 'payload'
 
+import { executePayloadSql, qualifiedPayloadTable } from '@/lib/payloadSql'
+
 import {
   MAIL_MESSAGES_COLLECTION,
   MAIL_THREADS_COLLECTION,
@@ -305,10 +307,166 @@ export async function resolveOrCreateMailThread({
   }
 }
 
+const ROLLUP_MESSAGE_SELECT = {
+  status: true,
+  isRead: true,
+  attachments: true,
+  sentAt: true,
+  createdAt: true,
+  snippet: true,
+  fromAddress: true,
+  fromName: true,
+  toAddresses: true,
+} as const
+
+async function recomputeThreadRollupsViaSql({
+  payload,
+  req,
+  threadId,
+  reopenInboxOnInbound,
+}: {
+  payload: Payload
+  req?: PayloadRequest
+  threadId: number | string
+  reopenInboxOnInbound: boolean
+}): Promise<boolean> {
+  const numericId =
+    typeof threadId === 'number' && Number.isFinite(threadId)
+      ? threadId
+      : typeof threadId === 'string' && /^\d+$/.test(threadId.trim())
+        ? Number.parseInt(threadId.trim(), 10)
+        : null
+  if (numericId === null) return false
+
+  const threadsTable = qualifiedPayloadTable(payload, 'mail_threads')
+  const messagesTable = qualifiedPayloadTable(payload, 'mail_messages')
+  const relsTable = qualifiedPayloadTable(payload, 'mail_messages_rels')
+
+  try {
+    const res = await executePayloadSql(
+      payload,
+      `
+        WITH msg_rows AS (
+          SELECT
+            m.id,
+            m.status::text AS status,
+            COALESCE(m.is_read, false) AS is_read,
+            COALESCE(m.sent_at, m.created_at) AS effective_sent_at,
+            NULLIF(BTRIM(COALESCE(m.snippet, '')), '') AS clean_snippet,
+            LOWER(BTRIM(COALESCE(m.from_address, ''))) AS from_address,
+            BTRIM(COALESCE(m.from_name, '')) AS from_name,
+            m.to_addresses
+          FROM ${messagesTable} m
+          WHERE m.thread_id = $1
+          ORDER BY COALESCE(m.sent_at, m.created_at) ASC, m.id ASC
+          LIMIT 250
+        ),
+        rollup AS (
+          SELECT
+            COUNT(*)::int AS message_count,
+            COUNT(*) FILTER (WHERE NOT is_read AND status <> 'draft')::int AS unread_count,
+            COALESCE(BOOL_OR(status = 'draft'), false) AS has_draft,
+            EXISTS (
+              SELECT 1
+              FROM ${relsTable} r
+              JOIN msg_rows mr ON mr.id = r.parent_id
+              WHERE r.mail_attachments_id IS NOT NULL
+            ) AS has_attachments,
+            MAX(effective_sent_at) AS last_message_at,
+            (
+              SELECT LEFT(mr2.clean_snippet, 180)
+              FROM msg_rows mr2
+              WHERE mr2.clean_snippet IS NOT NULL
+              ORDER BY mr2.effective_sent_at DESC, mr2.id DESC
+              LIMIT 1
+            ) AS latest_snippet
+          FROM msg_rows
+        ),
+        addr_candidates AS (
+          SELECT
+            mr.from_address AS addr,
+            mr.from_name AS display_name,
+            1 AS src_prio,
+            ROW_NUMBER() OVER (ORDER BY mr.effective_sent_at DESC, mr.id DESC) AS recency_rank,
+            ROW_NUMBER() OVER (ORDER BY mr.effective_sent_at ASC, mr.id ASC) AS first_order
+          FROM msg_rows mr
+          WHERE mr.from_address <> ''
+          UNION ALL
+          SELECT
+            LOWER(BTRIM(COALESCE(elem->>'address', ''))) AS addr,
+            BTRIM(COALESCE(elem->>'name', '')) AS display_name,
+            2 AS src_prio,
+            ROW_NUMBER() OVER (ORDER BY mr.effective_sent_at DESC, mr.id DESC) AS recency_rank,
+            10000 + ROW_NUMBER() OVER (ORDER BY mr.effective_sent_at ASC, mr.id ASC) AS first_order
+          FROM msg_rows mr
+          CROSS JOIN LATERAL jsonb_array_elements(
+            CASE WHEN jsonb_typeof(mr.to_addresses) = 'array' THEN mr.to_addresses ELSE '[]'::jsonb END
+          ) AS elem
+          WHERE LOWER(BTRIM(COALESCE(elem->>'address', ''))) <> ''
+        ),
+        dedup_participants AS (
+          SELECT COALESCE(
+            jsonb_agg(
+              jsonb_build_object('name', best.display_name, 'address', best.addr)
+              ORDER BY best.first_seen
+            ),
+            '[]'::jsonb
+          ) AS participants_json
+          FROM (
+            SELECT DISTINCT ON (ac.addr)
+              ac.addr,
+              COALESCE(
+                NULLIF(ac.display_name, ''),
+                (
+                  SELECT ac2.display_name
+                  FROM addr_candidates ac2
+                  WHERE ac2.addr = ac.addr AND ac2.display_name <> ''
+                  ORDER BY ac2.src_prio ASC, ac2.recency_rank ASC
+                  LIMIT 1
+                ),
+                ''
+              ) AS display_name,
+              MIN(ac.first_order) OVER (PARTITION BY ac.addr) AS first_seen
+            FROM addr_candidates ac
+            ORDER BY ac.addr, ac.src_prio ASC, ac.recency_rank ASC
+          ) best
+        )
+        UPDATE ${threadsTable} t
+        SET
+          folder = CASE
+            WHEN $2::boolean AND t.folder::text IN ('archive', 'sent') THEN 'inbox'::${threadsTable.split('.')[0]}."enum_mail_threads_folder"
+            ELSE t.folder
+          END,
+          message_count = r.message_count,
+          unread_count = r.unread_count,
+          is_read = (r.unread_count = 0),
+          has_attachments = r.has_attachments,
+          has_draft = r.has_draft,
+          snippet = COALESCE(r.latest_snippet, ''),
+          last_message_at = COALESCE(r.last_message_at, t.last_message_at, now()),
+          participants = dp.participants_json,
+          updated_at = now()
+        FROM rollup r
+        CROSS JOIN dedup_participants dp
+        WHERE t.id = $1 AND r.message_count > 0
+      `,
+      [numericId, reopenInboxOnInbound],
+      req,
+    )
+    return res !== null
+  } catch {
+    return false
+  }
+}
+
 /**
  * Recomputes denormalized rollup fields (`messageCount`, `unreadCount`, `isRead`, `hasAttachments`,
  * `hasDraft`, `snippet`, `lastMessageAt`, `participants`, and folder auto-reopen on new inbound reply)
  * from the thread's child `mail-messages`.
+ *
+ * Executes a single atomic zero-TOAST PostgreSQL `UPDATE ... FROM (WITH msg_rows ...)` statement when
+ * connected to PostgreSQL, falling back to an explicitly `select`-projected Local API query on
+ * in-memory test harnesses.
  */
 export async function recomputeThreadRollups({
   payload,
@@ -321,6 +479,14 @@ export async function recomputeThreadRollups({
   threadId: number | string
   reopenInboxOnInbound?: boolean
 }): Promise<void> {
+  const handledBySql = await recomputeThreadRollupsViaSql({
+    payload,
+    req,
+    threadId,
+    reopenInboxOnInbound,
+  })
+  if (handledBySql) return
+
   const threadDoc = await payload
     .findByID({
       collection: MAIL_THREADS_COLLECTION as CollectionSlug,
@@ -340,6 +506,7 @@ export async function recomputeThreadRollups({
     sort: 'sentAt',
     limit: 250,
     depth: 0,
+    select: ROLLUP_MESSAGE_SELECT,
     overrideAccess: true,
     req,
   })

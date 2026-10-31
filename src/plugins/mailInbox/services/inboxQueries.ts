@@ -1,5 +1,7 @@
 import { APIError, type CollectionSlug, type Payload, type PayloadRequest, type Where } from 'payload'
 
+import { executePayloadSql, qualifiedPayloadTable } from '@/lib/payloadSql'
+
 import {
   DEFAULT_MAIL_LABELS,
   MAIL_ATTACHMENTS_COLLECTION,
@@ -261,6 +263,52 @@ export async function collectInboxFolderCounts(
   payload: Payload,
   req?: PayloadRequest,
 ): Promise<InboxFolderCounts> {
+  const threadsTable = qualifiedPayloadTable(payload, 'mail_threads')
+  try {
+    const sqlRes = await executePayloadSql<{
+      inbox: number | string
+      inbox_unread: number | string
+      starred: number | string
+      sent: number | string
+      archive: number | string
+      spam: number | string
+      spam_unread: number | string
+      trash: number | string
+    }>(
+      payload,
+      `
+        SELECT
+          COUNT(*) FILTER (WHERE folder = 'inbox')::int                        AS inbox,
+          COUNT(*) FILTER (WHERE folder = 'inbox' AND is_read = false)::int    AS inbox_unread,
+          COUNT(*) FILTER (WHERE is_starred = true AND folder <> 'trash')::int AS starred,
+          COUNT(*) FILTER (WHERE folder = 'sent')::int                         AS sent,
+          COUNT(*) FILTER (WHERE folder = 'archive')::int                      AS archive,
+          COUNT(*) FILTER (WHERE folder = 'spam')::int                         AS spam,
+          COUNT(*) FILTER (WHERE folder = 'spam' AND is_read = false)::int     AS spam_unread,
+          COUNT(*) FILTER (WHERE folder = 'trash')::int                        AS trash
+        FROM ${threadsTable}
+      `,
+      undefined,
+      req,
+    )
+
+    if (sqlRes && sqlRes.rows[0]) {
+      const r = sqlRes.rows[0]
+      return {
+        inbox: Number(r.inbox ?? 0),
+        inboxUnread: Number(r.inbox_unread ?? 0),
+        starred: Number(r.starred ?? 0),
+        sent: Number(r.sent ?? 0),
+        archive: Number(r.archive ?? 0),
+        spam: Number(r.spam ?? 0),
+        spamUnread: Number(r.spam_unread ?? 0),
+        trash: Number(r.trash ?? 0),
+      }
+    }
+  } catch {
+    // Fall back to Payload Local API count queries when running against mocked or partial DBs.
+  }
+
   const countWhere = async (where: Where): Promise<number> => {
     try {
       const res = await payload.count({
@@ -1045,15 +1093,24 @@ export async function executeBulkThreadAction({
 /** Idempotently seeds default inbox labels (`Lead`, `CV Request`, `Client`, `Urgent`) on `onInit`. */
 export async function ensureDefaultMailLabels(payload: Payload): Promise<void> {
   try {
+    const defaultSlugs = DEFAULT_MAIL_LABELS.map((def) => def.slug)
+    const existing = await payload.find({
+      collection: MAIL_LABELS_COLLECTION as CollectionSlug,
+      where: { slug: { in: defaultSlugs } },
+      limit: defaultSlugs.length,
+      depth: 0,
+      select: { slug: true },
+      overrideAccess: true,
+    })
+
+    const existingSlugs = new Set(
+      (existing.docs as unknown as Array<{ slug?: unknown }>)
+        .map((doc) => (typeof doc.slug === 'string' ? doc.slug : ''))
+        .filter(Boolean),
+    )
+
     for (const def of DEFAULT_MAIL_LABELS) {
-      const existing = await payload.find({
-        collection: MAIL_LABELS_COLLECTION as CollectionSlug,
-        where: { slug: { equals: def.slug } },
-        limit: 1,
-        depth: 0,
-        overrideAccess: true,
-      })
-      if (existing.docs.length === 0) {
+      if (!existingSlugs.has(def.slug)) {
         await payload.create({
           collection: MAIL_LABELS_COLLECTION as CollectionSlug,
           overrideAccess: true,

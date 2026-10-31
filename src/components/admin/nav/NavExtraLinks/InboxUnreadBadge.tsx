@@ -41,11 +41,15 @@ export function InboxUnreadBadge({
       }
     }
     document.addEventListener('visibilitychange', onVisibility)
+    // Poll every 60s only while visible & focused so idle background Admin windows allow Neon scale-to-zero
     const timer = setInterval(() => {
-      if (document.visibilityState === 'visible') {
+      if (
+        document.visibilityState === 'visible' &&
+        (typeof document.hasFocus !== 'function' || document.hasFocus())
+      ) {
         void refresh()
       }
-    }, 30_000)
+    }, 60_000)
 
     return () => {
       active = false

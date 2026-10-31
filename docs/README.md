@@ -11,6 +11,7 @@ This repository is organized into a small set of topic-based guides. Use the pag
 ## Reference and operations
 
 - [API reference](api.md) — REST and GraphQL usage
+- [Database architecture & Neon roadmap](database-architecture.md) — PostgreSQL schema audit, Neon pooling/autoscaling, and phased optimization roadmap
 - [Deployment](deployment.md) — Docker, Vercel, and production setup
 - [Development and troubleshooting](development.md) — common issues and workflows
 - [Contributing](contributing.md) — contribution guidelines and support

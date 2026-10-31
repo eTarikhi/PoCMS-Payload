@@ -13,6 +13,7 @@
 4. Optional production integrations:
    - **Email & Mail Inbox**: `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET` (webhook target: `POST https://<your-domain>/api/webhooks/resend`), `CONTACT_NOTIFICATION_EMAIL`
    - **Scheduled Jobs**: `CRON_SECRET`
+   - **Neon Serverless Pool & Read Replicas** (see [Database architecture & Neon roadmap](database-architecture.md)): `POSTGRES_POOL_MAX` (defaults to `4` on cloud hosts), `POSTGRES_POOL_IDLE_TIMEOUT_MS` (`5000`), `POSTGRES_READ_REPLICA_URLS`, `PAYLOAD_SKIP_ON_INIT_CHECKS`
    - **Database Tier-2 & Encrypted Vault**: `NEON_API_KEY`, `DATABASE_BACKUP_SECRET`, `DATABASE_BLOB_READ_WRITE_TOKEN`
    - **Admin Dashboard Widgets**: `VERCEL_TOKEN`, `VERCEL_PROJECT_ID`, `VERCEL_TEAM_ID`, `GOOGLE_API_KEY`, `GITHUB_REPOSITORY`, `GITHUB_TOKEN`
 5. Deploy!

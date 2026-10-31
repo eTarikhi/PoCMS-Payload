@@ -16,6 +16,7 @@ This project documentation is split across multiple files for easier maintenance
 - [Getting started](docs/getting-started.md)
 - [Project structure](docs/project-structure.md)
 - [API reference](docs/api.md)
+- [Database architecture & Neon roadmap](docs/database-architecture.md)
 - [Deployment](docs/deployment.md)
 - [Development and troubleshooting](docs/development.md)
 - [Contributing](docs/contributing.md)

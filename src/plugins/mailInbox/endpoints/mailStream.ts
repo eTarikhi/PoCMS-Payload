@@ -9,8 +9,21 @@ import { hasDirectUnpooledPostgresUrl, subscribeLocalMailEvents } from '../servi
 import type { MailStreamEvent } from '../types'
 
 const HEARTBEAT_INTERVAL_MS = 15_000
-const CURSOR_POLL_INTERVAL_MS = 4_000
+const CURSOR_POLL_BASE_MS = 4_000
+const CURSOR_POLL_MAX_MS = 60_000
 const MAX_STREAM_LIFETIME_MS = 240_000 // Gracefully rotate before Vercel's 300s maxDuration
+
+/**
+ * Computes exponential idle backoff for SSE cursor polling (`4s -> 8s -> 15s -> 30s -> 60s`)
+ * so idle Inbox tabs sharply reduce query frequency and allow Neon compute to suspend once closed.
+ */
+export function computeCursorPollDelayMs(unchangedTicks: number): number {
+  if (unchangedTicks < 6) return CURSOR_POLL_BASE_MS
+  if (unchangedTicks < 12) return 8_000
+  if (unchangedTicks < 20) return 15_000
+  if (unchangedTicks < 30) return 30_000
+  return CURSOR_POLL_MAX_MS
+}
 
 function encodeSseFrame(event: string, data: unknown): Uint8Array {
   const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
@@ -32,7 +45,7 @@ export function createMailStreamEndpoint(): Endpoint {
       let closed = false
       let unsubscribeLocal: (() => void) | null = null
       let heartbeatTimer: ReturnType<typeof setInterval> | null = null
-      let pollTimer: ReturnType<typeof setInterval> | null = null
+      let pollTimer: ReturnType<typeof setTimeout> | null = null
       let lifetimeTimer: ReturnType<typeof setTimeout> | null = null
       let pgClient: pg.Client | null = null
 
@@ -48,7 +61,7 @@ export function createMailStreamEndpoint(): Endpoint {
           heartbeatTimer = null
         }
         if (pollTimer) {
-          clearInterval(pollTimer)
+          clearTimeout(pollTimer)
           pollTimer = null
         }
         if (lifetimeTimer) {
@@ -65,6 +78,7 @@ export function createMailStreamEndpoint(): Endpoint {
 
       const stream = new ReadableStream<Uint8Array>({
         async start(controller) {
+          let unchangedTicks = 0
           const pushEvent = (eventName: string, data: MailStreamEvent) => {
             if (closed) return
             try {
@@ -87,11 +101,12 @@ export function createMailStreamEndpoint(): Endpoint {
 
           // 1. In-process immediate pub/sub
           unsubscribeLocal = subscribeLocalMailEvents((evt) => {
+            unchangedTicks = 0
             watermarkIso = evt.at
             pushEvent('mail', evt)
           })
 
-          // 2. Direct PostgreSQL LISTEN/NOTIFY when an unpooled URL is available; cursor watermark poll otherwise
+          // 2. Direct PostgreSQL LISTEN/NOTIFY when explicitly enabled / local; adaptive cursor watermark poll otherwise
           const directPg = hasDirectUnpooledPostgresUrl()
           let pgListening = false
 
@@ -124,35 +139,48 @@ export function createMailStreamEndpoint(): Endpoint {
           }
 
           if (!pgListening) {
-            pollTimer = setInterval(async () => {
+            const scheduleNextPoll = () => {
               if (closed) return
-              try {
-                const changed = await req.payload.find({
-                  collection: MAIL_THREADS_COLLECTION as CollectionSlug,
-                  where: { updatedAt: { greater_than: watermarkIso } },
-                  sort: '-updatedAt',
-                  limit: 1,
-                  depth: 0,
-                  overrideAccess: true,
-                })
-                if (changed.docs.length > 0) {
-                  const newest = changed.docs[0] as unknown as {
-                    id: number | string
-                    updatedAt?: string
-                  }
-                  watermarkIso = newest.updatedAt || new Date().toISOString()
-                  const counts = await collectInboxFolderCounts(req.payload)
-                  pushEvent('mail', {
-                    type: 'threads.updated',
-                    threadId: newest.id,
-                    unreadCount: counts.inboxUnread,
-                    at: watermarkIso,
+              const delayMs = computeCursorPollDelayMs(unchangedTicks)
+              pollTimer = setTimeout(async () => {
+                if (closed) return
+                try {
+                  const changed = await req.payload.find({
+                    collection: MAIL_THREADS_COLLECTION as CollectionSlug,
+                    where: { updatedAt: { greater_than: watermarkIso } },
+                    sort: '-updatedAt',
+                    limit: 1,
+                    depth: 0,
+                    pagination: false,
+                    select: { updatedAt: true },
+                    overrideAccess: true,
                   })
+                  if (changed.docs.length > 0) {
+                    unchangedTicks = 0
+                    const newest = changed.docs[0] as unknown as {
+                      id: number | string
+                      updatedAt?: string
+                    }
+                    watermarkIso = newest.updatedAt || new Date().toISOString()
+                    const counts = await collectInboxFolderCounts(req.payload)
+                    pushEvent('mail', {
+                      type: 'threads.updated',
+                      threadId: newest.id,
+                      unreadCount: counts.inboxUnread,
+                      at: watermarkIso,
+                    })
+                  } else {
+                    unchangedTicks += 1
+                  }
+                } catch {
+                  unchangedTicks += 1
+                } finally {
+                  scheduleNextPoll()
                 }
-              } catch {
-                // Safe no-op during transient DB blip.
-              }
-            }, CURSOR_POLL_INTERVAL_MS)
+              }, delayMs)
+            }
+
+            scheduleNextPoll()
           }
 
           heartbeatTimer = setInterval(() => {

@@ -14,6 +14,10 @@ import { ensureDraftVersions } from './access/draftMigration'
 import { ensureOrderable } from './access/orderable'
 import { governedEntities } from './access/permissions'
 import { ensureRoles } from './access/roles'
+import {
+  resolvePostgresPoolOptions,
+  resolveReadReplicaUrls,
+} from './lib/postgresAdapterConfig'
 import { ensureDefaultForms } from './seed/ensureForms'
 import { AuditLogs } from './collections/AuditLogs'
 import { createRoles } from './collections/Roles'
@@ -301,9 +305,8 @@ export default buildConfig({
     // Skip interactive drizzle-kit schema introspection/prompts during automated Vitest runs
     // (`NODE_ENV === 'test'`) unless explicitly requested via `PAYLOAD_DB_PUSH=true`.
     push: process.env.NODE_ENV === 'test' ? process.env.PAYLOAD_DB_PUSH === 'true' : undefined,
-    pool: {
-      connectionString: process.env.POSTGRES_URL || '',
-    },
+    pool: resolvePostgresPoolOptions(),
+    readReplicas: resolveReadReplicaUrls(),
   }),
   sharp,
   jobs: createJobsConfig(),
@@ -327,11 +330,21 @@ export default buildConfig({
     devTerminalEndpoint,
   ],
   // Roles (ADR 0011), orderable collections, and pre-draft version snapshots on existing rows.
+  // Independent branches run concurrently to minimize serverless cold-start & Neon wake-up latency,
+  // while `ensureDraftVersions` completes before `ensureOrderable` so legacy `projects` rows receive
+  // `_status: 'published'` before `_order` updates write a version snapshot.
   onInit: async (payload) => {
-    await ensureRoles(payload)
-    await ensureOrderable(payload)
-    await ensureDraftVersions(payload)
-    await ensureDefaultForms(payload)
+    if (process.env.PAYLOAD_SKIP_ON_INIT_CHECKS === 'true') {
+      return
+    }
+    await Promise.all([
+      ensureRoles(payload),
+      (async () => {
+        await ensureDraftVersions(payload)
+        await ensureOrderable(payload)
+      })(),
+      ensureDefaultForms(payload),
+    ])
   },
   plugins: [
     portfolioSeoPlugin(),
