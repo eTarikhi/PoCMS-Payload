@@ -36,18 +36,18 @@ export function createMailMessagesCollection(): CollectionConfig {
       delete: capabilityAccess('manageInbox'),
     },
     fields: [
+      // Covered by composite `mail_messages_thread_sent_idx` (thread_id, sent_at) and
+      // `ON DELETE CASCADE` FK in `phase1BeforeSchemaInit`.
       {
         name: 'thread',
         type: 'relationship',
         relationTo: MAIL_THREADS_COLLECTION as CollectionSlug,
         required: true,
-        index: true,
       },
       {
         name: 'direction',
         type: 'select',
         required: true,
-        index: true,
         defaultValue: 'inbound',
         options: MAIL_DIRECTIONS.map((value) => ({
           label:
@@ -63,7 +63,6 @@ export function createMailMessagesCollection(): CollectionConfig {
         name: 'status',
         type: 'select',
         required: true,
-        index: true,
         defaultValue: 'received',
         options: MAIL_DELIVERY_STATUSES.map((value) => ({
           label: MAIL_DELIVERY_STATUS_LABELS[value],
@@ -74,7 +73,6 @@ export function createMailMessagesCollection(): CollectionConfig {
         name: 'isRead',
         type: 'checkbox',
         defaultValue: false,
-        index: true,
       },
       {
         name: 'resendEmailId',

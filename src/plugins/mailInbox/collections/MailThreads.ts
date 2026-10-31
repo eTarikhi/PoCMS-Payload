@@ -69,12 +69,13 @@ export function createMailThreadsCollection(options?: {
         required: true,
         index: true,
       },
+      // Covered by composite `mail_threads_counts_cover_idx` (folder, is_read, is_starred) and
+      // `mail_threads_folder_last_msg_idx` (folder, last_message_at) in `phase1BeforeSchemaInit`.
       {
         name: 'folder',
         type: 'select',
         required: true,
         defaultValue: 'inbox',
-        index: true,
         options: MAIL_FOLDERS.map((folder) => ({
           label: MAIL_FOLDER_LABELS[folder],
           value: folder,
@@ -84,19 +85,16 @@ export function createMailThreadsCollection(options?: {
         name: 'isRead',
         type: 'checkbox',
         defaultValue: false,
-        index: true,
       },
       {
         name: 'isStarred',
         type: 'checkbox',
         defaultValue: false,
-        index: true,
       },
       {
         name: 'hasAttachments',
         type: 'checkbox',
         defaultValue: false,
-        index: true,
       },
       {
         name: 'hasDraft',

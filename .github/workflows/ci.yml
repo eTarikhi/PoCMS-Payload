@@ -128,6 +128,34 @@ jobs:
       - name: Run Playwright E2E & WCAG accessibility tests
         run: pnpm run test:e2e
 
+      - name: Verify Phase 1 SQL migrations & CONCURRENTLY index optimizations
+        run: |
+          pnpm run db:migrate
+          pnpm run db:optimize-indexes
+          pnpm run db:optimize-indexes
+          node -e '
+            const pg = require("pg");
+            (async () => {
+              const client = new pg.Client({ connectionString: process.env.POSTGRES_URL });
+              await client.connect();
+              const mig = await client.query("SELECT name, batch FROM payload_migrations WHERE name = $1", ["20261031_001_phase1_integrity_and_indexes"]);
+              if (mig.rowCount !== 1) throw new Error("Expected Phase 1 migration to be recorded in payload_migrations");
+              const idx = await client.query("SELECT indexname FROM pg_indexes WHERE schemaname = \x27public\x27 AND indexname = ANY($1)", [[
+                "idx_articles_public_feed",
+                "idx_projects_public_feed",
+                "idx_mail_threads_search_trgm",
+                "idx_payload_jobs_runnable",
+                "idx_pld_rels_articles_nn",
+                "header_texts_parent_path_order_idx"
+              ]]);
+              if (idx.rowCount !== 6) throw new Error("Expected all 6 verified Phase 1 indexes in pg_indexes, got " + idx.rowCount);
+              const fk = await client.query("SELECT confdeltype FROM pg_constraint WHERE conname = \x27mail_messages_thread_id_mail_threads_id_fk\x27");
+              if (fk.rows[0]?.confdeltype !== "c") throw new Error("Expected ON DELETE CASCADE (c) on mail_messages.thread_id FK");
+              await client.end();
+              console.log("Verified Phase 1 migration ledger, pg_trgm/partial/composite indexes, and ON DELETE CASCADE FK in live PostgreSQL 16!");
+            })().catch((err) => { console.error(err); process.exit(1); });
+          '
+
       - name: Upload Playwright report on failure
         if: failure()
         uses: actions/upload-artifact@v7

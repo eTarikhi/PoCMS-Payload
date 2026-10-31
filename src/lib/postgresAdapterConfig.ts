@@ -1,5 +1,7 @@
 import type { VercelPostgresAdapterArgs } from '@payloadcms/db-vercel-postgres'
 
+import { phase1BeforeSchemaInit } from './postgresSchemaHooks'
+
 const LOCAL_POSTGRES_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]', 'postgres'])
 
 const SERVERLESS_AUTOSCALING_HOST_PATTERNS = [
@@ -118,6 +120,7 @@ export function buildPostgresAdapterArgs(
     // Skip interactive drizzle-kit schema introspection/prompts during automated Vitest runs
     // (`NODE_ENV === 'test'`) unless explicitly requested via `PAYLOAD_DB_PUSH=true`.
     push: env.NODE_ENV === 'test' ? env.PAYLOAD_DB_PUSH === 'true' : undefined,
+    beforeSchemaInit: [phase1BeforeSchemaInit],
     pool: resolvePostgresPoolOptions(env),
     ...(readReplicas ? { readReplicas } : {}),
   }

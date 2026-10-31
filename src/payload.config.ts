@@ -18,6 +18,7 @@ import {
   resolvePostgresPoolOptions,
   resolveReadReplicaUrls,
 } from './lib/postgresAdapterConfig'
+import { phase1BeforeSchemaInit } from './lib/postgresSchemaHooks'
 import { ensureDefaultForms } from './seed/ensureForms'
 import { AuditLogs } from './collections/AuditLogs'
 import { createRoles } from './collections/Roles'
@@ -305,6 +306,8 @@ export default buildConfig({
     // Skip interactive drizzle-kit schema introspection/prompts during automated Vitest runs
     // (`NODE_ENV === 'test'`) unless explicitly requested via `PAYLOAD_DB_PUSH=true`.
     push: process.env.NODE_ENV === 'test' ? process.env.PAYLOAD_DB_PUSH === 'true' : undefined,
+    beforeSchemaInit: [phase1BeforeSchemaInit],
+    migrationDir: path.resolve(dirname, 'migrations'),
     pool: resolvePostgresPoolOptions(),
     readReplicas: resolveReadReplicaUrls(),
   }),

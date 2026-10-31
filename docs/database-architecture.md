@@ -40,14 +40,14 @@ This guide documents the architectural audit, query optimization patterns, Neon 
 3. **Sparse polymorphic `*_rels` tables:**
    - `payload_locked_documents_rels` contains `21` nullable entity FK columns (`24` non-PK indexes). Because standard PostgreSQL B-trees index `NULL` entries, unfiltered single-column indexes insert 20 `NULL` entries per lock row unless converted to partial indexes (`WHERE <col>_id IS NOT NULL`).
 
-### 2.2 Referential Integrity & Indexing Defects Identified
+### 2.2 Referential Integrity & Indexing Defects Resolved in Phase 1
 
-1. **`NOT NULL` + `ON DELETE SET NULL` foreign-key contradictions (targeted in Phase 1 `R-06`):**
-   - `mail_messages.thread_id` (`NOT NULL` with `ON DELETE SET NULL` to `mail_threads.id`) and `form_submissions.form_id` (`NOT NULL` with `ON DELETE SET NULL` to `forms.id`) will fail with a `NOT NULL` constraint violation if a parent row is deleted directly. `mail_messages.thread_id` should use `ON DELETE CASCADE`; `form_submissions.form_id` should be nullable or `ON DELETE RESTRICT`.
-2. **Inverted composite indexes on all 7 `*_texts` tables (targeted in Phase 1 `R-08`):**
-   - Generated `*_texts_order_parent` indexes put low-cardinality `"order"` (`1..N`) ahead of `parent_id` (`("order", parent_id)`), leaving `parent_id` without a leading B-tree index during `LATERAL` fetches and `ON DELETE CASCADE` version pruning (`_projects_v_texts`). Leading column order must be `(parent_id, path, "order")`.
-3. **Single-column boolean / low-cardinality B-trees vs. composite & partial indexes:**
-   - Default field-level `index: true` flags create standalone B-trees on booleans (`is_read`, `is_starred`, `has_attachments`, `processing`, `has_error`, `autosave`) instead of composite partial indexes aligned with `WHERE + ORDER BY` clauses.
+1. **`NOT NULL` + `ON DELETE SET NULL` foreign-key contradictions (`R-06` — Implemented):**
+   - `phase1BeforeSchemaInit` (`src/lib/postgresSchemaHooks.ts`) and migration `20261031_001_phase1_integrity_and_indexes` set `mail_messages.thread_id` to `ON DELETE CASCADE` and drop `.notNull()` on `form_submissions.form_id` in PostgreSQL so deleting a thread cascades cleanly and deleting a form template preserves historical visitor leads.
+2. **Inverted composite indexes on all 7 `*_texts` tables (`R-08` — Implemented):**
+   - `phase1BeforeSchemaInit` rewrites all `*_texts` composite indexes from `("order", parent_id)` to `(parent_id, path, "order")` (`*_texts_parent_path_order_idx`), restoring leading-column B-tree coverage for `LATERAL` child fetches and `ON DELETE CASCADE` version pruning.
+3. **Single-column boolean / `NULL` B-trees vs. composite & partial indexes (`R-08`, `R-09` — Implemented):**
+   - Standalone boolean/low-cardinality B-trees (`is_read`, `is_starred`, `has_attachments`, `processing`, `has_error`, `autosave`) are replaced by query-aligned composite, covering, partial, and `pg_trgm` GIN indexes, and all 21 nullable entity FK indexes on `payload_locked_documents_rels` convert to partial `WHERE "<col>_id" IS NOT NULL` indexes via `pnpm db:migrate` / `pnpm db:optimize-indexes`.
 
 ### 2.3 Data-Type Guidelines for Distributed Workloads
 
@@ -167,12 +167,12 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_footer_texts_parent_order        ON 
 - [x] **R-04 (`src/access/draftMigration.ts`, `src/access/orderable.ts`, `src/payload.config.ts`):** Replace cold-start `pagination: false` `_articles_v`/`_projects_v` table scans with `NOT EXISTS` anti-joins, batch `ensureOrderable` existence checks into 1 SQL query, parallelize `onInit`, and support `PAYLOAD_SKIP_ON_INIT_CHECKS`.
 - [x] **R-05 (`src/lib/payloadSql.ts`, `connection.ts`, `realtimeBus.ts`, `mailStream.ts`, `advisor.ts`, `InboxClient.tsx`):** Resolve `drizzle.$client` for `vercelPostgresAdapter`, guard PgBouncer startup `statement_timeout`, protect Neon scale-to-zero via tab-visibility SSE suspension + adaptive backoff, and gate `idx_scan = 0` advisor warnings on compute stats uptime `>= 24h`.
 
-### Phase 1 — Indexing, Referential Integrity, & Versioned Migrations
+### Phase 1 — Indexing, Referential Integrity, & Versioned Migrations (**Implemented**)
 
-- [ ] **R-06 (FK Integrity):** Change `mail_messages.thread_id` FK from `ON DELETE SET NULL` to `ON DELETE CASCADE`, and make `form_submissions.form_id` nullable (or `ON DELETE RESTRICT`) so deleting a thread or form never triggers a `NOT NULL` runtime failure.
-- [ ] **R-07 (Migration Discipline):** Initialize `src/migrations/` via `pnpm payload migrate:create` and run `payload migrate` against `POSTGRES_URL_NON_POOLING` in CI/CD prior to production deploys.
-- [ ] **R-08 (Targeted Composite, Partial, & Trigram Indexes):** Roll out the `CREATE INDEX CONCURRENTLY` statements in **Section 3.2** across `articles`, `projects`, `_articles_v`, `_projects_v`, `mail_threads`, `mail_messages`, `payload_jobs`, and all 7 `*_texts` tables.
-- [ ] **R-09 (Write-Amplification & Partial FK Index Cleanup):** Convert the 21 nullable FK indexes on `payload_locked_documents_rels` to partial indexes (`WHERE <col>_id IS NOT NULL`) and drop redundant standalone boolean / unused child `created_at` B-tree indexes.
+- [x] **R-06 (`src/lib/postgresSchemaHooks.ts`, `src/lib/phase1SqlOptimizations.ts`):** Set `mail_messages.thread_id` FK to `ON DELETE CASCADE` and made `form_submissions.form_id` nullable in PostgreSQL (`DROP NOT NULL`) while preserving API creation validation.
+- [x] **R-07 (`src/migrations/`, `scripts/migrate-neon.mjs`, `package.json`):** Initialized versioned Payload migrations (`src/migrations/20261031_001_phase1_integrity_and_indexes.ts`) plus Neon-aware CLI runners (`pnpm db:migrate`, `pnpm db:migrate:status`, `pnpm db:migrate:create`, `pnpm db:optimize-indexes`) that automatically promote `POSTGRES_URL_NON_POOLING` over `-pooler.`.
+- [x] **R-08 (`src/lib/postgresSchemaHooks.ts`, `src/lib/phase1SqlOptimizations.ts`, `/admin/database`):** Deployed leading `(parent_id, path, "order")` indexes across all 7 `*_texts` tables, composite/covering indexes on `mail_threads`, `mail_messages`, `_articles_v`, `_projects_v`, and `payload_jobs`, partial feed/version/queue indexes, `pg_trgm` GIN search index, and one-click `apply-neon-optimizations` (`CONCURRENTLY` when unpooled) in `/admin/database`.
+- [x] **R-09 (`MailThreads.ts`, `MailMessages.ts`, `src/lib/phase1SqlOptimizations.ts`):** Removed write-amplifying standalone boolean B-trees and replaced the 21 unfiltered nullable FK indexes on `payload_locked_documents_rels` with partial `WHERE "<col>_id" IS NOT NULL` indexes.
 
 ### Phase 2 — Structural & Data-Type Modernization
 

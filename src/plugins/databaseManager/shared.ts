@@ -461,6 +461,7 @@ export type ReadOnlyQueryResult = {
 export type RepairActionKind =
   | 'sync-sequences'
   | 'create-missing-fk-indexes'
+  | 'apply-neon-optimizations'
   | 'analyze-all'
   | 'vacuum-analyze'
   | 'reindex-public'
@@ -487,6 +488,14 @@ export const REPAIR_ACTION_META: readonly {
     label: 'Create missing FK indexes',
     description:
       'Builds B-tree indexes (CONCURRENTLY when unpooled) on any foreign-key columns lacking an index to eliminate join & cascade scan bottlenecks.',
+    prefersUnpooled: true,
+    destructive: false,
+  },
+  {
+    action: 'apply-neon-optimizations',
+    label: 'Apply Neon Phase-1 indexes & FK fixes',
+    description:
+      'Applies FK cascade/nullability fixes, composite/partial/pg_trgm indexes, and partial NOT NULL lock indexes (CONCURRENTLY when unpooled).',
     prefersUnpooled: true,
     destructive: false,
   },

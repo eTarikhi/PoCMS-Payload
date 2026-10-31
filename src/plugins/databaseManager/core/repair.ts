@@ -1,6 +1,7 @@
 import type { Payload } from 'payload'
 
 import { ensureOrderable } from '@/access/orderable'
+import { applyPhase1DatabaseOptimizations } from '@/lib/phase1SqlOptimizations'
 
 import type { RepairActionKind, RepairOperationResult } from '../shared'
 
@@ -58,6 +59,32 @@ export async function runDatabaseRepairAction(
           .map((c) => c.slug),
       },
     }
+  }
+
+  if (action === 'apply-neon-optimizations') {
+    return directRunner(
+      async (directExec, { usedUnpooledConnection }) => {
+        const summary = await applyPhase1DatabaseOptimizations(directExec, {
+          schemaName: 'public',
+          concurrent: usedUnpooledConnection,
+        })
+        return {
+          action,
+          ok: true,
+          usedUnpooledConnection,
+          durationMs: Date.now() - startedAt,
+          summary: `Applied Phase 1 FK & index optimizations (${summary.concurrent ? 'CONCURRENTLY' : 'transactional-safe'}): ${summary.createdIndexes.length} index(es) ensured, ${summary.droppedIndexes.length} legacy index(es) pruned.`,
+          details: {
+            extensionEnsured: summary.extensionEnsured,
+            fkIntegrityApplied: summary.fkIntegrityApplied,
+            createdCount: summary.createdIndexes.length,
+            droppedCount: summary.droppedIndexes.length,
+            skippedCount: summary.skippedMissingTables.length,
+          },
+        }
+      },
+      { env, preferUnpooled: true, statementTimeoutMs: 180_000 },
+    )
   }
 
   // Maintenance commands that cannot run inside PgBouncer transaction blocks (`VACUUM`, `REINDEX`)
