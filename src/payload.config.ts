@@ -8,6 +8,9 @@ import { resendAdapter } from '@payloadcms/email-resend'
 import path from 'path'
 import { buildConfig, type Config } from 'payload'
 import { fileURLToPath } from 'url'
+import { installNodeDnsFallback } from './lib/nodeDnsFallback'
+
+installNodeDnsFallback()
 import sharp from 'sharp'
 
 import { ensureDraftVersions } from './access/draftMigration'

@@ -6,6 +6,10 @@ import type { Payload } from 'payload'
 import { describe, expect, it, vi } from 'vitest'
 
 import {
+  fallbackResolveHost,
+  resolveIPv4ViaDoH,
+} from '@/lib/nodeDnsFallback'
+import {
   applyPhase1DatabaseOptimizations,
   buildPhase1OptimizationPlan,
   LOCKED_DOCUMENT_RELS_NULLABLE_FK_COLUMNS,
@@ -260,5 +264,73 @@ describe('Phase 1 Database Integrity, Versioned Migrations & Index Optimizations
     expect(pooledRepairResult.ok).toBe(true)
     expect(pooledRepairResult.usedUnpooledConnection).toBe(false)
     expect(pooledRepairResult.summary).toContain('transactional-safe')
+  })
+
+  it('R-07: normalizes sslmode in migrate-neon.mjs and recovers from Windows EAI_AGAIN DNS errors via IPv4 / DoH fallback', async () => {
+    const { loadVercelPool, normalizeMigrationPostgresUrl } = await import(
+      '../../scripts/migrate-neon.mjs'
+    )
+    expect(typeof loadVercelPool()).toBe('function')
+    expect(
+      normalizeMigrationPostgresUrl(
+        'postgresql://u:p@ep-test.c-5.eu-central-1.aws.neon.tech/neondb?sslmode=require',
+      ),
+    ).toBe('postgresql://u:p@ep-test.c-5.eu-central-1.aws.neon.tech/neondb?sslmode=verify-full')
+    expect(
+      normalizeMigrationPostgresUrl(
+        'postgresql://u:p@ep-test.c-5.eu-central-1.aws.neon.tech/neondb?uselibpqcompat=true&sslmode=require',
+      ),
+    ).toBe(
+      'postgresql://u:p@ep-test.c-5.eu-central-1.aws.neon.tech/neondb?uselibpqcompat=true&sslmode=require',
+    )
+
+    // 1. OS dual-stack EAI_AGAIN recovered by OS IPv4-only retry (`family: 4`)
+    const recoveredViaOsV4 = await fallbackResolveHost(
+      'ep-osv4.c-5.eu-central-1.aws.neon.tech',
+      (_host, opts, cb) => {
+        if (opts.family === 4) {
+          cb(null, [{ address: '18.192.10.20', family: 4 }])
+        } else {
+          const e: NodeJS.ErrnoException = new Error('getaddrinfo EAI_AGAIN')
+          e.code = 'EAI_AGAIN'
+          cb(e, '')
+        }
+      },
+      { bypassCache: true, disablePublicUdp: true },
+    )
+    expect(recoveredViaOsV4).toEqual([{ address: '18.192.10.20', family: 4 }])
+
+    // 2. Total OS + UDP DNS failure recovered via DNS-over-HTTPS (DoH 443)
+    const mockDohFetch = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          Status: 0,
+          Answer: [
+            { type: 5, data: 'c-5.eu-central-1.aws.neon.tech.' },
+            { type: 1, data: '3.125.44.88' },
+          ],
+        }),
+        { status: 200, headers: { 'content-type': 'application/dns-json' } },
+      ),
+    ) as unknown as typeof fetch
+
+    const recoveredViaDoh = await fallbackResolveHost(
+      'ep-doh.c-5.eu-central-1.aws.neon.tech',
+      (_host, _opts, cb) => {
+        const e: NodeJS.ErrnoException = new Error('getaddrinfo EAI_AGAIN')
+        e.code = 'EAI_AGAIN'
+        cb(e, '')
+      },
+      { bypassCache: true, disablePublicUdp: true, fetchImpl: mockDohFetch },
+    )
+    expect(recoveredViaDoh).toEqual([{ address: '3.125.44.88', family: 4 }])
+
+    // 3. Deleted Neon endpoint (`Status: 3` NXDOMAIN) surfaces ENOTFOUND immediately
+    const nxDomainFetch = vi.fn(async () =>
+      new Response(JSON.stringify({ Status: 3 }), { status: 200 }),
+    ) as unknown as typeof fetch
+    await expect(
+      resolveIPv4ViaDoH('ep-deleted.c-5.eu-central-1.aws.neon.tech', nxDomainFetch),
+    ).rejects.toMatchObject({ code: 'ENOTFOUND' })
   })
 })

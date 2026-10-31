@@ -2,9 +2,13 @@
 /**
  * Neon-aware PostgreSQL migration & online index optimization runner (`R-07`, `R-08`, `R-09`).
  *
- * Automatically promotes `POSTGRES_URL_NON_POOLING` / `DATABASE_URL_UNPOOLED` over `-pooler.`
- * PgBouncer transaction pooler endpoints so DDL locks, advisory locks, and `CREATE INDEX CONCURRENTLY`
- * run directly against the primary PostgreSQL compute.
+ * - Installs resilient IPv4-first + `1.1.1.1` / DoH DNS fallback (`scripts/dns-fallback.mjs`) for
+ *   Windows / VPN environments where dual-stack `getaddrinfo` (`onlookupall`) hits `EAI_AGAIN`.
+ * - Normalizes `sslmode=require|prefer|verify-ca` -> `sslmode=verify-full` to eliminate `pg` v8.20+
+ *   deprecation warnings while enforcing full TLS verification.
+ * - Prefers `POSTGRES_URL_NON_POOLING` / `DATABASE_URL_UNPOOLED` over `-pooler.` URLs, probes
+ *   reachability (TCP 5432 with automatic Neon WebSocket `:443` fallback), and falls back to
+ *   `POSTGRES_URL` if the unpooled URL is stale/unreachable.
  *
  * Usage:
  *   node scripts/migrate-neon.mjs migrate           # Run pending Payload migrations (`src/migrations`)
@@ -12,124 +16,338 @@
  *   node scripts/migrate-neon.mjs create [name]     # Create a new Payload Drizzle migration
  *   node scripts/migrate-neon.mjs optimize-indexes  # Zero-lock online `CONCURRENTLY` Phase 1 rollout
  */
+import './dns-fallback.mjs'
 import 'dotenv/config'
+
 import { spawnSync } from 'node:child_process'
+import { createRequire } from 'node:module'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import pg from 'pg'
 
-const mode = (process.argv[2] || 'migrate').trim().toLowerCase()
-const extraArgs = process.argv.slice(3)
+const rootRequire = createRequire(import.meta.url)
 
-const pooledUrl = (process.env.POSTGRES_URL ?? '').trim()
-const unpooledUrl = (
-  process.env.POSTGRES_URL_NON_POOLING ??
-  process.env.DATABASE_URL_UNPOOLED ??
-  ''
-).trim()
-
-const effectiveUrl = unpooledUrl || pooledUrl
-const isPooled =
-  effectiveUrl.includes('-pooler.') ||
-  effectiveUrl.includes('.pooler.supabase.com') ||
-  effectiveUrl.includes('pgbouncer=true')
-
-if (mode !== 'create' && !effectiveUrl) {
-  console.error('[db:migrate] Error: Set POSTGRES_URL_NON_POOLING or POSTGRES_URL before running.')
-  process.exit(1)
+export function loadVercelPool() {
+  const adapterEntry = rootRequire.resolve('@payloadcms/db-vercel-postgres')
+  const adapterRequire = createRequire(adapterEntry)
+  return adapterRequire('@vercel/postgres').VercelPool
 }
 
-if (mode === 'optimize-indexes') {
-  const { tsImport } = await import('tsx/esm/api')
-  const { applyPhase1DatabaseOptimizations } = await tsImport(
-    '../src/lib/phase1SqlOptimizations.ts',
-    import.meta.url,
-  )
+const LEGACY_SSL_MODES = new Set(['prefer', 'require', 'verify-ca'])
 
-  const concurrent = !isPooled
-  if (!concurrent) {
-    console.warn(
-      '[db:optimize-indexes] Warning: Connected via a pooled URL (-pooler); falling back to non-concurrent DDL. Set POSTGRES_URL_NON_POOLING for zero-lock CONCURRENTLY execution.',
-    )
-  }
-
-  const client = new pg.Client({
-    connectionString: effectiveUrl,
-    connectionTimeoutMillis: 15_000,
-    query_timeout: 300_000,
-    ...(concurrent ? { statement_timeout: 300_000 } : {}),
-  })
-
-  await client.connect()
+/**
+ * Normalizes `sslmode=prefer|require|verify-ca` -> `sslmode=verify-full` unless `uselibpqcompat`
+ * is explicitly set, silencing `pg-connection-string` v2.x->v3.0 warnings.
+ * @param {string} rawUrl
+ * @returns {string}
+ */
+export function normalizeMigrationPostgresUrl(rawUrl) {
+  const trimmed = rawUrl.trim()
+  if (!trimmed) return trimmed
   try {
-    const summary = await applyPhase1DatabaseOptimizations(client, {
-      schemaName: 'public',
-      concurrent,
-    })
-    console.log(
-      `[db:optimize-indexes] Completed (${summary.concurrent ? 'CONCURRENTLY' : 'non-concurrent'}): ` +
-        `${summary.createdIndexes.length} index(es) ensured, ${summary.droppedIndexes.length} legacy index(es) pruned.`,
-    )
-  } finally {
-    await client.end().catch(() => undefined)
+    const parsed = new URL(trimmed)
+    const sslMode = parsed.searchParams.get('sslmode')?.toLowerCase()
+    if (sslMode && LEGACY_SSL_MODES.has(sslMode) && !parsed.searchParams.has('uselibpqcompat')) {
+      parsed.searchParams.set('sslmode', 'verify-full')
+      return parsed.toString()
+    }
+    return trimmed
+  } catch {
+    return trimmed
   }
-  process.exit(0)
 }
 
-// When transitioning an existing pushDevSchema-bootstrapped database (`batch = -1` row in
-// `payload_migrations`) to versioned migrations, `@payloadcms/drizzle` prompts interactively and
-// silently exits 0 on non-TTY stdin (CI / Vercel builds). Clearing the `batch = -1` dev sentinel
-// allows idempotent versioned migrations in `src/migrations/` to execute cleanly in non-TTY runs.
-if (mode === 'migrate' && process.env.PAYLOAD_MIGRATE_KEEP_DEV_SENTINEL !== 'true') {
+/**
+ * @param {string} rawUrl
+ */
+function parseHostSafe(rawUrl) {
+  try {
+    return new URL(rawUrl).hostname
+  } catch {
+    return '<invalid-url>'
+  }
+}
+
+/**
+ * @param {string} rawUrl
+ */
+function isPooledUrl(rawUrl) {
+  return (
+    rawUrl.includes('-pooler.') ||
+    rawUrl.includes('.pooler.supabase.com') ||
+    rawUrl.includes('pgbouncer=true')
+  )
+}
+
+/**
+ * Probes connectivity and runs a lightweight callback via TCP `pg.Client` (port 5432), falling back
+ * to `@vercel/postgres` `VercelPool` (WebSocket `:443`) on `*.neon.tech` hosts when TCP 5432 is
+ * firewalled.
+ *
+ * @template T
+ * @param {string} connectionString
+ * @param {(exec: { query: (sql: string, values?: unknown[]) => Promise<{ rows: any[]; rowCount?: number | null }> }, transport: 'tcp' | 'ws') => Promise<T>} fn
+ * @param {{ statementTimeoutMs?: number }} [opts]
+ * @returns {Promise<T>}
+ */
+async function withResilientDbClient(connectionString, fn, opts = {}) {
+  const host = parseHostSafe(connectionString)
+  const isNeonHost = host.endsWith('.neon.tech')
+  const pooled = isPooledUrl(connectionString)
+
   const client = new pg.Client({
-    connectionString: effectiveUrl,
+    connectionString,
     connectionTimeoutMillis: 10_000,
+    query_timeout: opts.statementTimeoutMs ?? 300_000,
+    ...(!pooled && opts.statementTimeoutMs ? { statement_timeout: opts.statementTimeoutMs } : {}),
   })
+
   try {
     await client.connect()
-    const check = await client.query(
-      `SELECT to_regclass('public.payload_migrations') IS NOT NULL AS exists`,
-    )
-    if (check.rows[0]?.exists) {
-      const cleaned = await client.query(
-        `DELETE FROM "public"."payload_migrations" WHERE "batch" = -1`,
-      )
-      if ((cleaned.rowCount ?? 0) > 0) {
-        console.log(
-          `[db:migrate] Cleared ${cleaned.rowCount} dev-mode sentinel row(s) (batch = -1) from payload_migrations for non-interactive migration execution.`,
-        )
-      }
+    try {
+      return await fn(client, 'tcp')
+    } finally {
+      await client.end().catch(() => undefined)
     }
-  } catch (err) {
-    console.warn(
-      `[db:migrate] Pre-check warning (continuing to payload migrate): ${err instanceof Error ? err.message : String(err)}`,
-    )
-  } finally {
+  } catch (tcpErr) {
     await client.end().catch(() => undefined)
+    const code = /** @type {NodeJS.ErrnoException} */ (tcpErr)?.code || ''
+    // Only fall back to WebSocket :443 on Neon hosts when TCP 5432 failed at transport level (not DNS NXDOMAIN or auth)
+    if (
+      !isNeonHost ||
+      code === 'ENOTFOUND' ||
+      code === 'EAI_AGAIN' ||
+      code === '28P01' ||
+      code === '3D000'
+    ) {
+      throw tcpErr
+    }
+
+    const VercelPool = loadVercelPool()
+    const wsPool = new VercelPool({ connectionString, max: 1 })
+    try {
+      return await fn(wsPool, 'ws')
+    } finally {
+      await wsPool.end().catch(() => undefined)
+    }
   }
 }
 
-const payloadSubcommand =
-  mode === 'status'
-    ? ['migrate:status', ...extraArgs]
-    : mode === 'create'
-      ? ['migrate:create', ...(extraArgs.length ? extraArgs : ['schema_update'])]
-      : mode === 'down'
-        ? ['migrate:down', ...extraArgs]
-        : ['migrate', ...extraArgs]
-
-const env = {
-  ...process.env,
-  ...(effectiveUrl ? { POSTGRES_URL: effectiveUrl } : {}),
-  BLOB_READ_WRITE_TOKEN:
-    process.env.BLOB_READ_WRITE_TOKEN || 'vercel_blob_rw_codegen0_placeholder0',
-  PAYLOAD_SECRET: process.env.PAYLOAD_SECRET || 'migration-cli-placeholder-secret-32chars',
-  PAYLOAD_CONFIG_PATH: process.env.PAYLOAD_CONFIG_PATH || 'src/payload.config.ts',
-  NODE_OPTIONS: [process.env.NODE_OPTIONS, '--no-deprecation'].filter(Boolean).join(' '),
+/**
+ * Unwraps DOM `ErrorEvent` / `AggregateError` / `cause` objects thrown by Node 24 WebSocket or `net`.
+ * @param {unknown} raw
+ * @returns {{ code: string; message: string }}
+ */
+function extractConnectionError(raw) {
+  if (!raw || typeof raw !== 'object') {
+    return { code: '', message: String(raw) }
+  }
+  const obj = /** @type {Record<string, any>} */ (raw)
+  const inner = obj.error || obj.cause || (Array.isArray(obj.errors) ? obj.errors[0] : null)
+  const code = String(obj.code || inner?.code || '')
+  const message =
+    (typeof obj.message === 'string' && obj.message) ||
+    (typeof inner?.message === 'string' && inner.message) ||
+    String(raw)
+  return { code, message }
 }
 
-const payloadBin = path.resolve(process.cwd(), 'node_modules', 'payload', 'bin.js')
-const result = spawnSync(process.execPath, [payloadBin, ...payloadSubcommand], {
-  env,
-  stdio: 'inherit',
-})
-process.exit(result.status ?? 1)
+/**
+ * Prints an actionable diagnostic when database hostnames fail DNS or TCP/WSS preflight.
+ * @param {Array<{ envName: string; host: string; error: unknown }>} failures
+ */
+function reportConnectionFailures(failures) {
+  console.error('\n[db:migrate] Unable to reach the configured PostgreSQL endpoint(s):')
+  let firstCode = ''
+  for (const item of failures) {
+    const { code, message } = extractConnectionError(item.error)
+    if (!firstCode && code) firstCode = code
+    const codeLabel = code ? ` (${code})` : ''
+    console.error(`  - ${item.envName} -> ${item.host}${codeLabel}: ${message}`)
+  }
+
+  const firstHost = failures[0]?.host
+  console.error('\nTroubleshooting:')
+  if (firstCode === 'ENOTFOUND') {
+    console.error(
+      `  1. Host "${firstHost}" returned NXDOMAIN (does not exist). Check your Neon Console -> Connection Details and update POSTGRES_URL / POSTGRES_URL_NON_POOLING in .env.`,
+    )
+  } else if (firstCode === 'EAI_AGAIN' || firstCode === 'ETIMEOUT') {
+    console.error(
+      `  1. DNS resolution timed out (${firstCode}) across OS DNS, 1.1.1.1/8.8.8.8, and DoH. Verify internet/VPN connectivity on this machine:`,
+    )
+    if (firstHost) {
+      console.error(`     PowerShell: Resolve-DnsName ${firstHost} -Server 1.1.1.1`)
+    }
+    console.error(
+      `  2. Also confirm in the Neon Console that endpoint "${firstHost}" has not been deleted or replaced.`,
+    )
+  } else {
+    console.error(
+      '  1. Verify internet/VPN/firewall access to ports 5432 or 443 and confirm credentials in .env.',
+    )
+  }
+}
+
+async function main() {
+  const mode = (process.argv[2] || 'migrate').trim().toLowerCase()
+  const extraArgs = process.argv.slice(3)
+
+  /** @type {Array<{ envName: string; url: string; host: string }>} */
+  const candidates = []
+  const seenUrls = new Set()
+  for (const [envName, raw] of [
+    ['POSTGRES_URL_NON_POOLING', process.env.POSTGRES_URL_NON_POOLING],
+    ['DATABASE_URL_UNPOOLED', process.env.DATABASE_URL_UNPOOLED],
+    ['POSTGRES_URL', process.env.POSTGRES_URL],
+  ]) {
+    const normalized = raw ? normalizeMigrationPostgresUrl(raw) : ''
+    if (normalized && !seenUrls.has(normalized)) {
+      seenUrls.add(normalized)
+      candidates.push({
+        envName,
+        url: normalized,
+        host: parseHostSafe(normalized),
+      })
+    }
+  }
+
+  if (mode !== 'create' && candidates.length === 0) {
+    console.error('[db:migrate] Error: Set POSTGRES_URL_NON_POOLING or POSTGRES_URL in .env before running.')
+    process.exit(1)
+  }
+
+  // Probe candidate URLs in priority order (unpooled first, falling back to pooled if unpooled is stale)
+  let selected = candidates[0] ?? null
+  if (mode !== 'create' && candidates.length > 0) {
+    /** @type {Array<{ envName: string; host: string; error: unknown }>} */
+    const failures = []
+    selected = null
+
+    for (const candidate of candidates) {
+      try {
+        await withResilientDbClient(candidate.url, async (db) => {
+          await db.query('SELECT 1 AS ok')
+        })
+        selected = candidate
+        if (failures.length > 0) {
+          console.warn(
+            `[db:migrate] Note: ${failures[0].envName} (${failures[0].host}) was unreachable; connected via ${candidate.envName} (${candidate.host}).`,
+          )
+        }
+        break
+      } catch (err) {
+        failures.push({ envName: candidate.envName, host: candidate.host, error: err })
+      }
+    }
+
+    if (!selected) {
+      reportConnectionFailures(failures)
+      process.exit(1)
+    }
+  }
+
+  if (mode === 'optimize-indexes' && selected) {
+    const { tsImport } = await import('tsx/esm/api')
+    const { applyPhase1DatabaseOptimizations } = await tsImport(
+      '../src/lib/phase1SqlOptimizations.ts',
+      import.meta.url,
+    )
+
+    const concurrent = !isPooledUrl(selected.url)
+    if (!concurrent) {
+      console.warn(
+        `[db:optimize-indexes] Connected via pooled URL (${selected.envName}); using transactional-safe non-concurrent DDL. Set a reachable POSTGRES_URL_NON_POOLING for zero-lock CONCURRENTLY execution.`,
+      )
+    }
+
+    await withResilientDbClient(
+      selected.url,
+      async (db, transport) => {
+        const summary = await applyPhase1DatabaseOptimizations(db, {
+          schemaName: 'public',
+          concurrent,
+        })
+        console.log(
+          `[db:optimize-indexes] Completed via ${transport.toUpperCase()} (${summary.concurrent ? 'CONCURRENTLY' : 'non-concurrent'}): ` +
+            `${summary.createdIndexes.length} index(es) ensured, ${summary.droppedIndexes.length} legacy index(es) pruned.`,
+        )
+      },
+      { statementTimeoutMs: 300_000 },
+    )
+    return
+  }
+
+  // When transitioning an existing pushDevSchema-bootstrapped database (`batch = -1` row in
+  // `payload_migrations`) to versioned migrations, `@payloadcms/drizzle` prompts interactively and
+  // silently exits 0 on non-TTY stdin. Clearing `batch = -1` allows idempotent migrations to run cleanly.
+  if (mode === 'migrate' && selected && process.env.PAYLOAD_MIGRATE_KEEP_DEV_SENTINEL !== 'true') {
+    await withResilientDbClient(selected.url, async (db) => {
+      const check = await db.query(
+        `SELECT to_regclass('public.payload_migrations') IS NOT NULL AS exists`,
+      )
+      if (check.rows[0]?.exists) {
+        const cleaned = await db.query(
+          `DELETE FROM "public"."payload_migrations" WHERE "batch" = -1`,
+        )
+        if ((cleaned.rowCount ?? 0) > 0) {
+          console.log(
+            `[db:migrate] Cleared ${cleaned.rowCount} dev-mode sentinel row(s) (batch = -1) from payload_migrations.`,
+          )
+        }
+      }
+    })
+  }
+
+  const payloadSubcommand =
+    mode === 'status'
+      ? ['migrate:status', ...extraArgs]
+      : mode === 'create'
+        ? ['migrate:create', ...(extraArgs.length ? extraArgs : ['schema_update'])]
+        : mode === 'down'
+          ? ['migrate:down', ...extraArgs]
+          : ['migrate', ...extraArgs]
+
+  const env = {
+    ...process.env,
+    ...(selected
+      ? {
+          POSTGRES_URL: selected.url,
+          POSTGRES_URL_NON_POOLING: selected.url,
+        }
+      : {}),
+    BLOB_READ_WRITE_TOKEN:
+      process.env.BLOB_READ_WRITE_TOKEN || 'vercel_blob_rw_codegen0_placeholder0',
+    PAYLOAD_SECRET: process.env.PAYLOAD_SECRET || 'migration-cli-placeholder-secret-32chars',
+    PAYLOAD_CONFIG_PATH: process.env.PAYLOAD_CONFIG_PATH || 'src/payload.config.ts',
+    NODE_OPTIONS: [process.env.NODE_OPTIONS, '--no-deprecation'].filter(Boolean).join(' '),
+  }
+
+  const dnsFallbackModuleUrl = pathToFileURL(
+    path.resolve(process.cwd(), 'scripts', 'dns-fallback.mjs'),
+  ).href
+  const payloadBin = path.resolve(process.cwd(), 'node_modules', 'payload', 'bin.js')
+  const result = spawnSync(
+    process.execPath,
+    ['--import', dnsFallbackModuleUrl, payloadBin, ...payloadSubcommand],
+    {
+      env,
+      stdio: 'inherit',
+    },
+  )
+  process.exit(result.status ?? 1)
+}
+
+const isDirectExecution =
+  process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname)
+
+// Handle Windows drive-letter pathname formatting (`/C:/...` vs `C:\...`)
+const currentFileUrl = import.meta.url
+const invokedFileUrl = process.argv[1] ? pathToFileURL(path.resolve(process.argv[1])).href : ''
+
+if (isDirectExecution || currentFileUrl === invokedFileUrl) {
+  main().catch((err) => {
+    console.error('[db:migrate] Unexpected failure:', err)
+    process.exit(1)
+  })
+}
