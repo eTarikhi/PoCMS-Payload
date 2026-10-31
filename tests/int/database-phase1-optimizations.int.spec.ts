@@ -213,12 +213,17 @@ describe('Phase 1 Database Integrity, Versioned Migrations & Index Optimizations
     const mockExecutor = {
       query: async <T>(text: string) => {
         ranStatements.push(text)
-        if (text.includes('information_schema.tables')) {
+        if (text.includes('information_schema.columns')) {
           return {
             rows: [
-              { table_name: 'articles' },
-              { table_name: 'mail_threads' },
-              { table_name: 'payload_locked_documents_rels' },
+              { table_name: 'articles', column_name: 'published_at' },
+              { table_name: 'articles', column_name: 'deleted_at' },
+              { table_name: 'articles', column_name: '_status' },
+              { table_name: 'mail_threads', column_name: 'subject' },
+              { table_name: 'mail_threads', column_name: 'snippet' },
+              { table_name: 'mail_threads', column_name: 'counterparty_name' },
+              { table_name: 'mail_threads', column_name: 'counterparty_email' },
+              { table_name: 'payload_locked_documents_rels', column_name: 'articles_id' },
             ] as unknown as T[],
           }
         }
@@ -266,11 +271,45 @@ describe('Phase 1 Database Integrity, Versioned Migrations & Index Optimizations
     expect(pooledRepairResult.summary).toContain('transactional-safe')
   })
 
-  it('R-07: normalizes sslmode in migrate-neon.mjs and recovers from Windows EAI_AGAIN DNS errors via IPv4 / DoH fallback', async () => {
-    const { loadVercelPool, normalizeMigrationPostgresUrl } = await import(
-      '../../scripts/migrate-neon.mjs'
-    )
+  it('R-07: normalizes sslmode, quarantines stale untracked migrations, and recovers from Windows EAI_AGAIN DNS errors via IPv4 / DoH fallback', async () => {
+    const {
+      loadVercelPool,
+      normalizeMigrationPostgresUrl,
+      quarantineUnregisteredMigrations,
+    } = await import('../../scripts/migrate-neon.mjs')
     expect(typeof loadVercelPool()).toBe('function')
+
+    // Verify quarantine of stale pre-Git untracked migrations (e.g. 20261025_203812.ts)
+    const os = await import('node:os')
+    const tmpMigDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pocms-mig-test-'))
+    try {
+      fs.writeFileSync(
+        path.join(tmpMigDir, 'index.ts'),
+        `import * as m1 from './20261031_001_phase1_integrity_and_indexes'\nexport const migrations = [{ up: m1.up, down: m1.down, name: '20261031_001_phase1_integrity_and_indexes' }]\n`,
+      )
+      fs.writeFileSync(path.join(tmpMigDir, '20261031_001_phase1_integrity_and_indexes.ts'), '// ok')
+      fs.writeFileSync(
+        path.join(tmpMigDir, '20261031_001_phase1_integrity_and_indexes.json'),
+        '{}',
+      )
+      fs.writeFileSync(path.join(tmpMigDir, '20261025_203812.ts'), '// stale untracked dump')
+      fs.writeFileSync(path.join(tmpMigDir, '20261025_203812.json'), '{}')
+
+      const archived = quarantineUnregisteredMigrations(tmpMigDir)
+      expect(archived.sort()).toEqual(['20261025_203812.json', '20261025_203812.ts'])
+      expect(fs.existsSync(path.join(tmpMigDir, '20261025_203812.ts'))).toBe(false)
+      expect(
+        fs.existsSync(path.join(tmpMigDir, '.archived-local', '20261025_203812.ts')),
+      ).toBe(true)
+      expect(
+        fs.existsSync(path.join(tmpMigDir, '20261031_001_phase1_integrity_and_indexes.ts')),
+      ).toBe(true)
+      expect(
+        fs.existsSync(path.join(tmpMigDir, '20261031_001_phase1_integrity_and_indexes.json')),
+      ).toBe(true)
+    } finally {
+      fs.rmSync(tmpMigDir, { recursive: true, force: true })
+    }
     expect(
       normalizeMigrationPostgresUrl(
         'postgresql://u:p@ep-test.c-5.eu-central-1.aws.neon.tech/neondb?sslmode=require',

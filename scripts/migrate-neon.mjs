@@ -20,6 +20,7 @@ import './dns-fallback.mjs'
 import 'dotenv/config'
 
 import { spawnSync } from 'node:child_process'
+import fs from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -31,6 +32,67 @@ export function loadVercelPool() {
   const adapterEntry = rootRequire.resolve('@payloadcms/db-vercel-postgres')
   const adapterRequire = createRequire(adapterEntry)
   return adapterRequire('@vercel/postgres').VercelPool
+}
+
+/**
+ * Moves any top-level `.ts` / `.js` / `.json` files in `migrationsDir` that are NOT registered in
+ * `migrationsDir/index.ts` into `migrationsDir/.archived-local/` so Payload's `readdirSync`
+ * migration loader never executes stale untracked local dumps (e.g. `20261025_*.ts` created when
+ * `/src/migrations` was gitignored).
+ *
+ * Legitimate migrations created via `pnpm db:migrate:create` are automatically written into
+ * `index.ts` by Payload's `writeMigrationIndex` and are preserved untouched.
+ *
+ * @param {string} migrationsDir
+ * @returns {string[]} List of quarantined filenames
+ */
+export function quarantineUnregisteredMigrations(migrationsDir) {
+  const indexPath = path.join(migrationsDir, 'index.ts')
+  if (!fs.existsSync(migrationsDir) || !fs.existsSync(indexPath)) {
+    return []
+  }
+
+  const indexSource = fs.readFileSync(indexPath, 'utf8')
+  /** @type {Set<string>} */
+  const registeredStems = new Set()
+
+  for (const match of indexSource.matchAll(/from\s+['"]\.\/([^'"]+)['"]/g)) {
+    const stem = match[1].replace(/\.(ts|js)$/, '')
+    if (stem) registeredStems.add(stem)
+  }
+  for (const match of indexSource.matchAll(/name:\s*['"]([^'"]+)['"]/g)) {
+    if (match[1]) registeredStems.add(match[1])
+  }
+
+  if (registeredStems.size === 0) {
+    return []
+  }
+
+  const entries = fs.readdirSync(migrationsDir, { withFileTypes: true })
+  /** @type {string[]} */
+  const quarantined = []
+
+  for (const entry of entries) {
+    if (!entry.isFile()) continue
+    const fileName = entry.name
+    if (fileName === 'index.ts' || fileName === 'index.js') continue
+    if (!/\.(ts|js|json)$/.test(fileName)) continue
+
+    const stem = fileName.replace(/\.(ts|js|json)$/, '')
+    if (registeredStems.has(stem)) continue
+
+    const archiveDir = path.join(migrationsDir, '.archived-local')
+    fs.mkdirSync(archiveDir, { recursive: true })
+    const srcPath = path.join(migrationsDir, fileName)
+    const destPath = path.join(archiveDir, fileName)
+    if (fs.existsSync(destPath)) {
+      fs.rmSync(destPath, { force: true })
+    }
+    fs.renameSync(srcPath, destPath)
+    quarantined.push(fileName)
+  }
+
+  return quarantined
 }
 
 const LEGACY_SSL_MODES = new Set(['prefer', 'require', 'verify-ca'])
@@ -192,6 +254,16 @@ function reportConnectionFailures(failures) {
 async function main() {
   const mode = (process.argv[2] || 'migrate').trim().toLowerCase()
   const extraArgs = process.argv.slice(3)
+
+  if (mode !== 'create' && process.env.PAYLOAD_MIGRATE_ALLOW_UNREGISTERED !== 'true') {
+    const migrationsDir = path.resolve(process.cwd(), 'src', 'migrations')
+    const archived = quarantineUnregisteredMigrations(migrationsDir)
+    if (archived.length > 0) {
+      console.warn(
+        `[db:migrate] Quarantined ${archived.length} untracked legacy file(s) -> src/migrations/.archived-local/: ${archived.join(', ')}`,
+      )
+    }
+  }
 
   /** @type {Array<{ envName: string; url: string; host: string }>} */
   const candidates = []

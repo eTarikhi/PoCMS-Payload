@@ -145,6 +145,7 @@ export const REDUNDANT_LEGACY_INDEXES = [
 export type Phase1IndexSpec = {
   name: string
   table: string
+  requiredColumns: readonly string[]
   createSql: string
 }
 
@@ -239,6 +240,7 @@ END $$;
       return {
         name: idxName,
         table: tbl,
+        requiredColumns: ['parent_id', 'path', 'order'],
         createSql: `${createKw} ${quoteSqlIdent(idxName)} ON ${s}.${quoteSqlIdent(tbl)} ("parent_id", "path", "order");`,
       }
     }),
@@ -247,11 +249,13 @@ END $$;
     {
       name: 'idx_articles_public_feed',
       table: 'articles',
+      requiredColumns: ['published_at', 'deleted_at', '_status'],
       createSql: `${createKw} "idx_articles_public_feed" ON ${s}."articles" ("published_at" DESC) WHERE "deleted_at" IS NULL AND ("_status" = 'published' OR "_status" IS NULL);`,
     },
     {
       name: 'idx_projects_public_feed',
       table: 'projects',
+      requiredColumns: ['_order', 'deleted_at', '_status'],
       createSql: `${createKw} "idx_projects_public_feed" ON ${s}."projects" ("_order" ASC) WHERE "deleted_at" IS NULL AND ("_status" = 'published' OR "_status" IS NULL);`,
     },
 
@@ -259,21 +263,25 @@ END $$;
     {
       name: 'idx_articles_v_latest_updated',
       table: '_articles_v',
+      requiredColumns: ['updated_at', 'latest'],
       createSql: `${createKw} "idx_articles_v_latest_updated" ON ${s}."_articles_v" ("updated_at" DESC) WHERE "latest" = true;`,
     },
     {
       name: '_articles_v_parent_updated_idx',
       table: '_articles_v',
+      requiredColumns: ['parent_id', 'updated_at'],
       createSql: `${createKw} "_articles_v_parent_updated_idx" ON ${s}."_articles_v" ("parent_id", "updated_at" DESC);`,
     },
     {
       name: 'idx_projects_v_latest_updated',
       table: '_projects_v',
+      requiredColumns: ['updated_at', 'latest'],
       createSql: `${createKw} "idx_projects_v_latest_updated" ON ${s}."_projects_v" ("updated_at" DESC) WHERE "latest" = true;`,
     },
     {
       name: '_projects_v_parent_updated_idx',
       table: '_projects_v',
+      requiredColumns: ['parent_id', 'updated_at'],
       createSql: `${createKw} "_projects_v_parent_updated_idx" ON ${s}."_projects_v" ("parent_id", "updated_at" DESC);`,
     },
 
@@ -281,21 +289,25 @@ END $$;
     {
       name: 'mail_threads_counts_cover_idx',
       table: 'mail_threads',
+      requiredColumns: ['folder', 'is_read', 'is_starred'],
       createSql: `${createKw} "mail_threads_counts_cover_idx" ON ${s}."mail_threads" ("folder", "is_read", "is_starred");`,
     },
     {
       name: 'mail_threads_folder_last_msg_idx',
       table: 'mail_threads',
+      requiredColumns: ['folder', 'last_message_at'],
       createSql: `${createKw} "mail_threads_folder_last_msg_idx" ON ${s}."mail_threads" ("folder", "last_message_at" DESC);`,
     },
     {
       name: 'idx_mail_threads_search_trgm',
       table: 'mail_threads',
+      requiredColumns: ['subject', 'snippet', 'counterparty_name', 'counterparty_email'],
       createSql: `${createKw} "idx_mail_threads_search_trgm" ON ${s}."mail_threads" USING gin ((coalesce("subject", '') || ' ' || coalesce("snippet", '') || ' ' || coalesce("counterparty_name", '') || ' ' || coalesce("counterparty_email", '')) gin_trgm_ops);`,
     },
     {
       name: 'mail_messages_thread_sent_idx',
       table: 'mail_messages',
+      requiredColumns: ['thread_id', 'sent_at'],
       createSql: `${createKw} "mail_messages_thread_sent_idx" ON ${s}."mail_messages" ("thread_id", "sent_at" ASC);`,
     },
 
@@ -303,11 +315,13 @@ END $$;
     {
       name: 'payload_jobs_queue_wait_created_idx',
       table: 'payload_jobs',
+      requiredColumns: ['queue', 'wait_until', 'created_at'],
       createSql: `${createKw} "payload_jobs_queue_wait_created_idx" ON ${s}."payload_jobs" ("queue", "wait_until" ASC, "created_at" ASC);`,
     },
     {
       name: 'idx_payload_jobs_runnable',
       table: 'payload_jobs',
+      requiredColumns: ['queue', 'wait_until', 'created_at', 'completed_at', 'processing', 'has_error'],
       createSql: `${createKw} "idx_payload_jobs_runnable" ON ${s}."payload_jobs" ("queue", "wait_until" ASC, "created_at" ASC) WHERE "completed_at" IS NULL AND "processing" = false AND "has_error" = false;`,
     },
 
@@ -315,6 +329,7 @@ END $$;
     ...LOCKED_DOCUMENT_RELS_NULLABLE_FK_COLUMNS.map(({ column, partialIndex }) => ({
       name: partialIndex,
       table: 'payload_locked_documents_rels',
+      requiredColumns: [column],
       createSql: `${createKw} ${quoteSqlIdent(partialIndex)} ON ${s}."payload_locked_documents_rels" (${quoteSqlIdent(column)}) WHERE ${quoteSqlIdent(column)} IS NOT NULL;`,
     })),
   ]
@@ -367,14 +382,35 @@ export function buildPhase1MigrationUpStatements(schemaName = 'public'): string[
   const guardedCreates = plan.createIndexes.map((idx) => {
     const escapedCreate = idx.createSql.replace(/;$/, '').replace(/'/g, "''")
     const escapedTable = idx.table.replace(/'/g, "''")
-    return `DO $$ BEGIN IF to_regclass('${escapedSchema}.${escapedTable}') IS NOT NULL THEN EXECUTE '${escapedCreate}'; END IF; END $$;`
+    const colLiterals = idx.requiredColumns.map((c) => `'${c.replace(/'/g, "''")}'`).join(', ')
+    const colCount = idx.requiredColumns.length
+    return `DO $$ BEGIN IF (SELECT count(DISTINCT column_name) FROM information_schema.columns WHERE table_schema = '${escapedSchema}' AND table_name = '${escapedTable}' AND column_name IN (${colLiterals})) = ${colCount} THEN EXECUTE '${escapedCreate}'; END IF; END $$;`
+  })
+
+  const replacementByLegacy = new Map<string, string>([
+    ...TEXTS_TABLES.map((t) => [`${t}_order_parent`, `${t}_parent_path_order_idx`] as const),
+    ...LOCKED_DOCUMENT_RELS_NULLABLE_FK_COLUMNS.map(
+      (item) => [item.legacyIndex, item.partialIndex] as const,
+    ),
+    ['mail_threads_folder_idx', 'mail_threads_counts_cover_idx'],
+    ['mail_messages_thread_idx', 'mail_messages_thread_sent_idx'],
+    ['_articles_v_parent_idx', '_articles_v_parent_updated_idx'],
+    ['_projects_v_parent_idx', '_projects_v_parent_updated_idx'],
+    ['payload_jobs_queue_idx', 'payload_jobs_queue_wait_created_idx'],
+  ])
+
+  const guardedDrops = plan.dropIndexes.map((d) => {
+    const repl = replacementByLegacy.get(d.name)
+    if (!repl) return d.dropSql
+    const escapedDrop = d.dropSql.replace(/;$/, '').replace(/'/g, "''")
+    return `DO $$ BEGIN IF to_regclass('${escapedSchema}.${repl.replace(/'/g, "''")}') IS NOT NULL THEN EXECUTE '${escapedDrop}'; END IF; END $$;`
   })
 
   return [
     plan.extensionSql,
     plan.fkIntegritySql,
     ...guardedCreates,
-    ...plan.dropIndexes.map((d) => d.dropSql),
+    ...guardedDrops,
   ]
 }
 
@@ -419,22 +455,30 @@ export async function applyPhase1DatabaseOptimizations(
 
   await executor.query(plan.fkIntegritySql)
 
-  const existingTablesRes = await executor.query<{ table_name: string }>(
+  const existingColsRes = await executor.query<{ table_name: string; column_name: string }>(
     `
-      SELECT table_name
-      FROM information_schema.tables
+      SELECT table_name, column_name
+      FROM information_schema.columns
       WHERE table_schema = $1
-        AND table_type = 'BASE TABLE'
     `,
     [schemaName],
   )
-  const existingTables = new Set(existingTablesRes.rows.map((r) => r.table_name))
+  const columnsByTable = new Map<string, Set<string>>()
+  for (const row of existingColsRes.rows) {
+    let colSet = columnsByTable.get(row.table_name)
+    if (!colSet) {
+      colSet = new Set<string>()
+      columnsByTable.set(row.table_name, colSet)
+    }
+    colSet.add(row.column_name)
+  }
 
   const createdIndexes: string[] = []
   const skippedMissingTables: string[] = []
 
   for (const item of plan.createIndexes) {
-    if (!existingTables.has(item.table)) {
+    const tableCols = columnsByTable.get(item.table)
+    if (!tableCols || !item.requiredColumns.every((col) => tableCols.has(col))) {
       skippedMissingTables.push(`${item.table}:${item.name}`)
       continue
     }
@@ -445,8 +489,26 @@ export async function applyPhase1DatabaseOptimizations(
     createdIndexes.push(item.name)
   }
 
+  // Only drop a legacy index if its replacement index's columns are present (or it is a redundant boolean B-tree)
+  const createdSet = new Set(createdIndexes)
+  const replacementByLegacy = new Map<string, string>([
+    ...TEXTS_TABLES.map((t) => [`${t}_order_parent`, `${t}_parent_path_order_idx`] as const),
+    ...LOCKED_DOCUMENT_RELS_NULLABLE_FK_COLUMNS.map(
+      (item) => [item.legacyIndex, item.partialIndex] as const,
+    ),
+    ['mail_threads_folder_idx', 'mail_threads_counts_cover_idx'],
+    ['mail_messages_thread_idx', 'mail_messages_thread_sent_idx'],
+    ['_articles_v_parent_idx', '_articles_v_parent_updated_idx'],
+    ['_projects_v_parent_idx', '_projects_v_parent_updated_idx'],
+    ['payload_jobs_queue_idx', 'payload_jobs_queue_wait_created_idx'],
+  ])
+
   const droppedIndexes: string[] = []
   for (const dropItem of plan.dropIndexes) {
+    const requiredReplacement = replacementByLegacy.get(dropItem.name)
+    if (requiredReplacement && !createdSet.has(requiredReplacement)) {
+      continue
+    }
     await executor.query(dropItem.dropSql)
     droppedIndexes.push(dropItem.name)
   }

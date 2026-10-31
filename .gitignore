@@ -48,6 +48,7 @@ node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+/src/migrations/.archived-local
 test.env
 src/seed/portfolio-data.json
 /.kilo
