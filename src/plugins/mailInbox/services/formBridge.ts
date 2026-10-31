@@ -76,11 +76,22 @@ export function createFormSubmissionToInboxHook(): CollectionAfterChangeHook {
 
       let formTitle = 'Website Form'
       let formSlug = ''
+      const cachedForm =
+        req.context && typeof req.context === 'object'
+          ? (req.context.resolvedFormDoc as Record<string, unknown> | undefined)
+          : undefined
       const rawForm = record.form
       if (rawForm && typeof rawForm === 'object') {
         const formObj = rawForm as Record<string, unknown>
         if (typeof formObj.title === 'string' && formObj.title.trim()) formTitle = formObj.title.trim()
         if (typeof formObj.slug === 'string' && formObj.slug.trim()) formSlug = formObj.slug.trim()
+      } else if (cachedForm) {
+        if (typeof cachedForm.title === 'string' && cachedForm.title.trim()) {
+          formTitle = cachedForm.title.trim()
+        }
+        if (typeof cachedForm.slug === 'string' && cachedForm.slug.trim()) {
+          formSlug = cachedForm.slug.trim()
+        }
       } else if (typeof rawForm === 'number' || typeof rawForm === 'string') {
         const fetchedForm = await req.payload
           .findByID({
@@ -130,7 +141,7 @@ export function createFormSubmissionToInboxHook(): CollectionAfterChangeHook {
         address: senderEmail,
       }
 
-      const { threadId } = await resolveOrCreateMailThread({
+      const { threadId, created } = await resolveOrCreateMailThread({
         payload: req.payload,
         req,
         rfcMessageId: `<form-submission-${String(record.id)}@pocms.local>`,
@@ -153,18 +164,6 @@ export function createFormSubmissionToInboxHook(): CollectionAfterChangeHook {
         })
         .catch(() => null)
       const labelId = labelLookup?.docs?.[0]?.id
-
-      await req.payload.update({
-        collection: MAIL_THREADS_COLLECTION as CollectionSlug,
-        id: threadId,
-        overrideAccess: true,
-        req,
-        context: { ...(req.context ?? {}), skipAuditLog: true },
-        data: {
-          sourceFormSubmission: record.id,
-          ...(labelId !== undefined ? { labels: [labelId] } : {}),
-        } as Record<string, unknown>,
-      })
 
       const createdMsg = await req.payload.create({
         collection: MAIL_MESSAGES_COLLECTION as CollectionSlug,
@@ -196,12 +195,44 @@ export function createFormSubmissionToInboxHook(): CollectionAfterChangeHook {
         } as Record<string, unknown>,
       })
 
-      await recomputeThreadRollups({
-        payload: req.payload,
-        req,
-        threadId,
-        reopenInboxOnInbound: true,
-      })
+      if (created) {
+        await req.payload.update({
+          collection: MAIL_THREADS_COLLECTION as CollectionSlug,
+          id: threadId,
+          overrideAccess: true,
+          req,
+          context: { ...(req.context ?? {}), skipAuditLog: true },
+          data: {
+            sourceFormSubmission: record.id,
+            ...(labelId !== undefined ? { labels: [labelId] } : {}),
+            folder: 'inbox',
+            snippet,
+            lastMessageAt: nowIso,
+            messageCount: 1,
+            unreadCount: 1,
+            hasAttachments: false,
+          } as Record<string, unknown>,
+        })
+      } else {
+        await req.payload.update({
+          collection: MAIL_THREADS_COLLECTION as CollectionSlug,
+          id: threadId,
+          overrideAccess: true,
+          req,
+          context: { ...(req.context ?? {}), skipAuditLog: true },
+          data: {
+            sourceFormSubmission: record.id,
+            ...(labelId !== undefined ? { labels: [labelId] } : {}),
+          } as Record<string, unknown>,
+        })
+
+        await recomputeThreadRollups({
+          payload: req.payload,
+          req,
+          threadId,
+          reopenInboxOnInbound: true,
+        })
+      }
 
       await publishMailStreamEvent(req.payload, {
         type: 'message.received',

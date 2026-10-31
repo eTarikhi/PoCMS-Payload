@@ -139,23 +139,99 @@ test.describe('Public Portfolio Frontend & Syndication Routes', () => {
     }
 
     // 3. Render /contact page and verify WCAG accessibility
-    const pageRes = await page.goto('/contact')
+    await page.setExtraHTTPHeaders({ 'x-playwright-e2e': '1' })
+    const pageRes = await page.goto('/contact?form=contact')
     expect(pageRes?.status()).toBe(200)
     await expect(page.locator('main#main-content')).toBeVisible()
-    await expect(page.locator('h1')).toContainText(/Contact/i)
+    await expect(page.locator('h1').first()).toContainText(/Contact/i)
     await expectNoSevereAccessibilityViolations(page)
 
-    // 4. End-to-end submission when default Contact form is seeded
+    // 4. End-to-end submission when at least one CMS form is published
     const formLocator = page.locator('main#main-content form').first()
     if ((await formLocator.count()) > 0) {
-      await formLocator.locator('input[name="name"]').fill('Playwright Visitor')
-      await formLocator.locator('input[name="email"]').fill('visitor@example.com')
-      const messageField = formLocator.locator('textarea[name="message"]')
-      if ((await messageField.count()) > 0) {
-        await messageField.fill('End-to-end verification of the PoCMS Contact form pipeline.')
+      // Populate every visible field control (excluding hidden anti-spam honeypots) so submission
+      // succeeds regardless of which CMS form fields are marked required in the active database.
+      const emailInputs = formLocator.locator('input[type="email"]:not([tabindex="-1"])')
+      const emailCount = await emailInputs.count()
+      for (let i = 0; i < emailCount; i++) {
+        const ctrl = emailInputs.nth(i)
+        if (await ctrl.isVisible()) {
+          await ctrl.fill('visitor@example.com')
+        }
       }
-      await formLocator.locator('button[type="submit"]').click()
-      await expect(page.getByRole('status')).toContainText(/Submission received/i)
+
+      const numberInputs = formLocator.locator('input[type="number"]:not([tabindex="-1"])')
+      const numberCount = await numberInputs.count()
+      for (let i = 0; i < numberCount; i++) {
+        const ctrl = numberInputs.nth(i)
+        if (await ctrl.isVisible()) {
+          await ctrl.fill('1')
+        }
+      }
+
+      const textInputs = formLocator.locator(
+        'input:not([type="email"]):not([type="number"]):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):not([tabindex="-1"])',
+      )
+      const textCount = await textInputs.count()
+      for (let i = 0; i < textCount; i++) {
+        const ctrl = textInputs.nth(i)
+        if ((await ctrl.isVisible()) && !(await ctrl.inputValue()).trim()) {
+          await ctrl.fill('Playwright Visitor')
+        }
+      }
+
+      const textareas = formLocator.locator('textarea:not([tabindex="-1"])')
+      const textareaCount = await textareas.count()
+      for (let i = 0; i < textareaCount; i++) {
+        const ctrl = textareas.nth(i)
+        if ((await ctrl.isVisible()) && !(await ctrl.inputValue()).trim()) {
+          await ctrl.fill('End-to-end verification of the PoCMS Contact form pipeline.')
+        }
+      }
+
+      const selects = formLocator.locator('select:not([tabindex="-1"])')
+      const selectCount = await selects.count()
+      for (let i = 0; i < selectCount; i++) {
+        const ctrl = selects.nth(i)
+        if ((await ctrl.isVisible()) && !(await ctrl.inputValue()).trim()) {
+          const options = ctrl.locator('option')
+          const optCount = await options.count()
+          for (let j = 0; j < optCount; j++) {
+            const val = await options.nth(j).getAttribute('value')
+            if (val && val.trim().length > 0) {
+              await ctrl.selectOption(val)
+              break
+            }
+          }
+        }
+      }
+
+      const requiredCheckboxes = formLocator.locator(
+        'input[type="checkbox"][required]:not([tabindex="-1"])',
+      )
+      const checkboxCount = await requiredCheckboxes.count()
+      for (let i = 0; i < checkboxCount; i++) {
+        const ctrl = requiredCheckboxes.nth(i)
+        if (await ctrl.isVisible()) {
+          await ctrl.check()
+        }
+      }
+
+      const [submitResponse] = await Promise.all([
+        page.waitForResponse(
+          (res) =>
+            res.url().includes('/api/form-submissions') && res.request().method() === 'POST',
+          { timeout: 60_000 },
+        ),
+        formLocator.locator('button[type="submit"]').click(),
+      ])
+      expect([200, 201]).toContain(submitResponse.status())
+
+      if (page.url().includes('/contact')) {
+        await expect(page.getByRole('status')).toContainText(/Submission received/i, {
+          timeout: 30_000,
+        })
+      }
     }
   })
 

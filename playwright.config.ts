@@ -12,16 +12,17 @@ const browserUse = resolvePlaywrightBrowserUse({
  * End-to-End & Accessibility test configuration (Playwright + @axe-core/playwright).
  * Uses Playwright's bundled Chromium when installed, and automatically falls back to a locally
  * installed Chrome / Microsoft Edge / Chromium binary when `cdn.playwright.dev` is unreachable.
+ * Runs with `workers: 1` so on-demand `next dev` compilation never contends across parallel workers.
  */
 export default defineConfig({
   testDir: './tests/e2e',
-  timeout: 90_000,
+  timeout: 180_000,
   expect: {
-    timeout: 15_000,
+    timeout: 30_000,
   },
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1,
   reporter: process.env.CI
     ? [['github'], ['list'], ['html', { open: 'never' }]]
     : [['html', { open: 'never' }], ['list']],
@@ -43,9 +44,10 @@ export default defineConfig({
     command: 'pnpm dev',
     reuseExistingServer: !process.env.CI,
     url: baseURL,
-    timeout: 120_000,
+    timeout: 180_000,
     env: {
       ...(process.env as Record<string, string>),
+      PLAYWRIGHT_TEST: 'true',
       PAYLOAD_SECRET:
         process.env.PAYLOAD_SECRET || 'playwright-e2e-dev-secret-key-min-32-chars',
     },

@@ -212,7 +212,9 @@ describe('3.2 — @payloadcms/plugin-form-builder (RBAC, Anti-Spam, Seed & /cont
     ]
 
     const prevKey = process.env.RESEND_API_KEY
+    const prevPw = process.env.PLAYWRIGHT_TEST
     try {
+      delete process.env.PLAYWRIGHT_TEST
       process.env.RESEND_API_KEY = ''
       expect(await prepareFormNotificationEmails(sampleEmails as never, {} as never)).toEqual([])
 
@@ -223,11 +225,26 @@ describe('3.2 — @payloadcms/plugin-form-builder (RBAC, Anti-Spam, Seed & /cont
         to: 'dev@vtarikhi.com',
         subject: '[PoCMS Contact] Jane Doe',
       })
+
+      // Skips Resend network dispatch when `x-playwright-e2e: 1` or `PLAYWRIGHT_TEST=true` is set
+      expect(
+        await prepareFormNotificationEmails(sampleEmails as never, {
+          req: { headers: new Headers({ 'x-playwright-e2e': '1' }) },
+        } as never),
+      ).toEqual([])
+
+      process.env.PLAYWRIGHT_TEST = 'true'
+      expect(await prepareFormNotificationEmails(sampleEmails as never, {} as never)).toEqual([])
     } finally {
       if (prevKey === undefined) {
         delete process.env.RESEND_API_KEY
       } else {
         process.env.RESEND_API_KEY = prevKey
+      }
+      if (prevPw === undefined) {
+        delete process.env.PLAYWRIGHT_TEST
+      } else {
+        process.env.PLAYWRIGHT_TEST = prevPw
       }
     }
   })

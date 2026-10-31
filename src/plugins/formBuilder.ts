@@ -224,7 +224,11 @@ const revalidateFormsAfterDelete: CollectionAfterDeleteHook = ({ doc, context })
   return doc
 }
 
-const validateFormSubmissionHook: CollectionBeforeValidateHook = async ({ data, req }) => {
+const validateFormSubmissionHook: CollectionBeforeValidateHook = async ({
+  data,
+  req,
+  context,
+}) => {
   if (!data) return data
   const record = data as Record<string, unknown>
 
@@ -244,7 +248,10 @@ const validateFormSubmissionHook: CollectionBeforeValidateHook = async ({ data, 
         id: formId,
         depth: 0,
         req,
-      })) as { fields?: FormFieldBlockLike[] | null }
+      })) as { fields?: FormFieldBlockLike[] | null; title?: string | null; slug?: string | null }
+      if (formDoc && context) {
+        context.resolvedFormDoc = formDoc
+      }
       if (Array.isArray(formDoc?.fields)) {
         formFields = formDoc.fields
       }
@@ -279,13 +286,18 @@ const markAnonymousSubmissionContextHook: CollectionBeforeChangeHook = ({
 
 /**
  * Formats outgoing notification emails and skips live Resend network calls when `RESEND_API_KEY`
- * is unset in local development or automated tests.
+ * is unset or when running automated Playwright E2E submissions (`PLAYWRIGHT_TEST=true` / `x-playwright-e2e: 1`).
  */
 export const prepareFormNotificationEmails: BeforeEmailFn = (emailsToSend, beforeChangeParams) => {
   const apiKey = process.env.RESEND_API_KEY?.trim()
-  if (!apiKey) {
+  const isPlaywrightE2E =
+    process.env.PLAYWRIGHT_TEST === 'true' ||
+    beforeChangeParams?.req?.headers?.get?.('x-playwright-e2e') === '1'
+  if (!apiKey || isPlaywrightE2E) {
     beforeChangeParams?.req?.payload?.logger?.info?.({
-      msg: '[forms] Skipping transactional email dispatch because RESEND_API_KEY is not configured.',
+      msg: isPlaywrightE2E
+        ? '[forms] Skipping transactional email dispatch during Playwright E2E test.'
+        : '[forms] Skipping transactional email dispatch because RESEND_API_KEY is not configured.',
     })
     return []
   }
