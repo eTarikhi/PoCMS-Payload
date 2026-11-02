@@ -21,7 +21,7 @@ import {
   Trash2Icon,
   WrenchIcon,
 } from 'lucide-react'
-import React, { useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 
 import { Badge } from '@/components/admin/elements/Badge'
 import { Button } from '@/components/admin/elements/Button'
@@ -78,6 +78,15 @@ const formatDateShort = (iso: string | null | undefined): string => {
   return d.toISOString().replace('T', ' ').slice(0, 19) + ' UTC'
 }
 
+const DB_TAB_TRIGGER_CLASS = cn(
+  // < 640px container: touch-friendly horizontal scroll pill (42px outer bar)
+  'acn:flex-none acn:snap-start acn:min-h-[34px] acn:justify-center acn:px-2.5',
+  // 640px – 1179px container: uniform left-aligned multi-column grid cell
+  'acn:@min-[640px]:w-full acn:@min-[640px]:min-w-0 acn:@min-[640px]:min-h-8 acn:@min-[640px]:justify-start',
+  // >= 1180px container: single-row inline segmented pill
+  'acn:@min-[1180px]:w-auto acn:@min-[1180px]:min-h-[30px] acn:@min-[1180px]:justify-center',
+)
+
 export function DatabaseClient({
   initialSnapshot,
   apiRoute,
@@ -90,6 +99,63 @@ export function DatabaseClient({
   const [snapshot, setSnapshot] = useState<DatabaseManagementSnapshot>(initialSnapshot)
   const [activeTab, setActiveTab] = useState<string>('health')
   const [busyKey, setBusyKey] = useState<string | null>(null)
+  const tabsListRef = useRef<HTMLDivElement | null>(null)
+  const [tabScrollFade, setTabScrollFade] = useState<{ left: boolean; right: boolean }>({
+    left: false,
+    right: false,
+  })
+
+  const syncTabScrollAffordance = useCallback(() => {
+    const el = tabsListRef.current
+    if (!el) return
+    const maxScroll = el.scrollWidth - el.clientWidth
+    if (maxScroll <= 2) {
+      setTabScrollFade((prev) =>
+        prev.left || prev.right ? { left: false, right: false } : prev,
+      )
+      return
+    }
+    const left = el.scrollLeft > 2
+    const right = el.scrollLeft < maxScroll - 2
+    setTabScrollFade((prev) =>
+      prev.left === left && prev.right === right ? prev : { left, right },
+    )
+  }, [])
+
+  useEffect(() => {
+    const el = tabsListRef.current
+    if (!el) return
+    syncTabScrollAffordance()
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(() => syncTabScrollAffordance())
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [syncTabScrollAffordance])
+
+  useEffect(() => {
+    const el = tabsListRef.current
+    if (!el || el.scrollWidth <= el.clientWidth + 2) return
+    const activeBtn = el.querySelector<HTMLElement>(
+      '[data-slot="tabs-trigger"][aria-selected="true"]',
+    )
+    if (typeof activeBtn?.scrollIntoView === 'function') {
+      activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+    }
+  }, [activeTab])
+
+  const tabsListMaskStyle = React.useMemo<React.CSSProperties | undefined>(() => {
+    if (!tabScrollFade.left && !tabScrollFade.right) return undefined
+    const gradient =
+      tabScrollFade.left && tabScrollFade.right
+        ? 'linear-gradient(to right, transparent, #000 20px, #000 calc(100% - 20px), transparent)'
+        : tabScrollFade.right
+          ? 'linear-gradient(to right, #000 calc(100% - 24px), transparent)'
+          : 'linear-gradient(to right, transparent, #000 24px)'
+    return {
+      maskImage: gradient,
+      WebkitMaskImage: gradient,
+    }
+  }, [tabScrollFade.left, tabScrollFade.right])
 
   // Backup & Restore state
   const [exportFormat, setExportFormat] = useState<BackupExportFormat>('sql')
@@ -487,35 +553,80 @@ export function DatabaseClient({
         </div>
       ) : null}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="acn:space-y-6">
-        <TabsList className="acn:flex-wrap">
-          <TabsTrigger value="health">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="acn:@container acn:gap-6">
+        <TabsList
+          ref={tabsListRef}
+          onScroll={syncTabScrollAffordance}
+          style={tabsListMaskStyle}
+          className={cn(
+            // < 640px container: single-row horizontal touch scroll strip
+            'acn:flex acn:w-full acn:flex-nowrap acn:justify-start acn:overflow-x-auto acn:overscroll-x-contain acn:scroll-smooth acn:snap-x acn:snap-proximity acn:p-1 acn:no-scrollbar',
+            // 640px – 839px container: 3-column grid enclosed inside bg-muted
+            'acn:@min-[640px]:grid acn:@min-[640px]:w-full acn:@min-[640px]:grid-cols-3 acn:@min-[640px]:overflow-visible acn:@min-[640px]:p-1',
+            // 840px – 1179px container: balanced 4-column grid (4 + 3) enclosed inside bg-muted
+            'acn:@min-[840px]:grid-cols-4',
+            // >= 1180px container: single-row compact inline segmented pill bar
+            'acn:@min-[1180px]:inline-flex acn:@min-[1180px]:w-fit acn:@min-[1180px]:max-w-full acn:@min-[1180px]:flex-nowrap acn:@min-[1180px]:p-[3px]',
+          )}
+        >
+          <TabsTrigger
+            value="health"
+            onFocus={syncTabScrollAffordance}
+            className={DB_TAB_TRIGGER_CLASS}
+          >
             <ActivityIcon aria-hidden className="acn:size-4" />
-            Health &amp; Advisor ({snapshot.tables.length})
+            <span className="acn:truncate">Health &amp; Advisor</span>
+            <span className="acn:shrink-0 acn:tabular-nums acn:text-xs acn:opacity-75">
+              ({snapshot.tables.length})
+            </span>
           </TabsTrigger>
-          <TabsTrigger value="backup">
+          <TabsTrigger
+            value="backup"
+            onFocus={syncTabScrollAffordance}
+            className={DB_TAB_TRIGGER_CLASS}
+          >
             <HardDriveDownloadIcon aria-hidden className="acn:size-4" />
-            Backup &amp; Restore
+            <span className="acn:truncate">Backup &amp; Restore</span>
           </TabsTrigger>
-          <TabsTrigger value="codegen">
+          <TabsTrigger
+            value="codegen"
+            onFocus={syncTabScrollAffordance}
+            className={DB_TAB_TRIGGER_CLASS}
+          >
             <FileCode2Icon aria-hidden className="acn:size-4" />
-            Migrations &amp; Seeds
+            <span className="acn:truncate">Migrations &amp; Seeds</span>
           </TabsTrigger>
-          <TabsTrigger value="sql">
+          <TabsTrigger
+            value="sql"
+            onFocus={syncTabScrollAffordance}
+            className={DB_TAB_TRIGGER_CLASS}
+          >
             <SearchCodeIcon aria-hidden className="acn:size-4" />
-            SQL Inspector
+            <span className="acn:truncate">SQL Inspector</span>
           </TabsTrigger>
-          <TabsTrigger value="repair">
+          <TabsTrigger
+            value="repair"
+            onFocus={syncTabScrollAffordance}
+            className={DB_TAB_TRIGGER_CLASS}
+          >
             <WrenchIcon aria-hidden className="acn:size-4" />
-            Repair &amp; Maintenance
+            <span className="acn:truncate">Repair &amp; Maintenance</span>
           </TabsTrigger>
-          <TabsTrigger value="retention">
+          <TabsTrigger
+            value="retention"
+            onFocus={syncTabScrollAffordance}
+            className={DB_TAB_TRIGGER_CLASS}
+          >
             <HistoryIcon aria-hidden className="acn:size-4" />
-            Version Retention
+            <span className="acn:truncate">Version Retention</span>
           </TabsTrigger>
-          <TabsTrigger value="provider">
+          <TabsTrigger
+            value="provider"
+            onFocus={syncTabScrollAffordance}
+            className={DB_TAB_TRIGGER_CLASS}
+          >
             <SparklesIcon aria-hidden className="acn:size-4" />
-            Serverless Provider
+            <span className="acn:truncate">Serverless Provider</span>
           </TabsTrigger>
         </TabsList>
 

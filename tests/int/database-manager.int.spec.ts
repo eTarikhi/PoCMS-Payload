@@ -1047,7 +1047,29 @@ describe('Phase 2 (Advanced Tier): Pluggable Serverless Provider Adapters & Admi
     expect(screen.getByText('Database manager')).toBeDefined()
     expect(screen.getByText('Public schema table & bloat inspector')).toBeDefined()
 
-    fireEvent.click(screen.getByRole('tab', { name: /Serverless Provider/i }))
+    // Verify container-responsive Tabs & TabsList classes prevent vertical overflow and orphaned stretch
+    const tabList = screen.getByRole('tablist')
+    expect(tabList.className).toContain('acn:group-data-horizontal/tabs:min-h-9')
+    expect(tabList.className).toContain('acn:group-data-horizontal/tabs:h-auto')
+    expect(tabList.className).not.toContain('acn:group-data-horizontal/tabs:h-9')
+    expect(tabList.className).toContain('acn:overflow-x-auto')
+    expect(tabList.className).toContain('acn:@min-[640px]:grid')
+    expect(tabList.className).toContain('acn:@min-[640px]:grid-cols-3')
+    expect(tabList.className).toContain('acn:@min-[840px]:grid-cols-4')
+    expect(tabList.className).toContain('acn:@min-[1180px]:inline-flex')
+
+    const tabsRoot = tabList.closest('[data-slot="tabs"]')
+    expect(tabsRoot?.className).toContain('acn:@container')
+    expect(tabsRoot?.className).toContain('acn:gap-6')
+    expect(tabsRoot?.className).not.toContain('acn:space-y-6')
+
+    const providerTab = screen.getByRole('tab', { name: /Serverless Provider/i })
+    expect(providerTab.className).toContain('acn:flex-none')
+    expect(providerTab.className).not.toContain('acn:flex-1')
+    expect(providerTab.className).toContain('acn:@min-[640px]:justify-start')
+    expect(providerTab.className).toContain('acn:@min-[1180px]:justify-center')
+
+    fireEvent.click(providerTab)
     expect(screen.getByText('Instant Copy-on-Write Snapshots')).toBeDefined()
     expect(screen.getByText('pocms-production')).toBeDefined()
   })

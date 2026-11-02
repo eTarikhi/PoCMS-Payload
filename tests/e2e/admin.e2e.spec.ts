@@ -91,6 +91,57 @@ test.describe('PoCMS Admin Panel (RBAC, Content, SEO Tabs, Forms, Globals, Inbox
     await expect(page).toHaveURL(/\/admin\/database/)
     await expect(page.getByTestId('database-view')).toBeVisible()
     await expect(page.locator('h1', { hasText: /Database manager/i }).first()).toBeVisible()
+
+    // Verify responsive tab navigation enclosure, card clearance & grid column alignment across viewports
+    const initialViewport = page.viewportSize() ?? { width: 1280, height: 720 }
+    try {
+      for (const vp of [
+        { width: 390, height: 844, mode: 'mobile-scroll' as const },
+        { width: 1024, height: 768, mode: 'grid' as const },
+        { width: 1720, height: 900, mode: 'single-row' as const },
+      ]) {
+        await page.setViewportSize({ width: vp.width, height: vp.height })
+        const tabList = page.getByTestId('database-view').getByRole('tablist')
+        await expect(tabList).toBeVisible()
+        const listBox = await tabList.boundingBox()
+        const tabs = tabList.getByRole('tab')
+        await expect(tabs).toHaveCount(7)
+
+        const firstBox = await tabs.nth(0).boundingBox()
+        const lastBox = await tabs.nth(6).boundingBox()
+        const panelBox = await page
+          .getByTestId('database-view')
+          .locator('[data-slot="tabs-content"]')
+          .first()
+          .boundingBox()
+
+        expect(listBox).not.toBeNull()
+        expect(firstBox).not.toBeNull()
+        expect(lastBox).not.toBeNull()
+        expect(panelBox).not.toBeNull()
+
+        // Every tab must sit vertically inside the muted TabsList container (zero vertical overflow)
+        for (let i = 0; i < 7; i++) {
+          const box = await tabs.nth(i).boundingBox()
+          expect(box).not.toBeNull()
+          expect(box!.y).toBeGreaterThanOrEqual(listBox!.y - 1)
+          expect(box!.y + box!.height).toBeLessThanOrEqual(listBox!.y + listBox!.height + 1)
+        }
+
+        // Content card below must never overlap TabsList
+        expect(panelBox!.y).toBeGreaterThanOrEqual(listBox!.y + listBox!.height + 16)
+
+        if (vp.mode === 'grid') {
+          // On multi-row grid viewports, the 7th tab must align with a grid column (never stretch 100% centered)
+          expect(Math.abs(lastBox!.width - firstBox!.width)).toBeLessThanOrEqual(2)
+        } else if (vp.mode === 'single-row') {
+          // On wide desktop viewports, all 7 tabs sit on a single horizontal row
+          expect(Math.abs(lastBox!.y - firstBox!.y)).toBeLessThanOrEqual(2)
+        }
+      }
+    } finally {
+      await page.setViewportSize(initialViewport)
+    }
   })
 
   test('navigates to Users and Roles RBAC administration views', async () => {
