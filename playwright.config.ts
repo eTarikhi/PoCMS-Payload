@@ -44,7 +44,7 @@ export default defineConfig({
     command: 'pnpm dev',
     reuseExistingServer: !process.env.CI,
     url: baseURL,
-    timeout: 180_000,
+    timeout: 240_000,
     env: {
       ...(process.env as Record<string, string>),
       PLAYWRIGHT_TEST: 'true',
