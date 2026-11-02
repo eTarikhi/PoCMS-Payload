@@ -404,8 +404,7 @@ export const protectRolesOnDelete: CollectionBeforeDeleteHook = async ({ id, req
 }
 
 /**
- * Runs from `onInit`. Makes sure the built-in roles exist, moves users from the old `roles` select
- * (ADR 0008: admin/editor, kept as the hidden `legacyRoles` field) to role documents once, and
+ * Runs from `onInit`. Makes sure the built-in Administrator and Editor roles exist and
  * guarantees at least one administrator: if nobody has full access, the oldest user gets the
  * Administrator role. Costs a few small queries when everything is in place.
  */
@@ -429,42 +428,14 @@ export async function ensureRoles(payload: Payload): Promise<void> {
       payload.logger.info('[roles] Created the Administrator and Editor roles.')
     }
 
-    // One-time move from the old select. legacyRoles is cleared afterwards, so a user whose roles
-    // an administrator removes later is not granted them again on the next start.
     const { docs: users } = await payload.find({
       collection: 'users',
       depth: 0,
       pagination: false,
       overrideAccess: true,
-      select: { email: true, legacyRoles: true, roles: true },
+      select: { email: true, roles: true },
       sort: 'createdAt',
     })
-    const legacy = users.filter(
-      (user) => idsOf(user.roles).length === 0 && (user.legacyRoles?.length ?? 0) > 0,
-    )
-    if (legacy.length > 0) {
-      const { docs: defaults } = await payload.find({
-        collection: 'roles',
-        where: { isDefault: { equals: true } },
-        depth: 0,
-        joins: false,
-        pagination: false,
-        overrideAccess: true,
-      })
-      for (const user of legacy) {
-        const roles = user.legacyRoles?.includes('admin')
-          ? [administrator.id]
-          : defaults.map((role) => role.id)
-        await payload.update({
-          collection: 'users',
-          id: user.id,
-          data: { roles: asRoleIds(roles), legacyRoles: [] },
-          depth: 0,
-          overrideAccess: true,
-        })
-      }
-      payload.logger.info(`[roles] Moved ${legacy.length} user(s) from the old roles field.`)
-    }
 
     const { docs: adminRoles } = await payload.find({
       collection: 'roles',
@@ -496,7 +467,7 @@ export async function ensureRoles(payload: Payload): Promise<void> {
     }
 
     const roleless = users.filter(
-      (user) => idsOf(user.roles).length === 0 && !legacy.includes(user) && user !== promoted,
+      (user) => idsOf(user.roles).length === 0 && user !== promoted,
     )
     if (roleless.length > 0) {
       payload.logger.warn(

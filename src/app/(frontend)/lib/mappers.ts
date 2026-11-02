@@ -1159,7 +1159,7 @@ export const mapSiteSettings = (
     articlesHubSeo: mapHubPageSeo(doc.articlesHubSeo, `${siteName} Articles`),
     projectsHubSeo: mapHubPageSeo(doc.projectsHubSeo, `${siteName} Projects`),
     jobTitle: withFallback(doc.jobTitle, DEFAULT_SITE_SETTINGS.jobTitle),
-    knowsAbout: (doc.knowsAbout ?? []).map((item) => item.trim()).filter(Boolean),
+    knowsAbout: resolveMergedSkillLabels(doc.knowsAbout, doc.knowsAboutSkills),
     worksFor,
     alumniOf,
     address: {
@@ -1630,6 +1630,64 @@ export const mapServices = (docs: Service[], hiringCta: HiringCta | null): Servi
   hiring: hiringCta,
 })
 
+/**
+ * Merges free-form technology/topic strings (`techStack` / `knowsAbout`) with canonical populated
+ * `Skill` relationships (`relatedSkills` / `knowsAboutSkills`), deduplicating case-insensitively:
+ * - Single-topic `Skill` labels (no commas, e.g. `"PostgreSQL"`) always merge after free-form tags.
+ * - Compound comma-separated résumé skill-bar labels (e.g. `"React, Next.js, Vue.js"`) expand into
+ *   individual tokens when `freeform` is empty, avoiding false sibling tags when explicit `freeform`
+ *   tags are already curated.
+ */
+export function resolveMergedSkillLabels(
+  freeform?: readonly (string | null | undefined)[] | null,
+  relatedSkills?: readonly (number | Skill | null | undefined)[] | null,
+): string[] {
+  const result: string[] = []
+  const seenNormalized = new Set<string>()
+  const normalizeKey = (raw: string): string =>
+    raw.toLowerCase().replace(/\./g, '').replace(/\s+/g, ' ').trim()
+
+  const addToken = (raw: string | null | undefined): void => {
+    const trimmed = raw?.trim()
+    if (!trimmed) return
+    const key = normalizeKey(trimmed)
+    if (!key || seenNormalized.has(key)) return
+    seenNormalized.add(key)
+    result.push(trimmed)
+  }
+
+  for (const item of freeform ?? []) {
+    addToken(item)
+  }
+
+  const hasExplicitFreeform = result.length > 0
+
+  for (const entry of relatedSkills ?? []) {
+    if (!entry || typeof entry !== 'object' || !('label' in entry)) continue
+    if ('deletedAt' in entry && entry.deletedAt) continue
+    const rawLabel = typeof entry.label === 'string' ? entry.label.trim() : ''
+    if (!rawLabel) continue
+
+    if (rawLabel.includes(',')) {
+      if (!hasExplicitFreeform) {
+        for (const part of rawLabel.split(',')) {
+          addToken(part)
+        }
+      }
+    } else {
+      const candidateKey = normalizeKey(rawLabel)
+      const coveredByVersionedTag = Array.from(seenNormalized).some((existing) =>
+        existing.startsWith(`${candidateKey} `),
+      )
+      if (!coveredByVersionedTag) {
+        addToken(rawLabel)
+      }
+    }
+  }
+
+  return result
+}
+
 export const mapProjects = (
   docs: Project[],
   projectsLabels: SiteSettingsContent['projectsSection'] = DEFAULT_SITE_SETTINGS.projectsSection,
@@ -1648,7 +1706,7 @@ export const mapProjects = (
       title: doc.title,
       excerpt: doc.excerpt?.trim() || null,
       categories: doc.categories ?? [],
-      techStack: (doc.techStack ?? []).map((item) => item.trim()).filter(Boolean),
+      techStack: resolveMergedSkillLabels(doc.techStack, doc.relatedSkills),
       role: doc.role?.trim() || null,
       year: doc.year?.trim() || null,
       readTime: minutes ? formatReadTime(minutes) : null,

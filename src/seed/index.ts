@@ -130,17 +130,19 @@ export const seed = async ({
   }
 
   payload.logger.info('— Seeding skills...')
+  const seededSkills: Array<{ id: number; label: string }> = []
   try {
     const skills = skillsData()
     const skillOrders = generateNKeysBetween(null, null, skills.length)
     let count = 0
     for (let index = 0; index < skills.length; index++) {
-      await payload.create({
+      const createdSkill = await payload.create({
         collection: 'skills',
         data: { ...skills[index], _order: skillOrders[index] },
         overrideAccess: true,
         context: seedContext,
       })
+      seededSkills.push({ id: createdSkill.id, label: createdSkill.label })
       count++
     }
     payload.logger.info(`  ✓ ${count} skills seeded`)
@@ -274,6 +276,30 @@ export const seed = async ({
 
   payload.logger.info('— Seeding projects...')
   try {
+    const normalizeSkillToken = (raw: string): string =>
+      raw.toLowerCase().replace(/\./g, '').replace(/\s+/g, ' ').trim()
+
+    const matchRelatedSkillIds = (techStack: readonly string[] | undefined): number[] => {
+      if (!techStack || techStack.length === 0 || seededSkills.length === 0) return []
+      const normalizedTechs = techStack.map(normalizeSkillToken).filter(Boolean)
+      const matched: number[] = []
+      for (const skill of seededSkills) {
+        const tokens = skill.label
+          .split(',')
+          .map(normalizeSkillToken)
+          .filter(Boolean)
+        const hits = tokens.some((tok) =>
+          normalizedTechs.some(
+            (tech) => tech === tok || tech.startsWith(`${tok} `) || tok.startsWith(`${tech} `),
+          ),
+        )
+        if (hits) {
+          matched.push(skill.id)
+        }
+      }
+      return matched
+    }
+
     const projects = projectsData()
     const projectOrders = generateNKeysBetween(null, null, projects.length)
     let successful = 0
@@ -281,6 +307,8 @@ export const seed = async ({
       const project = projects[index]
       try {
         const media = await createMediaFromSource(project.src, project.title)
+        const techStack = 'techStack' in project ? project.techStack : undefined
+        const relatedSkills = matchRelatedSkillIds(techStack)
         await payload.create({
           collection: 'projects',
           data: {
@@ -290,7 +318,8 @@ export const seed = async ({
             role: 'role' in project ? project.role : undefined,
             client: 'client' in project ? project.client : undefined,
             year: 'year' in project ? project.year : undefined,
-            techStack: 'techStack' in project ? project.techStack : undefined,
+            ...(relatedSkills.length > 0 ? { relatedSkills } : {}),
+            techStack,
             content: 'content' in project && project.content ? (project.content as never) : undefined,
             url: project.url,
             readMoreUrl: project.readMoreUrl,
@@ -321,7 +350,12 @@ export const seed = async ({
   try {
     await payload.updateGlobal({
       slug: 'site-settings',
-      data: siteSettingsData(profileImage),
+      data: {
+        ...siteSettingsData(profileImage),
+        ...(seededSkills.length > 0
+          ? { knowsAboutSkills: seededSkills.map((skill) => skill.id) }
+          : {}),
+      },
       overrideAccess: true,
       context: seedContext,
     })

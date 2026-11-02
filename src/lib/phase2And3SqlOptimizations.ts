@@ -12,6 +12,17 @@ export const LEGACY_FORMS_BLOCK_TABLES = [
 
 export const LEGACY_FORMS_SELECT_OPTIONS_TABLE = 'forms_blocks_select_options' as const
 
+export const HIGH_WRITE_SERIAL_SEQUENCES = [
+  'audit_logs_id_seq',
+  'payload_jobs_id_seq',
+  '_articles_v_id_seq',
+  '_projects_v_id_seq',
+  'mail_webhook_events_id_seq',
+  'mail_messages_id_seq',
+] as const
+
+export const DEFAULT_SEQUENCE_CACHE_SIZE = 64 as const
+
 export type FormsBlocksMigrationSummary = {
   formsTableExists: boolean
   legacyTablesFound: string[]
@@ -34,10 +45,26 @@ export type AuditLogsHeapRestoreSummary = {
   removedLegacyMigrationRow: boolean
 }
 
+export type LegacyRolesAndSkillsJoinSummary = {
+  legacyUsersRolesTableFound: boolean
+  migratedUsersRolesCount: number
+  droppedUsersRolesArtifacts: boolean
+  backfilledProjectSkillLinksCount: number
+}
+
+export type SequenceCacheTuningSummary = {
+  targetCacheSize: number
+  tunedSequences: string[]
+  alreadyTunedSequences: string[]
+  missingSequences: string[]
+}
+
 export type Phase2And3OptimizationSummary = {
   formsBlocks: FormsBlocksMigrationSummary
   mailBodies: MailBodiesSidecarSummary
   auditLogsHeap: AuditLogsHeapRestoreSummary
+  taxonomyAndLegacyRoles: LegacyRolesAndSkillsJoinSummary
+  sequenceCache: SequenceCacheTuningSummary
 }
 
 function buildFormsBlockUnionSubquery(
@@ -605,9 +632,270 @@ export async function restoreAuditLogsHeapIfPartitioned(
 }
 
 /**
- * Applies Payload 3–compliant Phase 2 (`R-10`) and Phase 3 (`R-13a`) SQL optimizations idempotently,
- * while restoring any previously partitioned `audit_logs` table (`R-13b`) back to a standard Drizzle
- * heap table (`relkind = 'r'`).
+ * R-11a:
+ * 1. Losslessly migrates any remaining rows in the retired `users_roles` (`Users.legacyRoles`) table
+ *    into `users_rels` -> `roles` (`Administrator` for `'admin'`, `is_default = true` for `'editor'`),
+ *    then drops `users_roles` and `enum_users_roles`.
+ * 2. Idempotently backfills `projects_rels` (`path = 'relatedSkills'`) where `projects_texts`
+ *    (`path = 'techStack'`) matches a canonical `skills.label` token.
+ */
+export async function retireLegacyUsersRolesAndBackfillProjectSkills(
+  db: QueryClientLike,
+  options: { schemaName?: string } = {},
+): Promise<LegacyRolesAndSkillsJoinSummary> {
+  const schemaName = options.schemaName ?? 'public'
+  const s = quoteSqlIdent(schemaName)
+
+  let legacyUsersRolesTableFound = false
+  let migratedUsersRolesCount = 0
+  let droppedUsersRolesArtifacts = false
+  let backfilledProjectSkillLinksCount = 0
+
+  const usersRolesCheck = await db.query(
+    `SELECT to_regclass($1) IS NOT NULL AS exists`,
+    [`${schemaName}.users_roles`],
+  )
+  legacyUsersRolesTableFound = Boolean(
+    (usersRolesCheck.rows?.[0] as { exists?: boolean } | undefined)?.exists,
+  )
+
+  if (legacyUsersRolesTableFound) {
+    const depsCheck = await db.query(
+      `
+        SELECT
+          to_regclass($1) IS NOT NULL AS has_users_rels,
+          to_regclass($2) IS NOT NULL AS has_roles
+      `,
+      [`${schemaName}.users_rels`, `${schemaName}.roles`],
+    )
+    const deps = depsCheck.rows?.[0] as
+      | { has_users_rels?: boolean; has_roles?: boolean }
+      | undefined
+
+    if (deps?.has_users_rels && deps?.has_roles) {
+      const adminInsertRes = await db.query(`
+        INSERT INTO ${s}."users_rels" ("order", "parent_id", "path", "roles_id")
+        SELECT
+          1,
+          ur."parent_id",
+          'roles',
+          admin_role."id"
+        FROM (
+          SELECT DISTINCT "parent_id"
+          FROM ${s}."users_roles"
+          WHERE "value"::text = 'admin'
+        ) ur
+        CROSS JOIN LATERAL (
+          SELECT "id"
+          FROM ${s}."roles"
+          WHERE "full_access" = true
+          ORDER BY "id" ASC
+          LIMIT 1
+        ) admin_role
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM ${s}."users_rels" existing
+          WHERE existing."parent_id" = ur."parent_id"
+            AND existing."path" = 'roles'
+            AND existing."roles_id" IS NOT NULL
+        )
+      `)
+
+      const editorInsertRes = await db.query(`
+        INSERT INTO ${s}."users_rels" ("order", "parent_id", "path", "roles_id")
+        SELECT
+          ROW_NUMBER() OVER (PARTITION BY ur."parent_id" ORDER BY def_role."id" ASC)::int,
+          ur."parent_id",
+          'roles',
+          def_role."id"
+        FROM (
+          SELECT DISTINCT "parent_id"
+          FROM ${s}."users_roles"
+          WHERE "value"::text = 'editor'
+            AND "parent_id" NOT IN (
+              SELECT "parent_id" FROM ${s}."users_roles" WHERE "value"::text = 'admin'
+            )
+        ) ur
+        INNER JOIN ${s}."roles" def_role ON def_role."is_default" = true
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM ${s}."users_rels" existing
+          WHERE existing."parent_id" = ur."parent_id"
+            AND existing."path" = 'roles'
+            AND existing."roles_id" IS NOT NULL
+        )
+      `)
+
+      migratedUsersRolesCount = (adminInsertRes.rowCount ?? 0) + (editorInsertRes.rowCount ?? 0)
+    }
+
+    await db.query(`DROP TABLE IF EXISTS ${s}."users_roles" CASCADE`)
+    droppedUsersRolesArtifacts = true
+  }
+
+  // Also ensure `enum_users_roles` is dropped if still lingering after `users_roles` removal
+  const enumRes = await db.query(
+    `
+      SELECT 1
+      FROM pg_type t
+      INNER JOIN pg_namespace n ON n.oid = t.typnamespace
+      WHERE n.nspname = $1
+        AND t.typname = 'enum_users_roles'
+    `,
+    [schemaName],
+  )
+  if ((enumRes.rows?.length ?? 0) > 0) {
+    await db.query(`DROP TYPE IF EXISTS ${s}."enum_users_roles"`)
+    droppedUsersRolesArtifacts = true
+  }
+
+  // Backfill `projects_rels` (`path = 'relatedSkills'`) from `projects_texts` <-> `skills.label` when tables exist
+  const skillsTablesRes = await db.query(
+    `
+      SELECT
+        to_regclass($1) IS NOT NULL AS has_projects_rels,
+        to_regclass($2) IS NOT NULL AS has_projects_texts,
+        to_regclass($3) IS NOT NULL AS has_skills
+    `,
+    [`${schemaName}.projects_rels`, `${schemaName}.projects_texts`, `${schemaName}.skills`],
+  )
+  const skillsTables = skillsTablesRes.rows?.[0] as
+    | { has_projects_rels?: boolean; has_projects_texts?: boolean; has_skills?: boolean }
+    | undefined
+
+  if (
+    skillsTables?.has_projects_rels &&
+    skillsTables?.has_projects_texts &&
+    skillsTables?.has_skills
+  ) {
+    const backfillRes = await db.query(`
+      WITH skill_tokens AS (
+        SELECT
+          sk."id" AS skill_id,
+          LOWER(REGEXP_REPLACE(REPLACE(BTRIM(tok), '.', ''), '\\s+', ' ', 'g')) AS norm_tok
+        FROM ${s}."skills" sk
+        CROSS JOIN LATERAL regexp_split_to_table(sk."label", ',') AS tok
+        WHERE sk."deleted_at" IS NULL
+          AND BTRIM(tok) <> ''
+      ),
+      project_techs AS (
+        SELECT
+          pt."parent_id" AS project_id,
+          LOWER(REGEXP_REPLACE(REPLACE(BTRIM(pt."text"), '.', ''), '\\s+', ' ', 'g')) AS norm_tech
+        FROM ${s}."projects_texts" pt
+        WHERE pt."path" = 'techStack'
+          AND pt."text" IS NOT NULL
+          AND BTRIM(pt."text") <> ''
+      ),
+      matched_pairs AS (
+        SELECT DISTINCT
+          pt.project_id,
+          st.skill_id
+        FROM project_techs pt
+        INNER JOIN skill_tokens st
+          ON pt.norm_tech = st.norm_tok
+          OR pt.norm_tech LIKE (st.norm_tok || ' %')
+          OR st.norm_tok LIKE (pt.norm_tech || ' %')
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM ${s}."projects_rels" pr
+          WHERE pr."parent_id" = pt.project_id
+            AND pr."path" = 'relatedSkills'
+            AND pr."skills_id" = st.skill_id
+        )
+      ),
+      max_orders AS (
+        SELECT
+          "parent_id",
+          COALESCE(MAX("order"), 0) AS base_order
+        FROM ${s}."projects_rels"
+        GROUP BY "parent_id"
+      )
+      INSERT INTO ${s}."projects_rels" ("order", "parent_id", "path", "skills_id")
+      SELECT
+        COALESCE(mo.base_order, 0) + ROW_NUMBER() OVER (PARTITION BY mp.project_id ORDER BY mp.skill_id ASC)::int,
+        mp.project_id,
+        'relatedSkills',
+        mp.skill_id
+      FROM matched_pairs mp
+      LEFT JOIN max_orders mo ON mo."parent_id" = mp.project_id
+    `)
+    backfilledProjectSkillLinksCount = backfillRes.rowCount ?? 0
+  }
+
+  return {
+    legacyUsersRolesTableFound,
+    migratedUsersRolesCount,
+    droppedUsersRolesArtifacts,
+    backfilledProjectSkillLinksCount,
+  }
+}
+
+/**
+ * R-14b:
+ * Tunes `CACHE 64` on high-write Payload `serial` primary key sequences.
+ * Verified against `drizzle-kit@0.31.7`: `fromDatabase` deletes column-owned `pg_get_serial_sequence`
+ * sequences from `sequencesToReturn` and leaves `identity: undefined` on `serial` columns, so
+ * `ALTER SEQUENCE ... CACHE 64` causes zero `pushDevSchema()` / `migrate:create` schema drift.
+ */
+export async function tuneHighWriteSequencesCache(
+  db: QueryClientLike,
+  options: {
+    schemaName?: string
+    targetCacheSize?: number
+    sequences?: readonly string[]
+  } = {},
+): Promise<SequenceCacheTuningSummary> {
+  const schemaName = options.schemaName ?? 'public'
+  const targetCacheSize = Math.max(1, Math.trunc(options.targetCacheSize ?? DEFAULT_SEQUENCE_CACHE_SIZE))
+  const candidates = options.sequences ?? HIGH_WRITE_SERIAL_SEQUENCES
+  const s = quoteSqlIdent(schemaName)
+
+  const seqRes = await db.query(
+    `
+      SELECT sequencename, cache_size::int AS cache_size
+      FROM pg_sequences
+      WHERE schemaname = $1
+        AND sequencename = ANY($2)
+    `,
+    [schemaName, [...candidates]],
+  )
+
+  const cacheBySeq = new Map<string, number>()
+  for (const row of (seqRes.rows ?? []) as Array<{ sequencename: string; cache_size: number }>) {
+    cacheBySeq.set(row.sequencename, Number(row.cache_size))
+  }
+
+  const tunedSequences: string[] = []
+  const alreadyTunedSequences: string[] = []
+  const missingSequences: string[] = []
+
+  for (const seqName of candidates) {
+    const currentCache = cacheBySeq.get(seqName)
+    if (currentCache === undefined) {
+      missingSequences.push(seqName)
+      continue
+    }
+    if (currentCache >= targetCacheSize) {
+      alreadyTunedSequences.push(seqName)
+      continue
+    }
+    await db.query(`ALTER SEQUENCE ${s}.${quoteSqlIdent(seqName)} CACHE ${targetCacheSize}`)
+    tunedSequences.push(seqName)
+  }
+
+  return {
+    targetCacheSize,
+    tunedSequences,
+    alreadyTunedSequences,
+    missingSequences,
+  }
+}
+
+/**
+ * Applies Payload 3–compliant Phase 2 (`R-10`, `R-11a`) and Phase 3 (`R-13a`, `R-14b`) SQL
+ * optimizations idempotently, while restoring any previously partitioned `audit_logs` table (`R-13b`)
+ * back to a standard Drizzle heap table (`relkind = 'r'`).
  */
 export async function applyPhase2And3DatabaseOptimizations(
   db: QueryClientLike,
@@ -620,10 +908,16 @@ export async function applyPhase2And3DatabaseOptimizations(
   const auditLogsHeap = await restoreAuditLogsHeapIfPartitioned(db, { schemaName })
   const formsBlocks = await migrateFormsBlocksToJsonb(db, { schemaName })
   const mailBodies = await migrateMailMessageBodiesSidecar(db, { schemaName })
+  const taxonomyAndLegacyRoles = await retireLegacyUsersRolesAndBackfillProjectSkills(db, {
+    schemaName,
+  })
+  const sequenceCache = await tuneHighWriteSequencesCache(db, { schemaName })
 
   return {
     formsBlocks,
     mailBodies,
     auditLogsHeap,
+    taxonomyAndLegacyRoles,
+    sequenceCache,
   }
 }

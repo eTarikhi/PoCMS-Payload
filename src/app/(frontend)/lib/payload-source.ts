@@ -82,6 +82,10 @@ export const MEDIA_PUBLIC_POPULATE = {
     focalX: true,
     focalY: true,
   },
+  skills: {
+    label: true,
+    deletedAt: true,
+  },
 } as const
 
 /**
@@ -146,6 +150,7 @@ export const SITE_SETTINGS_GLOBAL_SELECT = {
   articlesHubSeo: true,
   projectsHubSeo: true,
   jobTitle: true,
+  knowsAboutSkills: true,
   knowsAbout: true,
   worksFor: true,
   alumniOf: true,
@@ -261,6 +266,7 @@ export const PROJECT_CARD_SELECT = {
   excerpt: true,
   role: true,
   year: true,
+  relatedSkills: true,
   techStack: true,
   content: true,
   primaryMedia: true,
@@ -296,6 +302,7 @@ export const PROJECT_FEED_SELECT = {
   slug: true,
   excerpt: true,
   role: true,
+  relatedSkills: true,
   techStack: true,
   content: true,
   url: true,
@@ -410,6 +417,7 @@ export const fetchHomeProfileRawDocs = async (): Promise<HomeProfileRawDocs> => 
         pagination: false,
         sort: '_order',
         depth: 0,
+        joins: false,
         select: SKILL_SELECT,
       })
       .then((res) => res.docs as Skill[]),
@@ -694,8 +702,14 @@ export const fetchFeedSourceDocs = async (): Promise<{
         where: PUBLISHED_OR_LEGACY_WHERE,
         pagination: false,
         sort: '_order',
-        depth: 0,
+        depth: 1,
         select: PROJECT_FEED_SELECT,
+        populate: {
+          skills: {
+            label: true,
+            deletedAt: true,
+          },
+        },
       })
       .then((res) => res.docs as Project[]),
     payload

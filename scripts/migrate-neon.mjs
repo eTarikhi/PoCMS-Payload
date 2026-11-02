@@ -288,7 +288,9 @@ async function main() {
           `[db:optimize-indexes] Completed via ${transport.toUpperCase()} (${summary.concurrent ? 'CONCURRENTLY' : 'non-concurrent'}): ` +
             `${summary.createdIndexes.length} index(es) ensured, ${summary.droppedIndexes.length} legacy index(es) pruned; ` +
             `R-10 forms backfilled=${phase2And3.formsBlocks.backfilledFormsCount} (dropped ${phase2And3.formsBlocks.droppedLegacyTables.length} block table(s)); ` +
+            `R-11a users_roles=${phase2And3.taxonomyAndLegacyRoles.droppedUsersRolesArtifacts ? 'retired' : 'clean'}, project_skills_linked=${phase2And3.taxonomyAndLegacyRoles.backfilledProjectSkillLinksCount}; ` +
             `R-13a mail_message_bodies backfilled=${phase2And3.mailBodies.backfilledBodiesCount}; ` +
+            `R-14b sequences CACHE 64=${phase2And3.sequenceCache.tunedSequences.length} tuned (${phase2And3.sequenceCache.alreadyTunedSequences.length} already=64); ` +
             `audit_logs heap=${phase2And3.auditLogsHeap.restoredFromPartitioned ? `restored (${phase2And3.auditLogsHeap.preservedRowsCount} row(s) preserved)` : 'standard'}.`,
         )
       },

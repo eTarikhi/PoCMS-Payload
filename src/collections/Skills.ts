@@ -59,5 +59,16 @@ export const Skills: CollectionConfig = {
         },
       },
     },
+    {
+      name: 'relatedProjects',
+      label: 'Projects Using This Skill',
+      type: 'join',
+      collection: 'projects',
+      on: 'relatedSkills',
+      defaultLimit: 10,
+      admin: {
+        description: 'Projects linked to this skill via Linked Skills.',
+      },
+    },
   ],
 }

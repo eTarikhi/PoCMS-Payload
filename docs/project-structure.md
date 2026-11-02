@@ -4,10 +4,14 @@
 PoCMS-Payload/
 ├── .github/workflows/
 │   └── ci.yml                 # GitHub Actions CI (typecheck, lint, Vitest, build, Playwright E2E)
+├── docs/
+│   └── database-architecture.md # PostgreSQL & Neon Phase 0–3 audit, DDL reference & roadmap
 ├── public/                    # Static portfolio assets, icons, and webmanifest
 ├── scripts/
+│   ├── dns-fallback.mjs       # DoH / public DNS & Node 24 Neon WebSocket ErrorEvent shim
 │   ├── generate.mjs           # Payload types, importMap, DB schema & GraphQL generator
-│   └── generate-nav-icons.mjs # Scoped admin sidebar CSS icon generator
+│   ├── generate-nav-icons.mjs # Scoped admin sidebar CSS icon generator
+│   └── migrate-neon.mjs       # Neon unpooled/HTTP-fallback optimizer & migration runner
 ├── src/
 │   ├── access/                # Capability-based RBAC, role helpers, and orderable/draft hooks
 │   ├── app/

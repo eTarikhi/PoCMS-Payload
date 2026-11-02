@@ -495,7 +495,7 @@ export const REPAIR_ACTION_META: readonly {
     action: 'apply-neon-optimizations',
     label: 'Apply Neon Phase 1–3 optimizations',
     description:
-      'Applies Drizzle-aligned FK cascade fixes, composite B-tree indexes, forms blocksAsJSON backfill, and mail_message_bodies cold sidecar (CONCURRENTLY when unpooled).',
+      'Applies Drizzle-aligned FK cascade fixes, composite B-tree indexes, forms blocksAsJSON backfill, legacy roles & project-skills normalization, mail_message_bodies cold sidecar, and serial sequence CACHE 64 tuning (CONCURRENTLY when unpooled).',
     prefersUnpooled: true,
     destructive: false,
   },

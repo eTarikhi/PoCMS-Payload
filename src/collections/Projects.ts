@@ -155,12 +155,24 @@ export const Projects: CollectionConfig = {
       admin: { position: 'sidebar' },
     },
     {
+      name: 'relatedSkills',
+      label: 'Linked Skills',
+      type: 'relationship',
+      relationTo: 'skills',
+      hasMany: true,
+      admin: {
+        position: 'sidebar',
+        description:
+          'Link canonical skills from Profile › Skills (merged automatically with free-form Tech Stack tags).',
+      },
+    },
+    {
       name: 'techStack',
       type: 'text',
       hasMany: true,
       admin: {
         position: 'sidebar',
-        description: 'Technologies used (e.g. Next.js, Payload CMS, PostgreSQL).',
+        description: 'Additional technologies or versioned tools (e.g. Next.js, Payload CMS, PostgreSQL).',
       },
     },
     {

@@ -6,7 +6,11 @@ import {
   extractTableOfContents,
   type TocItem,
 } from './lexical'
-import { mapSeoOverride, resolveProjectDetailMedia } from './mappers'
+import {
+  mapSeoOverride,
+  resolveMergedSkillLabels,
+  resolveProjectDetailMedia,
+} from './mappers'
 import { hasProjectPage } from './project-page'
 import type {
   ArticleGalleryLayout,
@@ -75,7 +79,7 @@ export const mapProjectDetail = (doc: Project): ProjectDetail | null => {
     role: doc.role?.trim() || null,
     client: doc.client?.trim() || null,
     year: doc.year?.trim() || null,
-    techStack: (doc.techStack ?? []).map((item) => item.trim()).filter(Boolean),
+    techStack: resolveMergedSkillLabels(doc.techStack, doc.relatedSkills),
     readTimeDisplay: formatReadTime(minutes),
     mediaMode: leadMedia.mediaMode,
     coverUrl: leadMedia.heroUrl,

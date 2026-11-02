@@ -77,7 +77,7 @@ export async function runDatabaseRepairAction(
           ok: true,
           usedUnpooledConnection,
           durationMs: Date.now() - startedAt,
-          summary: `Applied Neon database optimizations (${summary.concurrent ? 'CONCURRENTLY' : 'transactional-safe'}): ${summary.createdIndexes.length} index(es) ensured, ${summary.droppedIndexes.length} legacy index(es) pruned, forms JSONB=${phase2And3.formsBlocks.formsTableExists ? 'ready' : 'n/a'}, mail_message_bodies=${phase2And3.mailBodies.sidecarEnsured ? 'ready' : 'n/a'}, audit_logs=${phase2And3.auditLogsHeap.restoredFromPartitioned ? 'restored-heap' : 'heap'}.`,
+          summary: `Applied Neon database optimizations (${summary.concurrent ? 'CONCURRENTLY' : 'transactional-safe'}): ${summary.createdIndexes.length} index(es) ensured, ${summary.droppedIndexes.length} legacy index(es) pruned, forms JSONB=${phase2And3.formsBlocks.formsTableExists ? 'ready' : 'n/a'}, mail_message_bodies=${phase2And3.mailBodies.sidecarEnsured ? 'ready' : 'n/a'}, seq CACHE 64=${phase2And3.sequenceCache.tunedSequences.length + phase2And3.sequenceCache.alreadyTunedSequences.length}, audit_logs=${phase2And3.auditLogsHeap.restoredFromPartitioned ? 'restored-heap' : 'heap'}.`,
           details: {
             fkIntegrityApplied: summary.fkIntegrityApplied,
             createdCount: summary.createdIndexes.length,
@@ -86,6 +86,10 @@ export async function runDatabaseRepairAction(
             formsBackfilledCount: phase2And3.formsBlocks.backfilledFormsCount,
             formsLegacyTablesDropped: phase2And3.formsBlocks.droppedLegacyTables.length,
             mailBodiesBackfilledCount: phase2And3.mailBodies.backfilledBodiesCount,
+            legacyUsersRolesDropped: phase2And3.taxonomyAndLegacyRoles.droppedUsersRolesArtifacts,
+            projectSkillsBackfilledCount:
+              phase2And3.taxonomyAndLegacyRoles.backfilledProjectSkillLinksCount,
+            sequencesTunedCount: phase2And3.sequenceCache.tunedSequences.length,
             auditLogsRestoredFromPartitioned: phase2And3.auditLogsHeap.restoredFromPartitioned,
           },
         }

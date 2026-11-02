@@ -71,21 +71,5 @@ export const Users: CollectionConfig = {
       admin: { hidden: true },
       hooks: { afterRead: [computePermissions] },
     },
-    {
-      // The roles select of ADR 0008, kept on its old table (users_roles) only so `ensureRoles`
-      // can move its values to role documents once; cleared after the move. Drop it in a later
-      // migration.
-      name: 'legacyRoles',
-      type: 'select',
-      hasMany: true,
-      dbName: 'users_roles',
-      enumName: 'enum_users_roles',
-      options: [
-        { label: 'Admin', value: 'admin' },
-        { label: 'Editor', value: 'editor' },
-      ],
-      access: { read: adminsOnlyField, create: () => false, update: () => false },
-      admin: { hidden: true },
-    },
   ],
 }

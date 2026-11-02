@@ -17,14 +17,16 @@ This document serves as the architectural reference, **Phase 0–3 Optimization 
 3. **Bounded Schema Introspection & Streaming Exports (`R-03`, `R-04`):**
    - `/admin/database` aggregates columns, primary keys, foreign keys, and row estimates across **3 catalog queries total** (`O(1)` round-trips regardless of table count) instead of `3 × N` per-table queries.
    - `exportStreamingSqlDump()` and `exportStreamingNdjsonDump()` stream table rows in keyset-paginated `500`-row chunks (`WHERE "id" > $cursor ORDER BY "id" ASC LIMIT 500`), keeping Node.js V8 heap usage flat.
-4. **Payload v3 Drizzle Schema Alignment (`R-06`, `R-08a`, `R-09a`, `R-10`, `R-13a`):**
+4. **Payload v3 Drizzle Schema Alignment (`R-06`, `R-08a`, `R-09a`, `R-10`, `R-11a`, `R-13a`, `R-14b`):**
    - `phase1BeforeSchemaInit` (`src/lib/postgresSchemaHooks.ts`) mutates Payload's `adapter.rawTables` **before** Drizzle table materialization, making `src/payload-generated-schema.ts`, `pnpm dev` (`pushDevSchema`), and `pnpm db:optimize` **100% identical** with zero index or foreign-key churn:
      - `mail_messages.thread_id` (`NOT NULL`) enforces `ON DELETE CASCADE` (`R-06`).
      - `form_submissions.form_id` drops `.notNull()` at the SQL column level so `ON DELETE SET NULL` succeeds (`R-06`).
      - All 7 `*_texts` tables build composite `(parent_id, path, "order")` B-tree indexes (`R-08a`).
      - High-selectivity composite/covering B-tree indexes replace standalone boolean B-trees across `mail_threads`, `mail_messages`, `_articles_v`, `_projects_v`, and `payload_jobs` (`R-08a`, `R-09a`), while `mail_messages` and `mail_webhook_events` set `lockDocuments: false` (`R-09a`).
    - `blocksAsJSON: true` on `vercelPostgresAdapter` (`R-10`) stores Form Builder polymorphic blocks in a single `forms.fields` `jsonb` column instead of 9 sparse `forms_blocks_*` join tables.
+   - `Users.legacyRoles` (`users_roles` + `enum_users_roles`) is retired (`R-11a`, with lossless SQL migration into `users_rels` -> `roles`), and `Projects` ↔ `Skills` are linked via Payload's `relationship` (`Projects.relatedSkills`, `SiteSettings.knowsAboutSkills`) + zero-storage virtual `join` (`Skills.relatedProjects`).
    - `phase3BeforeSchemaInit` (`R-13a`) registers `mail_message_bodies` in both `schema.tables` and `adapter.rawTables` so cold MIME payloads (`sanitized_html`, `quoted_history_text`, `headers_snapshot`) live in a lazy-loaded 1:1 sidecar table (`ON DELETE CASCADE`) with private Vercel Blob cold archival (`archiveColdMailBodies`).
+   - `tuneHighWriteSequencesCache` (`R-14b`) configures `CACHE 64` on all 6 high-write PostgreSQL `serial` primary key sequences (`audit_logs_id_seq`, `payload_jobs_id_seq`, `_articles_v_id_seq`, `_projects_v_id_seq`, `mail_webhook_events_id_seq`, `mail_messages_id_seq`) with zero Drizzle `pushDevSchema()` drift.
 
 ---
 
@@ -57,6 +59,14 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS "mail_messages_thread_sent_idx"
 -- 4. Payload Jobs queue lookup composite
 CREATE INDEX CONCURRENTLY IF NOT EXISTS "payload_jobs_queue_wait_created_idx"
   ON "public"."payload_jobs" ("queue", "wait_until", "created_at");
+
+-- 5. R-14b: High-write serial PK sequence pre-allocation (zero Drizzle pushDevSchema drift)
+ALTER SEQUENCE "public"."audit_logs_id_seq" CACHE 64;
+ALTER SEQUENCE "public"."payload_jobs_id_seq" CACHE 64;
+ALTER SEQUENCE "public"."_articles_v_id_seq" CACHE 64;
+ALTER SEQUENCE "public"."_projects_v_id_seq" CACHE 64;
+ALTER SEQUENCE "public"."mail_webhook_events_id_seq" CACHE 64;
+ALTER SEQUENCE "public"."mail_messages_id_seq" CACHE 64;
 ```
 
 ---
@@ -95,13 +105,13 @@ Every action and sub-step across **Phase 0 through Phase 3** — including the d
 | **Phase 1** | `R-09a` | Prune standalone low-selectivity boolean B-tree indexes in `beforeSchemaInit` (`is_read`, `is_starred`, `has_attachments`, `direction`, `status`, `autosave`, `processing`, `has_error`) and set `lockDocuments: false` on `mail-messages` & `mail-webhook-events` | `src/lib/postgresSchemaHooks.ts`, `src/plugins/mailInbox/collections/{MailMessages,MailWebhookEvents}.ts` | **`completed`** | — |
 | **Phase 1** | `R-09b` | Replace Payload's 19 standard `payload_locked_documents_rels_*_id_idx` indexes with 21 out-of-band raw SQL `WHERE "<col>_id" IS NOT NULL` partial indexes (`idx_pld_rels_*_nn`) | `src/lib/phase1SqlOptimizations.ts` *(pruned & standard Drizzle indexes restored)* | **`undone`** | **`schema-push conflict`** |
 | **Phase 2** | `R-10` | Enable official `blocksAsJSON: true` on `vercelPostgresAdapter` + lossless idempotent backfill from legacy `forms_blocks_*` tables into `forms.fields` `jsonb` | `src/payload.config.ts`, `src/lib/phase2And3SqlOptimizations.ts` | **`completed`** | — |
-| **Phase 2** | `R-11a` | Normalize shared taxonomies (`Projects.categories`, `Articles.category`, `Projects.techStack` <-> `Skills` / `SiteSettings.knowsAbout`) via Payload `relationship` + virtual `join` fields and retire `Users.legacyRoles` (`users_roles`) | `src/collections/{Projects,Articles,Skills,Users}.ts`, `src/globals/SiteSettings.ts` | **`deferred`** | **`compatible (content-model refactor)`** |
+| **Phase 2** | `R-11a` | Retire `Users.legacyRoles` (`users_roles` + `enum_users_roles` with lossless SQL migration into `users_rels` -> `roles`) and link `Projects` ↔ `Skills` (`Projects.relatedSkills`, `SiteSettings.knowsAboutSkills`, virtual `Skills.relatedProjects` `join`, and `resolveMergedSkillLabels` mapper) | `src/collections/{Projects,Skills,Users}.ts`, `src/globals/SiteSettings.ts`, `src/access/roles.ts`, `src/lib/phase2And3SqlOptimizations.ts` | **`completed`** | — |
 | **Phase 2** | `R-11b` | Collapse Payload `hasMany: true` `text` tables (`projects_texts`, `about_texts`, `services_texts`, `header_texts`, `site_settings_texts`, `footer_texts`) into native PostgreSQL `text[]` columns | `src/collections/{Projects,About,Services}.ts`, `src/globals/{Header,SiteSettings,Footer}.ts` | **`deferred (do not apply as raw text[])`** | **`incompatible with payload docs`** |
 | **Phase 2** | `R-12` | Automated Payload Jobs retention tasks (`pruneMailWebhookEvents` daily `15 3 * * *` >30d, `prunePayloadJobsHistory` daily `45 3 * * *` >7d/>30d, `pruneAuditLogs` daily `30 3 * * *` >180d with optional NDJSON.gz Vercel Blob export) | `src/payload.config.ts`, `src/plugins/mailInbox/jobs/maintenanceTasks.ts`, `src/jobs/auditLogRetention.ts` | **`completed`** | — |
 | **Phase 3** | `R-13a` | Cold MIME `mail_message_bodies` 1:1 sidecar table registered in `beforeSchemaInit` (`schema.tables` + `adapter.rawTables`), lazy read/write store, lossless backfill, and weekly Vercel Blob cold archival (`archiveColdMailBodies` at `20 4 * * 0`) | `src/lib/postgresSchemaHooks.ts`, `src/plugins/mailInbox/services/messageBodiesStore.ts`, `src/lib/phase2And3SqlOptimizations.ts` | **`completed`** | — |
 | **Phase 3** | `R-13b` | Convert Payload-managed `audit_logs` collection table into a PostgreSQL declarative `PARTITION BY RANGE (created_at)` parent table (`relkind = 'p'`) with composite PK `(id, created_at)` and monthly child partitions | `src/lib/phase2And3SqlOptimizations.ts` *(replaced by lossless `restoreAuditLogsHeapIfPartitioned`)*, `src/payload.config.ts` | **`undone`** | **`incompatible with payload docs`** |
 | **Phase 3** | `R-14a` | Convert live child array/block `varchar('id')` primary keys (16 tables: `articles_detail_media_items`, `projects_gallery`, `users_sessions`, `payload_jobs_log`, etc.) to `bigint GENERATED BY DEFAULT AS IDENTITY` or `UUIDv7` | `@payloadcms/drizzle` child array tables (`src/payload-generated-schema.ts`) | **`deferred (do not apply)`** | **`incompatible with payload docs`** |
-| **Phase 3** | `R-14b` | Tune `CACHE 64` on high-write PostgreSQL `serial` primary key sequences (`audit_logs_id_seq`, `payload_jobs_id_seq`, `_articles_v_id_seq`, `_projects_v_id_seq`, `mail_webhook_events_id_seq`, `mail_messages_id_seq`) | `src/lib/phase2And3SqlOptimizations.ts` *(candidate)* | **`deferred`** | **`compatible (zero-drift SQL tuning)`** |
+| **Phase 3** | `R-14b` | Tune `CACHE 64` on high-write PostgreSQL `serial` primary key sequences (`audit_logs_id_seq`, `payload_jobs_id_seq`, `_articles_v_id_seq`, `_projects_v_id_seq`, `mail_webhook_events_id_seq`, `mail_messages_id_seq`) | `src/lib/phase2And3SqlOptimizations.ts`, `src/plugins/databaseManager/core/repair.ts` | **`completed`** | — |
 
 ---
 
@@ -154,26 +164,27 @@ Every action and sub-step across **Phase 0 through Phase 3** — including the d
 
 `R-11` spans two distinct sub-concerns across the repository's collections (`Projects`, `Articles`, `Skills`, `About`, `Services`, `Users`) and globals (`Header`, `SiteSettings`, `Footer`):
 
-- **`R-11a` — Shared Taxonomy Normalization & `Users.legacyRoles` Retirement (`deferred` · `compatible (content-model refactor)`):**
-  - **Current Schema State:**
-    1. Category classifications use hardcoded PostgreSQL `ENUM` types (`enum_articles_category`: `'articles' | 'others'`; `enum_projects_categories` on `projects_categories` + `_projects_v_version_categories`: `'front-end' | 'back-end' | 'cms-crm'`; `enum_skills_group` on `skills`). Adding or renaming a category currently requires an `ALTER TYPE ... ADD VALUE` DDL migration and code deploy.
-    2. Technology strings are duplicated as unvalidated free text across `Projects.techStack` (`projects_texts`, `_projects_v_texts`), `Skills.label` (`skills`), and `SiteSettings.knowsAbout` (`site_settings_texts`).
-    3. `Users.legacyRoles` (`users_roles` + `enum_users_roles` in `src/collections/Users.ts`) remains as a transitional field after roles migrated to the normalized `Roles` collection (`users_rels` -> `roles`).
-  - **Payload v3.90.2 Compatibility & Trade-Offs:**
-    - Modeling shared `Categories` / `Technologies` collections via Payload `relationship` fields + virtual `join` reverse-lookup fields (`docs/fields/join.mdx`) and dropping `Users.legacyRoles` once all `users_roles` rows are migrated is **100% Payload 3 native**.
-    - **Architectural Trade-Off (`_rels` Fan-Out & API Shape):** In `@payloadcms/drizzle`, `hasMany: true` `relationship` fields store links in polymorphic `<collection>_rels` (`projects_rels`, `_projects_v_rels`) tables rather than typed 2-column join tables, and change Local API / REST / GraphQL payloads from `string[]` (`["Next.js", "PostgreSQL"]`) to `(number | Skill)[]` (requiring `depth >= 1` population across `/projects`, `/articles`, Schema.org `knowsAbout`, RSS/sitemap, and seed scripts). Given PoCMS's bounded portfolio cardinality and the `R-08a` `(parent_id, path, "order")` covering index fix already active, `R-11a` is an optional data-governance enhancement rather than a database bottleneck fix.
+- **`R-11a` — `Users.legacyRoles` Retirement & `Projects` ↔ `Skills` Relationship + Virtual `join` (`completed` · `compatible (content-model refactor)`):**
+  - **Implemented Architecture:**
+    1. **Retired `Users.legacyRoles` (`users_roles` + `enum_users_roles`):** Removed the deprecated hidden `legacyRoles` select field from `src/collections/Users.ts` and simplified `ensureRoles()` in `src/access/roles.ts`. `retireLegacyUsersRolesAndBackfillProjectSkills()` (`src/lib/phase2And3SqlOptimizations.ts`, invoked by `pnpm db:optimize`) first checks whether `users_roles` exists, losslessly migrates any remaining `'admin'` / `'editor'` rows into `users_rels` (`Administrator` / default `Editor` role), and drops `users_roles` + `enum_users_roles`.
+    2. **Payload-Native `Projects` ↔ `Skills` Normalization (`relationship` + virtual `join`):**
+       - `src/collections/Projects.ts` adds `relatedSkills` (`type: 'relationship'`, `relationTo: 'skills'`, `hasMany: true`), creating `projects_rels` (`ON DELETE CASCADE`) while keeping free-form `techStack` for version-specific or non-catalogue tools (e.g., `PHP 8`, `Cloudflare`).
+       - `src/collections/Skills.ts` adds a zero-storage virtual `relatedProjects` (`type: 'join'`, `collection: 'projects'`, `on: 'relatedSkills'`, `defaultLimit: 10`) reverse lookup (`joins: false` on home-page skill-bar queries to prevent extra subqueries on `/`).
+       - `src/globals/SiteSettings.ts` adds `knowsAboutSkills` (`type: 'relationship'`, `relationTo: 'skills'`, `hasMany: true`) alongside `knowsAbout`.
+       - `resolveMergedSkillLabels()` (`src/app/(frontend)/lib/mappers.ts`) merges populated `Skill` labels with free-form `techStack` / `knowsAbout` across project cards, detail pages, Schema.org `knowsAbout`, and `/feed.xml` without altering the home page (`/`) layout or breaking existing `Projects.categories` / `Articles.category` filters.
+       - Both `src/seed/index.ts` and `retireLegacyUsersRolesAndBackfillProjectSkills()` (`pnpm db:optimize`) idempotently link existing projects to matching `Skills` entries.
 
-- **`R-11b` — Collapsing Payload `hasMany: true` `text` Tables (`*_texts`) into PostgreSQL `text[]` Columns (`deferred` · `incompatible with payload docs`):**
+- **`R-11b` — Collapsing Payload `hasMany: true` `text` Tables (`*_texts`) into PostgreSQL `text[]` Columns (`deferred — do not apply as raw text[]` · `incompatible with payload docs`):**
   - **Current Schema State:** 7 `*_texts` child tables (`projects_texts`, `_projects_v_texts`, `about_texts`, `services_texts`, `header_texts`, `site_settings_texts`, `footer_texts`) store ordered string lists (`techStack`, `areas`, `descriptions`, `professionTexts`, `knowsAbout`, `footerRoles`).
   - **Why Raw `text[]` Is Incompatible with Payload 3:**
     - `@payloadcms/drizzle` (`dist/schema/traverseFields.js` & `dist/transform/write/texts.js`) hardcodes `{ type: 'text', hasMany: true }` to materialize and query dedicated `<tableName>_texts` tables (`id`, `order`, `parent_id`, `path`, `text`). Altering those columns to native PostgreSQL `text[]` out-of-band breaks Payload's read/write transformers and triggers destructive `drizzle-kit` `pushDevSchema()` diffs.
-    - **Payload-Compliant Alternative:** Keep `{ type: 'text', hasMany: true }` backed by the `R-08a` `(parent_id, path, "order")` composite indexes (which already achieve single-index-probe lookups), OR — if zero-join single-row storage is specifically desired for display-only bullet lists (`Services.descriptions`, `Header.professionTexts`, `Footer.footerRoles`) — convert the Payload field definition to `type: 'json'` (`jsonb` column) with a `jsonSchema` string-array validator and custom Admin tag/list field component.
+    - **Payload-Compliant Design:** Keep `{ type: 'text', hasMany: true }` backed by the `R-08a` `(parent_id, path, "order")` composite indexes (which already achieve single-index-probe lookups), OR — if zero-join single-row storage is specifically desired for display-only bullet lists (`Services.descriptions`, `Header.professionTexts`, `Footer.footerRoles`) — convert the Payload field definition to `type: 'json'` (`jsonb` column) with a `jsonSchema` string-array validator and custom Admin tag/list field component.
 
 ---
 
 #### 2. `R-14` — Child Array Surrogate Primary Keys (`varchar('id')` -> `bigint` / `UUIDv7`) & Sequence `CACHE 64` Tuning (`Phase 3`)
 
-Source-level verification against `@payloadcms/drizzle@3.90.2` and `drizzle-kit@0.31.7` demonstrates that `R-14` must be split into two sub-items with **opposite compatibility classifications**:
+Source-level verification against `@payloadcms/drizzle@3.90.2` and `drizzle-kit@0.31.7` demonstrates why `R-14` is split into two sub-items with **opposite compatibility classifications**:
 
 - **`R-14a` — Converting Live Child Array/Block `varchar('id')` Primary Keys to `bigint GENERATED BY DEFAULT AS IDENTITY` or `UUIDv7` (`deferred — do not apply` · `incompatible with payload docs`):**
   - **Affected Tables in PoCMS (16 live child tables):** `articles_detail_media_items`, `articles_gallery`, `projects_detail_media_items`, `projects_gallery`, `about_images`, `users_sessions`, `forms_emails`, `form_submissions_submission_data`, `payload_jobs_log`, `site_settings_alumni_of`, `navigation_items`, `footer_profiles`, `footer_contact_info`, `custom_code_meta_tags`, `custom_code_link_tags` (plus root `navigation` if customized).
@@ -183,18 +194,18 @@ Source-level verification against `@payloadcms/drizzle@3.90.2` and `drizzle-kit@
     3. Overriding live child array `"id"` columns to `bigint GENERATED BY DEFAULT AS IDENTITY` or `uuid` immediately crashes Admin UI / Local API saves with PostgreSQL `SQLSTATE 22P02` (`invalid input syntax for type bigint / uuid: "67260a1f..."`) and causes `pushDevSchema()` to emit `ALTER COLUMN "id" SET DATA TYPE varchar` reverts.
     4. Additionally, `vercelPostgresAdapter({ idType: 'uuidv7' })` in Payload v3.90.2 (`setColumnID.js`) applies **only** to root collection primary keys, not child array `varchar('id')` columns, and changing `idType` on an existing `serial` database would require rewriting primary and foreign keys across all 60+ `serial` tables.
 
-- **`R-14b` — Tuning `CACHE 64` on High-Write PostgreSQL `serial` Sequences (`deferred` · `compatible (zero-drift SQL tuning)`):**
-  - **Target Sequences:** `audit_logs_id_seq`, `payload_jobs_id_seq`, `_articles_v_id_seq`, `_projects_v_id_seq`, `mail_webhook_events_id_seq`, and `mail_messages_id_seq`.
+- **`R-14b` — Tuning `CACHE 64` on High-Write PostgreSQL `serial` Sequences (`completed` · `compatible (zero-drift SQL tuning)`):**
+  - **Tuned Sequences (`HIGH_WRITE_SERIAL_SEQUENCES`):** `audit_logs_id_seq`, `payload_jobs_id_seq`, `_articles_v_id_seq`, `_projects_v_id_seq`, `mail_webhook_events_id_seq`, and `mail_messages_id_seq`.
   - **Why `R-14b` Is 100% Compatible with Drizzle `pushDevSchema()` (`drizzle-kit@0.31.7` Verification):**
     1. During PostgreSQL introspection (`fromDatabase` in `drizzle-kit/api.js`), `drizzle-kit` queries `pg_sequences` (`cache_size`), attaches `identity.cache` **only** to SQL `GENERATED ... AS IDENTITY` columns (`isIdentity === true`), leaves `identity: undefined` on Payload's `serial` columns (`isSerial === true`), and explicitly `delete`s every column-owned `pg_get_serial_sequence` sequence from standalone `sequencesToReturn`.
-    2. Consequently, executing `ALTER SEQUENCE "public"."<table_id_seq>" CACHE 64;` on Payload's owned `serial` sequences produces **zero schema diff** in `pushDevSchema()` (`pnpm dev`) and `payload migrate:create`, while reducing `pg_sequence` catalog buffer locks and WAL writes by up to `64×` during burst inserts.
+    2. Consequently, `tuneHighWriteSequencesCache()` (`src/lib/phase2And3SqlOptimizations.ts`, invoked idempotently by `pnpm db:optimize` and `/admin/database`) executes `ALTER SEQUENCE "public"."<table_id_seq>" CACHE 64` whenever `pg_sequences.cache_size < 64`, producing **zero schema diff** in `pushDevSchema()` (`pnpm dev`) and `payload migrate:create` while reducing `pg_sequence` catalog buffer locks and WAL writes by up to `64×` during burst inserts.
     3. **Neon Serverless Pooler Note:** Because PostgreSQL caches pre-allocated sequence numbers per backend process, Neon scale-to-zero suspend cycles or PgBouncer backend rotation may skip unused cached integers (e.g., jumping from `id = 12` to `id = 65`), which is standard PostgreSQL behavior and completely benign since ordering uses `created_at` / `published_at` / `_order`.
 
 ---
 
-## 4. Prioritized Corrective & Deferred Optimization Roadmap
+## 4. Prioritized Corrective Roadmap for Remaining `undone` Items
 
-To cleanly resolve the architectural goals behind every **`undone`** and **`deferred`** item while staying **100% compliant** with Payload CMS v3.90.2 and Drizzle ORM, execute the following actions in priority order:
+With **`R-11a`** (`Users.legacyRoles` retirement + `Projects` ↔ `Skills` relationship/join) and **`R-14b`** (`CACHE 64` on high-write `serial` sequences) now **completed** — and **`R-11b`** (raw `text[]`) and **`R-14a`** (child array `bigint identity`) permanently excluded as `incompatible with payload docs` — the remaining corrective roadmap for the four **`undone`** items is prioritized below:
 
 ### Priority 1 (`P1` — High Impact, Low Risk): Re-introduce Partial Feed/Queue & Search GIN Indexes via `afterSchemaInit` (`extendTable`)
 - **Resolves:** `R-08b` (`schema-push conflict`)
@@ -204,13 +215,7 @@ To cleanly resolve the architectural goals behind every **`undone`** and **`defe
   3. For `idx_mail_threads_search_trgm`, guard GIN `gin_trgm_ops` registration behind an initialization check (or a dedicated `tsvector` generated column using built-in PostgreSQL `gin` without requiring extension creation) so `pushDevSchema()` and `payload migrate:create` recognize the index natively and **never** drop it on `pnpm dev`.
   4. Document in code comments that per Payload 3 docs, `afterSchemaInit` extensions are enforced at runtime (`pushDevSchema` / `migrate:create`) even though `payload generate:db-schema` only serializes `beforeSchemaInit` `rawTables`.
 
-### Priority 2 (`P2` — Low Risk, Zero Schema Drift): Apply `ALTER SEQUENCE ... CACHE 64` on High-Write `serial` Sequences
-- **Resolves:** `R-14b` (`deferred` · `compatible (zero-drift SQL tuning)`) — while permanently excluding `R-14a` (`incompatible with payload docs`)
-- **Corrective Architecture:**
-  1. Add an idempotent `DO $$` block in `src/lib/phase2And3SqlOptimizations.ts` (`pnpm db:optimize`) that checks `pg_sequences.cache_size < 64` and executes `ALTER SEQUENCE "public"."<seq>" CACHE 64` for `audit_logs_id_seq`, `payload_jobs_id_seq`, `_articles_v_id_seq`, `_projects_v_id_seq`, `mail_webhook_events_id_seq`, and `mail_messages_id_seq`.
-  2. Leave all 16 live child array `varchar('id')` primary keys untouched (`R-14a` permanently excluded) so Payload's 24-hex `ObjectID` array writers and Drizzle `pushDevSchema()` remain 100% compatible.
-
-### Priority 3 (`P3` — Medium Impact, Operational Safety): Formalize Stage-Gate Transition from Dev `push` Mode to Production Versioned Migrations
+### Priority 2 (`P2` — Medium Impact, Operational Safety): Formalize Stage-Gate Transition from Dev `push` Mode to Production Versioned Migrations
 - **Resolves:** `R-07b` (`violation conflict`)
 - **Corrective Architecture:**
   1. **While actively prototyping schema locally (`push` mode):** Keep `/src/migrations` in `.gitignore`, never run `payload migrate` against the local `push` database, and use `pnpm db:optimize` for idempotent data backfills, sequence tuning, and `CONCURRENTLY` index builds.
@@ -219,19 +224,13 @@ To cleanly resolve the architectural goals behind every **`undone`** and **`defe
      - Set `push: false` explicitly inside `vercelPostgresAdapter({ push: false, migrationDir: ... })` in `src/payload.config.ts` so `pnpm dev` never mixes `pushDevSchema()` with tracked migrations.
      - Generate clean baseline migrations via `pnpm db:migrate:create` (with consistent `BLOB_READ_WRITE_TOKEN` env configuration so plugin schemas match across generation and runtime) and execute `pnpm db:migrate` as part of the Vercel CI/CD build step (`vercel-build`), avoiding `prodMigrations` on serverless cold starts.
 
-### Priority 4 (`P4` — Low/Medium Impact, Write-Amplification Reduction): Selective `lockDocuments: false` on Read-Only / Append-Only Collections
+### Priority 3 (`P3` — Low/Medium Impact, Write-Amplification Reduction): Selective `lockDocuments: false` on Read-Only / Append-Only Collections
 - **Resolves:** `R-09b` (`schema-push conflict`)
 - **Corrective Architecture:**
   1. Rather than overriding Payload's internal `payload_locked_documents_rels` indexes out-of-band, set `lockDocuments: false` directly in the Payload Collection config on collections that are strictly append-only or system-managed and never edited concurrently by multiple admins in the UI (`AuditLogs`, `FormSubmissions`, `MailAttachments`, `MailLabels`).
   2. Payload's schema generator then natively omits both the nullable `<collection>_id` column and its `payload_locked_documents_rels_<collection>_id_idx` B-tree index in `beforeSchemaInit` / Drizzle with zero custom SQL overrides.
 
-### Priority 5 (`P5` — Optional Content-Governance Refactor): Retire `Users.legacyRoles` & Evaluate Payload-Native Taxonomies / `json` Lists
-- **Resolves:** `R-11a` (`deferred` · `compatible (content-model refactor)`) — while permanently excluding `R-11b` raw `text[]` overrides (`incompatible with payload docs`)
-- **Corrective Architecture:**
-  1. Verify `SELECT COUNT(*) FROM users_roles` is `0` (all legacy roles migrated into `users_rels` -> `roles`), then remove `legacyRoles` from `src/collections/Users.ts` to retire `users_roles` and `enum_users_roles`.
-  2. Only if dynamic editorial category creation or cross-project technology pages are needed on the frontend, introduce a Payload `Categories` collection (or link `Projects.techStack` to `Skills` via `relationship` + virtual `join` field on `Skills`), updating frontend mappers for populated relationship objects. Keep non-relational string lists (`Services.descriptions`, `Header.professionTexts`, `Footer.footerRoles`) either on the indexed `*_texts` tables (`R-08a`) or on Payload `type: 'json'` fields — never raw out-of-band PostgreSQL `text[]` columns.
-
-### Priority 6 (`P6` — Long-Term Scale Architecture): Keep `audit_logs` as a Bounded Hot Heap Table + Cold Object-Storage Archival
+### Priority 4 (`P4` — Long-Term Scale Architecture): Keep `audit_logs` as a Bounded Hot Heap Table + Cold Object-Storage Archival
 - **Resolves:** `R-13b` (`incompatible with payload docs`)
 - **Corrective Architecture:**
   1. **Default Payload-Native Pattern (Already Active via `R-12`):** Keep Payload's `audit_logs` collection as a standard heap table (`relkind = 'r'`) bounded to a predictable 180-day hot window (~50k–200k rows, `< 50 MB`) by `pruneAuditLogs`, which exports aged batches to date-partitioned `.ndjson.gz` objects in private Vercel Blob before batch-deleting. At this bounded cardinality, a standard PostgreSQL heap table with `(created_at)` and `(event, created_at)` B-trees delivers sub-millisecond reads with zero `drizzle-kit` incompatibility.

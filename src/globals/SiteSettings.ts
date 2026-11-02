@@ -360,13 +360,24 @@ export const SiteSettings: GlobalConfig = {
               },
             },
             {
+              name: 'knowsAboutSkills',
+              label: 'Linked Core Skills (knowsAbout)',
+              type: 'relationship',
+              relationTo: 'skills',
+              hasMany: true,
+              admin: {
+                description:
+                  'Canonical skills from Profile › Skills merged into Schema.org Person.knowsAbout.',
+              },
+            },
+            {
               name: 'knowsAbout',
-              label: 'Core Specialties & Technologies (knowsAbout)',
+              label: 'Additional Specialties & Topics (knowsAbout)',
               type: 'text',
               hasMany: true,
               admin: {
                 description:
-                  'Topics & technologies emitted in Schema.org Person.knowsAbout (e.g. PHP, TypeScript, Next.js, Payload CMS, PostgreSQL).',
+                  'Additional topics & technologies emitted in Schema.org Person.knowsAbout (e.g. PHP, TypeScript, Next.js, Payload CMS, PostgreSQL).',
               },
             },
             {

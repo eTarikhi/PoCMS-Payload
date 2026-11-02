@@ -5,14 +5,19 @@ import type { CollectionConfig, Payload, PayloadRequest } from 'payload'
 import { describe, expect, it, vi } from 'vitest'
 
 import config from '@/payload.config'
+import { resolveMergedSkillLabels } from '@/app/(frontend)/lib/mappers'
 import { createJobsConfig } from '@/jobs/config'
 import {
   applyPhase2And3DatabaseOptimizations,
+  DEFAULT_SEQUENCE_CACHE_SIZE,
+  HIGH_WRITE_SERIAL_SEQUENCES,
   LEGACY_FORMS_BLOCK_TABLES,
   LEGACY_FORMS_SELECT_OPTIONS_TABLE,
   migrateFormsBlocksToJsonb,
   migrateMailMessageBodiesSidecar,
   restoreAuditLogsHeapIfPartitioned,
+  retireLegacyUsersRolesAndBackfillProjectSkills,
+  tuneHighWriteSequencesCache,
 } from '@/lib/phase2And3SqlOptimizations'
 import { buildPostgresAdapterArgs } from '@/lib/postgresAdapterConfig'
 import {
@@ -513,5 +518,164 @@ describe('Phase 2 & Phase 3 Database Modernization (R-10, R-12, R-13)', () => {
     expect(emptyCombined.formsBlocks.formsTableExists).toBe(false)
     expect(emptyCombined.mailBodies.mailMessagesExists).toBe(false)
     expect(emptyCombined.auditLogsHeap.auditLogsExists).toBe(false)
+    expect(emptyCombined.taxonomyAndLegacyRoles.legacyUsersRolesTableFound).toBe(false)
+    expect(emptyCombined.sequenceCache.tunedSequences).toEqual([])
+  })
+
+  it('R-11a: retires Users.legacyRoles (users_roles + enum_users_roles), links Projects <-> Skills via relationship + virtual join, and merges skill labels', async () => {
+    const schemaPath = path.join(process.cwd(), 'src', 'payload-generated-schema.ts')
+    const schemaSource = fs.readFileSync(schemaPath, 'utf8')
+
+    // 1. `users_roles` and `enum_users_roles` are completely retired from Drizzle schema
+    expect(schemaSource).not.toContain('users_roles')
+    expect(schemaSource).not.toContain('enum_users_roles')
+
+    // 2. `projects_rels` and `site_settings_rels` link `skills_id`, while `skills` adds 0 extra columns for virtual `join`
+    expect(schemaSource).toContain('export const projects_rels = pgTable(')
+    expect(schemaSource).toContain('export const site_settings_rels = pgTable(')
+    const skillsTableMatch = schemaSource.match(
+      /export const skills = pgTable\(\s*'skills',([\s\S]*?)\n\)\n/,
+    )
+    expect(skillsTableMatch).not.toBeNull()
+    expect(skillsTableMatch![1]).not.toContain('related_projects')
+
+    const sanitized = await config
+    const skillsCol = sanitized.collections.find((c) => c.slug === 'skills')!
+    const joinField = skillsCol.fields.find(
+      (f) => 'name' in f && f.name === 'relatedProjects' && f.type === 'join',
+    )
+    expect(joinField).toBeDefined()
+
+    // 3. Pure mapper merges populated single-topic Skills, deduplicates versioned tags, and expands compound bars when freeform is empty
+    const postgresSkill = {
+      id: 10,
+      label: 'PostgreSQL',
+      group: 'backend' as const,
+      value: 90,
+      color: 'primary' as const,
+      updatedAt: '2026-11-01T00:00:00.000Z',
+      createdAt: '2026-11-01T00:00:00.000Z',
+    }
+    const compoundFrontendSkill = {
+      id: 11,
+      label: 'React, Next.js, Vue.js',
+      group: 'frontend' as const,
+      value: 95,
+      color: 'info' as const,
+      updatedAt: '2026-11-01T00:00:00.000Z',
+      createdAt: '2026-11-01T00:00:00.000Z',
+    }
+    const phpSkill = {
+      id: 12,
+      label: 'PHP',
+      group: 'backend' as const,
+      value: 95,
+      color: 'success' as const,
+      updatedAt: '2026-11-01T00:00:00.000Z',
+      createdAt: '2026-11-01T00:00:00.000Z',
+    }
+
+    expect(
+      resolveMergedSkillLabels(
+        ['Next.js', 'PHP 8', 'Payload CMS'],
+        [compoundFrontendSkill, phpSkill, postgresSkill],
+      ),
+    ).toEqual(['Next.js', 'PHP 8', 'Payload CMS', 'PostgreSQL'])
+
+    expect(resolveMergedSkillLabels([], [compoundFrontendSkill, postgresSkill])).toEqual([
+      'React',
+      'Next.js',
+      'Vue.js',
+      'PostgreSQL',
+    ])
+
+    // 4. SQL migration losslessly backfills `users_roles` -> `users_rels`, drops `users_roles` + `enum_users_roles`, and backfills `projects_rels`
+    const ranSql: string[] = []
+    const r11Summary = await retireLegacyUsersRolesAndBackfillProjectSkills({
+      query: async (sqlText) => {
+        ranSql.push(sqlText.trim())
+        if (sqlText.includes('SELECT to_regclass($1) IS NOT NULL AS exists')) {
+          return { rows: [{ exists: true }] }
+        }
+        if (sqlText.includes('AS has_users_rels')) {
+          return { rows: [{ has_users_rels: true, has_roles: true }] }
+        }
+        if (sqlText.includes("WHERE \"value\"::text = 'editor'")) {
+          return { rows: [], rowCount: 2 }
+        }
+        if (sqlText.includes("WHERE \"value\"::text = 'admin'")) {
+          return { rows: [], rowCount: 1 }
+        }
+        if (sqlText.includes("t.typname = 'enum_users_roles'")) {
+          return { rows: [{ '?column?': 1 }] }
+        }
+        if (sqlText.includes('AS has_projects_rels')) {
+          return {
+            rows: [{ has_projects_rels: true, has_projects_texts: true, has_skills: true }],
+          }
+        }
+        if (sqlText.includes('INSERT INTO "public"."projects_rels"')) {
+          return { rows: [], rowCount: 5 }
+        }
+        return { rows: [], rowCount: 0 }
+      },
+    })
+
+    expect(r11Summary.legacyUsersRolesTableFound).toBe(true)
+    expect(r11Summary.migratedUsersRolesCount).toBe(3)
+    expect(r11Summary.droppedUsersRolesArtifacts).toBe(true)
+    expect(r11Summary.backfilledProjectSkillLinksCount).toBe(5)
+    expect(ranSql.some((s) => s.includes('DROP TABLE IF EXISTS "public"."users_roles" CASCADE'))).toBe(
+      true,
+    )
+    expect(ranSql.some((s) => s.includes('DROP TYPE IF EXISTS "public"."enum_users_roles"'))).toBe(
+      true,
+    )
+  })
+
+  it('R-14b: tunes CACHE 64 on high-write serial PK sequences while leaving child array varchar PKs untouched', async () => {
+    expect(DEFAULT_SEQUENCE_CACHE_SIZE).toBe(64)
+    expect(HIGH_WRITE_SERIAL_SEQUENCES).toEqual([
+      'audit_logs_id_seq',
+      'payload_jobs_id_seq',
+      '_articles_v_id_seq',
+      '_projects_v_id_seq',
+      'mail_webhook_events_id_seq',
+      'mail_messages_id_seq',
+    ])
+
+    const executed: string[] = []
+    const seqSummary = await tuneHighWriteSequencesCache({
+      query: async (sqlText) => {
+        executed.push(sqlText.trim())
+        if (sqlText.includes('FROM pg_sequences')) {
+          return {
+            rows: [
+              { sequencename: 'audit_logs_id_seq', cache_size: 1 },
+              { sequencename: 'payload_jobs_id_seq', cache_size: 1 },
+              { sequencename: '_articles_v_id_seq', cache_size: 64 },
+              { sequencename: '_projects_v_id_seq', cache_size: 1 },
+              { sequencename: 'mail_webhook_events_id_seq', cache_size: 128 },
+            ],
+          }
+        }
+        return { rows: [], rowCount: 0 }
+      },
+    })
+
+    expect(seqSummary.targetCacheSize).toBe(64)
+    expect(seqSummary.tunedSequences).toEqual([
+      'audit_logs_id_seq',
+      'payload_jobs_id_seq',
+      '_projects_v_id_seq',
+    ])
+    expect(seqSummary.alreadyTunedSequences).toEqual([
+      '_articles_v_id_seq',
+      'mail_webhook_events_id_seq',
+    ])
+    expect(seqSummary.missingSequences).toEqual(['mail_messages_id_seq'])
+    expect(executed).toContain('ALTER SEQUENCE "public"."audit_logs_id_seq" CACHE 64')
+    expect(executed).toContain('ALTER SEQUENCE "public"."payload_jobs_id_seq" CACHE 64')
+    expect(executed).toContain('ALTER SEQUENCE "public"."_projects_v_id_seq" CACHE 64')
   })
 })

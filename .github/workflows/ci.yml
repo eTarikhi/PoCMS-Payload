@@ -170,6 +170,25 @@ jobs:
               const formsCheck = await client.query("SELECT COUNT(*)::int AS cnt FROM forms WHERE jsonb_typeof(fields) = \x27array\x27 AND jsonb_array_length(fields) > 0");
               if ((formsCheck.rows[0]?.cnt ?? 0) < 1) throw new Error("Expected seeded forms.fields jsonb array to contain blocks");
 
+              // R-11a: users_roles & enum_users_roles are retired and projects_rels links seeded skills
+              const legacyUsersRoles = await client.query("SELECT table_name FROM information_schema.tables WHERE table_schema = \x27public\x27 AND table_name = \x27users_roles\x27");
+              if (legacyUsersRoles.rowCount !== 0) throw new Error("Expected users_roles table to be retired");
+              const projSkillLinks = await client.query("SELECT COUNT(*)::int AS cnt FROM projects_rels WHERE path = \x27relatedSkills\x27 AND skills_id IS NOT NULL");
+              if ((projSkillLinks.rows[0]?.cnt ?? 0) < 1) throw new Error("Expected seeded projects_rels relatedSkills rows");
+
+              // R-14b: all 6 high-write serial PK sequences are tuned to CACHE 64
+              const seqCheck = await client.query("SELECT sequencename, cache_size::int AS cache_size FROM pg_sequences WHERE schemaname = \x27public\x27 AND sequencename = ANY($1)", [[
+                "audit_logs_id_seq",
+                "payload_jobs_id_seq",
+                "_articles_v_id_seq",
+                "_projects_v_id_seq",
+                "mail_webhook_events_id_seq",
+                "mail_messages_id_seq"
+              ]]);
+              if (seqCheck.rowCount !== 6 || seqCheck.rows.some((r) => r.cache_size !== 64)) {
+                throw new Error("Expected all 6 high-write serial sequences at CACHE 64, got " + JSON.stringify(seqCheck.rows));
+              }
+
               // R-13a: mail_message_bodies sidecar exists with ON DELETE CASCADE and mail_messages has zero cold MIME columns
               const coldCols = await client.query("SELECT column_name FROM information_schema.columns WHERE table_schema = \x27public\x27 AND table_name = \x27mail_messages\x27 AND column_name IN (\x27sanitized_html\x27, \x27quoted_history_text\x27, \x27headers_snapshot\x27)");
               if (coldCols.rowCount !== 0) throw new Error("Expected 0 cold MIME columns on mail_messages, found " + coldCols.rowCount);
@@ -205,6 +224,8 @@ jobs:
               await client.query("CREATE INDEX IF NOT EXISTS idx_articles_public_feed ON articles (published_at) WHERE deleted_at IS NULL");
               await client.query("DROP INDEX IF EXISTS payload_locked_documents_rels_articles_id_idx");
               await client.query("CREATE INDEX IF NOT EXISTS idx_pld_rels_articles_nn ON payload_locked_documents_rels (articles_id) WHERE articles_id IS NOT NULL");
+              await client.query("CREATE TYPE enum_users_roles AS ENUM (\x27admin\x27, \x27editor\x27)");
+              await client.query("CREATE TABLE users_roles (id serial PRIMARY KEY, \"order\" integer NOT NULL, parent_id integer NOT NULL, value enum_users_roles)");
               await client.query("DELETE FROM payload_migrations WHERE batch = -1");
               await client.query("INSERT INTO payload_migrations (name, batch) VALUES (\x2720261031_001_phase1_integrity_and_indexes\x27, 1)");
               await client.end();
@@ -226,6 +247,19 @@ jobs:
               if (restoredIdx.rowCount !== 1) throw new Error("Expected restored payload_locked_documents_rels_articles_id_idx");
               const leftoverOutOfBand = await client.query("SELECT indexname FROM pg_indexes WHERE schemaname = \x27public\x27 AND indexname IN (\x27idx_articles_public_feed\x27, \x27idx_pld_rels_articles_nn\x27)");
               if (leftoverOutOfBand.rowCount !== 0) throw new Error("Expected 0 leftover out-of-band indexes, got " + leftoverOutOfBand.rowCount);
+              const leftoverUsersRoles = await client.query("SELECT to_regclass(\x27public.users_roles\x27) IS NOT NULL AS tbl, EXISTS (SELECT 1 FROM pg_type WHERE typname = \x27enum_users_roles\x27) AS typ");
+              if (leftoverUsersRoles.rows[0]?.tbl || leftoverUsersRoles.rows[0]?.typ) throw new Error("Expected users_roles + enum_users_roles to be retired cleanly");
+              const seqAfterPush = await client.query("SELECT sequencename, cache_size::int AS cache_size FROM pg_sequences WHERE schemaname = \x27public\x27 AND sequencename = ANY($1)", [[
+                "audit_logs_id_seq",
+                "payload_jobs_id_seq",
+                "_articles_v_id_seq",
+                "_projects_v_id_seq",
+                "mail_webhook_events_id_seq",
+                "mail_messages_id_seq"
+              ]]);
+              if (seqAfterPush.rowCount !== 6 || seqAfterPush.rows.some((r) => r.cache_size !== 64)) {
+                throw new Error("Expected CACHE 64 preserved across Drizzle pushDevSchema, got " + JSON.stringify(seqAfterPush.rows));
+              }
               await client.end();
               console.log("Verified lossless partitioned -> heap restoration, out-of-band index cleanup, + clean Drizzle pushDevSchema!");
             })().catch((err) => { console.error(err); process.exit(1); });

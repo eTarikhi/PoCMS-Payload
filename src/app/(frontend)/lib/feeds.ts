@@ -4,7 +4,7 @@ import type { Article, Project } from '@/payload-types'
 
 import { articlePagePath, ARTICLES_HUB_PATH, hasArticlePage } from './article-page'
 import { extractLexicalText } from './lexical'
-import { DEFAULT_SITE_SETTINGS } from './mappers'
+import { DEFAULT_SITE_SETTINGS, resolveMergedSkillLabels } from './mappers'
 import { hasProjectPage, projectPagePath, PROJECTS_HUB_PATH } from './project-page'
 import {
   CONTACT_HUB_PATH,
@@ -233,7 +233,7 @@ export const buildRssFeedXml = ({
 
       const categories = [
         'Case Study',
-        ...(doc.techStack ?? []).map((item) => item.trim()).filter(Boolean),
+        ...resolveMergedSkillLabels(doc.techStack, doc.relatedSkills),
       ]
 
       return {
