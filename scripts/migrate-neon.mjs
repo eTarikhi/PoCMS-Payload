@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Neon-aware PostgreSQL migration & online index optimization runner (`R-07`, `R-08`, `R-09`).
+ * Neon-aware PostgreSQL migration & online optimization runner (`R-06`, `R-08`, `R-09`, `R-10`, `R-13a`).
  *
  * - Installs resilient IPv4-first + `1.1.1.1` / DoH DNS fallback (`scripts/dns-fallback.mjs`) for
  *   Windows / VPN environments where dual-stack `getaddrinfo` (`onlookupall`) hits `EAI_AGAIN`.
@@ -9,19 +9,20 @@
  * - Prefers `POSTGRES_URL_NON_POOLING` / `DATABASE_URL_UNPOOLED` over `-pooler.` URLs, probes
  *   reachability (TCP 5432 with automatic Neon WebSocket `:443` fallback), and falls back to
  *   `POSTGRES_URL` if the unpooled URL is stale/unreachable.
+ * - Preserves Payload 3's native `payload_migrations` `batch = -1` dev-push sentinel untouched so
+ *   development `push` mode and production `payload migrate` are never mixed.
  *
  * Usage:
  *   node scripts/migrate-neon.mjs migrate           # Run pending Payload migrations (`src/migrations`)
  *   node scripts/migrate-neon.mjs status            # Show applied/pending migration ledger status
  *   node scripts/migrate-neon.mjs create [name]     # Create a new Payload Drizzle migration
- *   node scripts/migrate-neon.mjs optimize-indexes  # Zero-lock online `CONCURRENTLY` Phase 1 rollout
+ *   node scripts/migrate-neon.mjs optimize          # Zero-lock online SQL optimizations + heap restore
  */
 import { exportDnsPrewarmString, seedDnsCacheEntry } from './dns-fallback.mjs'
 import 'dotenv/config'
 
 import { spawnSync } from 'node:child_process'
 import dns from 'node:dns'
-import fs from 'node:fs'
 import { createRequire } from 'node:module'
 import net from 'node:net'
 import path from 'node:path'
@@ -34,67 +35,6 @@ export function loadVercelPool() {
   const adapterEntry = rootRequire.resolve('@payloadcms/db-vercel-postgres')
   const adapterRequire = createRequire(adapterEntry)
   return adapterRequire('@vercel/postgres').VercelPool
-}
-
-/**
- * Moves any top-level `.ts` / `.js` / `.json` files in `migrationsDir` that are NOT registered in
- * `migrationsDir/index.ts` into `migrationsDir/.archived-local/` so Payload's `readdirSync`
- * migration loader never executes stale untracked local dumps (e.g. `20261025_*.ts` created when
- * `/src/migrations` was gitignored).
- *
- * Legitimate migrations created via `pnpm db:migrate:create` are automatically written into
- * `index.ts` by Payload's `writeMigrationIndex` and are preserved untouched.
- *
- * @param {string} migrationsDir
- * @returns {string[]} List of quarantined filenames
- */
-export function quarantineUnregisteredMigrations(migrationsDir) {
-  const indexPath = path.join(migrationsDir, 'index.ts')
-  if (!fs.existsSync(migrationsDir) || !fs.existsSync(indexPath)) {
-    return []
-  }
-
-  const indexSource = fs.readFileSync(indexPath, 'utf8')
-  /** @type {Set<string>} */
-  const registeredStems = new Set()
-
-  for (const match of indexSource.matchAll(/from\s+['"]\.\/([^'"]+)['"]/g)) {
-    const stem = match[1].replace(/\.(ts|js)$/, '')
-    if (stem) registeredStems.add(stem)
-  }
-  for (const match of indexSource.matchAll(/name:\s*['"]([^'"]+)['"]/g)) {
-    if (match[1]) registeredStems.add(match[1])
-  }
-
-  if (registeredStems.size === 0) {
-    return []
-  }
-
-  const entries = fs.readdirSync(migrationsDir, { withFileTypes: true })
-  /** @type {string[]} */
-  const quarantined = []
-
-  for (const entry of entries) {
-    if (!entry.isFile()) continue
-    const fileName = entry.name
-    if (fileName === 'index.ts' || fileName === 'index.js') continue
-    if (!/\.(ts|js|json)$/.test(fileName)) continue
-
-    const stem = fileName.replace(/\.(ts|js|json)$/, '')
-    if (registeredStems.has(stem)) continue
-
-    const archiveDir = path.join(migrationsDir, '.archived-local')
-    fs.mkdirSync(archiveDir, { recursive: true })
-    const srcPath = path.join(migrationsDir, fileName)
-    const destPath = path.join(archiveDir, fileName)
-    if (fs.existsSync(destPath)) {
-      fs.rmSync(destPath, { force: true })
-    }
-    fs.renameSync(srcPath, destPath)
-    quarantined.push(fileName)
-  }
-
-  return quarantined
 }
 
 const LEGACY_SSL_MODES = new Set(['prefer', 'require', 'verify-ca'])
@@ -261,16 +201,6 @@ async function main() {
   const mode = (process.argv[2] || 'migrate').trim().toLowerCase()
   const extraArgs = process.argv.slice(3)
 
-  if (mode !== 'create' && process.env.PAYLOAD_MIGRATE_ALLOW_UNREGISTERED !== 'true') {
-    const migrationsDir = path.resolve(process.cwd(), 'src', 'migrations')
-    const archived = quarantineUnregisteredMigrations(migrationsDir)
-    if (archived.length > 0) {
-      console.warn(
-        `[db:migrate] Quarantined ${archived.length} untracked legacy file(s) -> src/migrations/.archived-local/: ${archived.join(', ')}`,
-      )
-    }
-  }
-
   /** @type {Array<{ envName: string; url: string; host: string }>} */
   const candidates = []
   const seenUrls = new Set()
@@ -346,45 +276,24 @@ async function main() {
     await withResilientDbClient(
       selected.url,
       async (db, transport) => {
+        const phase2And3 = await applyPhase2And3DatabaseOptimizations(db, {
+          schemaName: 'public',
+        })
         const summary = await applyPhase1DatabaseOptimizations(db, {
           schemaName: 'public',
           concurrent,
-        })
-        const phase2And3 = await applyPhase2And3DatabaseOptimizations(db, {
-          schemaName: 'public',
         })
         console.log(
           `[db:optimize-indexes] Completed via ${transport.toUpperCase()} (${summary.concurrent ? 'CONCURRENTLY' : 'non-concurrent'}): ` +
             `${summary.createdIndexes.length} index(es) ensured, ${summary.droppedIndexes.length} legacy index(es) pruned; ` +
             `R-10 forms backfilled=${phase2And3.formsBlocks.backfilledFormsCount} (dropped ${phase2And3.formsBlocks.droppedLegacyTables.length} block table(s)); ` +
-            `R-13 mail_message_bodies backfilled=${phase2And3.mailBodies.backfilledBodiesCount}, ` +
-            `audit_logs partitioned=${phase2And3.auditPartitions.convertedFromHeap ? 'converted' : 'verified'} (${phase2And3.auditPartitions.ensuredPartitions.length} partition(s) ensured).`,
+            `R-13a mail_message_bodies backfilled=${phase2And3.mailBodies.backfilledBodiesCount}; ` +
+            `audit_logs heap=${phase2And3.auditLogsHeap.restoredFromPartitioned ? `restored (${phase2And3.auditLogsHeap.preservedRowsCount} row(s) preserved)` : 'standard'}.`,
         )
       },
       { statementTimeoutMs: 300_000 },
     )
     return
-  }
-
-  // When transitioning an existing pushDevSchema-bootstrapped database (`batch = -1` row in
-  // `payload_migrations`) to versioned migrations, `@payloadcms/drizzle` prompts interactively and
-  // silently exits 0 on non-TTY stdin. Clearing `batch = -1` allows idempotent migrations to run cleanly.
-  if (mode === 'migrate' && selected && process.env.PAYLOAD_MIGRATE_KEEP_DEV_SENTINEL !== 'true') {
-    await withResilientDbClient(selected.url, async (db) => {
-      const check = await db.query(
-        `SELECT to_regclass('public.payload_migrations') IS NOT NULL AS exists`,
-      )
-      if (check.rows[0]?.exists) {
-        const cleaned = await db.query(
-          `DELETE FROM "public"."payload_migrations" WHERE "batch" = -1`,
-        )
-        if ((cleaned.rowCount ?? 0) > 0) {
-          console.log(
-            `[db:migrate] Cleared ${cleaned.rowCount} dev-mode sentinel row(s) (batch = -1) from payload_migrations.`,
-          )
-        }
-      }
-    })
   }
 
   const payloadSubcommand =

@@ -114,7 +114,7 @@ describe('RBAC Capability 1: viewSystem (System Information)', () => {
     const report = (await allowedRes.json()) as SystemInfoReport
     expect(report.versions.payload).toBe('3.90.2')
     expect(report.versions.next).toBe('16.3.8')
-    expect(report.schema.jobTasks).toBe(12)
+    expect(report.schema.jobTasks).toBe(11)
 
     render(React.createElement(SystemInfoSummaryView, { report }))
     expect(screen.getByText('System information')).toBeDefined()
@@ -160,7 +160,6 @@ describe('RBAC Capability 2: manageJobs (Payload Jobs Queue & Scheduled Jobs UI)
       'purgeExpiredSessions',
       'purgeCompletedJobs',
       'pruneDocumentVersions',
-      'maintainAuditLogPartitions',
       'applyDeliveryTelemetry',
       'pruneWebhookLedger',
       'archiveColdMailBodies',

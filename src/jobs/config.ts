@@ -9,10 +9,7 @@ import { consolidateLegacyMediaUrls } from '@/lib/legacyMediaConsolidation'
 import {
   executePayloadSql,
   qualifiedPayloadTable,
-  resolvePayloadPoolClient,
-  resolvePayloadSchemaName,
 } from '@/lib/payloadSql'
-import { partitionAuditLogsByMonth } from '@/lib/phase2And3SqlOptimizations'
 import { pruneContentVersions } from '@/lib/versionRetention'
 import { DEFAULT_RETENTION_KEEP_PER_DOC } from '@/lib/versionRetentionShared'
 
@@ -293,63 +290,6 @@ const tasks: NonNullable<JobsConfig['tasks']> = [
           totalDeleted: report.totalDeleted,
           articlesDeleted,
           projectsDeleted,
-        },
-      }
-    },
-  },
-  {
-    slug: 'maintainAuditLogPartitions',
-    label: 'Maintain audit log partitions',
-    retries: 0,
-    schedule: [
-      {
-        cron: '5 0 1 * *',
-        queue: 'default',
-      },
-    ],
-    inputSchema: [
-      { name: 'monthsAhead', type: 'number', defaultValue: 3 },
-      { name: 'retentionMonths', type: 'number', defaultValue: 12 },
-    ],
-    outputSchema: [
-      { name: 'convertedFromHeap', type: 'checkbox' },
-      { name: 'ensuredCount', type: 'number' },
-      { name: 'droppedCount', type: 'number' },
-    ],
-    handler: async ({ input, req }) => {
-      const client = resolvePayloadPoolClient(req.payload)
-      if (!client) {
-        return {
-          output: {
-            convertedFromHeap: false,
-            ensuredCount: 0,
-            droppedCount: 0,
-          },
-        }
-      }
-
-      const rec = (input ?? {}) as Record<string, unknown>
-      const monthsAhead =
-        typeof rec.monthsAhead === 'number' && rec.monthsAhead >= 1 ? rec.monthsAhead : 3
-      const envRetention = Number.parseInt(process.env.AUDIT_LOG_RETENTION_MONTHS ?? '', 10)
-      const retentionMonths =
-        typeof rec.retentionMonths === 'number' && rec.retentionMonths > 0
-          ? rec.retentionMonths
-          : Number.isFinite(envRetention) && envRetention > 0
-            ? envRetention
-            : 12
-
-      const summary = await partitionAuditLogsByMonth(client, {
-        schemaName: resolvePayloadSchemaName(req.payload),
-        monthsAhead,
-        retentionMonths,
-      })
-
-      return {
-        output: {
-          convertedFromHeap: summary.convertedFromHeap,
-          ensuredCount: summary.ensuredPartitions.length,
-          droppedCount: summary.droppedExpiredPartitions.length,
         },
       }
     },

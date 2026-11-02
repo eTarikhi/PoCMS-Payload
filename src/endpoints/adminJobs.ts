@@ -76,7 +76,6 @@ export const adminJobsEndpoints: Endpoint[] = [
               | 'purgeExpiredSessions'
               | 'purgeCompletedJobs'
               | 'pruneDocumentVersions'
-              | 'maintainAuditLogPartitions'
               | 'createDatabaseBackup'
               | 'pruneWebhookLedger'
               | 'archiveColdMailBodies',

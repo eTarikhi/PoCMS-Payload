@@ -4,7 +4,6 @@ import { createRequire } from 'node:module'
 import net from 'node:net'
 import path from 'node:path'
 
-import type { MigrateDownArgs, MigrateUpArgs } from '@payloadcms/db-vercel-postgres'
 import type { Payload } from 'payload'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -22,7 +21,6 @@ import {
   TEXTS_TABLES,
 } from '@/lib/phase1SqlOptimizations'
 import { phase1BeforeSchemaInit } from '@/lib/postgresSchemaHooks'
-import { migrations } from '@/migrations'
 import { runDatabaseRepairAction } from '@/plugins/databaseManager/core/repair'
 import { REPAIR_ACTION_META } from '@/plugins/databaseManager/shared'
 
@@ -147,35 +145,6 @@ describe('Phase 1 Database Integrity, Versioned Migrations & Index Optimizations
     })
     expect(indexSet.has('header_texts_order_parent')).toBe(false)
     expect(indexSet.has('header_texts_parent_path_order_idx')).toBe(true)
-  })
-
-  it('R-07: registers versioned Payload migration with idempotent up() and reversible down()', async () => {
-    expect(migrations).toHaveLength(1)
-    expect(migrations[0].name).toBe('20261031_001_phase1_integrity_and_indexes')
-
-    const executedUp: unknown[] = []
-    const executedDown: unknown[] = []
-
-    await migrations[0].up({
-      db: {
-        execute: vi.fn(async (stmt: unknown) => {
-          executedUp.push(stmt)
-          return { rows: [] }
-        }),
-      },
-    } as unknown as MigrateUpArgs)
-
-    await migrations[0].down({
-      db: {
-        execute: vi.fn(async (stmt: unknown) => {
-          executedDown.push(stmt)
-          return { rows: [] }
-        }),
-      },
-    } as unknown as MigrateDownArgs)
-
-    expect(executedUp.length).toBeGreaterThan(30)
-    expect(executedDown.length).toBeGreaterThan(30)
 
     const pkgJson = JSON.parse(
       fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'),
@@ -183,6 +152,13 @@ describe('Phase 1 Database Integrity, Versioned Migrations & Index Optimizations
     expect(pkgJson.scripts['db:migrate']).toContain('migrate-neon.mjs')
     expect(pkgJson.scripts['db:optimize-indexes']).toContain('optimize-indexes')
     expect(fs.existsSync(path.join(process.cwd(), 'scripts', 'migrate-neon.mjs'))).toBe(true)
+    // Verify R-07 compliance: no tracked migrations in src/migrations while Drizzle push is default in dev
+    expect(fs.existsSync(path.join(process.cwd(), 'src', 'migrations', 'index.ts'))).toBe(false)
+    const migrateRunnerSource = fs.readFileSync(
+      path.join(process.cwd(), 'scripts', 'migrate-neon.mjs'),
+      'utf8',
+    )
+    expect(migrateRunnerSource).not.toContain('WHERE "batch" = -1')
   })
 
   it('R-08 & R-09: builds CONCURRENTLY online index & partial FK plans and wires apply-neon-optimizations into /admin/database Repair', async () => {
@@ -277,45 +253,12 @@ describe('Phase 1 Database Integrity, Versioned Migrations & Index Optimizations
     expect(pooledRepairResult.summary).toContain('transactional-safe')
   })
 
-  it('R-07: normalizes sslmode, quarantines stale untracked migrations, and recovers from Windows EAI_AGAIN DNS errors via IPv4 / DoH fallback', async () => {
+  it('normalizes sslmode and recovers from Windows EAI_AGAIN DNS errors via IPv4 / DoH fallback', async () => {
     const {
       loadVercelPool,
       normalizeMigrationPostgresUrl,
-      quarantineUnregisteredMigrations,
     } = await import('../../scripts/migrate-neon.mjs')
     expect(typeof loadVercelPool()).toBe('function')
-
-    // Verify quarantine of stale pre-Git untracked migrations (e.g. 20261025_203812.ts)
-    const os = await import('node:os')
-    const tmpMigDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pocms-mig-test-'))
-    try {
-      fs.writeFileSync(
-        path.join(tmpMigDir, 'index.ts'),
-        `import * as m1 from './20261031_001_phase1_integrity_and_indexes'\nexport const migrations = [{ up: m1.up, down: m1.down, name: '20261031_001_phase1_integrity_and_indexes' }]\n`,
-      )
-      fs.writeFileSync(path.join(tmpMigDir, '20261031_001_phase1_integrity_and_indexes.ts'), '// ok')
-      fs.writeFileSync(
-        path.join(tmpMigDir, '20261031_001_phase1_integrity_and_indexes.json'),
-        '{}',
-      )
-      fs.writeFileSync(path.join(tmpMigDir, '20261025_203812.ts'), '// stale untracked dump')
-      fs.writeFileSync(path.join(tmpMigDir, '20261025_203812.json'), '{}')
-
-      const archived = quarantineUnregisteredMigrations(tmpMigDir)
-      expect(archived.sort()).toEqual(['20261025_203812.json', '20261025_203812.ts'])
-      expect(fs.existsSync(path.join(tmpMigDir, '20261025_203812.ts'))).toBe(false)
-      expect(
-        fs.existsSync(path.join(tmpMigDir, '.archived-local', '20261025_203812.ts')),
-      ).toBe(true)
-      expect(
-        fs.existsSync(path.join(tmpMigDir, '20261031_001_phase1_integrity_and_indexes.ts')),
-      ).toBe(true)
-      expect(
-        fs.existsSync(path.join(tmpMigDir, '20261031_001_phase1_integrity_and_indexes.json')),
-      ).toBe(true)
-    } finally {
-      fs.rmSync(tmpMigDir, { recursive: true, force: true })
-    }
     expect(
       normalizeMigrationPostgresUrl(
         'postgresql://u:p@ep-test.c-5.eu-central-1.aws.neon.tech/neondb?sslmode=require',

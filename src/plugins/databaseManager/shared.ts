@@ -495,7 +495,7 @@ export const REPAIR_ACTION_META: readonly {
     action: 'apply-neon-optimizations',
     label: 'Apply Neon Phase 1–3 optimizations',
     description:
-      'Applies FK cascade fixes, composite/partial/pg_trgm indexes, forms blocksAsJSON backfill, mail_message_bodies cold sidecar, and audit_logs monthly partitioning.',
+      'Applies FK cascade fixes, composite/partial/pg_trgm indexes, forms blocksAsJSON backfill, and mail_message_bodies cold sidecar (CONCURRENTLY when unpooled).',
     prefersUnpooled: true,
     destructive: false,
   },

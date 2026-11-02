@@ -102,19 +102,11 @@ export async function exportLogicalBackupArchive(
       .query<{ version: string }>(`SELECT version() AS version`)
       .catch(() => ({ rows: [] as Array<{ version: string }> })),
     executor.query<{ table_name: string }>(`
-      SELECT t.table_name
-      FROM information_schema.tables t
-      WHERE t.table_schema = 'public'
-        AND t.table_type = 'BASE TABLE'
-        AND NOT EXISTS (
-          SELECT 1
-          FROM pg_class c
-          INNER JOIN pg_namespace n ON n.oid = c.relnamespace
-          WHERE n.nspname = t.table_schema
-            AND c.relname = t.table_name
-            AND c.relispartition = true
-        )
-      ORDER BY t.table_name ASC
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_type = 'BASE TABLE'
+      ORDER BY table_name ASC
     `),
     executor.query<{
       table_name: string

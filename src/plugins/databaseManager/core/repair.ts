@@ -65,19 +65,19 @@ export async function runDatabaseRepairAction(
   if (action === 'apply-neon-optimizations') {
     return directRunner(
       async (directExec, { usedUnpooledConnection }) => {
+        const phase2And3 = await applyPhase2And3DatabaseOptimizations(directExec, {
+          schemaName: 'public',
+        })
         const summary = await applyPhase1DatabaseOptimizations(directExec, {
           schemaName: 'public',
           concurrent: usedUnpooledConnection,
-        })
-        const phase2And3 = await applyPhase2And3DatabaseOptimizations(directExec, {
-          schemaName: 'public',
         })
         return {
           action,
           ok: true,
           usedUnpooledConnection,
           durationMs: Date.now() - startedAt,
-          summary: `Applied Neon Phase 1–3 database optimizations (${summary.concurrent ? 'CONCURRENTLY' : 'transactional-safe'}): ${summary.createdIndexes.length} index(es) ensured, ${summary.droppedIndexes.length} legacy index(es) pruned, forms JSONB=${phase2And3.formsBlocks.formsTableExists ? 'ready' : 'n/a'}, mail_message_bodies=${phase2And3.mailBodies.sidecarEnsured ? 'ready' : 'n/a'}, audit_logs partitioned=${phase2And3.auditPartitions.auditLogsExists ? 'ready' : 'n/a'}.`,
+          summary: `Applied Neon database optimizations (${summary.concurrent ? 'CONCURRENTLY' : 'transactional-safe'}): ${summary.createdIndexes.length} index(es) ensured, ${summary.droppedIndexes.length} legacy index(es) pruned, forms JSONB=${phase2And3.formsBlocks.formsTableExists ? 'ready' : 'n/a'}, mail_message_bodies=${phase2And3.mailBodies.sidecarEnsured ? 'ready' : 'n/a'}, audit_logs=${phase2And3.auditLogsHeap.restoredFromPartitioned ? 'restored-heap' : 'heap'}.`,
           details: {
             extensionEnsured: summary.extensionEnsured,
             fkIntegrityApplied: summary.fkIntegrityApplied,
@@ -87,8 +87,7 @@ export async function runDatabaseRepairAction(
             formsBackfilledCount: phase2And3.formsBlocks.backfilledFormsCount,
             formsLegacyTablesDropped: phase2And3.formsBlocks.droppedLegacyTables.length,
             mailBodiesBackfilledCount: phase2And3.mailBodies.backfilledBodiesCount,
-            auditConvertedFromHeap: phase2And3.auditPartitions.convertedFromHeap,
-            auditPartitionsEnsured: phase2And3.auditPartitions.ensuredPartitions.length,
+            auditLogsRestoredFromPartitioned: phase2And3.auditLogsHeap.restoredFromPartitioned,
           },
         }
       },

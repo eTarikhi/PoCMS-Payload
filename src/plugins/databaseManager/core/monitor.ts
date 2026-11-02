@@ -57,14 +57,6 @@ export async function inspectSequences(executor: SqlExecutor): Promise<SequenceH
        AND t.table_name = c.table_name
       WHERE c.table_schema = 'public'
         AND t.table_type = 'BASE TABLE'
-        AND NOT EXISTS (
-          SELECT 1
-          FROM pg_class pc
-          INNER JOIN pg_namespace pn ON pn.oid = pc.relnamespace
-          WHERE pn.nspname = t.table_schema
-            AND pc.relname = t.table_name
-            AND pc.relispartition = true
-        )
     )
     SELECT
       cols.table_name,

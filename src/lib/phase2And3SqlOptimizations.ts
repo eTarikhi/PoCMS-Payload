@@ -27,18 +27,17 @@ export type MailBodiesSidecarSummary = {
   droppedLegacyColumns: string[]
 }
 
-export type AuditLogsPartitionSummary = {
+export type AuditLogsHeapRestoreSummary = {
   auditLogsExists: boolean
-  convertedFromHeap: boolean
-  copiedRowsCount: number
-  ensuredPartitions: string[]
-  droppedExpiredPartitions: string[]
+  restoredFromPartitioned: boolean
+  preservedRowsCount: number
+  removedLegacyMigrationRow: boolean
 }
 
 export type Phase2And3OptimizationSummary = {
   formsBlocks: FormsBlocksMigrationSummary
   mailBodies: MailBodiesSidecarSummary
-  auditPartitions: AuditLogsPartitionSummary
+  auditLogsHeap: AuditLogsHeapRestoreSummary
 }
 
 function buildFormsBlockUnionSubquery(
@@ -268,9 +267,10 @@ export async function migrateFormsBlocksToJsonb(
 
   const droppedLegacyTables: string[] = []
   if (dropLegacyTables && legacyTablesFound.length > 0) {
-    // Drop nested options child table first, then top-level block tables
     if (existingTables.has(LEGACY_FORMS_SELECT_OPTIONS_TABLE)) {
-      await db.query(`DROP TABLE IF EXISTS ${s}.${quoteSqlIdent(LEGACY_FORMS_SELECT_OPTIONS_TABLE)} CASCADE`)
+      await db.query(
+        `DROP TABLE IF EXISTS ${s}.${quoteSqlIdent(LEGACY_FORMS_SELECT_OPTIONS_TABLE)} CASCADE`,
+      )
       droppedLegacyTables.push(LEGACY_FORMS_SELECT_OPTIONS_TABLE)
     }
     for (const tbl of LEGACY_FORMS_BLOCK_TABLES) {
@@ -393,73 +393,21 @@ export async function migrateMailMessageBodiesSidecar(
   }
 }
 
-export type MonthlyPartitionSpec = {
-  partitionName: string
-  year: number
-  month: number
-  fromIso: string
-  toIso: string
-}
-
-export function buildMonthlyPartitionSpec(year: number, month1Based: number): MonthlyPartitionSpec {
-  const paddedMonth = String(month1Based).padStart(2, '0')
-  const nextYear = month1Based === 12 ? year + 1 : year
-  const nextMonth = month1Based === 12 ? 1 : month1Based + 1
-  const paddedNextMonth = String(nextMonth).padStart(2, '0')
-
-  return {
-    partitionName: `audit_logs_y${year}m${paddedMonth}`,
-    year,
-    month: month1Based,
-    fromIso: `${year}-${paddedMonth}-01T00:00:00.000Z`,
-    toIso: `${nextYear}-${paddedNextMonth}-01T00:00:00.000Z`,
-  }
-}
-
-export function computeUpcomingAuditPartitionSpecs(
-  now: Date = new Date(),
-  monthsAhead = 3,
-  monthsBehind = 1,
-): MonthlyPartitionSpec[] {
-  const specs: MonthlyPartitionSpec[] = []
-  const baseYear = now.getUTCFullYear()
-  const baseMonth0 = now.getUTCMonth()
-
-  for (let offset = -Math.max(0, monthsBehind); offset <= Math.max(0, monthsAhead); offset += 1) {
-    const d = new Date(Date.UTC(baseYear, baseMonth0 + offset, 1))
-    specs.push(buildMonthlyPartitionSpec(d.getUTCFullYear(), d.getUTCMonth() + 1))
-  }
-  return specs
-}
-
-function parsePartitionYearMonth(partitionName: string): { year: number; month: number } | null {
-  const m = /^audit_logs_y(\d{4})m(0[1-9]|1[0-2])$/.exec(partitionName)
-  if (!m) return null
-  return {
-    year: Number.parseInt(m[1], 10),
-    month: Number.parseInt(m[2], 10),
-  }
-}
-
 /**
- * R-13b (Phase 3): Converts `audit_logs` in-place to a declarative PostgreSQL monthly range-partitioned
- * table (`PARTITION BY RANGE ("created_at")`), ensures past/current/upcoming monthly partitions
- * plus `audit_logs_default`, and optionally drops expired monthly partitions instantaneously
- * (`DROP TABLE`) without `VACUUM` dead-tuple overhead.
+ * Restores any database where `audit_logs` was previously converted to a PostgreSQL declarative
+ * range-partitioned table (`relkind = 'p'`, incompatible with `drizzle-kit` `pushSchema` /
+ * `migrate:create`) back to a standard Payload 3 Drizzle heap table (`relkind = 'r'`,
+ * `PRIMARY KEY ("id")`) with 100% row preservation, restores `payload_locked_documents_rels.audit_logs_id`,
+ * and cleans up the retired `20261031_001_phase1_integrity_and_indexes` migration row so Drizzle
+ * `pushDevSchema` operates cleanly without conflicts.
  */
-export async function partitionAuditLogsByMonth(
+export async function restoreAuditLogsHeapIfPartitioned(
   db: QueryClientLike,
-  options: {
-    schemaName?: string
-    now?: Date
-    monthsAhead?: number
-    retentionMonths?: number
-  } = {},
-): Promise<AuditLogsPartitionSummary> {
+  options: { schemaName?: string } = {},
+): Promise<AuditLogsHeapRestoreSummary> {
   const schemaName = options.schemaName ?? 'public'
   const s = quoteSqlIdent(schemaName)
-  const now = options.now ?? new Date()
-  const monthsAhead = options.monthsAhead ?? 3
+  const escapedSchema = schemaName.replace(/'/g, "''")
 
   const relRes = await db.query(
     `SELECT c.relkind::text AS relkind
@@ -470,62 +418,15 @@ export async function partitionAuditLogsByMonth(
     [schemaName],
   )
   const relkind = (relRes.rows?.[0] as { relkind?: string } | undefined)?.relkind
-  if (!relkind) {
-    return {
-      auditLogsExists: false,
-      convertedFromHeap: false,
-      copiedRowsCount: 0,
-      ensuredPartitions: [],
-      droppedExpiredPartitions: [],
-    }
-  }
 
-  let convertedFromHeap = false
-  let copiedRowsCount = 0
-  const ensuredPartitions: string[] = []
+  let restoredFromPartitioned = false
+  let preservedRowsCount = 0
 
-  // Clean up any legacy `payload_locked_documents_rels` columns/FKs for collections that now set
-  // `lockDocuments: false` (`audit_logs`, `mail_webhook_events`, `mail_messages`), which otherwise
-  // hold an incoming FK to `audit_logs(id)` alone.
-  const pldCheck = await db.query(
-    `SELECT to_regclass($1) IS NOT NULL AS exists`,
-    [`${schemaName}.payload_locked_documents_rels`],
-  )
-  if ((pldCheck.rows?.[0] as { exists?: boolean } | undefined)?.exists) {
-    for (const obsoleteCol of ['audit_logs_id', 'mail_webhook_events_id', 'mail_messages_id']) {
-      await db.query(
-        `ALTER TABLE ${s}."payload_locked_documents_rels" DROP COLUMN IF EXISTS ${quoteSqlIdent(obsoleteCol)} CASCADE`,
-      )
-    }
-  }
-
-  if (relkind === 'r') {
-    // Discover all distinct UTC year-months already stored in `audit_logs` before converting
-    const historicalMonthsRes = await db.query(`
-      SELECT DISTINCT
-        EXTRACT(YEAR FROM "created_at" AT TIME ZONE 'UTC')::int AS yr,
-        EXTRACT(MONTH FROM "created_at" AT TIME ZONE 'UTC')::int AS mo
-      FROM ${s}."audit_logs"
-      WHERE "created_at" IS NOT NULL
-      ORDER BY yr ASC, mo ASC
-    `)
-
-    const specsMap = new Map<string, MonthlyPartitionSpec>()
-    for (const row of historicalMonthsRes.rows ?? []) {
-      const r = row as { yr?: number; mo?: number }
-      if (typeof r.yr === 'number' && typeof r.mo === 'number') {
-        const spec = buildMonthlyPartitionSpec(r.yr, r.mo)
-        specsMap.set(spec.partitionName, spec)
-      }
-    }
-    for (const spec of computeUpcomingAuditPartitionSpecs(now, monthsAhead, 1)) {
-      specsMap.set(spec.partitionName, spec)
-    }
-
+  if (relkind === 'p') {
     await db.query('BEGIN')
     try {
-      await db.query(`ALTER TABLE ${s}."audit_logs" RENAME TO "audit_logs__legacy_heap"`)
-      // Drop legacy index names on the renamed heap table so the new partitioned parent owns the canonical names
+      await db.query(`ALTER TABLE ${s}."audit_logs" RENAME TO "audit_logs__part_restore"`)
+
       for (const idxName of [
         'audit_logs_pkey',
         'audit_logs_action_idx',
@@ -536,7 +437,7 @@ export async function partitionAuditLogsByMonth(
         'audit_logs_created_at_idx',
         'audit_logs_entity_doc_created_idx',
       ]) {
-        const renameTarget = `${idxName}__leg`.slice(0, 62)
+        const renameTarget = `${idxName}__part`.slice(0, 62)
         await db.query(
           `ALTER INDEX IF EXISTS ${s}.${quoteSqlIdent(idxName)} RENAME TO ${quoteSqlIdent(renameTarget)}`,
         )
@@ -544,12 +445,11 @@ export async function partitionAuditLogsByMonth(
 
       await db.query(`
         CREATE TABLE ${s}."audit_logs" (
-          LIKE ${s}."audit_logs__legacy_heap" INCLUDING DEFAULTS INCLUDING GENERATED INCLUDING COMMENTS,
-          PRIMARY KEY ("id", "created_at")
-        ) PARTITION BY RANGE ("created_at")
+          LIKE ${s}."audit_logs__part_restore" INCLUDING DEFAULTS INCLUDING GENERATED INCLUDING COMMENTS,
+          PRIMARY KEY ("id")
+        )
       `)
 
-      // Re-attach optional actor FK to `users(id)` when `users` exists
       const usersCheck = await db.query(
         `SELECT to_regclass($1) IS NOT NULL AS exists`,
         [`${schemaName}.users`],
@@ -564,40 +464,28 @@ export async function partitionAuditLogsByMonth(
         `)
       }
 
-      // Create indexes on partitioned parent (auto-propagated to every monthly partition)
       await db.query(`CREATE INDEX "audit_logs_action_idx" ON ${s}."audit_logs" ("action")`)
-      await db.query(`CREATE INDEX "audit_logs_entity_type_idx" ON ${s}."audit_logs" ("entity_type")`)
-      await db.query(`CREATE INDEX "audit_logs_document_id_idx" ON ${s}."audit_logs" ("document_id")`)
-      await db.query(`CREATE INDEX "audit_logs_actor_idx" ON ${s}."audit_logs" ("actor_id")`)
-      await db.query(`CREATE INDEX "audit_logs_updated_at_idx" ON ${s}."audit_logs" ("updated_at")`)
-      await db.query(`CREATE INDEX "audit_logs_created_at_idx" ON ${s}."audit_logs" ("created_at" DESC)`)
       await db.query(
-        `CREATE INDEX "audit_logs_entity_doc_created_idx" ON ${s}."audit_logs" ("entity_type", "document_id", "created_at" DESC)`,
+        `CREATE INDEX "audit_logs_entity_type_idx" ON ${s}."audit_logs" ("entity_type")`,
+      )
+      await db.query(
+        `CREATE INDEX "audit_logs_document_id_idx" ON ${s}."audit_logs" ("document_id")`,
+      )
+      await db.query(`CREATE INDEX "audit_logs_actor_idx" ON ${s}."audit_logs" ("actor_id")`)
+      await db.query(
+        `CREATE INDEX "audit_logs_updated_at_idx" ON ${s}."audit_logs" ("updated_at")`,
+      )
+      await db.query(
+        `CREATE INDEX "audit_logs_created_at_idx" ON ${s}."audit_logs" ("created_at")`,
       )
 
-      // Create monthly partitions + default safety-net partition
-      for (const spec of specsMap.values()) {
-        await db.query(`
-          CREATE TABLE ${s}.${quoteSqlIdent(spec.partitionName)}
-          PARTITION OF ${s}."audit_logs"
-          FOR VALUES FROM ('${spec.fromIso}') TO ('${spec.toIso}')
-        `)
-        ensuredPartitions.push(spec.partitionName)
-      }
-      await db.query(`
-        CREATE TABLE ${s}."audit_logs_default"
-        PARTITION OF ${s}."audit_logs" DEFAULT
-      `)
-      ensuredPartitions.push('audit_logs_default')
-
-      // Copy 100% of existing audit rows into partitioned `audit_logs`
-      const insertRes = await db.query(`
+      const copyRes = await db.query(`
         INSERT INTO ${s}."audit_logs"
-        SELECT * FROM ${s}."audit_logs__legacy_heap"
+        SELECT * FROM ${s}."audit_logs__part_restore"
+        ORDER BY "id" ASC
       `)
-      copiedRowsCount = insertRes.rowCount ?? 0
+      preservedRowsCount = copyRes.rowCount ?? 0
 
-      // Transfer `audit_logs_id_seq` ownership BEFORE dropping `audit_logs__legacy_heap`
       const seqCheck = await db.query(
         `SELECT to_regclass($1) IS NOT NULL AS exists`,
         [`${schemaName}.audit_logs_id_seq`],
@@ -608,171 +496,134 @@ export async function partitionAuditLogsByMonth(
         )
         await db.query(`
           SELECT setval(
-            '${schemaName}.audit_logs_id_seq',
+            '${escapedSchema}.audit_logs_id_seq',
             GREATEST(COALESCE((SELECT MAX("id") FROM ${s}."audit_logs"), 0), 1),
             EXISTS (SELECT 1 FROM ${s}."audit_logs")
           )
         `)
       }
 
-      await db.query(`DROP TABLE ${s}."audit_logs__legacy_heap"`)
+      // Atomically drops the partitioned parent AND all monthly/default child partition tables
+      await db.query(`DROP TABLE ${s}."audit_logs__part_restore" CASCADE`)
       await db.query('COMMIT')
-      convertedFromHeap = true
+      restoredFromPartitioned = true
     } catch (err) {
       await db.query('ROLLBACK').catch(() => {})
       throw err
     }
-  } else if (relkind === 'p') {
-    // Already partitioned: idempotently ensure upcoming monthly partitions + `audit_logs_default`
-    const existingChildrenRes = await db.query(
-      `SELECT child.relname AS part_name
-       FROM pg_inherits inh
-       INNER JOIN pg_class parent ON parent.oid = inh.inhparent
-       INNER JOIN pg_class child ON child.oid = inh.inhrelid
-       INNER JOIN pg_namespace n ON n.oid = parent.relnamespace
-       WHERE n.nspname = $1
-         AND parent.relname = 'audit_logs'`,
-      [schemaName],
-    )
-    const existingPartitions = new Set(
-      (existingChildrenRes.rows ?? []).map((r) => String((r as { part_name: string }).part_name)),
-    )
+  }
 
-    for (const spec of computeUpcomingAuditPartitionSpecs(now, monthsAhead, 1)) {
-      if (existingPartitions.has(spec.partitionName)) continue
-
-      // If `audit_logs_default` already holds rows inside `[fromIso, toIso)`, temporarily stage them
-      // so PostgreSQL allows attaching the new non-overlapping monthly range partition.
-      let stagedRows = false
-      if (existingPartitions.has('audit_logs_default')) {
-        const conflictCheck = await db.query(
-          `SELECT EXISTS (
-             SELECT 1 FROM ${s}."audit_logs_default"
-             WHERE "created_at" >= $1::timestamptz AND "created_at" < $2::timestamptz
-           ) AS has_rows`,
-          [spec.fromIso, spec.toIso],
-        )
-        stagedRows = Boolean((conflictCheck.rows?.[0] as { has_rows?: boolean } | undefined)?.has_rows)
-      }
-
-      if (stagedRows) {
-        await db.query('BEGIN')
-        try {
-          await db.query(`
-            CREATE TEMP TABLE "_audit_logs_stage" ON COMMIT DROP AS
-            SELECT * FROM ${s}."audit_logs_default"
-            WHERE "created_at" >= '${spec.fromIso}'::timestamptz
-              AND "created_at" < '${spec.toIso}'::timestamptz
-          `)
-          await db.query(`
-            DELETE FROM ${s}."audit_logs_default"
-            WHERE "created_at" >= '${spec.fromIso}'::timestamptz
-              AND "created_at" < '${spec.toIso}'::timestamptz
-          `)
-          await db.query(`
-            CREATE TABLE IF NOT EXISTS ${s}.${quoteSqlIdent(spec.partitionName)}
-            PARTITION OF ${s}."audit_logs"
-            FOR VALUES FROM ('${spec.fromIso}') TO ('${spec.toIso}')
-          `)
-          await db.query(`INSERT INTO ${s}."audit_logs" SELECT * FROM "_audit_logs_stage"`)
-          await db.query('COMMIT')
-        } catch (err) {
-          await db.query('ROLLBACK').catch(() => {})
-          throw err
-        }
-      } else {
-        await db.query(`
-          CREATE TABLE IF NOT EXISTS ${s}.${quoteSqlIdent(spec.partitionName)}
-          PARTITION OF ${s}."audit_logs"
-          FOR VALUES FROM ('${spec.fromIso}') TO ('${spec.toIso}')
-        `)
-      }
-
-      existingPartitions.add(spec.partitionName)
-      ensuredPartitions.push(spec.partitionName)
+  // Ensure `payload_locked_documents_rels` stays aligned with Payload's Drizzle schema:
+  // - `mail_messages` and `mail_webhook_events` retain `lockDocuments: false` (drop obsolete columns if present).
+  // - `audit_logs` has standard `lockDocuments` restored (re-add `audit_logs_id` + FK if previously dropped).
+  const pldCheck = await db.query(
+    `SELECT to_regclass($1) IS NOT NULL AS exists`,
+    [`${schemaName}.payload_locked_documents_rels`],
+  )
+  if ((pldCheck.rows?.[0] as { exists?: boolean } | undefined)?.exists) {
+    for (const obsoleteCol of ['mail_webhook_events_id', 'mail_messages_id']) {
+      await db.query(
+        `ALTER TABLE ${s}."payload_locked_documents_rels" DROP COLUMN IF EXISTS ${quoteSqlIdent(obsoleteCol)} CASCADE`,
+      )
     }
 
-    if (!existingPartitions.has('audit_logs_default')) {
+    if (relkind === 'r' || restoredFromPartitioned) {
+      await db.query(
+        `ALTER TABLE ${s}."payload_locked_documents_rels" ADD COLUMN IF NOT EXISTS "audit_logs_id" integer`,
+      )
       await db.query(`
-        CREATE TABLE IF NOT EXISTS ${s}."audit_logs_default"
-        PARTITION OF ${s}."audit_logs" DEFAULT
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1
+            FROM pg_constraint c
+            INNER JOIN pg_class rel ON rel.oid = c.conrelid
+            INNER JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+            WHERE nsp.nspname = '${escapedSchema}'
+              AND rel.relname = 'payload_locked_documents_rels'
+              AND c.conname = 'payload_locked_documents_rels_audit_logs_fk'
+          ) THEN
+            EXECUTE 'ALTER TABLE ${s}."payload_locked_documents_rels" ADD CONSTRAINT "payload_locked_documents_rels_audit_logs_fk" FOREIGN KEY ("audit_logs_id") REFERENCES ${s}."audit_logs"("id") ON DELETE CASCADE';
+          END IF;
+        END $$;
       `)
-      ensuredPartitions.push('audit_logs_default')
     }
   }
 
-  // Optional instantaneous O(1) retention pruning of expired monthly partitions (zero VACUUM bloat)
-  const droppedExpiredPartitions: string[] = []
-  if (typeof options.retentionMonths === 'number' && options.retentionMonths > 0) {
-    const cutoffMonthDate = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - options.retentionMonths, 1),
+  // Clean up any historical job rows referencing the retired `maintainAuditLogPartitions` task slug
+  // so Drizzle enum updates on `enum_payload_jobs_task_slug` never fail casting.
+  const jobsLogCheck = await db.query(
+    `SELECT to_regclass($1) IS NOT NULL AS exists`,
+    [`${schemaName}.payload_jobs_log`],
+  )
+  if ((jobsLogCheck.rows?.[0] as { exists?: boolean } | undefined)?.exists) {
+    await db.query(
+      `DELETE FROM ${s}."payload_jobs_log" WHERE "task_slug"::text = 'maintainAuditLogPartitions'`,
     )
-    const cutoffYear = cutoffMonthDate.getUTCFullYear()
-    const cutoffMonth = cutoffMonthDate.getUTCMonth() + 1
-
-    const childrenRes = await db.query(
-      `SELECT child.relname AS part_name
-       FROM pg_inherits inh
-       INNER JOIN pg_class parent ON parent.oid = inh.inhparent
-       INNER JOIN pg_class child ON child.oid = inh.inhrelid
-       INNER JOIN pg_namespace n ON n.oid = parent.relnamespace
-       WHERE n.nspname = $1
-         AND parent.relname = 'audit_logs'`,
-      [schemaName],
+  }
+  const jobsCheck = await db.query(
+    `SELECT to_regclass($1) IS NOT NULL AS exists`,
+    [`${schemaName}.payload_jobs`],
+  )
+  if ((jobsCheck.rows?.[0] as { exists?: boolean } | undefined)?.exists) {
+    await db.query(
+      `DELETE FROM ${s}."payload_jobs" WHERE "task_slug"::text = 'maintainAuditLogPartitions'`,
     )
+  }
 
-    for (const row of childrenRes.rows ?? []) {
-      const partName = String((row as { part_name: string }).part_name)
-      const parsed = parsePartitionYearMonth(partName)
-      if (!parsed) continue
-
-      // Partition `audit_logs_yYYYYmMM` covers `[YYYY-MM-01, nextMonth-01)`. It is strictly older
-      // than `cutoffMonthDate` when its `(year, month)` is strictly before `(cutoffYear, cutoffMonth)`.
-      const isExpired =
-        parsed.year < cutoffYear || (parsed.year === cutoffYear && parsed.month < cutoffMonth)
-      if (isExpired) {
-        await db.query(`DROP TABLE IF EXISTS ${s}.${quoteSqlIdent(partName)}`)
-        droppedExpiredPartitions.push(partName)
+  // Restore `payload_migrations` if the retired Phase 1 migration row was previously recorded on a
+  // `pushDevSchema` database (`R-07` undo: do not mix `push` and tracked migrations).
+  let removedLegacyMigrationRow = false
+  const migCheck = await db.query(
+    `SELECT to_regclass($1) IS NOT NULL AS exists`,
+    [`${schemaName}.payload_migrations`],
+  )
+  if ((migCheck.rows?.[0] as { exists?: boolean } | undefined)?.exists) {
+    const delRes = await db.query(
+      `DELETE FROM ${s}."payload_migrations" WHERE "name" = '20261031_001_phase1_integrity_and_indexes'`,
+    )
+    removedLegacyMigrationRow = (delRes.rowCount ?? 0) > 0
+    if (removedLegacyMigrationRow) {
+      const remainingRes = await db.query(
+        `SELECT COUNT(*)::int AS cnt FROM ${s}."payload_migrations"`,
+      )
+      const remainingCount = Number((remainingRes.rows?.[0] as { cnt?: number } | undefined)?.cnt ?? 0)
+      if (remainingCount === 0) {
+        await db.query(
+          `INSERT INTO ${s}."payload_migrations" ("name", "batch") VALUES ('dev', -1)`,
+        )
       }
     }
   }
 
   return {
-    auditLogsExists: true,
-    convertedFromHeap,
-    copiedRowsCount,
-    ensuredPartitions,
-    droppedExpiredPartitions,
+    auditLogsExists: Boolean(relkind),
+    restoredFromPartitioned,
+    preservedRowsCount,
+    removedLegacyMigrationRow,
   }
 }
 
 /**
- * Applies all Phase 2 (`R-10`) and Phase 3 (`R-13`) PostgreSQL structural & data-tiering migrations
- * idempotently. Safe to run repeatedly on both existing Neon databases and fresh CI schemas.
+ * Applies Payload 3–compliant Phase 2 (`R-10`) and Phase 3 (`R-13a`) SQL optimizations idempotently,
+ * while restoring any previously partitioned `audit_logs` table (`R-13b`) back to a standard Drizzle
+ * heap table (`relkind = 'r'`).
  */
 export async function applyPhase2And3DatabaseOptimizations(
   db: QueryClientLike,
   options: {
     schemaName?: string
-    now?: Date
-    monthsAhead?: number
-    auditRetentionMonths?: number
   } = {},
 ): Promise<Phase2And3OptimizationSummary> {
   const schemaName = options.schemaName ?? 'public'
 
+  const auditLogsHeap = await restoreAuditLogsHeapIfPartitioned(db, { schemaName })
   const formsBlocks = await migrateFormsBlocksToJsonb(db, { schemaName })
   const mailBodies = await migrateMailMessageBodiesSidecar(db, { schemaName })
-  const auditPartitions = await partitionAuditLogsByMonth(db, {
-    schemaName,
-    now: options.now,
-    monthsAhead: options.monthsAhead ?? 3,
-    retentionMonths: options.auditRetentionMonths,
-  })
 
   return {
     formsBlocks,
     mailBodies,
-    auditPartitions,
+    auditLogsHeap,
   }
 }

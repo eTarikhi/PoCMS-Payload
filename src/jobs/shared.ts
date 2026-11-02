@@ -84,12 +84,6 @@ export const REGISTERED_JOB_TASKS: readonly JobTaskMeta[] = [
       'Deletes obsolete draft and historical snapshots on Articles & Projects while preserving active latest and published versions.',
   },
   {
-    slug: 'maintainAuditLogPartitions',
-    label: 'Maintain audit log partitions',
-    description:
-      'Pre-creates upcoming monthly audit_logs range partitions and drops expired partitions instantaneously without VACUUM overhead.',
-  },
-  {
     slug: 'createDatabaseBackup',
     label: 'Encrypted cloud database backup',
     description:

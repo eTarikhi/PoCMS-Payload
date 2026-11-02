@@ -8,13 +8,11 @@ import config from '@/payload.config'
 import { createJobsConfig } from '@/jobs/config'
 import {
   applyPhase2And3DatabaseOptimizations,
-  buildMonthlyPartitionSpec,
-  computeUpcomingAuditPartitionSpecs,
   LEGACY_FORMS_BLOCK_TABLES,
   LEGACY_FORMS_SELECT_OPTIONS_TABLE,
   migrateFormsBlocksToJsonb,
   migrateMailMessageBodiesSidecar,
-  partitionAuditLogsByMonth,
+  restoreAuditLogsHeapIfPartitioned,
 } from '@/lib/phase2And3SqlOptimizations'
 import { buildPostgresAdapterArgs } from '@/lib/postgresAdapterConfig'
 import {
@@ -96,9 +94,7 @@ describe('Phase 2 & Phase 3 Database Modernization (R-10, R-12, R-13)', () => {
     expect(bySlug.get('pruneDocumentVersions')?.schedule).toEqual([
       { cron: '0 4 * * *', queue: 'default' },
     ])
-    expect(bySlug.get('maintainAuditLogPartitions')?.schedule).toEqual([
-      { cron: '5 0 1 * *', queue: 'default' },
-    ])
+    expect(bySlug.has('maintainAuditLogPartitions')).toBe(false)
     expect(bySlug.get('pruneWebhookLedger')?.schedule).toEqual([
       { cron: '45 3 * * *', queue: 'mail' },
     ])
@@ -446,90 +442,69 @@ describe('Phase 2 & Phase 3 Database Modernization (R-10, R-12, R-13)', () => {
     ])
   })
 
-  it('R-13b: converts audit_logs to monthly range partitions (PARTITION BY RANGE created_at) and drops expired partitions without VACUUM', async () => {
+  it('restores any previously partitioned audit_logs (relkind = p) back to a standard Payload 3 Drizzle heap table (relkind = r) with 100% row preservation', async () => {
     const schemaPath = path.join(process.cwd(), 'src', 'payload-generated-schema.ts')
     const schemaSource = fs.readFileSync(schemaPath, 'utf8')
-    // `audit_logs_id` must NOT exist on `payload_locked_documents_rels` (`lockDocuments: false`)
-    expect(schemaSource).not.toContain('audit_logs_id')
+    // Standard Payload `audit_logs` has single-column PK and `audit_logs_id` on `payload_locked_documents_rels`
+    expect(schemaSource).toContain('audit_logs_id')
+    expect(schemaSource).not.toContain('maintainAuditLogPartitions')
 
-    const specDec = buildMonthlyPartitionSpec(2026, 12)
-    expect(specDec).toEqual({
-      partitionName: 'audit_logs_y2026m12',
-      year: 2026,
-      month: 12,
-      fromIso: '2026-12-01T00:00:00.000Z',
-      toIso: '2027-01-01T00:00:00.000Z',
+    const executed: string[] = []
+    const restoreSummary = await restoreAuditLogsHeapIfPartitioned({
+      query: async (sqlText) => {
+        executed.push(sqlText.trim())
+        if (sqlText.includes("c.relname = 'audit_logs'")) {
+          return { rows: [{ relkind: 'p' }] }
+        }
+        if (sqlText.includes('SELECT to_regclass')) {
+          return { rows: [{ exists: true }] }
+        }
+        if (sqlText.includes('INSERT INTO "public"."audit_logs"')) {
+          return { rows: [], rowCount: 42 }
+        }
+        if (sqlText.includes('DELETE FROM "public"."payload_migrations"')) {
+          return { rows: [], rowCount: 1 }
+        }
+        if (sqlText.includes('SELECT COUNT(*)::int AS cnt FROM "public"."payload_migrations"')) {
+          return { rows: [{ cnt: 0 }] }
+        }
+        return { rows: [], rowCount: 0 }
+      },
     })
 
-    const fixedNow = new Date('2026-11-02T12:00:00.000Z')
-    const upcoming = computeUpcomingAuditPartitionSpecs(fixedNow, 2, 1)
-    expect(upcoming.map((u) => u.partitionName)).toEqual([
-      'audit_logs_y2026m10',
-      'audit_logs_y2026m11',
-      'audit_logs_y2026m12',
-      'audit_logs_y2027m01',
-    ])
+    expect(restoreSummary.auditLogsExists).toBe(true)
+    expect(restoreSummary.restoredFromPartitioned).toBe(true)
+    expect(restoreSummary.preservedRowsCount).toBe(42)
+    expect(restoreSummary.removedLegacyMigrationRow).toBe(true)
 
-    // Simulate heap (`relkind = 'r'`) -> partitioned (`PARTITION BY RANGE ("created_at")`) conversion + expired partition drop
-    const executed: string[] = []
-    const partSummary = await partitionAuditLogsByMonth(
-      {
-        query: async (sqlText) => {
-          executed.push(sqlText.trim())
-          if (sqlText.includes("c.relname = 'audit_logs'")) {
-            return { rows: [{ relkind: 'r' }] }
-          }
-          if (sqlText.includes('EXTRACT(YEAR FROM "created_at"')) {
-            return {
-              rows: [
-                { yr: 2025, mo: 6 },
-                { yr: 2026, mo: 11 },
-              ],
-            }
-          }
-          if (sqlText.includes('SELECT to_regclass')) {
-            return { rows: [{ exists: true }] }
-          }
-          if (sqlText.includes('INSERT INTO "public"."audit_logs"')) {
-            return { rows: [], rowCount: 42 }
-          }
-          if (sqlText.includes('FROM pg_inherits inh')) {
-            return {
-              rows: [
-                { part_name: 'audit_logs_y2025m06' },
-                { part_name: 'audit_logs_y2026m10' },
-                { part_name: 'audit_logs_y2026m11' },
-                { part_name: 'audit_logs_default' },
-              ],
-            }
-          }
-          return { rows: [], rowCount: 0 }
-        },
-      },
-      {
-        now: fixedNow,
-        monthsAhead: 2,
-        retentionMonths: 12,
-      },
-    )
-
-    expect(partSummary.convertedFromHeap).toBe(true)
-    expect(partSummary.copiedRowsCount).toBe(42)
-    expect(partSummary.ensuredPartitions).toContain('audit_logs_y2025m06')
-    expect(partSummary.ensuredPartitions).toContain('audit_logs_y2026m11')
-    expect(partSummary.ensuredPartitions).toContain('audit_logs_default')
-    // Partition `audit_logs_y2025m06` (> 12 months before 2026-11) dropped instantaneously via `DROP TABLE`
-    expect(partSummary.droppedExpiredPartitions).toEqual(['audit_logs_y2025m06'])
-
-    // Sequence ownership MUST transfer BEFORE `DROP TABLE "public"."audit_logs__legacy_heap"`
+    // Verify single-column PRIMARY KEY ("id") and sequence ownership transfer BEFORE dropping partitioned parent
+    expect(executed.some((s) => s.includes('PRIMARY KEY ("id")'))).toBe(true)
     const seqIdx = executed.findIndex((s) =>
       s.includes('ALTER SEQUENCE "public"."audit_logs_id_seq" OWNED BY "public"."audit_logs"."id"'),
     )
-    const dropHeapIdx = executed.findIndex((s) =>
-      s.includes('DROP TABLE "public"."audit_logs__legacy_heap"'),
+    const dropPartIdx = executed.findIndex((s) =>
+      s.includes('DROP TABLE "public"."audit_logs__part_restore" CASCADE'),
     )
     expect(seqIdx).toBeGreaterThan(-1)
-    expect(dropHeapIdx).toBeGreaterThan(seqIdx)
+    expect(dropPartIdx).toBeGreaterThan(seqIdx)
+
+    // Verify re-inserting ('dev', -1) sentinel when retired Phase 1 migration row was cleared
+    expect(
+      executed.some((s) =>
+        s.includes(`INSERT INTO "public"."payload_migrations" ("name", "batch") VALUES ('dev', -1)`),
+      ),
+    ).toBe(true)
+
+    // Verify no-op when `audit_logs` is already a standard heap table (`relkind = 'r'`)
+    const noopSummary = await restoreAuditLogsHeapIfPartitioned({
+      query: async (sqlText) => {
+        if (sqlText.includes("c.relname = 'audit_logs'")) {
+          return { rows: [{ relkind: 'r' }] }
+        }
+        return { rows: [{ exists: false }], rowCount: 0 }
+      },
+    })
+    expect(noopSummary.restoredFromPartitioned).toBe(false)
 
     // Verify combined Phase 2 & 3 orchestrator returns gracefully on empty database
     const emptyCombined = await applyPhase2And3DatabaseOptimizations({
@@ -537,6 +512,6 @@ describe('Phase 2 & Phase 3 Database Modernization (R-10, R-12, R-13)', () => {
     })
     expect(emptyCombined.formsBlocks.formsTableExists).toBe(false)
     expect(emptyCombined.mailBodies.mailMessagesExists).toBe(false)
-    expect(emptyCombined.auditPartitions.auditLogsExists).toBe(false)
+    expect(emptyCombined.auditLogsHeap.auditLogsExists).toBe(false)
   })
 })

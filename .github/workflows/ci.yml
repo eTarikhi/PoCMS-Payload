@@ -128,27 +128,30 @@ jobs:
       - name: Run Playwright E2E & WCAG accessibility tests
         run: pnpm run test:e2e
 
-      - name: Verify Phase 1–3 SQL migrations, CONCURRENTLY indexes, mail_message_bodies sidecar & audit_logs partitioning
+      - name: Verify Payload 3 Drizzle push compliance, CONCURRENTLY indexes, mail_message_bodies sidecar & audit_logs heap restoration
         run: |
-          pnpm run db:migrate
-          pnpm run db:optimize-indexes
+          pnpm run db:optimize
           pnpm run db:optimize-indexes
           node -e '
             const pg = require("pg");
             (async () => {
               const client = new pg.Client({ connectionString: process.env.POSTGRES_URL });
               await client.connect();
-              const mig = await client.query("SELECT name, batch FROM payload_migrations WHERE name = $1", ["20261031_001_phase1_integrity_and_indexes"]);
-              if (mig.rowCount !== 1) throw new Error("Expected Phase 1 migration to be recorded in payload_migrations");
+
+              // R-07 compliance: dev push sentinel (batch = -1) is preserved untouched
+              const mig = await client.query("SELECT name, batch FROM payload_migrations WHERE batch = -1");
+              if (mig.rowCount !== 1) throw new Error("Expected Payload dev push sentinel (batch = -1) in payload_migrations");
+
               const idx = await client.query("SELECT indexname FROM pg_indexes WHERE schemaname = \x27public\x27 AND indexname = ANY($1)", [[
                 "idx_articles_public_feed",
                 "idx_projects_public_feed",
                 "idx_mail_threads_search_trgm",
                 "idx_payload_jobs_runnable",
                 "idx_pld_rels_articles_nn",
+                "idx_pld_rels_audit_logs_nn",
                 "header_texts_parent_path_order_idx"
               ]]);
-              if (idx.rowCount !== 6) throw new Error("Expected all 6 verified Phase 1 indexes in pg_indexes, got " + idx.rowCount);
+              if (idx.rowCount !== 7) throw new Error("Expected all 7 verified Phase 1 indexes in pg_indexes, got " + idx.rowCount);
               const fk = await client.query("SELECT confdeltype FROM pg_constraint WHERE conname = \x27mail_messages_thread_id_mail_threads_id_fk\x27");
               if (fk.rows[0]?.confdeltype !== "c") throw new Error("Expected ON DELETE CASCADE (c) on mail_messages.thread_id FK");
 
@@ -164,14 +167,51 @@ jobs:
               const bodyFk = await client.query("SELECT confdeltype FROM pg_constraint WHERE conname = \x27mail_message_bodies_message_id_fk\x27");
               if (bodyFk.rows[0]?.confdeltype !== "c") throw new Error("Expected ON DELETE CASCADE (c) on mail_message_bodies_message_id_fk");
 
-              // R-13b: audit_logs is a declarative range-partitioned table (relkind = p) with monthly + default partitions
+              // R-13b undo: audit_logs is a standard Payload 3 Drizzle heap table (relkind = r) with 0 child partitions
               const auditRel = await client.query("SELECT c.relkind::text AS relkind FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = \x27public\x27 AND c.relname = \x27audit_logs\x27");
-              if (auditRel.rows[0]?.relkind !== "p") throw new Error("Expected audit_logs relkind = p (partitioned), got " + auditRel.rows[0]?.relkind);
+              if (auditRel.rows[0]?.relkind !== "r") throw new Error("Expected audit_logs relkind = r (standard heap), got " + auditRel.rows[0]?.relkind);
               const auditParts = await client.query("SELECT child.relname FROM pg_inherits inh JOIN pg_class parent ON parent.oid = inh.inhparent JOIN pg_class child ON child.oid = inh.inhrelid WHERE parent.relname = \x27audit_logs\x27");
-              if ((auditParts.rowCount ?? 0) < 4) throw new Error("Expected >= 4 partitions attached to audit_logs, got " + auditParts.rowCount);
+              if ((auditParts.rowCount ?? 0) !== 0) throw new Error("Expected 0 partitions attached to audit_logs, got " + auditParts.rowCount);
 
               await client.end();
-              console.log("Verified Phase 1–3 migrations, CONCURRENTLY indexes, R-10 forms jsonb, R-13a mail_message_bodies sidecar, and R-13b audit_logs monthly partitions in live PostgreSQL 16!");
+              console.log("Verified Payload 3 Drizzle push compliance, CONCURRENTLY indexes, R-10 forms jsonb, R-13a mail_message_bodies sidecar, and standard heap audit_logs in PostgreSQL 16!");
+            })().catch((err) => { console.error(err); process.exit(1); });
+          '
+          # Simulate an environment that previously had R-13b partitioned audit_logs + R-07 migration row,
+          # then verify `pnpm run db:optimize` restores heap `audit_logs` + `batch = -1` and `NODE_ENV=development` push succeeds cleanly
+          node -e '
+            const pg = require("pg");
+            (async () => {
+              const client = new pg.Client({ connectionString: process.env.POSTGRES_URL });
+              await client.connect();
+              const beforeCnt = Number((await client.query("SELECT COUNT(*)::int AS cnt FROM audit_logs")).rows[0].cnt);
+              await client.query("ALTER TABLE payload_locked_documents_rels DROP COLUMN IF EXISTS audit_logs_id CASCADE");
+              await client.query("ALTER TABLE audit_logs RENAME TO audit_logs__sim_heap");
+              await client.query("ALTER INDEX IF EXISTS audit_logs_pkey RENAME TO audit_logs_pkey__sim");
+              await client.query("CREATE TABLE audit_logs (LIKE audit_logs__sim_heap INCLUDING DEFAULTS, PRIMARY KEY (id, created_at)) PARTITION BY RANGE (created_at)");
+              await client.query("CREATE TABLE audit_logs_default PARTITION OF audit_logs DEFAULT");
+              await client.query("INSERT INTO audit_logs SELECT * FROM audit_logs__sim_heap");
+              await client.query("ALTER SEQUENCE audit_logs_id_seq OWNED BY audit_logs.id");
+              await client.query("DROP TABLE audit_logs__sim_heap");
+              await client.query("DELETE FROM payload_migrations WHERE batch = -1");
+              await client.query("INSERT INTO payload_migrations (name, batch) VALUES (\x2720261031_001_phase1_integrity_and_indexes\x27, 1)");
+              await client.end();
+              console.log("Simulated partitioned audit_logs with " + beforeCnt + " row(s).");
+            })().catch((err) => { console.error(err); process.exit(1); });
+          '
+          pnpm run db:optimize
+          NODE_ENV=development pnpm run seed
+          node -e '
+            const pg = require("pg");
+            (async () => {
+              const client = new pg.Client({ connectionString: process.env.POSTGRES_URL });
+              await client.connect();
+              const auditRel = await client.query("SELECT c.relkind::text AS relkind FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = \x27public\x27 AND c.relname = \x27audit_logs\x27");
+              if (auditRel.rows[0]?.relkind !== "r") throw new Error("Expected restored audit_logs relkind = r, got " + auditRel.rows[0]?.relkind);
+              const devRow = await client.query("SELECT batch FROM payload_migrations WHERE batch = -1");
+              if (devRow.rowCount !== 1) throw new Error("Expected restored dev sentinel batch = -1");
+              await client.end();
+              console.log("Verified lossless partitioned -> heap restoration + clean Drizzle pushDevSchema!");
             })().catch((err) => { console.error(err); process.exit(1); });
           '
 
