@@ -23,17 +23,18 @@ import 'dotenv/config'
 
 import { spawnSync } from 'node:child_process'
 import dns from 'node:dns'
+import fs from 'node:fs'
 import { createRequire } from 'node:module'
 import net from 'node:net'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import pg from 'pg'
 
-const rootRequire = createRequire(import.meta.url)
-
 export function loadVercelPool() {
-  const adapterEntry = rootRequire.resolve('@payloadcms/db-vercel-postgres')
-  const adapterRequire = createRequire(adapterEntry)
+  const dbPkgJsonPath = fs.realpathSync(
+    path.join(process.cwd(), 'node_modules', '@payloadcms', 'db-vercel-postgres', 'package.json'),
+  )
+  const adapterRequire = createRequire(dbPkgJsonPath)
   return adapterRequire('@vercel/postgres').VercelPool
 }
 

@@ -334,7 +334,17 @@ describe('Phase 1 Database Integrity, Versioned Migrations & Index Optimizations
     ).rejects.toMatchObject({ code: 'ENOTFOUND' })
   })
 
-  it('prevents @neondatabase/serverless + ws ErrorEvent readonly-message TypeError on connection timeout and serves POCMS_DNS_PREWARM fast-path', async () => {
+  it('prevents @neondatabase/serverless + ws ErrorEvent readonly-message TypeError on connection timeout, avoids CJS require.resolve on ESM @payloadcms/db-vercel-postgres, and serves POCMS_DNS_PREWARM fast-path', async () => {
+    // Regression guard: `src/lib/nodeDnsFallback.ts` must never contain a static CommonJS
+    // `require.resolve('@payloadcms/db-vercel-postgres')` / `require('@payloadcms/db-vercel-postgres')`
+    // call, which triggers Next.js 16 Turbopack's `"Package @payloadcms/db-vercel-postgres can't be external"`
+    // warning in `pnpm dev` (`serverExternalPackages`).
+    const dnsFallbackSource = fs
+      .readFileSync(path.join(process.cwd(), 'src', 'lib', 'nodeDnsFallback.ts'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')
+    expect(dnsFallbackSource).not.toMatch(/\bresolve\(\s*['"]@payloadcms\/db-vercel-postgres['"]\s*\)/)
+    expect(dnsFallbackSource).not.toMatch(/\brequire\(\s*['"]@payloadcms\/db-vercel-postgres['"]\s*\)/)
+
     installNodeDnsFallback()
     installNeonWebSocketErrorEventFix()
 
@@ -346,8 +356,10 @@ describe('Phase 1 Database Integrity, Versioned Migrations & Index Optimizations
     // 2. Stalled WebSocket handshake hitting `connectionTimeoutMillis` rejects cleanly with a mutable
     // `Error` ("Connection terminated due to connection timeout") instead of crashing Node 24 with
     // `TypeError: Cannot set property message of #<ErrorEvent> which has only a getter`.
-    const rootReq = createRequire(import.meta.url)
-    const dbReq = createRequire(rootReq.resolve('@payloadcms/db-vercel-postgres'))
+    const dbPkgJsonPath = fs.realpathSync(
+      path.join(process.cwd(), 'node_modules', '@payloadcms', 'db-vercel-postgres', 'package.json'),
+    )
+    const dbReq = createRequire(dbPkgJsonPath)
     const vpReq = createRequire(dbReq.resolve('@vercel/postgres'))
     const { VercelPool } = vpReq('@vercel/postgres') as {
       VercelPool: new (opts: Record<string, unknown>) => {

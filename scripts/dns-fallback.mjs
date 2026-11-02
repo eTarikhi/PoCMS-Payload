@@ -16,8 +16,10 @@
  *    instances with writable `.message`.
  */
 import dns from 'node:dns'
+import fs from 'node:fs'
 import { createRequire, syncBuiltinESMExports } from 'node:module'
 import net from 'node:net'
+import path from 'node:path'
 
 const TRANSIENT_DNS_CODES = new Set(['EAI_AGAIN', 'ETIMEOUT', 'ESERVFAIL', 'EREFUSED'])
 const CACHE_TTL_MS = 300_000 // 5 minutes
@@ -130,9 +132,16 @@ export function installNeonWebSocketErrorEventFix() {
   // 2. Patch `ws` (used by `@vercel/postgres` -> `@neondatabase/serverless`) so `'error'` listeners
   // receive a real `Error` instance with writable `.message` instead of a getter-only `ErrorEvent`.
   try {
-    const rootReq = createRequire(import.meta.url)
-    const dbPkgPath = rootReq.resolve('@payloadcms/db-vercel-postgres')
-    const dbReq = createRequire(dbPkgPath)
+    const dbPkgJsonPath = fs.realpathSync(
+      path.join(
+        process.cwd(),
+        'node_modules',
+        '@payloadcms',
+        'db-vercel-postgres',
+        'package.json',
+      ),
+    )
+    const dbReq = createRequire(dbPkgJsonPath)
     const vpPkgPath = dbReq.resolve('@vercel/postgres')
     const vpReq = createRequire(vpPkgPath)
     const WS = vpReq('ws')

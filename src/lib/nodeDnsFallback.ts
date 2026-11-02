@@ -1,6 +1,8 @@
 import dns from 'node:dns'
+import fs from 'node:fs'
 import { createRequire, syncBuiltinESMExports } from 'node:module'
 import net from 'node:net'
+import path from 'node:path'
 
 const TRANSIENT_DNS_CODES = new Set(['EAI_AGAIN', 'ETIMEOUT', 'ESERVFAIL', 'EREFUSED'])
 const CACHE_TTL_MS = 300_000 // 5 minutes
@@ -79,9 +81,19 @@ export function installNeonWebSocketErrorEventFix(): void {
   }
 
   try {
-    const rootReq = createRequire(import.meta.url)
-    const dbPkgPath = rootReq.resolve('@payloadcms/db-vercel-postgres')
-    const dbReq = createRequire(dbPkgPath)
+    // Anchor `createRequire` via `fs.realpathSync` on `node_modules/@payloadcms/db-vercel-postgres/package.json`
+    // instead of calling CommonJS `require.resolve` on the pure-ESM `@payloadcms/db-vercel-postgres` specifier,
+    // which would trigger Next.js 16 Turbopack's `serverExternalPackages` warning in `pnpm dev`.
+    const dbPkgJsonPath = fs.realpathSync(
+      path.join(
+        process.cwd(),
+        'node_modules',
+        '@payloadcms',
+        'db-vercel-postgres',
+        'package.json',
+      ),
+    )
+    const dbReq = createRequire(dbPkgJsonPath)
     const vpPkgPath = dbReq.resolve('@vercel/postgres')
     const vpReq = createRequire(vpPkgPath)
     const WS = vpReq('ws') as {
@@ -257,6 +269,8 @@ export async function fallbackResolveHost(
 type PatchedDnsModule = typeof dns & { __pocmsFallbackInstalled?: boolean }
 
 export function installNodeDnsFallback(): void {
+  if (process.env.VERCEL === '1') return
+
   loadDnsPrewarmEnv()
   installNeonWebSocketErrorEventFix()
 
