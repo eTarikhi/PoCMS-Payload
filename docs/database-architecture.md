@@ -1,186 +1,198 @@
-# Database Architecture & Neon Serverless Optimization Roadmap
+# PostgreSQL & Neon Database Architecture (`@payloadcms/db-vercel-postgres`)
 
-This guide documents the architectural audit, query optimization patterns, Neon serverless PostgreSQL operational rules, and phased modernization roadmap for PoCMS (`@payloadcms/db-vercel-postgres` + Drizzle ORM + Neon PostgreSQL).
-
----
-
-## 1. Schema & Adapter Overview
-
-### 1.1 Quantitative Footprint (`src/payload-generated-schema.ts`)
-
-| Category | Count | Representative Relations | Notes |
-| :--- | ---: | :--- | :--- |
-| Root Collection & Global Tables | `20` | `articles`, `projects`, `media`, `users`, `roles`, `site_settings`, `header` | Mix of compact entities (`skills`: 7 cols) and wide 1NF tables (`site_settings`: 72 cols, `media`: 48 cols) |
-| Child Array, Block, & Scalar-List Tables | `31` | `forms_blocks_*` (8 tables), `*_texts` (7 tables), `articles_gallery`, `users_sessions` | Shredded 1:N child tables joined via Drizzle `LATERAL` subqueries and rewritten via `DELETE` + `INSERT` on parent updates |
-| Version / Draft Snapshot Tables (`_v*`) | `11` | `_articles_v` (45 cols), `_projects_v` (48 cols), `_articles_v_version_gallery`, etc. | Structural snapshots written on draft save, autosave, and publish |
-| Polymorphic Join Tables (`*_rels`) | `9` | `payload_locked_documents_rels` (25 cols), `articles_rels`, `users_rels` | Sparse nullable foreign-key columns ("exclusive-arc" pattern) |
-| Mail Inbox Plugin Tables (`mail_*`) | `5` | `mail_threads`, `mail_messages`, `mail_attachments`, `mail_labels`, `mail_webhook_events` | Denormalized thread rollups paired with sanitized HTML/plain-text MIME bodies |
-| Payload Internal Tables (`payload_*`) | `9` | `payload_jobs`, `payload_jobs_log`, `payload_preferences`, `payload_migrations` | Checkpointed jobs queue, concurrency locks, saved presets, folders, and migration ledger |
-| **Total Tables / Enum Types** | **`85` / `78`** | `310` regular B-tree + `13` unique + `85` PK indexes = **`408` B-tree indexes** (`111` FKs) | Generated offline via `pnpm generate:all` (`scripts/generate.mjs`) |
-
-### 1.2 Transport & Adapter Topology
-
-- **Adapter:** `vercelPostgresAdapter` (`@payloadcms/db-vercel-postgres@3.90.2`) configured via `buildPostgresAdapterConfig()` in `src/lib/postgresAdapterConfig.ts`.
-- **Local Development (`localhost` / `127.0.0.1` / `postgres`):** Connects directly via `node-postgres` (`pg.Pool`).
-- **Cloud / Neon Production (`*-pooler.*.neon.tech`):** Connects via `VercelPool` (`@neondatabase/serverless` WebSocket `Pool` over port `443`) into Neon's PgBouncer **transaction-mode** pooler, backed by autoscaling Neon compute nodes, Local File Cache (LFC), Safekeepers (Paxos WAL quorum), and disaggregated Pageserver storage.
-- **Direct Maintenance Channel (`POSTGRES_URL_NON_POOLING`):** Bypasses PgBouncer when running session-level maintenance (`VACUUM`, `REINDEX`, `CREATE INDEX CONCURRENTLY`, transactional restores) from `/admin/database`.
+This document serves as the architectural reference, **Phase 0–3 Optimization Audit**, failure-classification registry, and prioritized corrective roadmap for the PoCMS database layer running on **Payload CMS v3.90.2** (`@payloadcms/db-vercel-postgres` / Drizzle ORM) backed by **Neon Serverless PostgreSQL**.
 
 ---
 
-## 2. Structural Analysis
+## 1. Runtime Topology & Connection Lifecycle
 
-### 2.1 Normalization Trade-Offs on Disaggregated Storage
+| Layer | Connection String | Transport | Pool Sizing & Timeouts |
+| :--- | :--- | :--- | :--- |
+| **Vercel Serverless / Next.js Runtime (`src/payload.config.ts`)** | `POSTGRES_URL` (`-pooler.` PgBouncer transaction-mode endpoint) | `@vercel/postgres` (`@neondatabase/serverless` WebSocket Pool) + Node DNS / DoH resilience (`src/lib/nodeDnsFallback.ts`) | `max: 5` (default serverless), `idleTimeoutMillis: 15_000`, `connectionTimeoutMillis: 10_000`, `maxUses: 7_500` (`src/lib/postgresPoolConfig.ts`) |
+| **Admin Database Workspace & Online Optimization (`src/plugins/databaseManager/`, `scripts/migrate-neon.mjs`)** | Prefers `POSTGRES_URL_NON_POOLING` (direct PostgreSQL session) and falls back to `POSTGRES_URL` | Dual-driver resilient executor: native TCP TLS (`pg.Client` on `:5432`) with automatic HTTPS `:443` Neon HTTP SQL fallback when local ISPs/firewalls drop `:5432` | Dedicated single-client session (`max: 1`) for `VACUUM`, `REINDEX`, `ANALYZE`, `CREATE INDEX CONCURRENTLY`, and Drizzle-aligned data migrations (`pnpm db:optimize`) |
 
-1. **Over-shredded immutable sub-documents (`blocksAsJSON: false` default):**
-   - `forms` splits field blocks across **8 separate tables** (`forms_blocks_checkbox`, `forms_blocks_email`, `forms_blocks_message`, `forms_blocks_number`, `forms_blocks_select`, `forms_blocks_state`, `forms_blocks_text`, `forms_blocks_textarea`), and scalar string arrays (`hasMany`) spawn **7 `*_texts` tables** (`projects_texts`, `_projects_v_texts`, `about_texts`, `services_texts`, `header_texts`, `site_settings_texts`, `footer_texts`).
-   - Hydrating one form executes an 8-branch `LEFT JOIN LATERAL` across 9 relations, fetching 9+ distinct 8 KB heap/index pages from Neon's Pageserver when LFC is cold. Updating a parent document deletes and re-inserts child rows, amplifying WAL volume shipped to Neon Safekeepers.
-2. **Wide 1NF root & version snapshot tables:**
-   - `site_settings` (`72` cols), `media` (`48` cols across 5 inline WebP size groups), `_projects_v` (`48` cols + `14` non-PK indexes), and `_articles_v` (`45` cols + `15` non-PK indexes) duplicate full Lexical `content` JSONB ASTs across version snapshots.
-   - Always supply explicit `select` and `populate` projections on frontend RSC queries (`src/app/(frontend)/lib/payload-source.ts`) and background rollups (`src/plugins/mailInbox/services/threading.ts`) so PostgreSQL never fetches cold `pg_toast` chunks unnecessarily.
-3. **Sparse polymorphic `*_rels` tables:**
-   - `payload_locked_documents_rels` contains `21` nullable entity FK columns (`24` non-PK indexes). Because standard PostgreSQL B-trees index `NULL` entries, unfiltered single-column indexes insert 20 `NULL` entries per lock row unless converted to partial indexes (`WHERE <col>_id IS NOT NULL`).
-
-### 2.2 Referential Integrity & Indexing Defects Resolved in Phase 1
-
-1. **`NOT NULL` + `ON DELETE SET NULL` foreign-key contradictions (`R-06` — Implemented):**
-   - `phase1BeforeSchemaInit` (`src/lib/postgresSchemaHooks.ts`) and migration `20261031_001_phase1_integrity_and_indexes` set `mail_messages.thread_id` to `ON DELETE CASCADE` and drop `.notNull()` on `form_submissions.form_id` in PostgreSQL so deleting a thread cascades cleanly and deleting a form template preserves historical visitor leads.
-2. **Inverted composite indexes on all 7 `*_texts` tables (`R-08` — Implemented):**
-   - `phase1BeforeSchemaInit` rewrites all `*_texts` composite indexes from `("order", parent_id)` to `(parent_id, path, "order")` (`*_texts_parent_path_order_idx`), restoring leading-column B-tree coverage for `LATERAL` child fetches and `ON DELETE CASCADE` version pruning.
-3. **Single-column boolean / `NULL` B-trees vs. composite & partial indexes (`R-08`, `R-09` — Implemented):**
-   - Standalone boolean/low-cardinality B-trees (`is_read`, `is_starred`, `has_attachments`, `processing`, `has_error`, `autosave`) are replaced by query-aligned composite, covering, partial, and `pg_trgm` GIN indexes, and all 21 nullable entity FK indexes on `payload_locked_documents_rels` convert to partial `WHERE "<col>_id" IS NOT NULL` indexes via `pnpm db:migrate` / `pnpm db:optimize-indexes`.
-
-### 2.3 Data-Type Guidelines for Distributed Workloads
-
-| Pattern in Generated Schema | Count | Neon / PostgreSQL Impact | Target Native Type (Phase 2–3) |
-| :--- | ---: | :--- | :--- |
-| `numeric` (`mode: 'number'`) on integer counters & byte sizes | `50` cols | Variable-length `varlena` BCD encoding (`5–12+` bytes) and software math CPU overhead | `integer` (`INT4`) for counts/dimensions, `bigint` (`INT8`) for `filesize` & epoch timestamps, `real` (`FLOAT4`) for `focal_x`/`focal_y` |
-| Mixed `serial` (`61` tables) + random `varchar` child PKs (`24` tables) | `85` PKs | 24-char random string IDs widen indexes and cause B-tree leaf page splits on child array re-inserts | `bigint GENERATED BY DEFAULT AS IDENTITY (CACHE 64)` or binary `uuid` (`UUIDv7`) |
-| Catalog `pgEnum` proliferation | `78` enums | Rigid `pg_type` catalog coupling across main and `_v` tables | Reserve `pgEnum` for stable state machines (`_status`, `mail_folder`); prefer `text` + `CHECK` for UI style presets |
-| Large inline `varchar` / `jsonb` (`> 2 KB` TOAST) | `406` / `42` cols | Out-of-line `pg_toast` 8 KB page reads across Pageserver network if unprojected | Strict `select` projections; sidecar/Blob tiering for cold MIME & webhook payloads |
+### Key Runtime Invariants (`Phase 0`, `R-01`–`R-05`)
+1. **Explicit Serverless Pool Bounds (`R-01`):** `@payloadcms/db-vercel-postgres` defaults to `pg.Pool({ max: 10 })` per Node isolate if `pool` is omitted. Passing `buildVercelPostgresPoolConfig()` caps each Fluid Compute / Lambda worker at `max: 5` and recycles idle sockets before Neon scale-to-zero suspend windows (`15s`).
+2. **Non-Blocking Request Telemetry (`R-02`):** Login success/failure audit entries (`src/collections/Users.ts`) and `/api/mail/webhooks/resend` receipt/signature-rejection events (`src/plugins/mailInbox/endpoints/webhookEndpoint.ts`) are dispatched via `enqueueAuditLog()` (`queueMicrotask`) so audit inserts never block user-facing HTTP responses or commit inside an open parent transaction.
+3. **Bounded Schema Introspection & Streaming Exports (`R-03`, `R-04`):**
+   - `/admin/database` aggregates columns, primary keys, foreign keys, and row estimates across **3 catalog queries total** (`O(1)` round-trips regardless of table count) instead of `3 × N` per-table queries.
+   - `exportStreamingSqlDump()` and `exportStreamingNdjsonDump()` stream table rows in keyset-paginated `500`-row chunks (`WHERE "id" > $cursor ORDER BY "id" ASC LIMIT 500`), keeping Node.js V8 heap usage flat.
+4. **Payload v3 Drizzle Schema Alignment (`R-06`, `R-08a`, `R-09a`, `R-10`, `R-13a`):**
+   - `phase1BeforeSchemaInit` (`src/lib/postgresSchemaHooks.ts`) mutates Payload's `adapter.rawTables` **before** Drizzle table materialization, making `src/payload-generated-schema.ts`, `pnpm dev` (`pushDevSchema`), and `pnpm db:optimize` **100% identical** with zero index or foreign-key churn:
+     - `mail_messages.thread_id` (`NOT NULL`) enforces `ON DELETE CASCADE` (`R-06`).
+     - `form_submissions.form_id` drops `.notNull()` at the SQL column level so `ON DELETE SET NULL` succeeds (`R-06`).
+     - All 7 `*_texts` tables build composite `(parent_id, path, "order")` B-tree indexes (`R-08a`).
+     - High-selectivity composite/covering B-tree indexes replace standalone boolean B-trees across `mail_threads`, `mail_messages`, `_articles_v`, `_projects_v`, and `payload_jobs` (`R-08a`, `R-09a`), while `mail_messages` and `mail_webhook_events` set `lockDocuments: false` (`R-09a`).
+   - `blocksAsJSON: true` on `vercelPostgresAdapter` (`R-10`) stores Form Builder polymorphic blocks in a single `forms.fields` `jsonb` column instead of 9 sparse `forms_blocks_*` join tables.
+   - `phase3BeforeSchemaInit` (`R-13a`) registers `mail_message_bodies` in both `schema.tables` and `adapter.rawTables` so cold MIME payloads (`sanitized_html`, `quoted_history_text`, `headers_snapshot`) live in a lazy-loaded 1:1 sidecar table (`ON DELETE CASCADE`) with private Vercel Blob cold archival (`archiveColdMailBodies`).
 
 ---
 
-## 3. Performance Optimization
+## 2. Active Drizzle-Native PostgreSQL DDL Reference
 
-### 3.1 Implemented Query & Initialization Optimizations (Phase 0)
-
-1. **Zero-Scan Cold-Start Bootstrap (`src/access/draftMigration.ts`, `src/access/orderable.ts`, `src/payload.config.ts`):**
-   - `ensureDraftVersions` uses a single indexed SQL `NOT EXISTS` anti-join (`SELECT a.id FROM articles a WHERE NOT EXISTS (SELECT 1 FROM _articles_v v WHERE v.parent_id = a.id)`) instead of loading all `_articles_v` and `_projects_v` rows into Node memory with `pagination: false`.
-   - `ensureOrderable` probes all 5 orderable collections in **one** short-circuit `SELECT EXISTS (...)` round-trip rather than 5 sequential `COUNT(*)` scans.
-   - Independent startup checks run concurrently (`Promise.all`) with per-instance idempotency guards and can be bypassed completely on pre-seeded serverless deployments via `PAYLOAD_SKIP_ON_INIT_CHECKS=true`.
-2. **Single-Pass Filtered Aggregation for Inbox Counts (`src/plugins/mailInbox/services/inboxQueries.ts`):**
-   - `collectInboxFolderCounts` computes all 8 folder/unread/starred counters in **one** `SELECT COUNT(*) FILTER (WHERE ...)` query (1 pool checkout) instead of 8 concurrent `payload.count()` queries.
-3. **Zero-TOAST Atomic Thread Rollups (`src/plugins/mailInbox/services/threading.ts`):**
-   - `recomputeThreadRollups` executes a single atomic `WITH msg_rows AS (...) UPDATE mail_threads ...` SQL statement that projects only lightweight header metadata—never reading `pg_toast` HTML/plain-text bodies and eliminating concurrent webhook lost-update races.
-
-### 3.2 Recommended Production Index DDL (Phase 1 — Run via `POSTGRES_URL_NON_POOLING`)
-
-Execute `CREATE INDEX CONCURRENTLY` over a direct (non-`-pooler`) connection so writes are never blocked:
+All active indexes below are declared in `src/lib/postgresSchemaHooks.ts` (`beforeSchemaInit`), reflected verbatim in `src/payload-generated-schema.ts`, and idempotently ensured online via `pnpm db:optimize` / `pnpm db:optimize-indexes` (`CREATE INDEX CONCURRENTLY IF NOT EXISTS` over `POSTGRES_URL_NON_POOLING`):
 
 ```sql
--- 1. Public portfolio feed partial indexes (heap-filter-free index scans)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_articles_public_feed
-  ON public.articles (published_at DESC)
-  WHERE deleted_at IS NULL AND (_status = 'published' OR _status IS NULL);
+-- 1. All 7 Payload hasMany text tables (projects, _projects_v, about, services, header, site_settings, footer)
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "<table_name>_parent_path_order_idx"
+  ON "public"."<table_name>" ("parent_id", "path", "order");
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_projects_public_feed
-  ON public.projects (_order ASC)
-  WHERE deleted_at IS NULL AND (_status = 'published' OR _status IS NULL);
+-- 2. Version pruning & latest-draft lookup composites
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "_articles_v_parent_updated_idx"
+  ON "public"."_articles_v" ("parent_id", "updated_at");
 
--- 2. Admin draft list & version retention pruning indexes
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_articles_v_latest_updated
-  ON public._articles_v (updated_at DESC) WHERE latest = true;
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_articles_v_parent_updated
-  ON public._articles_v (parent_id, updated_at DESC);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "_projects_v_parent_updated_idx"
+  ON "public"."_projects_v" ("parent_id", "updated_at");
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_projects_v_latest_updated
-  ON public._projects_v (updated_at DESC) WHERE latest = true;
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_projects_v_parent_updated
-  ON public._projects_v (parent_id, updated_at DESC);
+-- 3. Mail Inbox folder counts, timeline pagination & thread message ordering
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "mail_threads_counts_cover_idx"
+  ON "public"."mail_threads" ("folder", "is_read", "is_starred");
 
--- 3. Mail Inbox covering counts, folder timeline, message rollup, & trigram search
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "mail_threads_folder_last_msg_idx"
+  ON "public"."mail_threads" ("folder", "last_message_at");
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_mail_threads_counts_cover
-  ON public.mail_threads (folder, is_read, is_starred);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_mail_threads_folder_last_msg
-  ON public.mail_threads (folder, last_message_at DESC);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_mail_threads_search_trgm
-  ON public.mail_threads USING gin (
-    (coalesce(subject, '') || ' ' || coalesce(snippet, '') || ' ' ||
-     coalesce(counterparty_name, '') || ' ' || coalesce(counterparty_email, ''))
-    gin_trgm_ops
-  );
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_mail_messages_thread_sent
-  ON public.mail_messages (thread_id, sent_at ASC);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "mail_messages_thread_sent_idx"
+  ON "public"."mail_messages" ("thread_id", "sent_at");
 
--- 4. Payload Jobs runnable queue partial index
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_payload_jobs_runnable
-  ON public.payload_jobs (queue, wait_until ASC, created_at ASC)
-  WHERE completed_at IS NULL AND processing = false AND has_error = false;
-
--- 5. Leading parent_id composite indexes for all 7 *_texts tables
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_projects_texts_parent_order      ON public.projects_texts (parent_id, path, "order");
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_projects_v_texts_parent_order    ON public._projects_v_texts (parent_id, path, "order");
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_about_texts_parent_order         ON public.about_texts (parent_id, path, "order");
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_services_texts_parent_order      ON public.services_texts (parent_id, path, "order");
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_header_texts_parent_order        ON public.header_texts (parent_id, path, "order");
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_site_settings_texts_parent_order ON public.site_settings_texts (parent_id, path, "order");
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_footer_texts_parent_order        ON public.footer_texts (parent_id, path, "order");
+-- 4. Payload Jobs queue lookup composite
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "payload_jobs_queue_wait_created_idx"
+  ON "public"."payload_jobs" ("queue", "wait_until", "created_at");
 ```
 
 ---
 
-## 4. Scalability & Resilience on Neon Serverless
+## 3. Comprehensive Phase 0–3 Audit Report (`completed` vs. `undone`)
 
-### 4.1 Connection Pooling & PgBouncer Transaction Mode
+Every action and sub-step executed across **Phase 0 through Phase 3** has been audited against official **Payload CMS v3.90.2** documentation (`docs/database/migrations.mdx`, `docs/database/postgres.mdx`) and **`@payloadcms/drizzle` / `drizzle-kit@0.31.7`** runtime behavior.
 
-- **Bounded Per-Isolate Pool (`src/lib/postgresAdapterConfig.ts`):**
-  - Remote/serverless hosts default to `max: 4`, `idleTimeoutMillis: 5_000`, `connectionTimeoutMillis: 10_000`, and `maxUses: 7_500` (overridable via `POSTGRES_POOL_*` env vars). Local Postgres (`localhost` / `127.0.0.1` / `postgres`) defaults to `max: 10`, `idleTimeoutMillis: 30_000`.
-  - Why: Under traffic spikes (`50` concurrent serverless isolates), `max: 4` caps worst-case pool fan-out while releasing idle WebSocket connections within `5s`.
-- **Resolving Payload's Active Pool (`src/lib/payloadSql.ts`):**
-  - `@payloadcms/db-vercel-postgres` stores its `VercelPool` on `payload.db.drizzle.$client` (or `payload.db.primaryDrizzle.$client` when `readReplicas` is enabled) rather than `payload.db.pool`. Always use `resolvePayloadPoolClient(payload)` / `executePayloadSql(payload, text, values, req)` so parameterized queries reuse the active pool (or participate in `req.transactionID`'s checked-out client) instead of spawning ad-hoc TCP connections.
-- **PgBouncer-Safe `statement_timeout` (`src/plugins/databaseManager/core/connection.ts`):**
-  - Never pass `statement_timeout` in `new pg.Client(...)` startup parameters when falling back to a `-pooler.` connection string; PgBouncer transaction mode rejects `options=-c statement_timeout=...` startup packets unless allowlisted. Apply `statement_timeout` on startup packets only for direct unpooled connections.
-- **Keep External Network I/O Out of DB Transactions:**
-  - PgBouncer transaction mode pins a Neon backend connection from `BEGIN` until `COMMIT`. Never await external HTTP APIs (`api.resend.com`, Vercel Blob) inside transactional hooks; dispatch external calls via Payload's `jobs` queue (`outboundWorkflow`, `ingestWorkflow`).
+### 3.1 Failure Classification Taxonomy (for `undone` items)
 
-### 4.2 Preserving Neon Autoscaling & Scale-to-Zero (`suspend_timeout_seconds`)
-
-1. **No Unintended 24/7 Compute Wake-Locks (`/api/mail/stream` & Admin Polling):**
-   - On serverless Neon hosts (`*.neon.tech`, `vercel-storage.com`), persistent unpooled `LISTEN` sessions are disabled by default unless `MAIL_STREAM_PG_LISTEN=true` is explicitly set.
-   - Server-side SSE watermark polling uses exponential idle backoff (`4s → 8s → 15s → 30s → 60s`), and `InboxClient` / `InboxUnreadBadge` suspend background connections when the browser tab is hidden so Neon's `suspend_timeout_seconds` (default `300s`) can suspend idle compute cleanly.
-2. **Zero-Copy Read Replicas (`POSTGRES_READ_REPLICA_URLS`):**
-   - Configure comma-separated Neon read-replica pooled URLs in `POSTGRES_READ_REPLICA_URLS` to route read queries onto horizontally autoscaled replica compute endpoints sharing the same Pageserver storage with zero storage duplication.
-3. **Ephemeral Compute Telemetry Awareness (`src/plugins/databaseManager/core/advisor.ts`):**
-   - Neon resets `pg_stat_user_indexes` counters whenever a compute endpoint suspends to zero and resumes. `collectDatabaseAdvisorReport` checks `stats_reset` / `pg_postmaster_start_time()` age and warns against dropping `0`-scan indexes when compute statistics uptime is `< 24h`.
+| Classification Tag | Meaning |
+| :--- | :--- |
+| **`violation conflict`** | Directly violates an explicit rule in official Payload CMS v3.90.2 documentation (`docs/database/migrations.mdx`: *"do not mix 'push' and migrations"*). |
+| **`incompatible with payload docs`** | Alters a Payload-managed collection table into a PostgreSQL catalog structure (`relkind = 'p'` declarative partitioned table + composite primary key) unsupported by Payload's `@payloadcms/drizzle` / `drizzle-kit` introspection and FK conventions. |
+| **`schema-push conflict`** | Valid PostgreSQL DDL created out-of-band via raw SQL without registering matching Drizzle `pg-core` builders in `afterSchemaInit` (`extendTable`), causing Drizzle `pushDevSchema()` (`pnpm dev`) to drop or overwrite those indexes on startup. |
 
 ---
 
-## 5. Prioritized Actionable Roadmap
+### 3.2 Master Step-by-Step Audit Matrix (Phases 0–3)
 
-### Phase 0 — Serverless Pool, Query Fan-Out, Cold-Start, & Scale-to-Zero (**Implemented**)
+| Phase | ID | Action / Optimization Sub-Step | Primary Files | Audit Status | Failure Classification (if `undone`) |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Phase 0** | `R-01` | Bounded serverless Neon WebSocket pool configuration (`max: 5`, `idleTimeoutMillis: 15_000`, `connectionTimeoutMillis: 10_000`, `maxUses: 7_500`) wired into `vercelPostgresAdapter({ pool })` | `src/lib/postgresPoolConfig.ts`, `src/payload.config.ts` | **`completed`** | — |
+| **Phase 0** | `R-02` | Asynchronous `enqueueAuditLog()` (`queueMicrotask`) decoupling audit-log writes from auth hooks and Resend webhook responses | `src/lib/auditLogQueue.ts`, `src/collections/Users.ts`, `src/plugins/mailInbox/endpoints/webhookEndpoint.ts` | **`completed`** | — |
+| **Phase 0** | `R-03` | Batched 3-query PostgreSQL catalog introspection (`O(1)` round-trips) + `preferUnpooled` direct session routing for maintenance DDL in `/admin/database` | `src/plugins/databaseManager/core/{introspect,pgDirect,repair}.ts` | **`completed`** | — |
+| **Phase 0** | `R-04` | Constant-memory keyset-paginated (`500`-row cursor) streaming SQL & NDJSON logical backup generators | `src/plugins/databaseManager/core/backup.ts` | **`completed`** | — |
+| **Phase 0** | `R-05` | Single-query `GROUP BY folder` aggregate counts (`getMailFolderCounts`) replacing 14 sequential `payload.count()` calls per inbox poll | `src/plugins/databaseManager/` / `src/plugins/mailInbox/services/folderCounts.ts` | **`completed`** | — |
+| **Phase 1** | `R-06.1` | Fix `mail_messages.thread_id` (`NOT NULL`) FK contradiction from `ON DELETE SET NULL` to `ON DELETE CASCADE` in both `beforeSchemaInit` and SQL `DO $$` guard | `src/lib/postgresSchemaHooks.ts`, `src/lib/phase1SqlOptimizations.ts` | **`completed`** | — |
+| **Phase 1** | `R-06.2` | Drop SQL `NOT NULL` on `form_submissions.form_id` in `beforeSchemaInit` and SQL `DO $$` guard so `ON DELETE SET NULL` succeeds while preserving Admin UI `required: true` | `src/lib/postgresSchemaHooks.ts`, `src/lib/phase1SqlOptimizations.ts` | **`completed`** | — |
+| **Phase 1** | `R-07a` | Neon-aware CLI wrapper (`pnpm db:migrate*`, `pnpm db:optimize*`) promoting `POSTGRES_URL_NON_POOLING`, dual TCP `:5432` / HTTPS `:443` Neon HTTP fallback, and DNS/DoH + Node 24 `ws` `ErrorEvent` resilience | `scripts/migrate-neon.mjs`, `scripts/dns-fallback.mjs`, `src/lib/nodeDnsFallback.ts` | **`completed`** | — |
+| **Phase 1** | `R-07b` | Committing custom `src/migrations/20261031_001_*` snapshots and deleting `payload_migrations` `batch = -1` dev sentinel while local `pnpm dev` runs Drizzle `push` | `src/migrations/*` *(removed)*, `scripts/migrate-neon.mjs`, `.gitignore` | **`undone`** | **`violation conflict`** |
+| **Phase 1** | `R-08a` | 13 Drizzle-native composite/covering B-tree indexes in `beforeSchemaInit` (`7` `*_texts_parent_path_order_idx`, `_articles_v_parent_updated_idx`, `_projects_v_parent_updated_idx`, `mail_threads_counts_cover_idx`, `mail_threads_folder_last_msg_idx`, `mail_messages_thread_sent_idx`, `payload_jobs_queue_wait_created_idx`) + online `CONCURRENTLY` sync | `src/lib/postgresSchemaHooks.ts`, `src/lib/phase1SqlOptimizations.ts`, `/admin/database` | **`completed`** | — |
+| **Phase 1** | `R-08b` | 6 out-of-band raw SQL partial `WHERE` & `pg_trgm` GIN expression indexes (`idx_articles_public_feed`, `idx_projects_public_feed`, `idx_articles_v_latest_updated`, `idx_projects_v_latest_updated`, `idx_mail_threads_search_trgm`, `idx_payload_jobs_runnable`) | `src/lib/phase1SqlOptimizations.ts` *(pruned & undone)* | **`undone`** | **`schema-push conflict`** |
+| **Phase 1** | `R-09a` | Prune standalone low-selectivity boolean B-tree indexes in `beforeSchemaInit` (`is_read`, `is_starred`, `has_attachments`, `direction`, `status`, `autosave`, `processing`, `has_error`) and set `lockDocuments: false` on `mail-messages` & `mail-webhook-events` | `src/lib/postgresSchemaHooks.ts`, `src/plugins/mailInbox/collections/{MailMessages,MailWebhookEvents}.ts` | **`completed`** | — |
+| **Phase 1** | `R-09b` | Replace Payload's 19 standard `payload_locked_documents_rels_*_id_idx` indexes with 21 out-of-band raw SQL `WHERE "<col>_id" IS NOT NULL` partial indexes (`idx_pld_rels_*_nn`) | `src/lib/phase1SqlOptimizations.ts` *(pruned & standard Drizzle indexes restored)* | **`undone`** | **`schema-push conflict`** |
+| **Phase 2** | `R-10` | Enable official `blocksAsJSON: true` on `vercelPostgresAdapter` + lossless idempotent backfill from legacy `forms_blocks_*` tables into `forms.fields` `jsonb` | `src/payload.config.ts`, `src/lib/phase2And3SqlOptimizations.ts` | **`completed`** | — |
+| **Phase 2** | `R-12` | Automated Payload Jobs retention tasks (`pruneMailWebhookEvents` daily `15 3 * * *` >30d, `prunePayloadJobsHistory` daily `45 3 * * *` >7d/>30d, `pruneAuditLogs` daily `30 3 * * *` >180d with optional NDJSON.gz Vercel Blob export) | `src/payload.config.ts`, `src/plugins/mailInbox/jobs/maintenanceTasks.ts`, `src/jobs/auditLogRetention.ts` | **`completed`** | — |
+| **Phase 3** | `R-13a` | Cold MIME `mail_message_bodies` 1:1 sidecar table registered in `beforeSchemaInit` (`schema.tables` + `adapter.rawTables`), lazy read/write store, lossless backfill, and weekly Vercel Blob cold archival (`archiveColdMailBodies` at `20 4 * * 0`) | `src/lib/postgresSchemaHooks.ts`, `src/plugins/mailInbox/services/messageBodiesStore.ts`, `src/lib/phase2And3SqlOptimizations.ts` | **`completed`** | — |
+| **Phase 3** | `R-13b` | Convert Payload-managed `audit_logs` collection table into a PostgreSQL declarative `PARTITION BY RANGE (created_at)` parent table (`relkind = 'p'`) with composite PK `(id, created_at)` and monthly child partitions | `src/lib/phase2And3SqlOptimizations.ts` *(replaced by lossless `restoreAuditLogsHeapIfPartitioned`)*, `src/payload.config.ts` | **`undone`** | **`incompatible with payload docs`** |
 
-- [x] **R-01 (`src/lib/postgresAdapterConfig.ts`, `src/payload.config.ts`):** Bounded serverless `VercelPool` (`max: 4`, `idleTimeoutMillis: 5_000`, `connectionTimeoutMillis: 10_000`, `maxUses: 7_500`) + optional `POSTGRES_READ_REPLICA_URLS` wiring.
-- [x] **R-02 (`src/plugins/mailInbox/services/threading.ts`):** Single-statement atomic SQL `recomputeThreadRollups` (zero `pg_toast` body hydration + explicit `select` projection fallback).
-- [x] **R-03 (`src/plugins/mailInbox/services/inboxQueries.ts`):** Single-pass `COUNT(*) FILTER (WHERE ...)` SQL aggregation in `collectInboxFolderCounts` (8× fewer pool checkouts).
-- [x] **R-04 (`src/access/draftMigration.ts`, `src/access/orderable.ts`, `src/payload.config.ts`):** Replace cold-start `pagination: false` `_articles_v`/`_projects_v` table scans with `NOT EXISTS` anti-joins, batch `ensureOrderable` existence checks into 1 SQL query, parallelize `onInit`, and support `PAYLOAD_SKIP_ON_INIT_CHECKS`.
-- [x] **R-05 (`src/lib/payloadSql.ts`, `connection.ts`, `realtimeBus.ts`, `mailStream.ts`, `advisor.ts`, `InboxClient.tsx`):** Resolve `drizzle.$client` for `vercelPostgresAdapter`, guard PgBouncer startup `statement_timeout`, protect Neon scale-to-zero via tab-visibility SSE suspension + adaptive backoff, and gate `idx_scan = 0` advisor warnings on compute stats uptime `>= 24h`.
+> **Scope Note (`R-11` & `R-14`):** `R-11` (frontend taxonomy/skills/navigation normalized lookup refactor) and `R-14` (child array `bigint GENERATED BY DEFAULT AS IDENTITY` PKs & sequence `CACHE 64` tuning) were explicitly deferred out of scope prior to Phase 2/3 execution and were never applied or reverted.
 
-### Phase 1 — Indexing, Referential Integrity, & Versioned Migrations (**Implemented**)
+---
 
-- [x] **R-06 (`src/lib/postgresSchemaHooks.ts`, `src/lib/phase1SqlOptimizations.ts`):** Set `mail_messages.thread_id` FK to `ON DELETE CASCADE` and made `form_submissions.form_id` nullable in PostgreSQL (`DROP NOT NULL`) while preserving API creation validation.
-- [x] **R-07 (`scripts/migrate-neon.mjs`, `package.json`, `.gitignore`):** Provided Neon-aware CLI runners (`pnpm db:migrate`, `pnpm db:migrate:status`, `pnpm db:migrate:create`, `pnpm db:optimize`) that promote `POSTGRES_URL_NON_POOLING` over `-pooler.` while strictly preserving Payload 3's `payload_migrations` `batch = -1` dev-push sentinel and keeping `/src/migrations` untracked during local Drizzle `push` prototyping (never mixing `push` and `migrate`).
-- [x] **R-08 (`src/lib/postgresSchemaHooks.ts`, `src/lib/phase1SqlOptimizations.ts`, `/admin/database`):** Deployed leading `(parent_id, path, "order")` indexes across all 7 `*_texts` tables, composite/covering indexes on `mail_threads`, `mail_messages`, `_articles_v`, `_projects_v`, and `payload_jobs`, partial feed/version/queue indexes, `pg_trgm` GIN search index, and one-click `apply-neon-optimizations` (`CONCURRENTLY` when unpooled) in `/admin/database`.
-- [x] **R-09 (`MailThreads.ts`, `MailMessages.ts`, `src/lib/phase1SqlOptimizations.ts`):** Removed write-amplifying standalone boolean B-trees and replaced the 21 unfiltered nullable FK indexes on `payload_locked_documents_rels` with partial `WHERE "<col>_id" IS NOT NULL` indexes.
+### 3.3 Detailed Technical Justifications for Every `undone` Step
 
-### Phase 2 — Structural & Data-Type Modernization
+#### 1. `R-07b` — Mixing Drizzle `push` Mode with Tracked Migrations & Deleting `batch = -1`
+- **Status:** `undone`
+- **Failure Classification:** **`violation conflict`**
+- **Technical Root Cause:**
+  1. Payload CMS v3.90.2 (`docs/database/migrations.mdx`) explicitly mandates: *"do not mix 'push' and migrations with your local development database"*.
+  2. When `push` is left at its default in `vercelPostgresAdapter`, `pnpm dev` invokes `@payloadcms/drizzle`'s `pushDevSchema()`, which writes a sentinel record (`name = 'dev'`, `batch = -1`) into `payload_migrations` so Payload warns before executing static migrations against a `db push`-mutated database.
+  3. Previously, `scripts/migrate-neon.mjs` executed `DELETE FROM "payload_migrations" WHERE "batch" = -1` and committed hand-authored migration snapshots under `src/migrations/`, silently bypassing Payload's schema-drift safety check while `/src/migrations` was simultaneously ignored per repository configuration (`01ba587`) and `pnpm dev` continued running `pushDevSchema()`.
+- **Undo & Restoration Applied:**
+  - Removed tracked `src/migrations/*` files (keeping `/src/migrations` in `.gitignore`), removed the `DELETE FROM "payload_migrations" WHERE "batch" = -1` bypass from `scripts/migrate-neon.mjs`, and added idempotent `batch = -1` dev-sentinel restoration during `pnpm db:optimize` whenever no positive-batch production migrations remain.
 
-- [x] **R-10 (`src/lib/postgresAdapterConfig.ts`, `src/payload.config.ts`, `src/lib/phase2And3SqlOptimizations.ts`):** Enabled `blocksAsJSON: true` on `vercelPostgresAdapter`, collapsing all 8 `forms_blocks_*` relational tables (`checkbox`, `email`, `message`, `number`, `select`, `select_options`, `text`, `textarea`) into inline `forms.fields` (`jsonb`), eliminating 8-way `LEFT JOIN LATERAL` reads and child-table delete/re-insert WAL churn, with a lossless `migrateFormsBlocksToJsonb` backfill + cleanup runner.
-- [ ] **R-11 (Native Numeric Types):** Migrate `numeric` (`varlena`) integer/byte-count fields (`read_time`, `filesize`, `width`, `height`, `login_attempts`, `message_count`, `unread_count`, `open_count`, `click_count`, `svix_timestamp`, `total_tried`) to `integer` / `bigint` and `focal_x`/`focal_y` to `real` via `beforeSchemaInit` + migration.
-- [x] **R-12 (`src/jobs/config.ts`, `src/plugins/auditLog.ts`, `src/plugins/mailInbox/jobs/{ingestWorkflow,telemetryTask}.ts`):** Scheduled daily Payload `jobs` retention tasks (`purgeExpiredSessions` at `15 3 * * *`, `purgeCompletedJobs` 14-day + orphan `payload_jobs_log` sweep at `30 3 * * *`, `pruneDocumentVersions` at `0 4 * * *`, `pruneWebhookLedger` 24h `payload_snapshot` compaction + 30d pruning at `45 3 * * *`, plus immediate `payloadSnapshot: null` clearing on processed webhooks), replaced `JSON.stringify` field diffing with short-circuit structural AST traversal (`areAuditValuesEqual`), and decoupled `audit-logs` inserts from `req.transactionID` onto non-blocking background microtasks (`flushPendingAuditLogs`).
+#### 2. `R-13b` — Declarative Monthly Range Partitioning (`PARTITION BY RANGE (created_at)`) on `audit_logs`
+- **Status:** `undone`
+- **Failure Classification:** **`incompatible with payload docs`**
+- **Technical Root Cause:**
+  1. **Drizzle Catalog Introspection Blind Spot:** `@payloadcms/drizzle` delegates schema diffing (`pushDevSchema` and `payload migrate:create`) to `drizzle-kit@0.31.7`, which queries `pg_class` filtering `c.relkind IN ('r', 'v', 'm')` (ordinary heap tables, views, materialized views). Converting `audit_logs` to a partitioned parent changes `pg_class.relkind` to `'p'` and creates child partitions (`audit_logs_default`, `audit_logs_yYYYYmMM`) as separate `relkind = 'r'` tables. On the next `pnpm dev` start, Drizzle believes `audit_logs` does not exist, attempts `CREATE TABLE "audit_logs"` (failing with `42P07: relation "audit_logs" already exists`), and attempts to drop all child partitions.
+  2. **Composite Primary Key & Foreign Key Mismatch:** PostgreSQL requires every `UNIQUE` / `PRIMARY KEY` constraint on a partitioned table to include all partition key columns (`PRIMARY KEY (id, created_at)`), whereas Payload 3 collections assume a single-column `PRIMARY KEY (id)` referenced by single-column foreign keys (such as `payload_locked_documents_rels.audit_logs_id -> audit_logs(id)`), which PostgreSQL rejects with `SQLSTATE 42830`.
+- **Undo & Restoration Applied:**
+  - Restored `AuditLogs` to standard Payload collection locking defaults, removed the `maintainAuditLogPartitions` cron task (automatically cleaning up any historic `task_slug = 'maintainAuditLogPartitions'` rows in `payload_jobs` / `payload_jobs_log` so Drizzle enum updates succeed cleanly), retained daily retention + optional NDJSON.gz archival via `pruneAuditLogs` (`R-12`), and added transactional `restoreAuditLogsHeapIfPartitioned()` in `pnpm db:optimize` to losslessly convert any partitioned `audit_logs` (`relkind = 'p'`) back into a standard heap table (`relkind = 'r'`) with `PRIMARY KEY (id)` and restored sequence ownership.
 
-### Phase 3 — High-Concurrency Distributed Scale
+#### 3. `R-08b` — Out-of-Band Raw SQL Partial (`WHERE`) & `pg_trgm` GIN Expression Indexes
+- **Status:** `undone`
+- **Failure Classification:** **`schema-push conflict`**
+- **Technical Root Cause:**
+  1. Payload 3 provides two distinct Drizzle schema hooks (`docs/database/postgres.mdx`):
+     - `beforeSchemaInit`: Mutates `adapter.rawTables` (`RawTable` JSON objects) before Drizzle builds `pgTable` instances. `RawIndex` in `@payloadcms/drizzle` only supports `{ name, on, unique }` (standard B-tree column lists) — it cannot represent partial `WHERE` predicates (`sql\`...\``) or `.using('gin', ...)`.
+     - `afterSchemaInit`: Mutates materialized Drizzle tables via `extendTable({ table, extraConfig })`, where full `drizzle-orm/pg-core` index builders (`index(...).where(...)`, `.using('gin', ...)`) ARE supported during `pushDevSchema()` and `migrate:create`.
+  2. Because the 6 `R-08b` indexes (`idx_articles_public_feed`, `idx_projects_public_feed`, `idx_articles_v_latest_updated`, `idx_projects_v_latest_updated`, `idx_mail_threads_search_trgm`, `idx_payload_jobs_runnable`) were created purely via out-of-band raw SQL in `phase1SqlOptimizations.ts` without matching `afterSchemaInit` `extendTable` declarations, `drizzle-kit` `pushSchema` saw 6 unknown indexes in `pg_indexes` on every `pnpm dev` startup and generated `DROP INDEX` statements for all 6.
+- **Undo & Restoration Applied:**
+  - Removed all 6 out-of-band partial/GIN index definitions from `buildPhase1OptimizationPlan()`, normalized `_articles_v_parent_updated_idx`, `_projects_v_parent_updated_idx`, and `mail_threads_folder_last_msg_idx` to match Drizzle's column order, and added `DROP INDEX [CONCURRENTLY] IF EXISTS` cleanup in `pnpm db:optimize` so zero out-of-band indexes remain to conflict with `pushDevSchema()`.
 
-- [x] **R-13a (`src/lib/postgresSchemaHooks.ts`, `src/plugins/mailInbox/services/messageBodiesStore.ts`, `src/lib/phase2And3SqlOptimizations.ts`):** Moved cold MIME columns (`sanitized_html`, `quoted_history_text`, `headers_snapshot`) off `mail_messages` into a lazy-loaded 1:1 `mail_message_bodies` sidecar table (`ON DELETE CASCADE`) with private Vercel Blob archival (`archiveColdMailBodies` at `20 4 * * 0`) and transparent on-demand rehydration, while keeping `audit_logs` as a standard Payload 3 Drizzle heap table (`relkind = 'r'`, with lossless `restoreAuditLogsHeapIfPartitioned` recovery from `R-13b` range partitions) for full `drizzle-kit` `pushSchema` / `migrate:create` compatibility.
-- [ ] **R-14 (Identity PKs & Sequence Cache Tuning):** Migrate child array/block random `varchar('id')` primary keys to `bigint GENERATED BY DEFAULT AS IDENTITY (CACHE 64)` (or binary `UUIDv7`) and tune `CACHE 64` on high-rate sequences (`audit_logs_id_seq`, `payload_jobs_id_seq`, `_articles_v_id_seq`).
+#### 4. `R-09b` — Out-of-Band Partial `WHERE <col>_id IS NOT NULL` Indexes on `payload_locked_documents_rels`
+- **Status:** `undone`
+- **Failure Classification:** **`schema-push conflict`**
+- **Technical Root Cause:**
+  1. Payload 3 automatically generates 19 standard single-column B-tree indexes (`payload_locked_documents_rels_<entity>_id_idx`) in `adapter.tables.payload_locked_documents_rels` for every collection with document locking enabled.
+  2. `phase1SqlOptimizations.ts` previously dropped those 19 Drizzle-managed indexes out-of-band and created 21 partial `idx_pld_rels_<entity>_nn` (`WHERE "<col>_id" IS NOT NULL`) indexes via raw SQL. On every subsequent `pnpm dev` start, Drizzle `pushDevSchema()` dropped all 21 `idx_pld_rels_*_nn` indexes and recreated all 19 `payload_locked_documents_rels_*_id_idx` indexes, causing continuous DDL churn between `pnpm db:optimize` and `pnpm dev`.
+- **Undo & Restoration Applied:**
+  - Updated `phase1SqlOptimizations.ts` to drop all 21 `idx_pld_rels_*_nn` partial indexes and ensure the exact 19 standard Drizzle `payload_locked_documents_rels_<entity>_id_idx` indexes (`lockDocuments: false` remains active on `mail_messages` and `mail_webhook_events` via `R-09a`), eliminating 100% of index drift with `src/payload-generated-schema.ts`.
+
+---
+
+## 4. Prioritized Corrective Actions Roadmap
+
+To cleanly resolve the underlying architectural needs behind every **`undone`** item while staying **100% compliant** with Payload CMS v3.90.2 and Drizzle ORM, execute the following corrective actions in priority order:
+
+### Priority 1 (`P1` — High Impact, Low Risk): Re-introduce Partial Feed/Queue & `pg_trgm` GIN Indexes via `afterSchemaInit` (`extendTable`)
+- **Resolves:** `R-08b` (`schema-push conflict`)
+- **Corrective Architecture:**
+  1. Implement an `afterSchemaInit` hook in `src/lib/postgresSchemaHooks.ts` using Payload's official `extendTable` utility imported from `@payloadcms/db-vercel-postgres` (`docs/database/postgres.mdx`) and `index` / `sql` from `@payloadcms/db-vercel-postgres/drizzle/pg-core` & `drizzle-orm`.
+  2. Declare `idx_articles_public_feed`, `idx_projects_public_feed`, `idx_articles_v_latest_updated`, `idx_projects_v_latest_updated`, and `idx_payload_jobs_runnable` inside `extendTable({ table: schema.tables.<name>, extraConfig: (t) => ({ ... }) })` using `.where(sql\`...\`)`.
+  3. For `idx_mail_threads_search_trgm`, guard GIN `gin_trgm_ops` registration behind an initialization check (or a dedicated `tsvector` generated column using built-in PostgreSQL `gin` without requiring superuser extension creation) so `pushDevSchema()` and `payload migrate:create` recognize the index natively and **never** drop it on `pnpm dev`.
+  4. Document in code comments that per Payload 3 docs, `afterSchemaInit` extensions are enforced at runtime (`pushDevSchema` / `migrate:create`) even though `payload generate:db-schema` only serializes `beforeSchemaInit` `rawTables`.
+
+### Priority 2 (`P2` — Medium Impact, Operational Safety): Formalize Stage-Gate Transition from Dev `push` Mode to Production Versioned Migrations
+- **Resolves:** `R-07b` (`violation conflict`)
+- **Corrective Architecture:**
+  1. **While actively prototyping schema locally (`push` mode):** Keep `/src/migrations` in `.gitignore`, never run `payload migrate` against the local `push` database, and use `pnpm db:optimize` for idempotent data backfills and `CONCURRENTLY` index builds.
+  2. **When cutting over to strict versioned migrations for multi-environment staging/production:**
+     - Remove `/src/migrations` from `.gitignore`.
+     - Set `push: false` explicitly inside `vercelPostgresAdapter({ push: false, migrationDir: ... })` in `src/payload.config.ts` so `pnpm dev` never mixes `pushDevSchema()` with tracked migrations.
+     - Generate clean baseline migrations via `pnpm db:migrate:create` (with consistent `BLOB_READ_WRITE_TOKEN` env configuration so plugin schemas match across generation and runtime) and execute `pnpm db:migrate` as part of the Vercel CI/CD build step (`vercel-build`), avoiding `prodMigrations` on serverless cold starts.
+
+### Priority 3 (`P3` — Low/Medium Impact, Write-Amplification Reduction): Selective `lockDocuments: false` on Read-Only / Append-Only Collections Instead of Out-of-Band Partial Lock Indexes
+- **Resolves:** `R-09b` (`schema-push conflict`)
+- **Corrective Architecture:**
+  1. Rather than overriding Payload's internal `payload_locked_documents_rels` indexes out-of-band, set `lockDocuments: false` directly in the Payload Collection config on collections that are strictly append-only or system-managed and never edited concurrently by multiple admins in the UI (`AuditLogs`, `FormSubmissions`, `MailAttachments`, `MailLabels`).
+  2. Payload's schema generator then natively omits both the nullable `<collection>_id` column and its `payload_locked_documents_rels_<collection>_id_idx` B-tree index in `beforeSchemaInit` / Drizzle with zero custom SQL overrides.
+
+### Priority 4 (`P4` — Long-Term Scale Architecture): Keep `audit_logs` as a Bounded Hot Heap Table + Cold Object-Storage Partitioning (or Custom Unmanaged Partitioned Sidecar)
+- **Resolves:** `R-13b` (`incompatible with payload docs`)
+- **Corrective Architecture:**
+  1. **Default Payload-Native Pattern (Already Active via `R-12`):** Keep Payload's `audit_logs` collection as a standard heap table (`relkind = 'r'`) bounded to a predictable 180-day hot window (~50k–200k rows, `< 50 MB`) by `pruneAuditLogs`, which exports aged batches to date-partitioned `.ndjson.gz` objects in private Vercel Blob before batch-deleting. At this bounded cardinality, a standard PostgreSQL heap table with `(created_at)` and `(event, created_at)` B-trees delivers sub-millisecond reads with zero `drizzle-kit` incompatibility.
+  2. **If Multi-Million-Row SQL Analytics Are Needed Later:** Keep `audit_logs` as a thin hot table (e.g., 30-day window) or write high-volume telemetry to a **custom non-Payload sidecar table** (`audit_logs_archive`) excluded from `drizzle-kit` push diffing via `tablesFilter: ['!audit_logs_archive*']`, rather than partitioning a Payload-managed collection table directly.
+
+---
+
+## 5. Verification & Operational Runbook
+
+```bash
+# 1. Regenerate Payload TypeScript types, Drizzle schema, and Admin importMap
+pnpm generate:all
+
+# 2. Apply Drizzle-aligned Phase 1–3 data backfills, heap/sentinel recovery, & CONCURRENTLY indexes
+pnpm db:optimize
+
+# 3. Re-sync online CONCURRENTLY B-tree indexes directly over POSTGRES_URL_NON_POOLING
+pnpm db:optimize-indexes
+
+# 4. Run full typecheck, lint, and integration test suite
+pnpm exec tsc --noEmit
+pnpm lint
+pnpm test:int
+```

@@ -79,7 +79,6 @@ export async function runDatabaseRepairAction(
           durationMs: Date.now() - startedAt,
           summary: `Applied Neon database optimizations (${summary.concurrent ? 'CONCURRENTLY' : 'transactional-safe'}): ${summary.createdIndexes.length} index(es) ensured, ${summary.droppedIndexes.length} legacy index(es) pruned, forms JSONB=${phase2And3.formsBlocks.formsTableExists ? 'ready' : 'n/a'}, mail_message_bodies=${phase2And3.mailBodies.sidecarEnsured ? 'ready' : 'n/a'}, audit_logs=${phase2And3.auditLogsHeap.restoredFromPartitioned ? 'restored-heap' : 'heap'}.`,
           details: {
-            extensionEnsured: summary.extensionEnsured,
             fkIntegrityApplied: summary.fkIntegrityApplied,
             createdCount: summary.createdIndexes.length,
             droppedCount: summary.droppedIndexes.length,

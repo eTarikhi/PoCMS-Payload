@@ -50,7 +50,7 @@ docker run --rm -p 3000:3000 \
 - [ ] `PAYLOAD_SECRET` is a unique 32-byte (64-hex-character) random secret
 - [ ] `NEXT_PUBLIC_SITE_URL` matches the live HTTPS domain (no trailing slash)
 - [ ] `POSTGRES_URL` (pooled) and `POSTGRES_URL_NON_POOLING` (direct) are configured
-- [ ] Run `pnpm db:migrate` (and optionally `pnpm db:optimize-indexes` for zero-lock `CONCURRENTLY` index rollouts over `POSTGRES_URL_NON_POOLING`)
+- [ ] Run `pnpm db:optimize` for zero-lock `CONCURRENTLY` Drizzle-aligned index & backfill sync over `POSTGRES_URL_NON_POOLING` (and `pnpm db:migrate` when operating with tracked versioned migrations and `push: false`)
 - [ ] `BLOB_READ_WRITE_TOKEN` is set for persistent media and private mail attachments
 - [ ] `RESEND_API_KEY` and `RESEND_WEBHOOK_SECRET` are set if inbound/outbound mail is enabled
 - [ ] GitHub Actions CI (`.github/workflows/ci.yml`) is green before merging to production

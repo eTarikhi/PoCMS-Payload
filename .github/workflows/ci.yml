@@ -143,15 +143,24 @@ jobs:
               if (mig.rowCount !== 1) throw new Error("Expected Payload dev push sentinel (batch = -1) in payload_migrations");
 
               const idx = await client.query("SELECT indexname FROM pg_indexes WHERE schemaname = \x27public\x27 AND indexname = ANY($1)", [[
+                "header_texts_parent_path_order_idx",
+                "_articles_v_parent_updated_idx",
+                "mail_threads_counts_cover_idx",
+                "mail_threads_folder_last_msg_idx",
+                "payload_jobs_queue_wait_created_idx",
+                "payload_locked_documents_rels_articles_id_idx",
+                "payload_locked_documents_rels_audit_logs_id_idx"
+              ]]);
+              if (idx.rowCount !== 7) throw new Error("Expected all 7 verified Drizzle-aligned Phase 1 indexes in pg_indexes, got " + idx.rowCount);
+              const undoneIdx = await client.query("SELECT indexname FROM pg_indexes WHERE schemaname = \x27public\x27 AND indexname = ANY($1)", [[
                 "idx_articles_public_feed",
                 "idx_projects_public_feed",
                 "idx_mail_threads_search_trgm",
                 "idx_payload_jobs_runnable",
                 "idx_pld_rels_articles_nn",
-                "idx_pld_rels_audit_logs_nn",
-                "header_texts_parent_path_order_idx"
+                "idx_pld_rels_audit_logs_nn"
               ]]);
-              if (idx.rowCount !== 7) throw new Error("Expected all 7 verified Phase 1 indexes in pg_indexes, got " + idx.rowCount);
+              if (undoneIdx.rowCount !== 0) throw new Error("Expected 0 out-of-band R-08b/R-09b indexes in pg_indexes, got " + undoneIdx.rowCount);
               const fk = await client.query("SELECT confdeltype FROM pg_constraint WHERE conname = \x27mail_messages_thread_id_mail_threads_id_fk\x27");
               if (fk.rows[0]?.confdeltype !== "c") throw new Error("Expected ON DELETE CASCADE (c) on mail_messages.thread_id FK");
 
@@ -193,10 +202,13 @@ jobs:
               await client.query("INSERT INTO audit_logs SELECT * FROM audit_logs__sim_heap");
               await client.query("ALTER SEQUENCE audit_logs_id_seq OWNED BY audit_logs.id");
               await client.query("DROP TABLE audit_logs__sim_heap");
+              await client.query("CREATE INDEX IF NOT EXISTS idx_articles_public_feed ON articles (published_at) WHERE deleted_at IS NULL");
+              await client.query("DROP INDEX IF EXISTS payload_locked_documents_rels_articles_id_idx");
+              await client.query("CREATE INDEX IF NOT EXISTS idx_pld_rels_articles_nn ON payload_locked_documents_rels (articles_id) WHERE articles_id IS NOT NULL");
               await client.query("DELETE FROM payload_migrations WHERE batch = -1");
               await client.query("INSERT INTO payload_migrations (name, batch) VALUES (\x2720261031_001_phase1_integrity_and_indexes\x27, 1)");
               await client.end();
-              console.log("Simulated partitioned audit_logs with " + beforeCnt + " row(s).");
+              console.log("Simulated partitioned audit_logs + out-of-band indexes with " + beforeCnt + " row(s).");
             })().catch((err) => { console.error(err); process.exit(1); });
           '
           pnpm run db:optimize
@@ -210,8 +222,12 @@ jobs:
               if (auditRel.rows[0]?.relkind !== "r") throw new Error("Expected restored audit_logs relkind = r, got " + auditRel.rows[0]?.relkind);
               const devRow = await client.query("SELECT batch FROM payload_migrations WHERE batch = -1");
               if (devRow.rowCount !== 1) throw new Error("Expected restored dev sentinel batch = -1");
+              const restoredIdx = await client.query("SELECT indexname FROM pg_indexes WHERE schemaname = \x27public\x27 AND indexname = \x27payload_locked_documents_rels_articles_id_idx\x27");
+              if (restoredIdx.rowCount !== 1) throw new Error("Expected restored payload_locked_documents_rels_articles_id_idx");
+              const leftoverOutOfBand = await client.query("SELECT indexname FROM pg_indexes WHERE schemaname = \x27public\x27 AND indexname IN (\x27idx_articles_public_feed\x27, \x27idx_pld_rels_articles_nn\x27)");
+              if (leftoverOutOfBand.rowCount !== 0) throw new Error("Expected 0 leftover out-of-band indexes, got " + leftoverOutOfBand.rowCount);
               await client.end();
-              console.log("Verified lossless partitioned -> heap restoration + clean Drizzle pushDevSchema!");
+              console.log("Verified lossless partitioned -> heap restoration, out-of-band index cleanup, + clean Drizzle pushDevSchema!");
             })().catch((err) => { console.error(err); process.exit(1); });
           '
 

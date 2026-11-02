@@ -17,8 +17,9 @@ import {
 import {
   applyPhase1DatabaseOptimizations,
   buildPhase1OptimizationPlan,
-  LOCKED_DOCUMENT_RELS_NULLABLE_FK_COLUMNS,
+  LOCKED_DOCUMENT_RELS_STANDARD_FK_COLUMNS,
   TEXTS_TABLES,
+  UNDONE_CONFLICTING_OUT_OF_BAND_INDEXES,
 } from '@/lib/phase1SqlOptimizations'
 import { phase1BeforeSchemaInit } from '@/lib/postgresSchemaHooks'
 import { runDatabaseRepairAction } from '@/plugins/databaseManager/core/repair'
@@ -161,31 +162,42 @@ describe('Phase 1 Database Integrity, Versioned Migrations & Index Optimizations
     expect(migrateRunnerSource).not.toContain('WHERE "batch" = -1')
   })
 
-  it('R-08 & R-09: builds CONCURRENTLY online index & partial FK plans and wires apply-neon-optimizations into /admin/database Repair', async () => {
+  it('R-08 & R-09: builds Drizzle-aligned CONCURRENTLY composite & standard FK plans, prunes undone out-of-band R-08b/R-09b indexes, and wires apply-neon-optimizations into /admin/database Repair', async () => {
     const concurrentPlan = buildPhase1OptimizationPlan({ schemaName: 'public', concurrent: true })
 
     // Every index identifier must obey PostgreSQL's 63-byte NAMEDATALEN cap
+    expect(concurrentPlan.createIndexes).toHaveLength(32) // 13 R-08a composite + 19 standard Drizzle lock FK indexes
     for (const idx of concurrentPlan.createIndexes) {
       expect(idx.name.length).toBeLessThanOrEqual(63)
       expect(idx.createSql).toContain('CREATE INDEX CONCURRENTLY IF NOT EXISTS')
+      expect(idx.createSql).not.toContain(' WHERE ')
+      expect(idx.createSql).not.toContain('gin_trgm_ops')
     }
     for (const drop of concurrentPlan.dropIndexes) {
       expect(drop.dropSql).toContain('DROP INDEX CONCURRENTLY IF EXISTS')
     }
 
-    // Verify partial feed, version, runnable jobs, pg_trgm GIN, and all 21 partial NOT NULL lock FK indexes
+    // Verify all 13 Drizzle-native composite B-trees + 19 standard `payload_locked_documents_rels_*_id_idx` are created
     const sqlAll = concurrentPlan.createIndexes.map((i) => i.createSql).join('\n')
-    expect(sqlAll).toContain('"idx_articles_public_feed"')
-    expect(sqlAll).toContain('"idx_projects_public_feed"')
-    expect(sqlAll).toContain('"idx_articles_v_latest_updated"')
-    expect(sqlAll).toContain('"idx_mail_threads_search_trgm"')
-    expect(sqlAll).toContain('gin_trgm_ops')
-    expect(sqlAll).toContain('"idx_payload_jobs_runnable"')
-    expect(LOCKED_DOCUMENT_RELS_NULLABLE_FK_COLUMNS).toHaveLength(21)
-    for (const { column, partialIndex } of LOCKED_DOCUMENT_RELS_NULLABLE_FK_COLUMNS) {
+    expect(sqlAll).toContain('"header_texts_parent_path_order_idx"')
+    expect(sqlAll).toContain('"_articles_v_parent_updated_idx" ON "public"."_articles_v" ("parent_id", "updated_at")')
+    expect(sqlAll).toContain('"mail_threads_counts_cover_idx"')
+    expect(sqlAll).toContain('"mail_threads_folder_last_msg_idx"')
+    expect(sqlAll).toContain('"mail_messages_thread_sent_idx"')
+    expect(sqlAll).toContain('"payload_jobs_queue_wait_created_idx"')
+    expect(LOCKED_DOCUMENT_RELS_STANDARD_FK_COLUMNS).toHaveLength(19)
+    for (const { column, drizzleIndex, undonePartialIndex } of LOCKED_DOCUMENT_RELS_STANDARD_FK_COLUMNS) {
       expect(sqlAll).toContain(
-        `"${partialIndex}" ON "public"."payload_locked_documents_rels" ("${column}") WHERE "${column}" IS NOT NULL`,
+        `"${drizzleIndex}" ON "public"."payload_locked_documents_rels" ("${column}");`,
       )
+      expect(sqlAll).not.toContain(undonePartialIndex)
+    }
+
+    // Verify all 27 undone out-of-band conflicting R-08b/R-09b indexes are pruned on optimize
+    expect(UNDONE_CONFLICTING_OUT_OF_BAND_INDEXES).toHaveLength(27)
+    const dropAll = concurrentPlan.dropIndexes.map((d) => d.dropSql).join('\n')
+    for (const undoneIdx of UNDONE_CONFLICTING_OUT_OF_BAND_INDEXES) {
+      expect(dropAll).toContain(`DROP INDEX CONCURRENTLY IF EXISTS "public"."${undoneIdx}";`)
     }
 
     // Verify Repair action in /admin/database uses CONCURRENTLY when unpooled and non-concurrent when pooled
@@ -198,13 +210,12 @@ describe('Phase 1 Database Integrity, Versioned Migrations & Index Optimizations
         if (text.includes('information_schema.columns')) {
           return {
             rows: [
-              { table_name: 'articles', column_name: 'published_at' },
-              { table_name: 'articles', column_name: 'deleted_at' },
-              { table_name: 'articles', column_name: '_status' },
-              { table_name: 'mail_threads', column_name: 'subject' },
-              { table_name: 'mail_threads', column_name: 'snippet' },
-              { table_name: 'mail_threads', column_name: 'counterparty_name' },
-              { table_name: 'mail_threads', column_name: 'counterparty_email' },
+              { table_name: 'header_texts', column_name: 'parent_id' },
+              { table_name: 'header_texts', column_name: 'path' },
+              { table_name: 'header_texts', column_name: 'order' },
+              { table_name: 'mail_threads', column_name: 'folder' },
+              { table_name: 'mail_threads', column_name: 'is_read' },
+              { table_name: 'mail_threads', column_name: 'is_starred' },
               { table_name: 'payload_locked_documents_rels', column_name: 'articles_id' },
             ] as unknown as T[],
           }
@@ -217,10 +228,11 @@ describe('Phase 1 Database Integrity, Versioned Migrations & Index Optimizations
       concurrent: true,
     })
     expect(unpooledSummary.concurrent).toBe(true)
-    expect(unpooledSummary.extensionEnsured).toBe(true)
-    expect(unpooledSummary.createdIndexes).toContain('idx_articles_public_feed')
-    expect(unpooledSummary.createdIndexes).toContain('idx_mail_threads_search_trgm')
-    expect(unpooledSummary.createdIndexes).toContain('idx_pld_rels_articles_nn')
+    expect(unpooledSummary.createdIndexes).toContain('header_texts_parent_path_order_idx')
+    expect(unpooledSummary.createdIndexes).toContain('mail_threads_counts_cover_idx')
+    expect(unpooledSummary.createdIndexes).toContain('payload_locked_documents_rels_articles_id_idx')
+    expect(unpooledSummary.droppedIndexes).toContain('idx_articles_public_feed')
+    expect(unpooledSummary.droppedIndexes).toContain('idx_pld_rels_articles_nn')
     expect(
       ranStatements.some((s) => s.startsWith('CREATE INDEX CONCURRENTLY IF NOT EXISTS')),
     ).toBe(true)
