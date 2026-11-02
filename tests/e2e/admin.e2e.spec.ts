@@ -101,42 +101,47 @@ test.describe('PoCMS Admin Panel (RBAC, Content, SEO Tabs, Forms, Globals, Inbox
         { width: 1720, height: 900, mode: 'single-row' as const },
       ]) {
         await page.setViewportSize({ width: vp.width, height: vp.height })
+        // Allow Payload's @faceless-ui/window-info debounced resize observer to settle
+        await page.waitForTimeout(250)
+
         const tabList = page.getByTestId('database-view').getByRole('tablist')
         await expect(tabList).toBeVisible()
-        const listBox = await tabList.boundingBox()
-        const tabs = tabList.getByRole('tab')
-        await expect(tabs).toHaveCount(7)
+        await expect(tabList.getByRole('tab')).toHaveCount(7)
 
-        const firstBox = await tabs.nth(0).boundingBox()
-        const lastBox = await tabs.nth(6).boundingBox()
-        const panelBox = await page
-          .getByTestId('database-view')
-          .locator('[data-slot="tabs-content"]')
-          .first()
-          .boundingBox()
+        // Read all bounding rects atomically in the same layout frame
+        const geometry = await page.getByTestId('database-view').evaluate((root) => {
+          const listEl = root.querySelector<HTMLElement>('[role="tablist"]')
+          const tabEls = Array.from(root.querySelectorAll<HTMLElement>('[role="tablist"] [role="tab"]'))
+          const panelEl = root.querySelector<HTMLElement>('[data-slot="tabs-content"]')
+          if (!listEl || !panelEl || tabEls.length !== 7) return null
+          const toPlain = (r: DOMRect) => ({ x: r.x, y: r.y, width: r.width, height: r.height })
+          return {
+            listBox: toPlain(listEl.getBoundingClientRect()),
+            tabBoxes: tabEls.map((t) => toPlain(t.getBoundingClientRect())),
+            panelBox: toPlain(panelEl.getBoundingClientRect()),
+          }
+        })
 
-        expect(listBox).not.toBeNull()
-        expect(firstBox).not.toBeNull()
-        expect(lastBox).not.toBeNull()
-        expect(panelBox).not.toBeNull()
+        expect(geometry).not.toBeNull()
+        const { listBox, tabBoxes, panelBox } = geometry!
+        const firstBox = tabBoxes[0]!
+        const lastBox = tabBoxes[6]!
 
         // Every tab must sit vertically inside the muted TabsList container (zero vertical overflow)
-        for (let i = 0; i < 7; i++) {
-          const box = await tabs.nth(i).boundingBox()
-          expect(box).not.toBeNull()
-          expect(box!.y).toBeGreaterThanOrEqual(listBox!.y - 1)
-          expect(box!.y + box!.height).toBeLessThanOrEqual(listBox!.y + listBox!.height + 1)
+        for (const box of tabBoxes) {
+          expect(box.y).toBeGreaterThanOrEqual(listBox.y - 1)
+          expect(box.y + box.height).toBeLessThanOrEqual(listBox.y + listBox.height + 1)
         }
 
         // Content card below must never overlap TabsList
-        expect(panelBox!.y).toBeGreaterThanOrEqual(listBox!.y + listBox!.height + 16)
+        expect(panelBox.y).toBeGreaterThanOrEqual(listBox.y + listBox.height + 16)
 
         if (vp.mode === 'grid') {
           // On multi-row grid viewports, the 7th tab must align with a grid column (never stretch 100% centered)
-          expect(Math.abs(lastBox!.width - firstBox!.width)).toBeLessThanOrEqual(2)
+          expect(Math.abs(lastBox.width - firstBox.width)).toBeLessThanOrEqual(2)
         } else if (vp.mode === 'single-row') {
           // On wide desktop viewports, all 7 tabs sit on a single horizontal row
-          expect(Math.abs(lastBox!.y - firstBox!.y)).toBeLessThanOrEqual(2)
+          expect(Math.abs(lastBox.y - firstBox.y)).toBeLessThanOrEqual(2)
         }
       }
     } finally {

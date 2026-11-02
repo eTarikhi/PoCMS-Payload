@@ -138,8 +138,15 @@ export function DatabaseClient({
     const activeBtn = el.querySelector<HTMLElement>(
       '[data-slot="tabs-trigger"][aria-selected="true"]',
     )
-    if (typeof activeBtn?.scrollIntoView === 'function') {
-      activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+    if (!activeBtn || typeof el.scrollTo !== 'function') return
+    const btnLeft = activeBtn.offsetLeft
+    const btnRight = btnLeft + activeBtn.offsetWidth
+    const viewLeft = el.scrollLeft
+    const viewRight = viewLeft + el.clientWidth
+    if (btnLeft < viewLeft + 12) {
+      el.scrollTo({ left: Math.max(0, btnLeft - 12), behavior: 'smooth' })
+    } else if (btnRight > viewRight - 12) {
+      el.scrollTo({ left: btnRight - el.clientWidth + 12, behavior: 'smooth' })
     }
   }, [activeTab])
 
