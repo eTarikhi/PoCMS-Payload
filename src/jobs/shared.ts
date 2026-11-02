@@ -66,15 +66,28 @@ export const REGISTERED_JOB_TASKS: readonly JobTaskMeta[] = [
       'Imports local legacy imageUrl / src strings on Articles & Projects into tracked Media records with responsive WebP variants.',
   },
   {
+    slug: 'purgeExpiredSessions',
+    label: 'Purge expired user sessions',
+    description:
+      'Deletes expired users_sessions rows where expires_at is in the past without scanning active sessions.',
+  },
+  {
     slug: 'purgeCompletedJobs',
     label: 'Clean up finished jobs',
-    description: 'Removes completed job records older than 72 hours from payload-jobs.',
+    description:
+      'Prunes completed payload-jobs and payload_jobs_log records older than 14 days (336 hours).',
   },
   {
     slug: 'pruneDocumentVersions',
     label: 'Prune old document versions',
     description:
       'Deletes obsolete draft and historical snapshots on Articles & Projects while preserving active latest and published versions.',
+  },
+  {
+    slug: 'maintainAuditLogPartitions',
+    label: 'Maintain audit log partitions',
+    description:
+      'Pre-creates upcoming monthly audit_logs range partitions and drops expired partitions instantaneously without VACUUM overhead.',
   },
   {
     slug: 'createDatabaseBackup',
@@ -86,7 +99,13 @@ export const REGISTERED_JOB_TASKS: readonly JobTaskMeta[] = [
     slug: 'pruneWebhookLedger',
     label: 'Prune mail webhook ledger',
     description:
-      'Removes processed and ignored Resend webhook idempotency records older than 30 days.',
+      'Compacts processed webhook payload_snapshot JSONB blobs after 24h and removes idempotency rows older than 30 days.',
+  },
+  {
+    slug: 'archiveColdMailBodies',
+    label: 'Archive cold mail MIME bodies to Blob',
+    description:
+      'Offloads cold HTML/quoted/header payloads of archived or trashed threads older than 90 days to private Vercel Blob storage.',
   },
 ] as const
 

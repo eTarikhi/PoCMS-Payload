@@ -11,7 +11,12 @@ type RawColumnRef = {
 type RawColumn = {
   name: string
   type: string
+  primaryKey?: boolean
   notNull?: boolean
+  defaultNow?: boolean
+  mode?: string
+  precision?: number
+  withTimezone?: boolean
   reference?: RawColumnRef
 }
 
@@ -36,8 +41,17 @@ type RawTable = {
   foreignKeys?: Record<string, RawForeignKey>
 }
 
+type RawRelation = {
+  type: 'one' | 'many'
+  to: string
+  fields?: Array<{ table: string; name: string }>
+  references?: string[]
+  relationName?: string
+}
+
 type RawAdapterShape = {
   rawTables?: Record<string, RawTable>
+  rawRelations?: Record<string, Record<string, RawRelation>>
   indexes?: Set<string>
 }
 
@@ -223,6 +237,80 @@ export const phase1BeforeSchemaInit: PostgresSchemaHook = ({ adapter, schema }) 
       'payload_jobs_queue_wait_created_idx',
       ['queue', 'waitUntil', 'createdAt'],
     )
+  }
+
+  // R-13: Dedicated 1:1 cold MIME payload sidecar (`mail_message_bodies`) so hot `mail_messages`
+  // list/rollup/telemetry queries never touch multi-hundred-kilobyte HTML/quoted/header TOAST pages.
+  if (mailMessages && !rawTables.mail_message_bodies) {
+    rawTables.mail_message_bodies = {
+      name: 'mail_message_bodies',
+      columns: {
+        messageId: {
+          name: 'message_id',
+          type: 'integer',
+          primaryKey: true,
+          notNull: true,
+        },
+        sanitizedHtml: {
+          name: 'sanitized_html',
+          type: 'text',
+        },
+        quotedHistoryText: {
+          name: 'quoted_history_text',
+          type: 'text',
+        },
+        headersSnapshot: {
+          name: 'headers_snapshot',
+          type: 'jsonb',
+        },
+        blobKey: {
+          name: 'blob_key',
+          type: 'varchar',
+        },
+        archivedAt: {
+          name: 'archived_at',
+          type: 'timestamp',
+          mode: 'string',
+          precision: 3,
+          withTimezone: true,
+        },
+        updatedAt: {
+          name: 'updated_at',
+          type: 'timestamp',
+          mode: 'string',
+          precision: 3,
+          withTimezone: true,
+          defaultNow: true,
+          notNull: true,
+        },
+      },
+      foreignKeys: {
+        mail_message_bodies_message_id_fk: {
+          name: 'mail_message_bodies_message_id_fk',
+          columns: ['messageId'],
+          foreignColumns: [{ table: 'mail_messages', name: 'id' }],
+          onDelete: 'cascade',
+        },
+      },
+      indexes: {
+        blobKeyIdx: {
+          name: 'mail_message_bodies_blob_key_idx',
+          on: 'blobKey',
+        },
+      },
+    }
+    indexSet?.add('mail_message_bodies_blob_key_idx')
+
+    if (rawAdapter.rawRelations) {
+      rawAdapter.rawRelations.mail_message_bodies = {
+        message: {
+          type: 'one',
+          to: 'mail_messages',
+          fields: [{ table: 'mail_message_bodies', name: 'messageId' }],
+          references: ['id'],
+        },
+      }
+    }
   }
 
   return schema

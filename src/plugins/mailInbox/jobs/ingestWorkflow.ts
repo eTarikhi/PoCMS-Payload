@@ -19,6 +19,7 @@ import {
   sanitizeEmailHtml,
   splitVisibleReplyAndQuotedHistory,
 } from '../services/mimeSanitizer'
+import { upsertMailMessageBody } from '../services/messageBodiesStore'
 import { publishMailStreamEvent } from '../services/realtimeBus'
 import {
   downloadSignedAttachment,
@@ -102,6 +103,10 @@ export async function markWebhookLedgerState({
     if (!doc?.id) return
 
     const prevAttempts = typeof doc.attempts === 'number' ? doc.attempts : 0
+    const clearSnapshot =
+      (state === 'processed' || state === 'ignored') &&
+      process.env.MAIL_KEEP_WEBHOOK_SNAPSHOTS !== 'true'
+
     await payload.update({
       collection: MAIL_WEBHOOK_EVENTS_COLLECTION as CollectionSlug,
       id: doc.id as number | string,
@@ -113,6 +118,8 @@ export async function markWebhookLedgerState({
         attempts: prevAttempts + 1,
         processedAt: new Date().toISOString(),
         errorMessage: errorMessage ?? null,
+        // R-12: Clear cold `payload_snapshot` JSONB once processed/ignored while retaining `svix_id`
+        ...(clearSnapshot ? { payloadSnapshot: null } : {}),
       } as Record<string, unknown>,
     })
   } catch {
@@ -332,7 +339,7 @@ export async function persistInboundEmailMessage({
     collection: MAIL_MESSAGES_COLLECTION as CollectionSlug,
     overrideAccess: true,
     req,
-    context: { ...(req?.context ?? {}), skipAuditLog: true },
+    context: { ...(req?.context ?? {}), skipAuditLog: true, skipMailBodyHook: true },
     data: {
       thread: threadId,
       direction: 'inbound',
@@ -350,18 +357,26 @@ export async function persistInboundEmailMessage({
       replyToAddresses: replyToList,
       subject: (receivedEmail.subject ?? '').trim() || '(No subject)',
       snippet,
-      sanitizedHtml: sanitized.sanitizedHtml,
       plainText: fullPlainText,
       visibleReplyText,
-      quotedHistoryText,
       hasRemoteImages: sanitized.hasRemoteImages,
       blockedRemoteImages: sanitized.blockedRemoteImages,
       attachments: attachmentDocIds,
       sentAt: sentAtIso,
       lastEventAt: sentAtIso,
       authResults,
-      headersSnapshot: headers,
     } as Record<string, unknown>,
+  })
+
+  await upsertMailMessageBody({
+    payload,
+    req,
+    messageId: createdMessage.id,
+    body: {
+      sanitizedHtml: sanitized.sanitizedHtml,
+      quotedHistoryText,
+      headersSnapshot: headers,
+    },
   })
 
   await recomputeThreadRollups({

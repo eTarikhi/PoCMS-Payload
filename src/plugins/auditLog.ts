@@ -108,7 +108,67 @@ export const extractDocumentTitle = (
   return doc.id !== undefined ? `#${String(doc.id)}` : ''
 }
 
-/** Computes top-level field names whose JSON representation changed between `previousDoc` and `doc`. */
+const MAX_STRUCTURAL_DIFF_DEPTH = 24
+
+/**
+ * Fast short-circuit structural equality check that avoids allocating multi-hundred-kilobyte
+ * `JSON.stringify` strings when comparing large Lexical `content` ASTs (`R-12`).
+ * Preserves JSON object-key semantics (`undefined` object properties are ignored).
+ */
+export function areAuditValuesEqual(a: unknown, b: unknown, depth = 0): boolean {
+  if (Object.is(a, b)) return true
+  if (a === null || b === null || a === undefined || b === undefined) return false
+
+  if (a instanceof Date && b instanceof Date) {
+    return a.getTime() === b.getTime()
+  }
+  if (a instanceof Date || b instanceof Date) {
+    const aIso = a instanceof Date ? a.toISOString() : a
+    const bIso = b instanceof Date ? b.toISOString() : b
+    return aIso === bIso
+  }
+
+  if (typeof a !== typeof b) return false
+  if (typeof a !== 'object') return false
+
+  if (depth >= MAX_STRUCTURAL_DIFF_DEPTH) {
+    try {
+      return JSON.stringify(a) === JSON.stringify(b)
+    } catch {
+      return false
+    }
+  }
+
+  const aIsArr = Array.isArray(a)
+  const bIsArr = Array.isArray(b)
+  if (aIsArr !== bIsArr) return false
+
+  if (aIsArr && bIsArr) {
+    if (a.length !== b.length) return false
+    for (let i = 0; i < a.length; i += 1) {
+      const av = a[i] === undefined ? null : a[i]
+      const bv = b[i] === undefined ? null : b[i]
+      if (!areAuditValuesEqual(av, bv, depth + 1)) return false
+    }
+    return true
+  }
+
+  const aRec = a as Record<string, unknown>
+  const bRec = b as Record<string, unknown>
+  const aKeys = Object.keys(aRec).filter((k) => aRec[k] !== undefined)
+  const bKeys = Object.keys(bRec).filter((k) => bRec[k] !== undefined)
+  if (aKeys.length !== bKeys.length) return false
+
+  for (let i = 0; i < aKeys.length; i += 1) {
+    const k = aKeys[i]
+    if (!(k in bRec) || bRec[k] === undefined) return false
+    if (!areAuditValuesEqual(aRec[k], bRec[k], depth + 1)) return false
+  }
+
+  return true
+}
+
+/** Computes top-level field names whose structural value changed between `previousDoc` and `doc`. */
 export const computeChangedFields = (
   doc: Record<string, unknown> | null | undefined,
   previousDoc: Record<string, unknown> | null | undefined,
@@ -118,7 +178,7 @@ export const computeChangedFields = (
   const changed: string[] = []
   for (const key of keys) {
     if (IGNORED_FIELD_DIFF_KEYS.has(key)) continue
-    if (JSON.stringify(doc[key]) !== JSON.stringify(previousDoc[key])) {
+    if (!areAuditValuesEqual(doc[key], previousDoc[key])) {
       changed.push(key)
     }
   }
@@ -186,8 +246,55 @@ const labelOfEntity = (
   return fallback
 }
 
-async function writeAuditEntry(
+const pendingAuditWrites = new Set<Promise<void>>()
+
+/** Awaits all currently queued background audit-log writes (`R-12`). */
+export async function flushPendingAuditLogs(): Promise<void> {
+  while (pendingAuditWrites.size > 0) {
+    await Promise.allSettled(Array.from(pendingAuditWrites))
+  }
+}
+
+export function getPendingAuditWriteCount(): number {
+  return pendingAuditWrites.size
+}
+
+function shouldRunAuditAsync(req: PayloadRequest, explicitAsync?: boolean): boolean {
+  if (typeof explicitAsync === 'boolean') return explicitAsync
+  if (req?.context?.asyncAuditLog === true) return true
+  if (req?.context?.asyncAuditLog === false) return false
+  if (process.env.AUDIT_LOG_SYNC === 'true') return false
+  // Default to deterministic synchronous resolution during Vitest runs unless explicitly requested,
+  // and non-blocking microtask dispatch in development/production runtimes.
+  return process.env.NODE_ENV !== 'test'
+}
+
+function enqueueOrAwaitAuditTask(
   req: PayloadRequest,
+  explicitAsync: boolean | undefined,
+  taskFactory: () => Promise<void>,
+): Promise<void> {
+  if (!shouldRunAuditAsync(req, explicitAsync)) {
+    return taskFactory()
+  }
+
+  const deferred = new Promise<void>((resolve) => {
+    queueMicrotask(() => {
+      taskFactory()
+        .catch(() => {})
+        .finally(resolve)
+    })
+  })
+  pendingAuditWrites.add(deferred)
+  void deferred.finally(() => {
+    pendingAuditWrites.delete(deferred)
+  })
+  return Promise.resolve()
+}
+
+async function persistAuditEntryDetached(
+  payload: PayloadRequest['payload'],
+  requestMeta: { ip: string | null; userAgent: string | null },
   entry: {
     action: AuditAction
     entityKind: 'collection' | 'global' | 'auth' | 'database'
@@ -200,7 +307,6 @@ async function writeAuditEntry(
   },
 ): Promise<void> {
   try {
-    const { ip, userAgent } = extractRequestMetadata(req)
     // Numeric vs string actor IDs: pass actor ID only when valid for the users collection.
     const actorValue =
       typeof entry.actor.actorId === 'number'
@@ -209,11 +315,12 @@ async function writeAuditEntry(
           ? Number(entry.actor.actorId)
           : undefined
 
-    await req.payload.create({
+    // R-12: Deliberately omit `req` so `audit-logs` inserts NEVER join or extend the caller's
+    // interactive `req.transactionID` session or block primary content commits.
+    await payload.create({
       collection: AUDIT_LOG_COLLECTION,
       overrideAccess: true,
-      req,
-      context: { ...(req.context ?? {}), skipAuditLog: true, skipRevalidate: true },
+      context: { skipAuditLog: true, skipRevalidate: true },
       data: {
         action: entry.action,
         entityKind: entry.entityKind,
@@ -225,16 +332,37 @@ async function writeAuditEntry(
         actorEmail: entry.actor.actorEmail,
         actorLabel: entry.actor.actorLabel,
         summary: entry.summary,
-        ip,
-        userAgent,
+        ip: requestMeta.ip,
+        userAgent: requestMeta.userAgent,
         meta: entry.meta ?? null,
       },
     })
   } catch (error) {
-    req.payload?.logger?.error(
+    payload?.logger?.error(
       `[audit-log] Failed to record ${entry.action} on ${entry.entityType}: ${error instanceof Error ? error.message : String(error)}`,
     )
   }
+}
+
+async function writeAuditEntry(
+  req: PayloadRequest,
+  entry: {
+    action: AuditAction
+    entityKind: 'collection' | 'global' | 'auth' | 'database'
+    entityType: string
+    documentId?: string | null
+    documentTitle?: string | null
+    actor: ActorSnapshot
+    summary: string
+    meta?: Record<string, unknown> | null
+  },
+  explicitAsync?: boolean,
+): Promise<void> {
+  const payload = req.payload
+  const requestMeta = extractRequestMetadata(req)
+  await enqueueOrAwaitAuditTask(req, explicitAsync, () =>
+    persistAuditEntryDetached(payload, requestMeta, entry),
+  )
 }
 
 /**
@@ -277,7 +405,10 @@ const shouldAuditCollection = (collection: CollectionConfig): boolean => {
   return true
 }
 
-function createCollectionAfterChange(collection: CollectionConfig): CollectionAfterChangeHook {
+function createCollectionAfterChange(
+  collection: CollectionConfig,
+  explicitAsync?: boolean,
+): CollectionAfterChangeHook {
   const useAsTitle = collection.admin?.useAsTitle
   const entityLabel = labelOfEntity(collection.labels?.singular, collection.slug)
 
@@ -288,35 +419,45 @@ function createCollectionAfterChange(collection: CollectionConfig): CollectionAf
 
     const docRecord = (doc ?? {}) as Record<string, unknown>
     const prevRecord = (previousDoc ?? null) as Record<string, unknown> | null
-    const changedFields =
-      operation === 'update' ? computeChangedFields(docRecord, prevRecord) : []
-
-    // Payload updates internal auth fields (sessions, loginAttempts, lockUntil) on login/logout
-    // without meaningful user field changes. Skip those noise updates; sign-ins are logged via afterLogin.
-    if (collection.auth && operation === 'update' && changedFields.length === 0) {
-      return doc
-    }
-
-    const action = resolveAuditAction({ operation, doc: docRecord, previousDoc: prevRecord })
     const actor = extractActorSnapshot(req.user)
-    const documentTitle = extractDocumentTitle(docRecord, useAsTitle)
+    const requestMeta = extractRequestMetadata(req)
+    const payload = req.payload
 
-    await writeAuditEntry(req, {
-      action,
-      entityKind: 'collection',
-      entityType: collection.slug,
-      documentId: docRecord.id !== undefined ? String(docRecord.id) : null,
-      documentTitle,
-      actor,
-      summary: buildAuditSummary({ action, actor, entityLabel, documentTitle }),
-      meta: changedFields.length > 0 ? { changedFields } : null,
+    // R-12: Compute field diffs (including Lexical AST traversal) inside the decoupled audit task
+    // so async mode offloads both AST diffing and DB persistence from the hot HTTP transaction.
+    await enqueueOrAwaitAuditTask(req, explicitAsync, async () => {
+      const changedFields =
+        operation === 'update' ? computeChangedFields(docRecord, prevRecord) : []
+
+      // Payload updates internal auth fields (sessions, loginAttempts, lockUntil) on login/logout
+      // without meaningful user field changes. Skip those noise updates; sign-ins are logged via afterLogin.
+      if (collection.auth && operation === 'update' && changedFields.length === 0) {
+        return
+      }
+
+      const action = resolveAuditAction({ operation, doc: docRecord, previousDoc: prevRecord })
+      const documentTitle = extractDocumentTitle(docRecord, useAsTitle)
+
+      await persistAuditEntryDetached(payload, requestMeta, {
+        action,
+        entityKind: 'collection',
+        entityType: collection.slug,
+        documentId: docRecord.id !== undefined ? String(docRecord.id) : null,
+        documentTitle,
+        actor,
+        summary: buildAuditSummary({ action, actor, entityLabel, documentTitle }),
+        meta: changedFields.length > 0 ? { changedFields } : null,
+      })
     })
 
     return doc
   }
 }
 
-function createCollectionAfterDelete(collection: CollectionConfig): CollectionAfterDeleteHook {
+function createCollectionAfterDelete(
+  collection: CollectionConfig,
+  explicitAsync?: boolean,
+): CollectionAfterDeleteHook {
   const useAsTitle = collection.admin?.useAsTitle
   const entityLabel = labelOfEntity(collection.labels?.singular, collection.slug)
 
@@ -327,26 +468,33 @@ function createCollectionAfterDelete(collection: CollectionConfig): CollectionAf
     const actor = extractActorSnapshot(req.user)
     const documentTitle = extractDocumentTitle(docRecord, useAsTitle) || `#${String(id)}`
 
-    await writeAuditEntry(req, {
-      action: 'delete',
-      entityKind: 'collection',
-      entityType: collection.slug,
-      documentId: String(id),
-      documentTitle,
-      actor,
-      summary: buildAuditSummary({
+    await writeAuditEntry(
+      req,
+      {
         action: 'delete',
-        actor,
-        entityLabel,
+        entityKind: 'collection',
+        entityType: collection.slug,
+        documentId: String(id),
         documentTitle,
-      }),
-    })
+        actor,
+        summary: buildAuditSummary({
+          action: 'delete',
+          actor,
+          entityLabel,
+          documentTitle,
+        }),
+      },
+      explicitAsync,
+    )
 
     return doc
   }
 }
 
-function createCollectionAfterLogin(collection: CollectionConfig): CollectionAfterLoginHook {
+function createCollectionAfterLogin(
+  collection: CollectionConfig,
+  explicitAsync?: boolean,
+): CollectionAfterLoginHook {
   return async ({ context, req, user }) => {
     if (context?.skipAuditLog) return user
 
@@ -354,26 +502,33 @@ function createCollectionAfterLogin(collection: CollectionConfig): CollectionAft
     const actor = extractActorSnapshot(userRecord)
     const documentTitle = extractDocumentTitle(userRecord, collection.admin?.useAsTitle)
 
-    await writeAuditEntry(req, {
-      action: 'login',
-      entityKind: 'auth',
-      entityType: collection.slug,
-      documentId: userRecord.id !== undefined ? String(userRecord.id) : null,
-      documentTitle,
-      actor,
-      summary: buildAuditSummary({
+    await writeAuditEntry(
+      req,
+      {
         action: 'login',
-        actor,
-        entityLabel: collection.slug,
+        entityKind: 'auth',
+        entityType: collection.slug,
+        documentId: userRecord.id !== undefined ? String(userRecord.id) : null,
         documentTitle,
-      }),
-    })
+        actor,
+        summary: buildAuditSummary({
+          action: 'login',
+          actor,
+          entityLabel: collection.slug,
+          documentTitle,
+        }),
+      },
+      explicitAsync,
+    )
 
     return user
   }
 }
 
-function createGlobalAfterChange(globalConfig: GlobalConfig): GlobalAfterChangeHook {
+function createGlobalAfterChange(
+  globalConfig: GlobalConfig,
+  explicitAsync?: boolean,
+): GlobalAfterChangeHook {
   const entityLabel = labelOfEntity(globalConfig.label, globalConfig.slug)
 
   return async ({ context, doc, previousDoc, req }) => {
@@ -381,72 +536,83 @@ function createGlobalAfterChange(globalConfig: GlobalConfig): GlobalAfterChangeH
 
     const docRecord = (doc ?? {}) as Record<string, unknown>
     const prevRecord = (previousDoc ?? null) as Record<string, unknown> | null
-    const changedFields = computeChangedFields(docRecord, prevRecord)
     const actor = extractActorSnapshot(req.user)
+    const requestMeta = extractRequestMetadata(req)
+    const payload = req.payload
 
-    await writeAuditEntry(req, {
-      action: 'update',
-      entityKind: 'global',
-      entityType: globalConfig.slug,
-      documentId: null,
-      documentTitle: entityLabel,
-      actor,
-      summary: buildAuditSummary({
+    await enqueueOrAwaitAuditTask(req, explicitAsync, async () => {
+      const changedFields = computeChangedFields(docRecord, prevRecord)
+      await persistAuditEntryDetached(payload, requestMeta, {
         action: 'update',
+        entityKind: 'global',
+        entityType: globalConfig.slug,
+        documentId: null,
+        documentTitle: entityLabel,
         actor,
-        entityLabel,
-      }),
-      meta: changedFields.length > 0 ? { changedFields } : null,
+        summary: buildAuditSummary({
+          action: 'update',
+          actor,
+          entityLabel,
+        }),
+        meta: changedFields.length > 0 ? { changedFields } : null,
+      })
     })
 
     return doc
   }
 }
 
+export type AuditLogPluginOptions = {
+  /** Override async microtask dispatch (`true` = always background, `false` = always awaited). */
+  asyncWrite?: boolean
+}
+
 /**
  * Payload plugin that attaches audit hooks to every governed/admin collection, auth collection,
  * and global, recording creates, edits, trashes, restores, deletes, and user sign-ins into `audit-logs`.
  */
-export const auditLogPlugin = (): Plugin => (config) => ({
-  ...config,
-  collections: (config.collections ?? []).map((collection) => {
-    if (!shouldAuditCollection(collection)) return collection
+export const auditLogPlugin =
+  (options: AuditLogPluginOptions = {}): Plugin =>
+  (config) => ({
+    ...config,
+    collections: (config.collections ?? []).map((collection) => {
+      if (!shouldAuditCollection(collection)) return collection
 
-    return {
-      ...collection,
-      hooks: {
-        ...collection.hooks,
-        afterChange: [
-          ...(collection.hooks?.afterChange ?? []),
-          createCollectionAfterChange(collection),
-        ],
-        afterDelete: [
-          ...(collection.hooks?.afterDelete ?? []),
-          createCollectionAfterDelete(collection),
-        ],
-        ...(collection.auth
-          ? {
-              afterLogin: [
-                ...(collection.hooks?.afterLogin ?? []),
-                createCollectionAfterLogin(collection),
-              ],
-            }
-          : {}),
-      },
-    }
-  }),
-  globals: (config.globals ?? []).map((globalConfig) => {
-    if (globalConfig.slug.startsWith('payload-')) return globalConfig
-    if (globalConfig.custom?.auditLog === false) return globalConfig
-    return {
-      ...globalConfig,
-      hooks: {
-        ...globalConfig.hooks,
-        afterChange: [
-          ...(globalConfig.hooks?.afterChange ?? []),
-          createGlobalAfterChange(globalConfig),
-        ],
-      },
-    }
-  }),
-})
+      return {
+        ...collection,
+        hooks: {
+          ...collection.hooks,
+          afterChange: [
+            ...(collection.hooks?.afterChange ?? []),
+            createCollectionAfterChange(collection, options.asyncWrite),
+          ],
+          afterDelete: [
+            ...(collection.hooks?.afterDelete ?? []),
+            createCollectionAfterDelete(collection, options.asyncWrite),
+          ],
+          ...(collection.auth
+            ? {
+                afterLogin: [
+                  ...(collection.hooks?.afterLogin ?? []),
+                  createCollectionAfterLogin(collection, options.asyncWrite),
+                ],
+              }
+            : {}),
+        },
+      }
+    }),
+    globals: (config.globals ?? []).map((globalConfig) => {
+      if (globalConfig.slug.startsWith('payload-')) return globalConfig
+      if (globalConfig.custom?.auditLog === false) return globalConfig
+      return {
+        ...globalConfig,
+        hooks: {
+          ...globalConfig.hooks,
+          afterChange: [
+            ...(globalConfig.hooks?.afterChange ?? []),
+            createGlobalAfterChange(globalConfig, options.asyncWrite),
+          ],
+        },
+      }
+    }),
+  })

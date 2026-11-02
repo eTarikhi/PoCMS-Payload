@@ -319,10 +319,14 @@ async function main() {
     }
   }
 
-  if (mode === 'optimize-indexes' && selected) {
+  if ((mode === 'optimize-indexes' || mode === 'optimize') && selected) {
     const { tsImport } = await import('tsx/esm/api')
     const { applyPhase1DatabaseOptimizations } = await tsImport(
       '../src/lib/phase1SqlOptimizations.ts',
+      import.meta.url,
+    )
+    const { applyPhase2And3DatabaseOptimizations } = await tsImport(
+      '../src/lib/phase2And3SqlOptimizations.ts',
       import.meta.url,
     )
 
@@ -340,9 +344,15 @@ async function main() {
           schemaName: 'public',
           concurrent,
         })
+        const phase2And3 = await applyPhase2And3DatabaseOptimizations(db, {
+          schemaName: 'public',
+        })
         console.log(
           `[db:optimize-indexes] Completed via ${transport.toUpperCase()} (${summary.concurrent ? 'CONCURRENTLY' : 'non-concurrent'}): ` +
-            `${summary.createdIndexes.length} index(es) ensured, ${summary.droppedIndexes.length} legacy index(es) pruned.`,
+            `${summary.createdIndexes.length} index(es) ensured, ${summary.droppedIndexes.length} legacy index(es) pruned; ` +
+            `R-10 forms backfilled=${phase2And3.formsBlocks.backfilledFormsCount} (dropped ${phase2And3.formsBlocks.droppedLegacyTables.length} block table(s)); ` +
+            `R-13 mail_message_bodies backfilled=${phase2And3.mailBodies.backfilledBodiesCount}, ` +
+            `audit_logs partitioned=${phase2And3.auditPartitions.convertedFromHeap ? 'converted' : 'verified'} (${phase2And3.auditPartitions.ensuredPartitions.length} partition(s) ensured).`,
         )
       },
       { statementTimeoutMs: 300_000 },

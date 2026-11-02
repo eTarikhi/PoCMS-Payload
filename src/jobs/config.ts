@@ -6,6 +6,13 @@ import { capabilityAccess } from '@/access/roles'
 import { CACHE_TAGS, PORTFOLIO_CACHE_TAG } from '@/app/(frontend)/lib/revalidate'
 import { auditContentHealth } from '@/lib/contentHealth'
 import { consolidateLegacyMediaUrls } from '@/lib/legacyMediaConsolidation'
+import {
+  executePayloadSql,
+  qualifiedPayloadTable,
+  resolvePayloadPoolClient,
+  resolvePayloadSchemaName,
+} from '@/lib/payloadSql'
+import { partitionAuditLogsByMonth } from '@/lib/phase2And3SqlOptimizations'
 import { pruneContentVersions } from '@/lib/versionRetention'
 import { DEFAULT_RETENTION_KEEP_PER_DOC } from '@/lib/versionRetentionShared'
 
@@ -137,19 +144,63 @@ const tasks: NonNullable<JobsConfig['tasks']> = [
     },
   },
   {
+    slug: 'purgeExpiredSessions',
+    label: 'Purge expired user sessions',
+    retries: 0,
+    schedule: [
+      {
+        cron: '15 3 * * *',
+        queue: 'default',
+      },
+    ],
+    outputSchema: [
+      { name: 'deletedCount', type: 'number' },
+      { name: 'purgedAt', type: 'text' },
+    ],
+    handler: async ({ req }) => {
+      const purgedAt = new Date().toISOString()
+      const sessionsTable = qualifiedPayloadTable(req.payload, 'users_sessions')
+      const sqlRes = await executePayloadSql(
+        req.payload,
+        `DELETE FROM ${sessionsTable} WHERE "expires_at" < $1::timestamptz`,
+        [purgedAt],
+        req,
+      )
+      return {
+        output: {
+          deletedCount: sqlRes?.rowCount ?? 0,
+          purgedAt,
+        },
+      }
+    },
+  },
+  {
     slug: 'purgeCompletedJobs',
     label: 'Clean up finished jobs',
     retries: 0,
-    inputSchema: [{ name: 'olderThanHours', type: 'number', defaultValue: 72 }],
+    schedule: [
+      {
+        cron: '30 3 * * *',
+        queue: 'default',
+      },
+    ],
+    inputSchema: [
+      { name: 'olderThanDays', type: 'number', defaultValue: 14 },
+      { name: 'olderThanHours', type: 'number', defaultValue: 336 },
+    ],
     outputSchema: [
       { name: 'deletedCount', type: 'number' },
+      { name: 'orphanLogDeletedCount', type: 'number' },
       { name: 'cutoffIso', type: 'text' },
     ],
     handler: async ({ input, req }) => {
+      const rec = (input ?? {}) as Record<string, unknown>
       const hours =
-        typeof input?.olderThanHours === 'number' && input.olderThanHours > 0
-          ? input.olderThanHours
-          : 72
+        typeof rec.olderThanHours === 'number' && rec.olderThanHours > 0
+          ? rec.olderThanHours
+          : typeof rec.olderThanDays === 'number' && rec.olderThanDays > 0
+            ? rec.olderThanDays * 24
+            : 14 * 24
       const cutoff = new Date(Date.now() - hours * 3_600_000).toISOString()
       const deleted = await req.payload.delete({
         collection: 'payload-jobs',
@@ -162,9 +213,23 @@ const tasks: NonNullable<JobsConfig['tasks']> = [
           ],
         },
       })
+
+      const jobsTable = qualifiedPayloadTable(req.payload, 'payload_jobs')
+      const logsTable = qualifiedPayloadTable(req.payload, 'payload_jobs_log')
+      const orphanLogsRes = await executePayloadSql(
+        req.payload,
+        `DELETE FROM ${logsTable} l
+         WHERE NOT EXISTS (
+           SELECT 1 FROM ${jobsTable} j WHERE j."id" = l."_parent_id"
+         )`,
+        [],
+        req,
+      )
+
       return {
         output: {
           deletedCount: deleted.docs.length,
+          orphanLogDeletedCount: orphanLogsRes?.rowCount ?? 0,
           cutoffIso: cutoff,
         },
       }
@@ -174,6 +239,12 @@ const tasks: NonNullable<JobsConfig['tasks']> = [
     slug: 'pruneDocumentVersions',
     label: 'Prune old document versions',
     retries: 0,
+    schedule: [
+      {
+        cron: '0 4 * * *',
+        queue: 'default',
+      },
+    ],
     inputSchema: [
       {
         name: 'keepLatestPerDoc',
@@ -226,12 +297,83 @@ const tasks: NonNullable<JobsConfig['tasks']> = [
       }
     },
   },
+  {
+    slug: 'maintainAuditLogPartitions',
+    label: 'Maintain audit log partitions',
+    retries: 0,
+    schedule: [
+      {
+        cron: '5 0 1 * *',
+        queue: 'default',
+      },
+    ],
+    inputSchema: [
+      { name: 'monthsAhead', type: 'number', defaultValue: 3 },
+      { name: 'retentionMonths', type: 'number', defaultValue: 12 },
+    ],
+    outputSchema: [
+      { name: 'convertedFromHeap', type: 'checkbox' },
+      { name: 'ensuredCount', type: 'number' },
+      { name: 'droppedCount', type: 'number' },
+    ],
+    handler: async ({ input, req }) => {
+      const client = resolvePayloadPoolClient(req.payload)
+      if (!client) {
+        return {
+          output: {
+            convertedFromHeap: false,
+            ensuredCount: 0,
+            droppedCount: 0,
+          },
+        }
+      }
+
+      const rec = (input ?? {}) as Record<string, unknown>
+      const monthsAhead =
+        typeof rec.monthsAhead === 'number' && rec.monthsAhead >= 1 ? rec.monthsAhead : 3
+      const envRetention = Number.parseInt(process.env.AUDIT_LOG_RETENTION_MONTHS ?? '', 10)
+      const retentionMonths =
+        typeof rec.retentionMonths === 'number' && rec.retentionMonths > 0
+          ? rec.retentionMonths
+          : Number.isFinite(envRetention) && envRetention > 0
+            ? envRetention
+            : 12
+
+      const summary = await partitionAuditLogsByMonth(client, {
+        schemaName: resolvePayloadSchemaName(req.payload),
+        monthsAhead,
+        retentionMonths,
+      })
+
+      return {
+        output: {
+          convertedFromHeap: summary.convertedFromHeap,
+          ensuredCount: summary.ensuredPartitions.length,
+          droppedCount: summary.droppedExpiredPartitions.length,
+        },
+      }
+    },
+  },
 ]
 
-export function createJobsConfig(): JobsConfig {
+export function createJobsConfig(
+  env: Record<string, string | undefined> = process.env,
+): JobsConfig {
+  const enableAutoRun = env.PAYLOAD_JOBS_AUTORUN === 'true' && env.NODE_ENV !== 'test'
   return {
     deleteJobOnComplete: false,
     addParentToTaskLog: true,
+    ...(enableAutoRun
+      ? {
+          autoRun: [
+            {
+              cron: '*/5 * * * *',
+              limit: 25,
+              allQueues: true,
+            },
+          ],
+        }
+      : {}),
     access: {
       queue: ({ req }) => hasCapability(req.user, 'manageJobs'),
       run: ({ req }) => hasCapability(req.user, 'manageJobs') || hasCronBearerToken(req),

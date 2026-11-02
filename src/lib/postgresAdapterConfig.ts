@@ -117,6 +117,9 @@ export function buildPostgresAdapterArgs(
 ): VercelPostgresAdapterArgs {
   const readReplicas = resolveReadReplicaUrls(env)
   return {
+    // R-10: Collapse polymorphic `_blocks_*` tables (`forms_blocks_*`) into inline `jsonb`,
+    // eliminating 8-way `LEFT JOIN LATERAL` reads and child-table delete/re-insert churn.
+    blocksAsJSON: true,
     // Skip interactive drizzle-kit schema introspection/prompts during automated Vitest runs
     // (`NODE_ENV === 'test'`) unless explicitly requested via `PAYLOAD_DB_PUSH=true`.
     push: env.NODE_ENV === 'test' ? env.PAYLOAD_DB_PUSH === 'true' : undefined,

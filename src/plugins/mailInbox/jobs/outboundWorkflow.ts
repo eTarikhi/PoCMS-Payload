@@ -9,6 +9,7 @@ import {
 } from '../constants'
 import type { ParsedEmailAddress } from '../types'
 import { formatAddressHeader, parseAddressList } from '../services/emailAddress'
+import { hydrateMailMessageBodies } from '../services/messageBodiesStore'
 import { publishMailStreamEvent } from '../services/realtimeBus'
 import {
   ResendApiError,
@@ -122,6 +123,14 @@ export async function dispatchOutboundMessageById({
       alreadySent: true,
     }
   }
+
+  // R-13: Lazy-hydrate `sanitizedHtml` from `mail_message_bodies` before dispatching to Resend.
+  await hydrateMailMessageBodies({
+    payload,
+    req,
+    docs: [rec],
+    fetchImpl,
+  })
 
   const threadId =
     typeof rec.thread === 'object' && rec.thread !== null && 'id' in rec.thread

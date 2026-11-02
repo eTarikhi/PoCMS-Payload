@@ -7,6 +7,7 @@ import { MAIL_WEBHOOK_EVENTS_COLLECTION } from '../constants'
 export function createMailWebhookEventsCollection(): CollectionConfig {
   return {
     slug: MAIL_WEBHOOK_EVENTS_COLLECTION,
+    lockDocuments: false,
     labels: {
       singular: 'Mail webhook event',
       plural: 'Mail webhook events',

@@ -7,6 +7,7 @@
 
 export const MAIL_THREADS_COLLECTION = 'mail-threads' as const
 export const MAIL_MESSAGES_COLLECTION = 'mail-messages' as const
+export const MAIL_MESSAGE_BODIES_TABLE = 'mail_message_bodies' as const
 export const MAIL_ATTACHMENTS_COLLECTION = 'mail-attachments' as const
 export const MAIL_LABELS_COLLECTION = 'mail-labels' as const
 export const MAIL_WEBHOOK_EVENTS_COLLECTION = 'mail-webhook-events' as const
@@ -26,9 +27,11 @@ export const INGEST_INBOUND_WORKFLOW_SLUG = 'ingestInboundEmail' as const
 export const SEND_OUTBOUND_WORKFLOW_SLUG = 'sendOutboundEmail' as const
 export const APPLY_TELEMETRY_TASK_SLUG = 'applyDeliveryTelemetry' as const
 export const PRUNE_WEBHOOK_LEDGER_TASK_SLUG = 'pruneWebhookLedger' as const
+export const ARCHIVE_COLD_MAIL_BODIES_TASK_SLUG = 'archiveColdMailBodies' as const
 
 export const DEFAULT_MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024 // 25 MiB
 export const DEFAULT_WEBHOOK_RETENTION_DAYS = 30
+export const DEFAULT_WEBHOOK_SNAPSHOT_COMPACT_HOURS = 24
 export const DEFAULT_WEBHOOK_TOLERANCE_SECONDS = 300 // ±5 minutes Svix replay window
 export const SUBJECT_THREAD_WINDOW_DAYS = 30
 

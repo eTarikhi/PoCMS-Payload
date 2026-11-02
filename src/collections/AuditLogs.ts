@@ -39,6 +39,10 @@ export const preventAuditLogDeletion: CollectionBeforeDeleteHook = () => {
  */
 export const AuditLogs: CollectionConfig = {
   slug: 'audit-logs',
+  // R-13: Immutable append-only audit rows are never locked by editors; omitting `audit_logs_id`
+  // from `payload_locked_documents_rels` avoids FK constraints against `audit_logs(id)` alone so
+  // PostgreSQL can range-partition `audit_logs` monthly by `created_at` with PK `(id, created_at)`.
+  lockDocuments: false,
   enableQueryPresets: true,
   labels: {
     singular: 'Audit log',

@@ -70,7 +70,9 @@ describe('Drag-and-drop ordering & globals configuration', () => {
 
   it('registers header, site-settings, navigation, footer and custom-code globals with RBAC governance', async () => {
     const sanitized = await config
-    const globalSlugs = sanitized.globals.map((g) => g.slug)
+    const globalSlugs = sanitized.globals
+      .filter((g) => !g.slug.startsWith('payload-'))
+      .map((g) => g.slug)
     expect(globalSlugs).toEqual([
       'header',
       'site-settings',

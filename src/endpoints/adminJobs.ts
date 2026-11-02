@@ -73,10 +73,13 @@ export const adminJobsEndpoints: Endpoint[] = [
               | 'refreshSiteCache'
               | 'verifyContentHealth'
               | 'consolidateLegacyMediaUrls'
+              | 'purgeExpiredSessions'
               | 'purgeCompletedJobs'
               | 'pruneDocumentVersions'
+              | 'maintainAuditLogPartitions'
               | 'createDatabaseBackup'
-              | 'pruneWebhookLedger',
+              | 'pruneWebhookLedger'
+              | 'archiveColdMailBodies',
             input: (body.input ?? {}) as Record<string, never>,
             queue: body.queue?.trim() || 'default',
             ...(waitUntilDate ? { waitUntil: waitUntilDate } : {}),

@@ -20,6 +20,7 @@
     "db:migrate": "node scripts/migrate-neon.mjs migrate",
     "db:migrate:status": "node scripts/migrate-neon.mjs status",
     "db:migrate:create": "node scripts/migrate-neon.mjs create",
+    "db:optimize": "node scripts/migrate-neon.mjs optimize",
     "db:optimize-indexes": "node scripts/migrate-neon.mjs optimize-indexes",
     "lint": "cross-env NODE_OPTIONS=--no-deprecation eslint .",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",

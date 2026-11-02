@@ -6,6 +6,7 @@ import {
   MAIL_THREADS_COLLECTION,
 } from '../constants'
 import { escapeHtml } from './mimeSanitizer'
+import { upsertMailMessageBody } from './messageBodiesStore'
 import { publishMailStreamEvent } from './realtimeBus'
 import { recomputeThreadRollups, resolveOrCreateMailThread } from './threading'
 
@@ -169,7 +170,7 @@ export function createFormSubmissionToInboxHook(): CollectionAfterChangeHook {
         collection: MAIL_MESSAGES_COLLECTION as CollectionSlug,
         overrideAccess: true,
         req,
-        context: { ...(req.context ?? {}), skipAuditLog: true },
+        context: { ...(req.context ?? {}), skipAuditLog: true, skipMailBodyHook: true },
         data: {
           thread: threadId,
           direction: 'form_submission',
@@ -184,15 +185,23 @@ export function createFormSubmissionToInboxHook(): CollectionAfterChangeHook {
           replyToAddresses: senderEmail ? [counterparty] : [],
           subject,
           snippet,
-          sanitizedHtml,
           plainText,
           visibleReplyText: messageBody,
-          quotedHistoryText: '',
           hasRemoteImages: false,
           blockedRemoteImages: 0,
           sentAt: nowIso,
           lastEventAt: nowIso,
         } as Record<string, unknown>,
+      })
+
+      await upsertMailMessageBody({
+        payload: req.payload,
+        req,
+        messageId: createdMsg.id,
+        body: {
+          sanitizedHtml,
+          quotedHistoryText: '',
+        },
       })
 
       if (created) {

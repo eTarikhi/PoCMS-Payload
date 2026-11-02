@@ -10,10 +10,12 @@ import {
   MAIL_MESSAGES_COLLECTION,
   MAIL_THREADS_COLLECTION,
 } from '../constants'
+import { upsertMailMessageBody } from '../services/messageBodiesStore'
 
 export function createMailMessagesCollection(): CollectionConfig {
   return {
     slug: MAIL_MESSAGES_COLLECTION,
+    lockDocuments: false,
     labels: {
       singular: 'Mail message',
       plural: 'Mail messages',
@@ -34,6 +36,40 @@ export function createMailMessagesCollection(): CollectionConfig {
       create: capabilityAccess('manageInbox'),
       update: capabilityAccess('manageInbox'),
       delete: capabilityAccess('manageInbox'),
+    },
+    hooks: {
+      afterChange: [
+        async ({ context, doc, data, req }) => {
+          if (context?.skipMailBodyHook) return doc
+          const rec = (data ?? {}) as Record<string, unknown>
+          const docRec = (doc ?? {}) as Record<string, unknown>
+          if (
+            docRec.id !== undefined &&
+            docRec.id !== null &&
+            ('sanitizedHtml' in rec || 'quotedHistoryText' in rec || 'headersSnapshot' in rec)
+          ) {
+            await upsertMailMessageBody({
+              payload: req.payload,
+              req,
+              messageId: docRec.id as number | string,
+              body: {
+                ...(rec.sanitizedHtml !== undefined
+                  ? { sanitizedHtml: rec.sanitizedHtml as string | null }
+                  : {}),
+                ...(rec.quotedHistoryText !== undefined
+                  ? { quotedHistoryText: rec.quotedHistoryText as string | null }
+                  : {}),
+                ...(rec.headersSnapshot !== undefined
+                  ? {
+                      headersSnapshot: rec.headersSnapshot as Record<string, string> | null,
+                    }
+                  : {}),
+              },
+            })
+          }
+          return doc
+        },
+      ],
     },
     fields: [
       // Covered by composite `mail_messages_thread_sent_idx` (thread_id, sent_at) and
@@ -130,9 +166,12 @@ export function createMailMessagesCollection(): CollectionConfig {
         name: 'snippet',
         type: 'text',
       },
+      // R-13: Cold MIME fields are virtual on `mail_messages` and stored lazily in the 1:1
+      // `mail_message_bodies` table (with optional Vercel Blob tiering for archived threads).
       {
         name: 'sanitizedHtml',
         type: 'textarea',
+        virtual: true,
       },
       {
         name: 'plainText',
@@ -145,6 +184,7 @@ export function createMailMessagesCollection(): CollectionConfig {
       {
         name: 'quotedHistoryText',
         type: 'textarea',
+        virtual: true,
       },
       {
         name: 'hasRemoteImages',
@@ -201,6 +241,7 @@ export function createMailMessagesCollection(): CollectionConfig {
       {
         name: 'headersSnapshot',
         type: 'json',
+        virtual: true,
       },
     ],
   }

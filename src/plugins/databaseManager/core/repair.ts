@@ -2,6 +2,7 @@ import type { Payload } from 'payload'
 
 import { ensureOrderable } from '@/access/orderable'
 import { applyPhase1DatabaseOptimizations } from '@/lib/phase1SqlOptimizations'
+import { applyPhase2And3DatabaseOptimizations } from '@/lib/phase2And3SqlOptimizations'
 
 import type { RepairActionKind, RepairOperationResult } from '../shared'
 
@@ -68,18 +69,26 @@ export async function runDatabaseRepairAction(
           schemaName: 'public',
           concurrent: usedUnpooledConnection,
         })
+        const phase2And3 = await applyPhase2And3DatabaseOptimizations(directExec, {
+          schemaName: 'public',
+        })
         return {
           action,
           ok: true,
           usedUnpooledConnection,
           durationMs: Date.now() - startedAt,
-          summary: `Applied Phase 1 FK & index optimizations (${summary.concurrent ? 'CONCURRENTLY' : 'transactional-safe'}): ${summary.createdIndexes.length} index(es) ensured, ${summary.droppedIndexes.length} legacy index(es) pruned.`,
+          summary: `Applied Neon Phase 1–3 database optimizations (${summary.concurrent ? 'CONCURRENTLY' : 'transactional-safe'}): ${summary.createdIndexes.length} index(es) ensured, ${summary.droppedIndexes.length} legacy index(es) pruned, forms JSONB=${phase2And3.formsBlocks.formsTableExists ? 'ready' : 'n/a'}, mail_message_bodies=${phase2And3.mailBodies.sidecarEnsured ? 'ready' : 'n/a'}, audit_logs partitioned=${phase2And3.auditPartitions.auditLogsExists ? 'ready' : 'n/a'}.`,
           details: {
             extensionEnsured: summary.extensionEnsured,
             fkIntegrityApplied: summary.fkIntegrityApplied,
             createdCount: summary.createdIndexes.length,
             droppedCount: summary.droppedIndexes.length,
             skippedCount: summary.skippedMissingTables.length,
+            formsBackfilledCount: phase2And3.formsBlocks.backfilledFormsCount,
+            formsLegacyTablesDropped: phase2And3.formsBlocks.droppedLegacyTables.length,
+            mailBodiesBackfilledCount: phase2And3.mailBodies.backfilledBodiesCount,
+            auditConvertedFromHeap: phase2And3.auditPartitions.convertedFromHeap,
+            auditPartitionsEnsured: phase2And3.auditPartitions.ensuredPartitions.length,
           },
         }
       },

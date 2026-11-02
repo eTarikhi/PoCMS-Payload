@@ -25,6 +25,7 @@ import {
 } from './jobs/telemetryTask'
 import { createFormSubmissionToInboxHook } from './services/formBridge'
 import { ensureDefaultMailLabels } from './services/inboxQueries'
+import { createArchiveColdMailBodiesTask } from './services/messageBodiesStore'
 import type { MailInboxPluginOptions } from './types'
 
 export * from './constants'
@@ -133,6 +134,7 @@ export const mailInboxPlugin =
     const pruneLedgerTask = createPruneWebhookLedgerTask(
       options.webhookRetentionDays ?? DEFAULT_WEBHOOK_RETENTION_DAYS,
     )
+    const archiveBodiesTask = createArchiveColdMailBodiesTask()
 
     const existingViews = incomingConfig.admin?.components?.views ?? {}
     const existingWidgets = incomingConfig.admin?.dashboard?.widgets ?? []
@@ -181,6 +183,7 @@ export const mailInboxPlugin =
               ...(incomingConfig.jobs.tasks ?? []),
               telemetryTask as never,
               pruneLedgerTask as never,
+              archiveBodiesTask as never,
             ],
             workflows: [
               ...(incomingConfig.jobs.workflows ?? []),

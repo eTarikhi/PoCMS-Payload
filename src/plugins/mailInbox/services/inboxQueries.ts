@@ -44,6 +44,7 @@ import {
   sanitizeEmailHtml,
   splitVisibleReplyAndQuotedHistory,
 } from './mimeSanitizer'
+import { hydrateMailMessageBodies, upsertMailMessageBody } from './messageBodiesStore'
 import { hasDirectUnpooledPostgresUrl, publishMailStreamEvent } from './realtimeBus'
 import { type FetchLike } from './resendClient'
 import { recomputeThreadRollups, resolveOrCreateMailThread } from './threading'
@@ -650,6 +651,14 @@ export async function loadMailThreadDetail({
   )
   const rec = threadDoc as unknown as Record<string, unknown>
 
+  // R-13: Lazy-hydrate cold MIME bodies (`sanitizedHtml`, `quotedHistoryText`, `headersSnapshot`)
+  // in a single batched `mail_message_bodies` query only when opening a thread detail view.
+  await hydrateMailMessageBodies({
+    payload,
+    req,
+    docs: messageDocs,
+  })
+
   return {
     ...summary,
     threadKey: String(rec.threadKey ?? ''),
@@ -818,10 +827,8 @@ export async function composeOrSendMail({
     replyToAddresses: replyToList,
     subject,
     snippet,
-    sanitizedHtml,
     plainText,
     visibleReplyText,
-    quotedHistoryText,
     hasRemoteImages: false,
     blockedRemoteImages: 0,
     attachments: input.attachmentIds ?? [],
@@ -836,14 +843,26 @@ export async function composeOrSendMail({
         id: input.draftMessageId,
         overrideAccess: true,
         req,
+        context: { ...(req?.context ?? {}), skipMailBodyHook: true },
         data: messagePayloadData,
       })
     : await payload.create({
         collection: MAIL_MESSAGES_COLLECTION as CollectionSlug,
         overrideAccess: true,
         req,
+        context: { ...(req?.context ?? {}), skipMailBodyHook: true },
         data: messagePayloadData,
       })
+
+  await upsertMailMessageBody({
+    payload,
+    req,
+    messageId: messageDoc.id,
+    body: {
+      sanitizedHtml,
+      quotedHistoryText,
+    },
+  })
 
   await recomputeThreadRollups({ payload, req, threadId })
 
@@ -855,9 +874,16 @@ export async function composeOrSendMail({
       overrideAccess: true,
       req,
     })
+    const hydratedRec = hydrated as unknown as Record<string, unknown>
+    await hydrateMailMessageBodies({
+      payload,
+      req,
+      docs: [hydratedRec],
+      fetchImpl,
+    })
     return {
       threadId,
-      message: mapMessageDoc(hydrated as unknown as Record<string, unknown>),
+      message: mapMessageDoc(hydratedRec),
       dispatched: false,
     }
   }
@@ -896,10 +922,17 @@ export async function composeOrSendMail({
     overrideAccess: true,
     req,
   })
+  const finalRec = finalDoc as unknown as Record<string, unknown>
+  await hydrateMailMessageBodies({
+    payload,
+    req,
+    docs: [finalRec],
+    fetchImpl,
+  })
 
   return {
     threadId,
-    message: mapMessageDoc(finalDoc as unknown as Record<string, unknown>),
+    message: mapMessageDoc(finalRec),
     dispatched: (finalDoc as unknown as { status?: string }).status === 'sent',
   }
 }
