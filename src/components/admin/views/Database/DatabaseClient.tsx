@@ -560,7 +560,11 @@ export function DatabaseClient({
         </div>
       ) : null}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="acn:@container acn:gap-6">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="acn:@container acn:flex-col acn:gap-6"
+      >
         <TabsList
           ref={tabsListRef}
           onScroll={syncTabScrollAffordance}
