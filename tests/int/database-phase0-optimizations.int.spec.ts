@@ -53,7 +53,7 @@ describe('Phase 0 Database & Neon Serverless Optimizations (R-01..R-05)', () => 
       connectionString: neonUrl,
       max: 4,
       idleTimeoutMillis: 5_000,
-      connectionTimeoutMillis: 10_000,
+      connectionTimeoutMillis: 30_000,
       maxUses: 7_500,
     })
 

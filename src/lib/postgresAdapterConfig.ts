@@ -79,7 +79,7 @@ export function resolvePostgresPoolOptions(
   )
   const connectionTimeoutMillis = parseBoundedInt(
     env.POSTGRES_POOL_CONNECTION_TIMEOUT_MS,
-    10_000,
+    isLocal ? 10_000 : 30_000,
     1_000,
     120_000,
   )

@@ -1,4 +1,7 @@
+import dns from 'node:dns'
 import fs from 'node:fs'
+import { createRequire } from 'node:module'
+import net from 'node:net'
 import path from 'node:path'
 
 import type { MigrateDownArgs, MigrateUpArgs } from '@payloadcms/db-vercel-postgres'
@@ -7,6 +10,9 @@ import { describe, expect, it, vi } from 'vitest'
 
 import {
   fallbackResolveHost,
+  installNeonWebSocketErrorEventFix,
+  installNodeDnsFallback,
+  loadDnsPrewarmEnv,
   resolveIPv4ViaDoH,
 } from '@/lib/nodeDnsFallback'
 import {
@@ -371,5 +377,70 @@ describe('Phase 1 Database Integrity, Versioned Migrations & Index Optimizations
     await expect(
       resolveIPv4ViaDoH('ep-deleted.c-5.eu-central-1.aws.neon.tech', nxDomainFetch),
     ).rejects.toMatchObject({ code: 'ENOTFOUND' })
+  })
+
+  it('prevents @neondatabase/serverless + ws ErrorEvent readonly-message TypeError on connection timeout and serves POCMS_DNS_PREWARM fast-path', async () => {
+    installNodeDnsFallback()
+    installNeonWebSocketErrorEventFix()
+
+    // 1. Prewarmed DNS cache entry resolves via fast-path without hitting OS DNS
+    loadDnsPrewarmEnv('ep-prewarm-test.c-5.eu-central-1.aws.neon.tech=18.192.55.77')
+    const prewarmed = await dns.promises.lookup('ep-prewarm-test.c-5.eu-central-1.aws.neon.tech')
+    expect(prewarmed).toEqual({ address: '18.192.55.77', family: 4 })
+
+    // 2. Stalled WebSocket handshake hitting `connectionTimeoutMillis` rejects cleanly with a mutable
+    // `Error` ("Connection terminated due to connection timeout") instead of crashing Node 24 with
+    // `TypeError: Cannot set property message of #<ErrorEvent> which has only a getter`.
+    const rootReq = createRequire(import.meta.url)
+    const dbReq = createRequire(rootReq.resolve('@payloadcms/db-vercel-postgres'))
+    const vpReq = createRequire(dbReq.resolve('@vercel/postgres'))
+    const { VercelPool } = vpReq('@vercel/postgres') as {
+      VercelPool: new (opts: Record<string, unknown>) => {
+        query: (sql: string) => Promise<unknown>
+        end: () => Promise<void>
+      }
+    }
+    const { neonConfig } = vpReq('@neondatabase/serverless') as {
+      neonConfig: {
+        wsProxy?: (host: string) => string
+        useSecureWebSocket?: boolean
+      }
+    }
+
+    const prevWsProxy = neonConfig.wsProxy
+    const prevSecure = neonConfig.useSecureWebSocket
+    const sockets = new Set<net.Socket>()
+    const stallServer = net.createServer((socket) => {
+      sockets.add(socket)
+      socket.on('close', () => sockets.delete(socket))
+    })
+
+    await new Promise<void>((resolve) => stallServer.listen(0, '127.0.0.1', () => resolve()))
+    const port = (stallServer.address() as net.AddressInfo).port
+
+    try {
+      neonConfig.wsProxy = () => `127.0.0.1:${port}/v2`
+      neonConfig.useSecureWebSocket = false
+
+      const pool = new VercelPool({
+        connectionString:
+          'postgresql://u:p@ep-stall.c-5.eu-central-1.aws.neon.tech/neondb?sslmode=verify-full',
+        connectionTimeoutMillis: 45,
+        max: 1,
+      })
+
+      try {
+        await expect(pool.query('SELECT 1')).rejects.toThrow(
+          /Connection terminated due to connection timeout/,
+        )
+      } finally {
+        await pool.end().catch(() => undefined)
+      }
+    } finally {
+      neonConfig.wsProxy = prevWsProxy
+      neonConfig.useSecureWebSocket = prevSecure
+      for (const s of sockets) s.destroy()
+      await new Promise<void>((resolve) => stallServer.close(() => resolve()))
+    }
   })
 })

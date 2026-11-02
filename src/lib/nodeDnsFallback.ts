@@ -1,8 +1,9 @@
 import dns from 'node:dns'
-import { syncBuiltinESMExports } from 'node:module'
+import { createRequire, syncBuiltinESMExports } from 'node:module'
 import net from 'node:net'
 
 const TRANSIENT_DNS_CODES = new Set(['EAI_AGAIN', 'ETIMEOUT', 'ESERVFAIL', 'EREFUSED'])
+const CACHE_TTL_MS = 300_000 // 5 minutes
 
 const PUBLIC_DNS_SERVERS = (process.env.DB_FALLBACK_DNS_SERVERS || '1.1.1.1,8.8.8.8,9.9.9.9')
   .split(',')
@@ -13,11 +14,132 @@ const DOH_ENDPOINTS = ['https://1.1.1.1/dns-query', 'https://8.8.8.8/resolve']
 
 type ResolvedEntry = { address: string; family: 4 | 6 }
 
-const fallbackCache = new Map<string, { addresses: ResolvedEntry[]; expiresAt: number }>()
+type SharedDnsCache = Map<string, { addresses: ResolvedEntry[]; expiresAt: number }>
+const dnsShared = dns as typeof dns & { __pocmsFallbackCache?: SharedDnsCache }
+
+const fallbackCache: SharedDnsCache =
+  dnsShared.__pocmsFallbackCache ?? (dnsShared.__pocmsFallbackCache = new Map())
 
 type DnsJsonResponse = {
   Status?: number
   Answer?: Array<{ type?: number; data?: string }>
+}
+
+export function loadDnsPrewarmEnv(raw: string | undefined = process.env.POCMS_DNS_PREWARM): void {
+  if (!raw) return
+  const expiresAt = Date.now() + CACHE_TTL_MS
+  for (const token of raw.split(',')) {
+    const eq = token.indexOf('=')
+    if (eq <= 0) continue
+    const host = token.slice(0, eq).trim().toLowerCase()
+    const ip = token.slice(eq + 1).trim()
+    if (host && net.isIP(ip) === 4) {
+      fallbackCache.set(host, {
+        addresses: [{ address: ip, family: 4 }],
+        expiresAt,
+      })
+    }
+  }
+}
+
+/**
+ * Patches `ws` `WebSocket.prototype.addEventListener` (and global `ErrorEvent.prototype`) so
+ * `@neondatabase/serverless` never crashes with
+ * `TypeError: Cannot set property message of #<ErrorEvent> which has only a getter` when
+ * `connectionTimeoutMillis` or a WebSocket handshake error occurs on Node.js 20–24.
+ */
+export function installNeonWebSocketErrorEventFix(): void {
+  try {
+    if (typeof globalThis.ErrorEvent === 'function') {
+      const proto = globalThis.ErrorEvent.prototype as unknown as Record<string, unknown>
+      const desc = Object.getOwnPropertyDescriptor(proto, 'message')
+      if (desc && typeof desc.get === 'function' && !desc.set && desc.configurable) {
+        const origGet = desc.get
+        Object.defineProperty(proto, 'message', {
+          configurable: true,
+          enumerable: desc.enumerable ?? true,
+          get(this: Record<string, unknown>) {
+            return Object.prototype.hasOwnProperty.call(this, '__pocmsMessageOverride')
+              ? this.__pocmsMessageOverride
+              : origGet.call(this)
+          },
+          set(this: Record<string, unknown>, val: unknown) {
+            Object.defineProperty(this, '__pocmsMessageOverride', {
+              value: String(val),
+              writable: true,
+              configurable: true,
+              enumerable: false,
+            })
+          },
+        })
+      }
+    }
+  } catch {
+    // Non-fatal
+  }
+
+  try {
+    const rootReq = createRequire(import.meta.url)
+    const dbPkgPath = rootReq.resolve('@payloadcms/db-vercel-postgres')
+    const dbReq = createRequire(dbPkgPath)
+    const vpPkgPath = dbReq.resolve('@vercel/postgres')
+    const vpReq = createRequire(vpPkgPath)
+    const WS = vpReq('ws') as {
+      prototype?: {
+        __pocmsErrorEventPatched?: boolean
+        addEventListener?: (
+          type: string,
+          listener: (evt: unknown) => unknown,
+          options?: unknown,
+        ) => unknown
+      }
+    }
+
+    if (WS?.prototype && !WS.prototype.__pocmsErrorEventPatched) {
+      Object.defineProperty(WS.prototype, '__pocmsErrorEventPatched', {
+        value: true,
+        configurable: true,
+        enumerable: false,
+      })
+
+      const origAddEventListener = WS.prototype.addEventListener
+      if (typeof origAddEventListener === 'function') {
+        WS.prototype.addEventListener = function patchedWsAddEventListener(
+          this: unknown,
+          type: string,
+          listener: (evt: unknown) => unknown,
+          options?: unknown,
+        ) {
+          if (type === 'error' && typeof listener === 'function') {
+            const wrapped = function (this: unknown, evt: unknown) {
+              if (evt && typeof evt === 'object' && !(evt instanceof Error)) {
+                const evtRec = evt as { error?: unknown; message?: unknown }
+                const inner = evtRec.error instanceof Error ? evtRec.error : null
+                const msg =
+                  (typeof evtRec.message === 'string' && evtRec.message) ||
+                  inner?.message ||
+                  'WebSocket connection error'
+                const normalized: NodeJS.ErrnoException = new Error(msg)
+                const innerCode = (inner as NodeJS.ErrnoException | null)?.code
+                if (innerCode) {
+                  normalized.code = innerCode
+                }
+                if (inner) {
+                  normalized.cause = inner
+                }
+                return listener.call(this, normalized)
+              }
+              return listener.call(this, evt)
+            }
+            return origAddEventListener.call(this, type, wrapped, options)
+          }
+          return origAddEventListener.call(this, type, listener, options)
+        }
+      }
+    }
+  } catch {
+    // Ignore when optional packages are unavailable
+  }
 }
 
 export async function resolveIPv4ViaDoH(
@@ -77,9 +199,10 @@ export async function fallbackResolveHost(
     bypassCache?: boolean
   } = {},
 ): Promise<ResolvedEntry[]> {
+  const key = hostname.toLowerCase()
   const now = Date.now()
   if (!options.bypassCache) {
-    const cached = fallbackCache.get(hostname)
+    const cached = fallbackCache.get(key)
     if (cached && cached.expiresAt > now) {
       return cached.addresses
     }
@@ -96,7 +219,7 @@ export async function fallbackResolveHost(
     })
   })
   if (osIpv4) {
-    fallbackCache.set(hostname, { addresses: osIpv4, expiresAt: now + 60_000 })
+    fallbackCache.set(key, { addresses: osIpv4, expiresAt: now + CACHE_TTL_MS })
     return osIpv4
   }
 
@@ -108,7 +231,7 @@ export async function fallbackResolveHost(
       const v4 = await resolver.resolve4(hostname)
       if (v4.length > 0) {
         const addresses = v4.map((ip) => ({ address: ip, family: 4 as const }))
-        fallbackCache.set(hostname, { addresses, expiresAt: now + 60_000 })
+        fallbackCache.set(key, { addresses, expiresAt: now + CACHE_TTL_MS })
         return addresses
       }
     } catch (err) {
@@ -123,7 +246,7 @@ export async function fallbackResolveHost(
     const dohV4 = await resolveIPv4ViaDoH(hostname, options.fetchImpl)
     if (dohV4.length > 0) {
       const addresses = dohV4.map((ip) => ({ address: ip, family: 4 as const }))
-      fallbackCache.set(hostname, { addresses, expiresAt: now + 60_000 })
+      fallbackCache.set(key, { addresses, expiresAt: now + CACHE_TTL_MS })
       return addresses
     }
   }
@@ -134,6 +257,9 @@ export async function fallbackResolveHost(
 type PatchedDnsModule = typeof dns & { __pocmsFallbackInstalled?: boolean }
 
 export function installNodeDnsFallback(): void {
+  loadDnsPrewarmEnv()
+  installNeonWebSocketErrorEventFix()
+
   if (process.env.DB_DISABLE_DNS_FALLBACK === 'true') return
   const dnsMod = dns as PatchedDnsModule
   if (dnsMod.__pocmsFallbackInstalled) return
@@ -186,6 +312,20 @@ export function installNodeDnsFallback(): void {
       return
     }
 
+    if (opts.family !== 6) {
+      const cached = fallbackCache.get(hostname.toLowerCase())
+      if (cached && cached.expiresAt > Date.now() && cached.addresses.length > 0) {
+        process.nextTick(() => {
+          if (opts.all) {
+            cb(null, cached.addresses)
+          } else {
+            cb(null, cached.addresses[0].address, cached.addresses[0].family)
+          }
+        })
+        return
+      }
+    }
+
     origLookup(hostname, opts, (err, address, family) => {
       if (!err || !TRANSIENT_DNS_CODES.has(err.code ?? '')) {
         cb(err, address, family)
@@ -212,6 +352,28 @@ export function installNodeDnsFallback(): void {
   }
 
   ;(dns as unknown as { lookup: typeof patchedLookup }).lookup = patchedLookup
+  if (dns.promises && typeof dns.promises.lookup === 'function') {
+    const patchedPromisesLookup = (
+      hostname: string,
+      options?: number | dns.LookupOptions,
+    ): Promise<dns.LookupAddress | dns.LookupAddress[]> =>
+      new Promise((resolve, reject) => {
+        const isAll = typeof options === 'object' && options !== null && Boolean(options.all)
+        patchedLookup(hostname, options ?? {}, (err, address, family) => {
+          if (err) {
+            reject(err)
+            return
+          }
+          if (isAll) {
+            resolve(address as dns.LookupAddress[])
+          } else {
+            resolve({ address: address as string, family: family ?? 4 })
+          }
+        })
+      })
+    ;(dns.promises as unknown as { lookup: typeof patchedPromisesLookup }).lookup =
+      patchedPromisesLookup
+  }
   try {
     syncBuiltinESMExports()
   } catch {

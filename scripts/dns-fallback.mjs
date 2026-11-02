@@ -1,21 +1,26 @@
 /**
- * Resilient IPv4-first + fallback DNS resolver for CLI database tools (`db:migrate`, `db:optimize-indexes`).
+ * Resilient IPv4-first + fallback DNS resolver and Neon WebSocket `ErrorEvent` shim for CLI tools.
  *
- * On Windows / VPN / dual-stack routers, Node.js v20–v24 `getaddrinfo` (`onlookupall`, `AF_UNSPEC`)
- * frequently fails with `EAI_AGAIN` when IPv6 (`AAAA`) queries time out or local router UDP DNS drops
- * CNAME chains (`*.aws.neon.tech`).
+ * 1. DNS resilience:
+ *    On Windows / VPN / dual-stack routers, Node.js v20–v24 `getaddrinfo` (`AF_UNSPEC`) frequently
+ *    fails with `EAI_AGAIN` when IPv6 (`AAAA`) queries time out or local router UDP DNS drops CNAME
+ *    chains (`*.aws.neon.tech`). Once a hostname resolves via fallback (or is prewarmed via
+ *    `POCMS_DNS_PREWARM`), `dns.lookup` serves the cached IPv4 address immediately without
+ *    re-hanging on broken OS `getaddrinfo` on every subsequent socket checkout.
  *
- * Normal OS `dns.lookup` runs first with zero overhead; ONLY when OS `dns.lookup` fails with a
- * transient resolution error (`EAI_AGAIN`, `ETIMEOUT`, `ESERVFAIL`), this wrapper retries:
- *   1. OS `dns.lookup` forced to IPv4 (`family: 4`),
- *   2. Direct UDP/TCP DNS via `1.1.1.1` / `8.8.8.8` / `9.9.9.9`,
- *   3. DNS-over-HTTPS (`https://1.1.1.1/dns-query` & `https://8.8.8.8/resolve`) over literal IPv4:443.
+ * 2. `@neondatabase/serverless` + `ws` + Node 24 `ErrorEvent` crash fix:
+ *    `@neondatabase/serverless@0.9.5` mutates `o.message = "Connection terminated due to connection timeout"`
+ *    inside `Client._connectionCallback`, where `o` is a `ws` `ErrorEvent` whose `.message` property
+ *    has only a getter and no setter — throwing an uncaught `TypeError` that crashes the process.
+ *    `installNeonWebSocketErrorEventFix()` normalizes `ws` `'error'` events to standard `Error`
+ *    instances with writable `.message`.
  */
 import dns from 'node:dns'
-import { syncBuiltinESMExports } from 'node:module'
+import { createRequire, syncBuiltinESMExports } from 'node:module'
 import net from 'node:net'
 
 const TRANSIENT_DNS_CODES = new Set(['EAI_AGAIN', 'ETIMEOUT', 'ESERVFAIL', 'EREFUSED'])
+const CACHE_TTL_MS = 300_000 // 5 minutes
 
 const PUBLIC_DNS_SERVERS = (process.env.DB_FALLBACK_DNS_SERVERS || '1.1.1.1,8.8.8.8,9.9.9.9')
   .split(',')
@@ -24,13 +29,153 @@ const PUBLIC_DNS_SERVERS = (process.env.DB_FALLBACK_DNS_SERVERS || '1.1.1.1,8.8.
 
 const DOH_ENDPOINTS = ['https://1.1.1.1/dns-query', 'https://8.8.8.8/resolve']
 
+/** @type {typeof dns & { __pocmsFallbackCache?: Map<string, { addresses: Array<{ address: string; family: 4 | 6 }>; expiresAt: number }> }} */
+const dnsShared = dns
+
 /** @type {Map<string, { addresses: Array<{ address: string; family: 4 | 6 }>; expiresAt: number }>} */
-const fallbackCache = new Map()
+const fallbackCache = dnsShared.__pocmsFallbackCache ?? (dnsShared.__pocmsFallbackCache = new Map())
 
 try {
   dns.setDefaultResultOrder('ipv4first')
 } catch {
   // Ignore on runtimes without setDefaultResultOrder
+}
+
+/**
+ * Loads pre-resolved `host=ipv4` pairs passed from a parent CLI process via `POCMS_DNS_PREWARM`.
+ * @param {string | undefined} raw
+ */
+export function loadDnsPrewarmEnv(raw = process.env.POCMS_DNS_PREWARM) {
+  if (!raw) return
+  const expiresAt = Date.now() + CACHE_TTL_MS
+  for (const token of raw.split(',')) {
+    const eq = token.indexOf('=')
+    if (eq <= 0) continue
+    const host = token.slice(0, eq).trim().toLowerCase()
+    const ip = token.slice(eq + 1).trim()
+    if (host && net.isIP(ip) === 4) {
+      fallbackCache.set(host, {
+        addresses: [{ address: ip, family: 4 }],
+        expiresAt,
+      })
+    }
+  }
+}
+
+/**
+ * Serializes active cached IPv4 lookups as `host=ip,host2=ip2` for child-process `POCMS_DNS_PREWARM`.
+ * @returns {string}
+ */
+export function exportDnsPrewarmString() {
+  const now = Date.now()
+  /** @type {string[]} */
+  const pairs = []
+  for (const [host, entry] of fallbackCache.entries()) {
+    if (entry.expiresAt > now && entry.addresses[0]?.family === 4) {
+      pairs.push(`${host}=${entry.addresses[0].address}`)
+    }
+  }
+  return pairs.join(',')
+}
+
+/**
+ * Seeds a verified IPv4 address for `hostname` into the fast-path cache.
+ * @param {string} hostname
+ * @param {string} ipv4
+ */
+export function seedDnsCacheEntry(hostname, ipv4) {
+  if (!hostname || net.isIP(ipv4) !== 4) return
+  fallbackCache.set(hostname.trim().toLowerCase(), {
+    addresses: [{ address: ipv4, family: 4 }],
+    expiresAt: Date.now() + CACHE_TTL_MS,
+  })
+}
+
+/**
+ * Patches `ws` `WebSocket.prototype.addEventListener` (and global `ErrorEvent.prototype`) so
+ * `@neondatabase/serverless` never crashes with
+ * `TypeError: Cannot set property message of #<ErrorEvent> which has only a getter`.
+ */
+export function installNeonWebSocketErrorEventFix() {
+  // 1. Make global DOM `ErrorEvent.prototype.message` writable if getter-only (Node 20-24 Undici)
+  try {
+    if (typeof globalThis.ErrorEvent === 'function') {
+      const proto = globalThis.ErrorEvent.prototype
+      const desc = Object.getOwnPropertyDescriptor(proto, 'message')
+      if (desc && typeof desc.get === 'function' && !desc.set && desc.configurable) {
+        const origGet = desc.get
+        Object.defineProperty(proto, 'message', {
+          configurable: true,
+          enumerable: desc.enumerable ?? true,
+          get() {
+            return Object.prototype.hasOwnProperty.call(this, '__pocmsMessageOverride')
+              ? this.__pocmsMessageOverride
+              : origGet.call(this)
+          },
+          set(val) {
+            Object.defineProperty(this, '__pocmsMessageOverride', {
+              value: String(val),
+              writable: true,
+              configurable: true,
+              enumerable: false,
+            })
+          },
+        })
+      }
+    }
+  } catch {
+    // Non-fatal
+  }
+
+  // 2. Patch `ws` (used by `@vercel/postgres` -> `@neondatabase/serverless`) so `'error'` listeners
+  // receive a real `Error` instance with writable `.message` instead of a getter-only `ErrorEvent`.
+  try {
+    const rootReq = createRequire(import.meta.url)
+    const dbPkgPath = rootReq.resolve('@payloadcms/db-vercel-postgres')
+    const dbReq = createRequire(dbPkgPath)
+    const vpPkgPath = dbReq.resolve('@vercel/postgres')
+    const vpReq = createRequire(vpPkgPath)
+    const WS = vpReq('ws')
+
+    if (WS?.prototype && !WS.prototype.__pocmsErrorEventPatched) {
+      Object.defineProperty(WS.prototype, '__pocmsErrorEventPatched', {
+        value: true,
+        configurable: true,
+        enumerable: false,
+      })
+
+      const origAddEventListener = WS.prototype.addEventListener
+      if (typeof origAddEventListener === 'function') {
+        WS.prototype.addEventListener = function patchedWsAddEventListener(type, listener, options) {
+          if (type === 'error' && typeof listener === 'function') {
+            /** @param {any} evt */
+            const wrapped = function (evt) {
+              if (evt && typeof evt === 'object' && !(evt instanceof Error)) {
+                const inner = evt.error instanceof Error ? evt.error : null
+                const msg =
+                  (typeof evt.message === 'string' && evt.message) ||
+                  inner?.message ||
+                  'WebSocket connection error'
+                const normalized = /** @type {NodeJS.ErrnoException} */ (new Error(msg))
+                if (inner && 'code' in inner && inner.code) {
+                  normalized.code = /** @type {string} */ (inner.code)
+                }
+                if (inner) {
+                  normalized.cause = inner
+                }
+                return listener.call(this, normalized)
+              }
+              return listener.call(this, evt)
+            }
+            return origAddEventListener.call(this, type, wrapped, options)
+          }
+          return origAddEventListener.call(this, type, listener, options)
+        }
+      }
+    }
+  } catch {
+    // Ignore if optional packages are absent
+  }
 }
 
 /**
@@ -81,8 +226,9 @@ export async function resolveIPv4ViaDoH(hostname) {
  * @returns {Promise<Array<{ address: string; family: 4 | 6 }>>}
  */
 export async function fallbackResolveHost(hostname, origLookup) {
+  const key = hostname.toLowerCase()
   const now = Date.now()
-  const cached = fallbackCache.get(hostname)
+  const cached = fallbackCache.get(key)
   if (cached && cached.expiresAt > now) {
     return cached.addresses
   }
@@ -98,7 +244,7 @@ export async function fallbackResolveHost(hostname, origLookup) {
     })
   })
   if (osIpv4) {
-    fallbackCache.set(hostname, { addresses: osIpv4, expiresAt: now + 60_000 })
+    fallbackCache.set(key, { addresses: osIpv4, expiresAt: now + CACHE_TTL_MS })
     return osIpv4
   }
 
@@ -110,7 +256,7 @@ export async function fallbackResolveHost(hostname, origLookup) {
       const v4 = await resolver.resolve4(hostname)
       if (v4.length > 0) {
         const addresses = v4.map((ip) => ({ address: ip, family: /** @type {4} */ (4) }))
-        fallbackCache.set(hostname, { addresses, expiresAt: now + 60_000 })
+        fallbackCache.set(key, { addresses, expiresAt: now + CACHE_TTL_MS })
         return addresses
       }
     } catch (err) {
@@ -125,7 +271,7 @@ export async function fallbackResolveHost(hostname, origLookup) {
     const dohV4 = await resolveIPv4ViaDoH(hostname)
     if (dohV4.length > 0) {
       const addresses = dohV4.map((ip) => ({ address: ip, family: /** @type {4} */ (4) }))
-      fallbackCache.set(hostname, { addresses, expiresAt: now + 60_000 })
+      fallbackCache.set(key, { addresses, expiresAt: now + CACHE_TTL_MS })
       return addresses
     }
   }
@@ -134,9 +280,12 @@ export async function fallbackResolveHost(hostname, origLookup) {
 }
 
 /**
- * Installs the fallback wrapper onto `node:dns` (idempotent).
+ * Installs the fallback wrapper onto `node:dns` and the Neon WebSocket `ErrorEvent` fix (idempotent).
  */
 export function installDnsFallback() {
+  loadDnsPrewarmEnv()
+  installNeonWebSocketErrorEventFix()
+
   const dnsAny = /** @type {typeof dns & { __pocmsFallbackInstalled?: boolean }} */ (dns)
   if (dnsAny.__pocmsFallbackInstalled) return
   dnsAny.__pocmsFallbackInstalled = true
@@ -169,6 +318,22 @@ export function installDnsFallback() {
       return origLookup(hostname, opts, cb)
     }
 
+    // Fast-path: if this hostname previously required fallback (or was prewarmed from parent CLI),
+    // serve the verified IPv4 entry immediately without re-waiting on broken OS `getaddrinfo`.
+    if (opts.family !== 6) {
+      const cached = fallbackCache.get(hostname.toLowerCase())
+      if (cached && cached.expiresAt > Date.now() && cached.addresses.length > 0) {
+        process.nextTick(() => {
+          if (opts.all) {
+            cb(null, cached.addresses)
+          } else {
+            cb(null, cached.addresses[0].address, cached.addresses[0].family)
+          }
+        })
+        return
+      }
+    }
+
     return origLookup(hostname, opts, (err, address, family) => {
       if (!err || !TRANSIENT_DNS_CODES.has(err.code || '')) {
         return cb(err, address, family)
@@ -191,6 +356,28 @@ export function installDnsFallback() {
   }
 
   dns.lookup = /** @type {typeof dns.lookup} */ (patchedLookup)
+  if (dns.promises && typeof dns.promises.lookup === 'function') {
+    /**
+     * @param {string} hostname
+     * @param {number | dns.LookupOptions} [options]
+     */
+    const patchedPromisesLookup = (hostname, options) =>
+      new Promise((resolve, reject) => {
+        const isAll = typeof options === 'object' && options !== null && Boolean(options.all)
+        patchedLookup(hostname, options ?? {}, (err, address, family) => {
+          if (err) {
+            reject(err)
+            return
+          }
+          if (isAll) {
+            resolve(address)
+          } else {
+            resolve({ address, family })
+          }
+        })
+      })
+    dns.promises.lookup = /** @type {typeof dns.promises.lookup} */ (patchedPromisesLookup)
+  }
   try {
     syncBuiltinESMExports()
   } catch {

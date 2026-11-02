@@ -16,12 +16,14 @@
  *   node scripts/migrate-neon.mjs create [name]     # Create a new Payload Drizzle migration
  *   node scripts/migrate-neon.mjs optimize-indexes  # Zero-lock online `CONCURRENTLY` Phase 1 rollout
  */
-import './dns-fallback.mjs'
+import { exportDnsPrewarmString, seedDnsCacheEntry } from './dns-fallback.mjs'
 import 'dotenv/config'
 
 import { spawnSync } from 'node:child_process'
+import dns from 'node:dns'
 import fs from 'node:fs'
 import { createRequire } from 'node:module'
+import net from 'node:net'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import pg from 'pg'
@@ -186,7 +188,11 @@ async function withResilientDbClient(connectionString, fn, opts = {}) {
     }
 
     const VercelPool = loadVercelPool()
-    const wsPool = new VercelPool({ connectionString, max: 1 })
+    const wsPool = new VercelPool({
+      connectionString,
+      max: 1,
+      connectionTimeoutMillis: 60_000,
+    })
     try {
       return await fn(wsPool, 'ws')
     } finally {
@@ -390,6 +396,18 @@ async function main() {
           ? ['migrate:down', ...extraArgs]
           : ['migrate', ...extraArgs]
 
+  if (selected?.host && selected.host !== 'localhost' && net.isIP(selected.host) === 0) {
+    try {
+      const prewarmed = await dns.promises.lookup(selected.host, { family: 4 })
+      if (prewarmed?.address) {
+        seedDnsCacheEntry(selected.host, prewarmed.address)
+      }
+    } catch {
+      // Non-fatal; fallback cache may already hold resolved entries
+    }
+  }
+  const dnsPrewarm = exportDnsPrewarmString()
+
   const env = {
     ...process.env,
     ...(selected
@@ -398,6 +416,9 @@ async function main() {
           POSTGRES_URL_NON_POOLING: selected.url,
         }
       : {}),
+    ...(dnsPrewarm ? { POCMS_DNS_PREWARM: dnsPrewarm } : {}),
+    POSTGRES_POOL_CONNECTION_TIMEOUT_MS:
+      process.env.POSTGRES_POOL_CONNECTION_TIMEOUT_MS || '60000',
     BLOB_READ_WRITE_TOKEN:
       process.env.BLOB_READ_WRITE_TOKEN || 'vercel_blob_rw_codegen0_placeholder0',
     PAYLOAD_SECRET: process.env.PAYLOAD_SECRET || 'migration-cli-placeholder-secret-32chars',
