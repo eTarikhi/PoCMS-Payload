@@ -67,7 +67,7 @@ jobs:
       - name: Compile Next.js + Payload production bundle
         env:
           POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/pocms
-          NODE_OPTIONS: '--no-deprecation --max-old-space-size=6144'
+          NODE_OPTIONS: '--no-deprecation --max-old-space-size=4096'
         run: pnpm exec next build --experimental-build-mode compile
 
   e2e:
