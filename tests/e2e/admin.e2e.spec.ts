@@ -92,13 +92,16 @@ test.describe('PoCMS Admin Panel (RBAC, Content, SEO Tabs, Forms, Globals, Inbox
     await expect(page.getByTestId('database-view')).toBeVisible()
     await expect(page.locator('h1', { hasText: /Database manager/i }).first()).toBeVisible()
 
-    // Verify responsive tab navigation enclosure, card clearance & grid column alignment across viewports
+    // Verify 5-stage hole-free responsive tab navigation across all device breakpoints
     const initialViewport = page.viewportSize() ?? { width: 1280, height: 720 }
     try {
       for (const vp of [
-        { width: 390, height: 844, mode: 'mobile-scroll' as const },
-        { width: 1024, height: 768, mode: 'grid' as const },
-        { width: 1720, height: 900, mode: 'single-row' as const },
+        { width: 320, height: 640, expectedRows: 7 },
+        { width: 390, height: 844, expectedRows: 4 },
+        { width: 626, height: 897, expectedRows: 3 },
+        { width: 1024, height: 768, expectedRows: 2 },
+        { width: 1485, height: 900, expectedRows: 1 },
+        { width: 1720, height: 900, expectedRows: 1 },
       ]) {
         await page.setViewportSize({ width: vp.width, height: vp.height })
         // Allow Payload's @faceless-ui/window-info debounced resize observer to settle
@@ -117,7 +120,14 @@ test.describe('PoCMS Admin Panel (RBAC, Content, SEO Tabs, Forms, Globals, Inbox
           const lr = listEl.getBoundingClientRect()
           const pr = panelEl.getBoundingClientRect()
           return {
-            listBox: { x: lr.x, y: lr.y, width: lr.width, height: lr.height },
+            listBox: {
+              x: lr.x,
+              y: lr.y,
+              width: lr.width,
+              height: lr.height,
+              scrollWidth: listEl.scrollWidth,
+              clientWidth: listEl.clientWidth,
+            },
             tabBoxes: tabEls.map((t) => {
               const r = t.getBoundingClientRect()
               return { x: r.x, y: r.y, width: r.width, height: r.height }
@@ -130,24 +140,35 @@ test.describe('PoCMS Admin Panel (RBAC, Content, SEO Tabs, Forms, Globals, Inbox
         const { listBox, tabBoxes, panelBox } = geometry!
         const firstBox = tabBoxes[0]!
         const lastBox = tabBoxes[6]!
-        const debugCtx = JSON.stringify({ vp, listBox, firstBox, lastBox, panelBox })
+        const debugCtx = JSON.stringify({ vp, listBox, tabBoxes, panelBox })
 
-        // Every tab must sit vertically inside the muted TabsList container (zero vertical overflow)
+        // Zero horizontal scrollbar / off-screen clipping at every breakpoint
+        expect(listBox.scrollWidth, debugCtx).toBeLessThanOrEqual(listBox.clientWidth + 1)
+
+        // Every tab must sit strictly inside the muted TabsList container (horizontally & vertically)
+        const rowYs: number[] = []
         for (const box of tabBoxes) {
+          expect(box.x, debugCtx).toBeGreaterThanOrEqual(listBox.x - 1)
+          expect(box.x + box.width, debugCtx).toBeLessThanOrEqual(listBox.x + listBox.width + 1)
           expect(box.y, debugCtx).toBeGreaterThanOrEqual(listBox.y - 1)
           expect(box.y + box.height, debugCtx).toBeLessThanOrEqual(listBox.y + listBox.height + 1)
+          if (!rowYs.some((ry) => Math.abs(ry - box.y) <= 4)) {
+            rowYs.push(box.y)
+          }
         }
+
+        // Exact expected row count (1 row on 1485px/1720px desktop, 2 rows on 1024px tablet, 3 rows on 626px, 4 rows on 390px, 7 rows on 320px)
+        expect(rowYs.length, debugCtx).toBe(vp.expectedRows)
+
+        // Zero empty hole on either edge: 1st tab aligns with left inner edge and 7th tab reaches right inner edge of TabsList
+        expect(firstBox.x - listBox.x, debugCtx).toBeLessThanOrEqual(8)
+        expect(
+          listBox.x + listBox.width - (lastBox.x + lastBox.width),
+          debugCtx,
+        ).toBeLessThanOrEqual(8)
 
         // Content card below must never overlap TabsList
         expect(panelBox.y, debugCtx).toBeGreaterThanOrEqual(listBox.y + listBox.height + 16)
-
-        if (vp.mode === 'grid') {
-          // On multi-row grid viewports, the 7th tab must align with a grid column (never stretch 100% centered)
-          expect(Math.abs(lastBox.width - firstBox.width), debugCtx).toBeLessThanOrEqual(2)
-        } else if (vp.mode === 'single-row') {
-          // On wide desktop viewports, all 7 tabs sit on a single horizontal row
-          expect(Math.abs(lastBox.y - firstBox.y), debugCtx).toBeLessThanOrEqual(2)
-        }
       }
     } finally {
       await page.setViewportSize(initialViewport)

@@ -21,7 +21,7 @@ import {
   Trash2Icon,
   WrenchIcon,
 } from 'lucide-react'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useState } from 'react'
 
 import { Badge } from '@/components/admin/elements/Badge'
 import { Button } from '@/components/admin/elements/Button'
@@ -78,14 +78,37 @@ const formatDateShort = (iso: string | null | undefined): string => {
   return d.toISOString().replace('T', ' ').slice(0, 19) + ' UTC'
 }
 
-const DB_TAB_TRIGGER_CLASS = cn(
-  // < 640px container: touch-friendly horizontal scroll pill (42px outer bar)
-  'acn:flex-none acn:snap-start acn:min-h-[34px] acn:justify-center acn:px-2.5',
-  // 640px – 1179px container: uniform left-aligned multi-column grid cell
-  'acn:@min-[640px]:w-full acn:@min-[640px]:min-w-0 acn:@min-[640px]:min-h-8 acn:@min-[640px]:justify-start',
-  // >= 1180px container: single-row inline segmented pill
-  'acn:@min-[1180px]:w-auto acn:@min-[1180px]:min-h-[30px] acn:@min-[1180px]:justify-center',
+const DB_TAB_ICON_CLASS = 'acn:size-3.5 acn:shrink-0 acn:@min-[1160px]:size-4'
+
+const DB_TAB_TRIGGER_BASE_CLASS = cn(
+  // < 1000px container: symmetric hole-free CSS Grid cells with centered segmented-pill alignment
+  'acn:flex-none acn:w-full acn:min-w-0 acn:max-w-full acn:min-h-8 acn:justify-center acn:overflow-hidden acn:px-1.5 acn:py-1.5 acn:gap-1 acn:text-xs acn:hover:bg-background/40 acn:dark:hover:bg-input/15',
+  // 700px – 999px container (12-column 4+3 tablet grid): spacious cell padding & 13px typography
+  'acn:@min-[700px]:px-2.5 acn:@min-[700px]:gap-1.5 acn:@min-[700px]:text-sm',
+  // 1000px – 1159px container (1366px/1440px/1080p@125% desktop): single-row proportional flex-auto bar
+  'acn:@min-[1000px]:w-auto acn:@min-[1000px]:flex-auto acn:@min-[1000px]:min-h-[32px] acn:@min-[1000px]:px-1.5 acn:@min-[1000px]:gap-1 acn:@min-[1000px]:text-xs',
+  // >= 1160px container (wide desktop): full 13px typography & 16px icons across single row
+  'acn:@min-[1160px]:px-2.5 acn:@min-[1160px]:gap-1.5 acn:@min-[1160px]:text-sm',
 )
+
+const DB_TAB_SPAN = {
+  lead: cn(
+    DB_TAB_TRIGGER_BASE_CLASS,
+    'acn:col-span-1 acn:@min-[330px]:col-span-2 acn:@min-[500px]:col-span-2 acn:@min-[700px]:col-span-3',
+  ),
+  topPair: cn(
+    DB_TAB_TRIGGER_BASE_CLASS,
+    'acn:col-span-1 acn:@min-[500px]:col-span-2 acn:@min-[700px]:col-span-3',
+  ),
+  midPivot: cn(
+    DB_TAB_TRIGGER_BASE_CLASS,
+    'acn:col-span-1 acn:@min-[500px]:col-span-3 acn:@min-[700px]:col-span-3',
+  ),
+  bottomTrio: cn(
+    DB_TAB_TRIGGER_BASE_CLASS,
+    'acn:col-span-1 acn:@min-[500px]:col-span-3 acn:@min-[700px]:col-span-4',
+  ),
+} as const
 
 export function DatabaseClient({
   initialSnapshot,
@@ -99,70 +122,6 @@ export function DatabaseClient({
   const [snapshot, setSnapshot] = useState<DatabaseManagementSnapshot>(initialSnapshot)
   const [activeTab, setActiveTab] = useState<string>('health')
   const [busyKey, setBusyKey] = useState<string | null>(null)
-  const tabsListRef = useRef<HTMLDivElement | null>(null)
-  const [tabScrollFade, setTabScrollFade] = useState<{ left: boolean; right: boolean }>({
-    left: false,
-    right: false,
-  })
-
-  const syncTabScrollAffordance = useCallback(() => {
-    const el = tabsListRef.current
-    if (!el) return
-    const maxScroll = el.scrollWidth - el.clientWidth
-    if (maxScroll <= 2) {
-      setTabScrollFade((prev) =>
-        prev.left || prev.right ? { left: false, right: false } : prev,
-      )
-      return
-    }
-    const left = el.scrollLeft > 2
-    const right = el.scrollLeft < maxScroll - 2
-    setTabScrollFade((prev) =>
-      prev.left === left && prev.right === right ? prev : { left, right },
-    )
-  }, [])
-
-  useEffect(() => {
-    const el = tabsListRef.current
-    if (!el) return
-    syncTabScrollAffordance()
-    if (typeof ResizeObserver === 'undefined') return
-    const ro = new ResizeObserver(() => syncTabScrollAffordance())
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [syncTabScrollAffordance])
-
-  useEffect(() => {
-    const el = tabsListRef.current
-    if (!el || el.scrollWidth <= el.clientWidth + 2) return
-    const activeBtn = el.querySelector<HTMLElement>(
-      '[data-slot="tabs-trigger"][aria-selected="true"]',
-    )
-    if (!activeBtn || typeof el.scrollTo !== 'function') return
-    const btnLeft = activeBtn.offsetLeft
-    const btnRight = btnLeft + activeBtn.offsetWidth
-    const viewLeft = el.scrollLeft
-    const viewRight = viewLeft + el.clientWidth
-    if (btnLeft < viewLeft + 12) {
-      el.scrollTo({ left: Math.max(0, btnLeft - 12), behavior: 'smooth' })
-    } else if (btnRight > viewRight - 12) {
-      el.scrollTo({ left: btnRight - el.clientWidth + 12, behavior: 'smooth' })
-    }
-  }, [activeTab])
-
-  const tabsListMaskStyle = React.useMemo<React.CSSProperties | undefined>(() => {
-    if (!tabScrollFade.left && !tabScrollFade.right) return undefined
-    const gradient =
-      tabScrollFade.left && tabScrollFade.right
-        ? 'linear-gradient(to right, transparent, #000 20px, #000 calc(100% - 20px), transparent)'
-        : tabScrollFade.right
-          ? 'linear-gradient(to right, #000 calc(100% - 24px), transparent)'
-          : 'linear-gradient(to right, transparent, #000 24px)'
-    return {
-      maskImage: gradient,
-      WebkitMaskImage: gradient,
-    }
-  }, [tabScrollFade.left, tabScrollFade.right])
 
   // Backup & Restore state
   const [exportFormat, setExportFormat] = useState<BackupExportFormat>('sql')
@@ -563,80 +522,51 @@ export function DatabaseClient({
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}
-        className="acn:@container acn:flex-col acn:gap-6"
+        className="acn:@container acn:w-full acn:flex-col acn:gap-6"
       >
         <TabsList
-          ref={tabsListRef}
-          onScroll={syncTabScrollAffordance}
-          style={tabsListMaskStyle}
           className={cn(
-            // < 640px container: single-row horizontal touch scroll strip
-            'acn:flex acn:w-full acn:flex-nowrap acn:justify-start acn:overflow-x-auto acn:overscroll-x-contain acn:scroll-smooth acn:snap-x acn:snap-proximity acn:p-1 acn:no-scrollbar',
-            // 640px – 839px container: 3-column grid enclosed inside bg-muted
-            'acn:@min-[640px]:grid acn:@min-[640px]:w-full acn:@min-[640px]:grid-cols-3 acn:@min-[640px]:overflow-visible acn:@min-[640px]:p-1',
-            // 840px – 1179px container: balanced 4-column grid (4 + 3) enclosed inside bg-muted
-            'acn:@min-[840px]:grid-cols-4',
-            // >= 1180px container: single-row compact inline segmented pill bar
-            'acn:@min-[1180px]:inline-flex acn:@min-[1180px]:w-fit acn:@min-[1180px]:max-w-full acn:@min-[1180px]:flex-nowrap acn:@min-[1180px]:p-[3px]',
+            // < 330px container (320px ultra-compact phones): full-width 1-column stack
+            'acn:grid acn:w-full acn:max-w-full acn:grid-cols-1 acn:gap-1 acn:p-1',
+            // 330px – 499px container (standard phones): hole-free 2-column grid (1 + 2 + 2 + 2)
+            'acn:@min-[330px]:grid-cols-2',
+            // 500px – 699px container (narrow windows / phablets): hole-free 6-column grid (3 + 2 + 2)
+            'acn:@min-[500px]:grid-cols-6',
+            // 700px – 999px container (tablets / small laptops w/ open nav): hole-free 12-column grid (4 + 3)
+            'acn:@min-[700px]:grid-cols-12',
+            // >= 1000px container (1366px+, 1440px, 1080p@125% & wide desktops): single-row segmented bar
+            'acn:@min-[1000px]:flex acn:@min-[1000px]:flex-nowrap acn:@min-[1000px]:items-center',
           )}
         >
-          <TabsTrigger
-            value="health"
-            onFocus={syncTabScrollAffordance}
-            className={DB_TAB_TRIGGER_CLASS}
-          >
-            <ActivityIcon aria-hidden className="acn:size-4" />
+          <TabsTrigger value="health" className={DB_TAB_SPAN.lead}>
+            <ActivityIcon aria-hidden className={DB_TAB_ICON_CLASS} />
             <span className="acn:truncate">Health &amp; Advisor</span>
-            <span className="acn:shrink-0 acn:tabular-nums acn:text-xs acn:opacity-75">
+            <span className="acn:shrink-0 acn:tabular-nums acn:text-[11px] acn:opacity-75 acn:@min-[1160px]:text-xs">
               ({snapshot.tables.length})
             </span>
           </TabsTrigger>
-          <TabsTrigger
-            value="backup"
-            onFocus={syncTabScrollAffordance}
-            className={DB_TAB_TRIGGER_CLASS}
-          >
-            <HardDriveDownloadIcon aria-hidden className="acn:size-4" />
+          <TabsTrigger value="backup" className={DB_TAB_SPAN.topPair}>
+            <HardDriveDownloadIcon aria-hidden className={DB_TAB_ICON_CLASS} />
             <span className="acn:truncate">Backup &amp; Restore</span>
           </TabsTrigger>
-          <TabsTrigger
-            value="codegen"
-            onFocus={syncTabScrollAffordance}
-            className={DB_TAB_TRIGGER_CLASS}
-          >
-            <FileCode2Icon aria-hidden className="acn:size-4" />
+          <TabsTrigger value="codegen" className={DB_TAB_SPAN.topPair}>
+            <FileCode2Icon aria-hidden className={DB_TAB_ICON_CLASS} />
             <span className="acn:truncate">Migrations &amp; Seeds</span>
           </TabsTrigger>
-          <TabsTrigger
-            value="sql"
-            onFocus={syncTabScrollAffordance}
-            className={DB_TAB_TRIGGER_CLASS}
-          >
-            <SearchCodeIcon aria-hidden className="acn:size-4" />
+          <TabsTrigger value="sql" className={DB_TAB_SPAN.midPivot}>
+            <SearchCodeIcon aria-hidden className={DB_TAB_ICON_CLASS} />
             <span className="acn:truncate">SQL Inspector</span>
           </TabsTrigger>
-          <TabsTrigger
-            value="repair"
-            onFocus={syncTabScrollAffordance}
-            className={DB_TAB_TRIGGER_CLASS}
-          >
-            <WrenchIcon aria-hidden className="acn:size-4" />
+          <TabsTrigger value="repair" className={DB_TAB_SPAN.bottomTrio}>
+            <WrenchIcon aria-hidden className={DB_TAB_ICON_CLASS} />
             <span className="acn:truncate">Repair &amp; Maintenance</span>
           </TabsTrigger>
-          <TabsTrigger
-            value="retention"
-            onFocus={syncTabScrollAffordance}
-            className={DB_TAB_TRIGGER_CLASS}
-          >
-            <HistoryIcon aria-hidden className="acn:size-4" />
+          <TabsTrigger value="retention" className={DB_TAB_SPAN.bottomTrio}>
+            <HistoryIcon aria-hidden className={DB_TAB_ICON_CLASS} />
             <span className="acn:truncate">Version Retention</span>
           </TabsTrigger>
-          <TabsTrigger
-            value="provider"
-            onFocus={syncTabScrollAffordance}
-            className={DB_TAB_TRIGGER_CLASS}
-          >
-            <SparklesIcon aria-hidden className="acn:size-4" />
+          <TabsTrigger value="provider" className={DB_TAB_SPAN.bottomTrio}>
+            <SparklesIcon aria-hidden className={DB_TAB_ICON_CLASS} />
             <span className="acn:truncate">Serverless Provider</span>
           </TabsTrigger>
         </TabsList>
@@ -1882,19 +1812,23 @@ export function DatabaseClient({
 
         {/* TAB 7: SERVERLESS PROVIDER ADAPTERS */}
         <TabsContent value="provider" className="acn:space-y-6">
-          <div className="acn:flex acn:flex-wrap acn:gap-2">
-            {snapshot.providers.map((prov) => (
+          <div className="acn:grid acn:grid-cols-1 acn:gap-2 acn:@min-[380px]:grid-cols-2 acn:@min-[620px]:flex acn:@min-[620px]:flex-wrap">
+            {snapshot.providers.map((prov, idx) => (
               <Button
                 key={prov.slug}
                 type="button"
                 size="sm"
                 variant={selectedProvider === prov.slug ? 'default' : 'outline'}
                 onClick={() => setSelectedProvider(prov.slug)}
+                className={cn(
+                  'acn:w-full acn:justify-center acn:@min-[620px]:w-auto',
+                  idx === 0 && 'acn:@min-[380px]:col-span-2',
+                )}
               >
-                <DatabaseIcon aria-hidden className="acn:size-4" />
-                {prov.name}
+                <DatabaseIcon aria-hidden className="acn:size-4 acn:shrink-0" />
+                <span className="acn:truncate">{prov.name}</span>
                 {prov.detectedFromHost ? (
-                  <Badge variant="secondary" className="acn:ml-1">
+                  <Badge variant="secondary" className="acn:ml-1 acn:shrink-0">
                     Active DB
                   </Badge>
                 ) : null}
