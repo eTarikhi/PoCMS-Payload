@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Runs Payload's code generators with a production-shaped configuration.
  *

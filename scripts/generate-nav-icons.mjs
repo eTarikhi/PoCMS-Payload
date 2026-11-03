@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Writes src/styles/admin/nav-icons.css: one Lucide icon per sidebar link, as a CSS mask keyed to
  * Payload's stable nav ids (#nav-<slug>, #nav-global-<slug>). Payload's nav markup stays untouched.

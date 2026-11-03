@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Neon-aware PostgreSQL migration & online optimization runner (`R-06`, `R-08`, `R-09`, `R-10`, `R-13a`).
  *

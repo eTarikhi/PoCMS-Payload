@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import dns from 'node:dns'
 import fs from 'node:fs'
 import { createRequire } from 'node:module'
@@ -153,12 +154,22 @@ describe('Phase 1 Database Integrity, Versioned Migrations & Index Optimizations
     expect(pkgJson.scripts['db:migrate']).toContain('migrate-neon.mjs')
     expect(pkgJson.scripts['db:optimize-indexes']).toContain('optimize-indexes')
     expect(fs.existsSync(path.join(process.cwd(), 'scripts', 'migrate-neon.mjs'))).toBe(true)
-    // Verify R-07 compliance: no tracked migrations in src/migrations while Drizzle push is default in dev
-    expect(fs.existsSync(path.join(process.cwd(), 'src', 'migrations', 'index.ts'))).toBe(false)
+    // Verify R-07 compliance: `/src/migrations` is gitignored and zero migration files are tracked in Git
+    // (avoid fs.existsSync on `src/migrations/index.ts`, which falsely fails when a developer has untracked local files in an ignored dir)
+    const gitignoreSource = fs.readFileSync(path.join(process.cwd(), '.gitignore'), 'utf8')
+    expect(gitignoreSource).toMatch(/^\s*\/?src\/migrations\/?\s*$/m)
+    if (fs.existsSync(path.join(process.cwd(), '.git'))) {
+      const trackedMigrations = execFileSync('git', ['ls-files', 'src/migrations'], {
+        cwd: process.cwd(),
+        encoding: 'utf8',
+      }).trim()
+      expect(trackedMigrations).toBe('')
+    }
     const migrateRunnerSource = fs.readFileSync(
       path.join(process.cwd(), 'scripts', 'migrate-neon.mjs'),
       'utf8',
     )
+    expect(migrateRunnerSource.startsWith('#!')).toBe(false)
     expect(migrateRunnerSource).not.toContain('WHERE "batch" = -1')
   })
 
