@@ -116,12 +116,28 @@ export const dashboard: DashboardConfig = {
       Component: `${dir}/CIStatus#CIStatusWidget`,
       minWidth: 'small',
     },
+    {
+      slug: 'system-info',
+      label: 'System information',
+      Component: `${dir}/SystemInfo#SystemInfoWidget`,
+      minWidth: 'small',
+    },
+    {
+      slug: 'scheduled-jobs',
+      label: 'Scheduled jobs',
+      Component: `${dir}/ScheduledJobs#ScheduledJobsWidget`,
+      minWidth: 'small',
+    },
   ],
   // New users start with this layout (Payload keeps each user's changes in their preferences);
   // integration widgets only appear for roles with their capability.
   defaultLayout: ({ req }) => {
     const analytics = hasCapability(req.user, 'viewAnalytics')
     const deployments = hasCapability(req.user, 'viewDeployments')
+    const viewSystem = hasCapability(req.user, 'viewSystem')
+    const manageDatabase = hasCapability(req.user, 'manageDatabase')
+    const manageInbox = hasCapability(req.user, 'manageInbox')
+    const manageJobs = hasCapability(req.user, 'manageJobs')
     const layout: WidgetInstance[] = [
       { widgetSlug: 'welcome', width: 'full' },
       { widgetSlug: 'content-count', width: 'x-small', data: { collection: 'articles' } },
@@ -141,6 +157,16 @@ export const dashboard: DashboardConfig = {
             { widgetSlug: 'deployments', width: 'medium' },
             { widgetSlug: 'ci-status', width: 'medium' },
           ] as WidgetInstance[])
+        : []),
+      ...(viewSystem ? ([{ widgetSlug: 'system-info', width: 'medium' }] as WidgetInstance[]) : []),
+      ...(manageDatabase
+        ? ([{ widgetSlug: 'database-health', width: 'medium' }] as WidgetInstance[])
+        : []),
+      ...(manageInbox
+        ? ([{ widgetSlug: 'mail-inbox', width: 'medium' }] as WidgetInstance[])
+        : []),
+      ...(manageJobs
+        ? ([{ widgetSlug: 'scheduled-jobs', width: 'medium' }] as WidgetInstance[])
         : []),
       { widgetSlug: 'recent-changes', width: 'full' },
       // Payload's built-in collection cards stay available below the widgets.

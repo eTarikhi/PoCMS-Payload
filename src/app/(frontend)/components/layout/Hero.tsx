@@ -1,16 +1,18 @@
 import Image from 'next/image'
 import Link from 'next/link'
 
-import type { HeaderContent } from '@/app/(frontend)/lib/types'
+import { DEFAULT_SITE_SETTINGS } from '@/app/(frontend)/lib/mappers'
+import type { HeaderContent, SiteSettingsContent } from '@/app/(frontend)/lib/types'
 import { TypingEffect } from '../ui/TypingEffect'
 
 // Ported from the Header component in vTarikhi/components/header.tsx. Markup and typing settings are unchanged.
 
 export type HeroProps = {
   header: HeaderContent
+  labels?: SiteSettingsContent['hero']
 }
 
-export function Hero({ header }: HeroProps) {
+export function Hero({ header, labels = DEFAULT_SITE_SETTINGS.hero }: HeroProps) {
   return (
     <header>
       <div className="container-fluid my-6 mt-0" id="home">
@@ -18,7 +20,7 @@ export function Hero({ header }: HeroProps) {
           <div className="row g-5 align-items-center">
             <div className="col-lg-6 py-lg-6 pb-0 pt-lg-0">
               <div className="" style={{ minHeight: 200 }}>
-                <h3 className="typed-balancer text-secondary mb-3">{"I'm"}</h3>
+                <h3 className="typed-balancer text-secondary mb-3">{labels.greeting}</h3>
                 <h1 className="display-3 mb-3 text-white">{header.sureName}</h1>
                 <h2 className="typed-text-output d-inline">
                   <TypingEffect
@@ -34,7 +36,7 @@ export function Hero({ header }: HeroProps) {
               </div>
               <div className="d-flex align-items-center pt-lg-4">
                 <Link href={header.requestCV} className="btn btn-primary py-3 px-4 me-5">
-                  Request CV
+                  {labels.requestCvLabel}
                 </Link>
               </div>
             </div>
@@ -42,7 +44,7 @@ export function Hero({ header }: HeroProps) {
               <Image
                 className="img-fluid"
                 src={header.imageUrl}
-                alt="Profile"
+                alt={header.sureName}
                 width={700}
                 height={700}
                 priority={true}

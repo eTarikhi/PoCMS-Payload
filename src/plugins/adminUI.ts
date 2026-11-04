@@ -95,6 +95,7 @@ export const adminUIPlugin = (): Plugin => (config) => ({
   ...config,
   globals: (config.globals ?? []).map((global) => ({ ...global, admin: withGraphQLTab(global) })),
   collections: (config.collections ?? []).map((collection) => {
+    if (collection.slug.startsWith('payload-')) return collection
     const withTab: CollectionConfig = { ...collection, admin: withGraphQLTab(collection) }
     const next: CollectionConfig = {
       ...withTab,

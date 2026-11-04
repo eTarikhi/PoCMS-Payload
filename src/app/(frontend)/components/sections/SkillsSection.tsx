@@ -1,4 +1,10 @@
-import type { EducationItem, ExperienceItem, SkillsContent } from '@/app/(frontend)/lib/types'
+import { DEFAULT_SITE_SETTINGS } from '@/app/(frontend)/lib/mappers'
+import type {
+  EducationItem,
+  ExperienceItem,
+  SiteSettingsContent,
+  SkillsContent,
+} from '@/app/(frontend)/lib/types'
 import { ProgressBar } from '../ui/ProgressBar'
 
 // Ported from vTarikhi/components/sections/skills.tsx.
@@ -8,9 +14,15 @@ export type SkillsSectionProps = {
   skills: SkillsContent
   experiences: ExperienceItem[]
   educations: EducationItem[]
+  labels?: SiteSettingsContent['skillsSection']
 }
 
-export function SkillsSection({ skills, experiences, educations }: SkillsSectionProps) {
+export function SkillsSection({
+  skills,
+  experiences,
+  educations,
+  labels = DEFAULT_SITE_SETTINGS.skillsSection,
+}: SkillsSectionProps) {
   return (
     <section id="skill">
       <div className="container-xxl py-5">
@@ -18,9 +30,9 @@ export function SkillsSection({ skills, experiences, educations }: SkillsSection
           <div className="row g-5">
             {/* Skills display section */}
             <div className="col-lg-6 wow fadeInUp" data-wow-delay="0.1s">
-              <h2 className="display-5 mb-5">Skills & Experience</h2>
-              <p className="mb-4">Some of my top skills listed as below.</p>
-              <h3 className="mb-4">My Skills</h3>
+              <h2 className="display-5 mb-5">{labels.heading}</h2>
+              <p className="mb-4">{labels.intro}</p>
+              <h3 className="mb-4">{labels.skillsSubheading}</h3>
               <div className="row align-items-center tab-pane">
                 <div className="col-md-6">
                   {skills.frontend.map((skill) => (
@@ -57,7 +69,7 @@ export function SkillsSection({ skills, experiences, educations }: SkillsSection
                     data-bs-toggle="pill"
                     href="#tab-1"
                   >
-                    Experience
+                    {labels.experienceTabLabel}
                   </a>
                 </li>
                 <li className="nav-item w-50">
@@ -67,7 +79,7 @@ export function SkillsSection({ skills, experiences, educations }: SkillsSection
                     data-bs-toggle="pill"
                     href="#tab-2"
                   >
-                    Education
+                    {labels.educationTabLabel}
                   </a>
                 </li>
               </ul>

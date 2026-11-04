@@ -1,11 +1,11 @@
 import type { GlobalConfig } from 'payload'
 import { globalAccess, hiddenWithout } from '../access/roles'
-import { portfolioAfterChange } from '../app/(frontend)/lib/hooks'
+import { chromeAfterChange } from '../app/(frontend)/lib/hooks'
 
 export const Footer: GlobalConfig = {
   slug: 'footer',
   hooks: {
-    afterChange: [portfolioAfterChange],
+    afterChange: [chromeAfterChange],
   },
   label: 'Footer',
   admin: {

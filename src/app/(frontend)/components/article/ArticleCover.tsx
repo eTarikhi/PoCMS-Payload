@@ -1,21 +1,25 @@
 import { CoverImage } from '../ui/CoverImage'
 
-// Cover image, reusing the shared CoverImage (article page spec §5.2). It is wider than the text column (§8).
+// Contained 16:9 cover image aligned strictly within `.article-layout`.
 type ArticleCoverProps = {
   src: string
   alt: string
+  blurDataURL?: string | null
+  objectPosition?: string
 }
 
-export function ArticleCover({ src, alt }: ArticleCoverProps) {
+export function ArticleCover({ src, alt, blurDataURL, objectPosition }: ArticleCoverProps) {
   return (
     <figure className="article-cover">
       <CoverImage
         src={src}
         alt={alt}
+        blurDataURL={blurDataURL}
+        objectPosition={objectPosition}
         fallbackSrc="/placeholder.svg"
-        sizes="(max-width: 1200px) calc(100vw - 2.5rem), 1140px"
-        width={1140}
-        height={600}
+        sizes="(max-width: 768px) calc(100vw - 2.5rem), (max-width: 1200px) 760px, 820px"
+        width={960}
+        height={540}
       />
     </figure>
   )

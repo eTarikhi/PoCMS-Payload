@@ -313,6 +313,7 @@ export default function PublishingChart({
             <Link
               key={series}
               href={monthListURL(adminRoute, series, selected.key)}
+              prefetch={false}
               className="acn:inline-flex acn:items-center acn:gap-1 acn:text-foreground"
             >
               {selected[series]} {PUBLISHING_SERIES[series].label.toLowerCase()}

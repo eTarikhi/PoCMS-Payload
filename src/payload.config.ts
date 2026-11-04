@@ -3,31 +3,51 @@ import { vercelBlobStorage } from '@payloadcms/storage-vercel-blob'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { GraphQL } from '@payloadcms/graphql/types'
 
-import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
 import { resendAdapter } from '@payloadcms/email-resend'
-// import nodemailerSendgrid from 'nodemailer-sendgrid'
-// import nodemailer from 'nodemailer'
 
 import path from 'path'
-import { buildConfig } from 'payload'
+import { buildConfig, type Config } from 'payload'
 import { fileURLToPath } from 'url'
+import { installNodeDnsFallback } from './lib/nodeDnsFallback'
+
+installNodeDnsFallback()
 import sharp from 'sharp'
 
+import { ensureDraftVersions } from './access/draftMigration'
+import { ensureOrderable } from './access/orderable'
 import { governedEntities } from './access/permissions'
 import { ensureRoles } from './access/roles'
+import {
+  resolvePostgresPoolOptions,
+  resolveReadReplicaUrls,
+} from './lib/postgresAdapterConfig'
+import { phase1BeforeSchemaInit } from './lib/postgresSchemaHooks'
+import { ensureDefaultForms } from './seed/ensureForms'
+import { AuditLogs } from './collections/AuditLogs'
 import { createRoles } from './collections/Roles'
+import { CustomCode } from './globals/CustomCode'
 import { Footer } from './globals/Footer'
+import { Header } from './globals/Header'
+import { Navigation } from './globals/Navigation'
+import { SiteSettings } from './globals/SiteSettings'
 
 import { Users } from './collections/Users'
+import { adminJobsEndpoints } from './endpoints/adminJobs'
+import { adminVersionsEndpoints } from './endpoints/adminVersions'
+import { draftPreviewEndpoint, exitDraftPreviewEndpoint } from './endpoints/draftPreview'
 import { devGenerateEndpoint } from './endpoints/devGenerate'
 import { devMigrateEndpoint } from './endpoints/devMigrate'
 import { devRestartEndpoint } from './endpoints/devRestart'
+import { devTerminalEndpoint } from './endpoints/devTerminal'
 import { migrationStatusEndpoint } from './endpoints/migrationStatus'
+import { mediaFrameEndpoint, publicImagesEndpoint } from './endpoints/publicImages'
 import { purgePagesEndpoint } from './endpoints/purgePages'
 import { resetBundlerCacheEndpoint } from './endpoints/resetBundlerCache'
 import { revalidateSiteEndpoint } from './endpoints/revalidateSite'
+import { systemInfoEndpoint } from './endpoints/systemInfo'
+import { createJobsConfig } from './jobs/config'
+import { resolvePayloadSecret } from './lib/security'
 import { About } from './collections/About'
-import { Header } from './collections/Header'
 import { Articles } from './collections/Articles'
 import { Certificates } from './collections/Certificates'
 import { Educations } from './collections/Educations'
@@ -38,8 +58,22 @@ import { Skills } from './collections/Skills'
 import { Media } from './collections/Media'
 import { dashboard } from './components/admin/widgets/config'
 import { adminUIPlugin } from './plugins/adminUI'
-
-// import { MediaWithPrefix } from './collections/MediaWithPrefix'
+import { auditLogPlugin } from './plugins/auditLog'
+import { databaseManagerPlugin } from './plugins/databaseManager'
+import {
+  FORM_SUBMISSIONS_COLLECTION,
+  FORMS_COLLECTION,
+  portfolioFormBuilderPlugin,
+} from './plugins/formBuilder'
+import {
+  MAIL_ATTACHMENTS_COLLECTION,
+  mailInboxPlugin,
+} from './plugins/mailInbox'
+import {
+  portfolioRedirectsPlugin,
+  portfolioSeoPlugin,
+  REDIRECTS_COLLECTION,
+} from './plugins/seoAndRedirects'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -55,10 +89,73 @@ const contentCollections = [
   Certificates,
   Services,
   Skills,
-  Header,
 ]
 
-const globals = [Footer]
+const globals = [Header, SiteSettings, Navigation, Footer, CustomCode]
+
+/** Includes plugin-registered collections (`redirects`, `forms`, `form-submissions`) so RBAC role fields match `payload.config`. */
+const roleGovernedCollections = [
+  ...contentCollections,
+  {
+    slug: FORMS_COLLECTION,
+    labels: { plural: 'Forms' },
+    admin: { group: 'Content' },
+  },
+  {
+    slug: FORM_SUBMISSIONS_COLLECTION,
+    labels: { plural: 'Submissions' },
+    admin: { group: 'Content' },
+  },
+  {
+    slug: REDIRECTS_COLLECTION,
+    labels: { plural: 'Redirects' },
+    admin: { group: 'Site settings' },
+  },
+]
+
+const extractUserRoleIds = (user: unknown): (number | string)[] => {
+  if (!user || typeof user !== 'object') return []
+  const rawRoles = (user as { roles?: unknown[] }).roles
+  if (!Array.isArray(rawRoles)) return []
+  return rawRoles
+    .map((r) =>
+      typeof r === 'number' || typeof r === 'string'
+        ? r
+        : r && typeof r === 'object' && 'id' in r
+          ? (r as { id: number | string }).id
+          : null,
+    )
+    .filter((id): id is number | string => id !== null)
+}
+
+type RolePresetConstraint = NonNullable<
+  NonNullable<NonNullable<Config['queryPresets']>['constraints']>['read']
+>[number]
+
+const buildRolePresetConstraint = (
+  operation: 'read' | 'update' | 'delete',
+): RolePresetConstraint => ({
+  label: 'Specific Roles',
+  value: 'specificRoles',
+  fields: [
+    {
+      name: 'roles',
+      type: 'relationship',
+      relationTo: 'roles',
+      hasMany: true,
+      required: true,
+    },
+  ],
+  access: ({ req: { user } }) => {
+    const roleIds = extractUserRoleIds(user)
+    if (roleIds.length === 0) return false
+    return {
+      [`access.${operation}.roles`]: {
+        in: roleIds,
+      },
+    }
+  },
+})
 
 export default buildConfig({
   admin: {
@@ -114,6 +211,21 @@ export default buildConfig({
           path: '/gallery',
           meta: { title: 'Component gallery' },
         },
+        system: {
+          Component: '/components/admin/views/System#SystemView',
+          path: '/system',
+          meta: { title: 'System information' },
+        },
+        jobs: {
+          Component: '/components/admin/views/Jobs#JobsView',
+          path: '/jobs',
+          meta: { title: 'Scheduled jobs' },
+        },
+        terminal: {
+          Component: '/components/admin/views/Terminal#TerminalView',
+          path: '/terminal',
+          meta: { title: 'Dev terminal' },
+        },
       },
     },
     // Dashboard widgets (P4): welcome, content health, counts, publishing chart, recent changes.
@@ -144,6 +256,36 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
+  // Hierarchical asset organization (`Media.folders = true`).
+  folders: {
+    browseByFolder: true,
+    collectionOverrides: [
+      ({ collection }) => ({
+        ...collection,
+        access: {
+          read: ({ req }) => Boolean(req.user),
+          create: ({ req }) => Boolean(req.user),
+          update: ({ req }) => Boolean(req.user),
+          delete: ({ req }) => Boolean(req.user),
+        },
+      }),
+    ],
+  },
+  // Saved filter/sort/column presets on `Articles`, `Projects`, `Media`, and `AuditLogs`,
+  // supporting personal presets, global presets, specific users, and RBAC `Roles`.
+  queryPresets: {
+    access: {
+      read: ({ req }) => Boolean(req.user),
+      create: ({ req }) => Boolean(req.user),
+      update: ({ req }) => Boolean(req.user),
+      delete: ({ req }) => Boolean(req.user),
+    },
+    constraints: {
+      read: [buildRolePresetConstraint('read')],
+      update: [buildRolePresetConstraint('update')],
+      delete: [buildRolePresetConstraint('delete')],
+    },
+  },
   // Order sets the sidebar order of the admin.group sections: Content, Profile, Site settings,
   // Admin. Profile follows the section order of the public home page. Payload lists collections
   // before globals, so the Footer global joins Site settings after the Header collection.
@@ -151,11 +293,12 @@ export default buildConfig({
   collections: [
     ...contentCollections,
     Users,
-    createRoles(governedEntities({ collections: contentCollections, globals })),
+    createRoles(governedEntities({ collections: roleGovernedCollections, globals })),
+    AuditLogs,
   ],
   globals,
   editor: lexicalEditor(),
-  secret: process.env.PAYLOAD_SECRET || '',
+  secret: resolvePayloadSecret(),
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
     // Generated files are written only by `pnpm generate:all` (scripts/generate.mjs), so local runs
@@ -163,89 +306,85 @@ export default buildConfig({
     autoGenerate: false,
   },
   db: vercelPostgresAdapter({
-    pool: {
-      connectionString: process.env.POSTGRES_URL || '',
-    },
+    // R-10: Collapse `forms_blocks_*` child tables into inline `forms.fields` `jsonb`.
+    blocksAsJSON: true,
+    // Skip interactive drizzle-kit schema introspection/prompts during automated Vitest runs
+    // (`NODE_ENV === 'test'`) unless explicitly requested via `PAYLOAD_DB_PUSH=true`.
+    push: process.env.NODE_ENV === 'test' ? process.env.PAYLOAD_DB_PUSH === 'true' : undefined,
+    beforeSchemaInit: [phase1BeforeSchemaInit],
+    migrationDir: path.resolve(dirname, 'migrations'),
+    pool: resolvePostgresPoolOptions(),
+    readReplicas: resolveReadReplicaUrls(),
   }),
-  // storage: [
-  //   vercelBlobStorage({
-  //     collections: {
-  //       media: true,
-  //     },
-  //     token: process.env.BLOB_READ_WRITE_TOKEN || '',
-  //   }),
-  // ],
   sharp,
+  jobs: createJobsConfig(),
   // Custom REST endpoints (under /api).
   endpoints: [
+    draftPreviewEndpoint,
+    exitDraftPreviewEndpoint,
     revalidateSiteEndpoint,
     purgePagesEndpoint,
     migrationStatusEndpoint,
+    systemInfoEndpoint,
+    publicImagesEndpoint,
+    mediaFrameEndpoint,
+    ...adminJobsEndpoints,
+    ...adminVersionsEndpoints,
     // Development only (they return 404 in production).
     resetBundlerCacheEndpoint,
     devGenerateEndpoint,
     devMigrateEndpoint,
     devRestartEndpoint,
+    devTerminalEndpoint,
   ],
-  // Roles (ADR 0011): built-in roles, the one-time move from the old select, never no admin.
+  // Roles (ADR 0011), orderable collections, and pre-draft version snapshots on existing rows.
+  // Independent branches run concurrently to minimize serverless cold-start & Neon wake-up latency,
+  // while `ensureDraftVersions` completes before `ensureOrderable` so legacy `projects` rows receive
+  // `_status: 'published'` before `_order` updates write a version snapshot.
   onInit: async (payload) => {
-    await ensureRoles(payload)
+    if (process.env.PAYLOAD_SKIP_ON_INIT_CHECKS === 'true') {
+      return
+    }
+    await Promise.all([
+      ensureRoles(payload),
+      (async () => {
+        await ensureDraftVersions(payload)
+        await ensureOrderable(payload)
+      })(),
+      ensureDefaultForms(payload),
+    ])
   },
   plugins: [
+    portfolioSeoPlugin(),
+    portfolioRedirectsPlugin(),
+    portfolioFormBuilderPlugin(),
+    mailInboxPlugin({
+      bridgeFormSubmissions: true,
+    }),
     vercelBlobStorage({
-      enabled: true,
+      // Only activate live Vercel Blob storage when BLOB_READ_WRITE_TOKEN is configured;
+      // `alwaysInsertFields: true` keeps database/TypeScript/GraphQL schemas identical in local dev,
+      // and `clientUploads: true` bypasses serverless 4.5 MB request body limits in production.
+      enabled: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
+      alwaysInsertFields: true,
+      clientUploads: true,
       collections: {
         media: true,
-        // 'media-with-prefix': {
-        //   prefix: 'media',
-        // },
+        [MAIL_ATTACHMENTS_COLLECTION]: {
+          prefix: 'mail-attachments',
+        },
       },
       token: process.env.BLOB_READ_WRITE_TOKEN || '',
     }),
+    auditLogPlugin(),
+    databaseManagerPlugin(),
     // Last, so it sees every field other plugins add: TanStack list views, boolean cells (ADR 0007).
     adminUIPlugin(),
   ],
   graphQL: {
-    validationRules: (args) => [NoProductionIntrospection],
-    disablePlaygroundInProduction: false,
+    validationRules: () => [NoProductionIntrospection],
+    disablePlaygroundInProduction: true,
   },
-
-  // email: nodemailerAdapter({
-  //   defaultFromAddress: 'info@payloadcms.com',
-  //   defaultFromName: 'Payload',
-  //   // Nodemailer transportOptions
-  //   transportOptions: {
-  //     host: process.env.SMTP_HOST,
-  //     port: 587,
-  //     auth: {
-  //       user: process.env.SMTP_USER,
-  //       pass: process.env.SMTP_PASS,
-  //     },
-  //   },
-  // }),
-
-  // email: nodemailerAdapter({
-  //   defaultFromAddress: 'info@payloadcms.com',
-  //   defaultFromName: 'Payload',
-  //   // Any Nodemailer transport can be used
-  //   transport: nodemailer.createTransport({
-  //     host: process.env.SMTP_HOST,
-  //     port: 587,
-  //     auth: {
-  //       user: process.env.SMTP_USER,
-  //       pass: process.env.SMTP_PASS,
-  //     },
-  //   }),
-  // }),
-
-  // email: nodemailerAdapter({
-  //   defaultFromAddress: 'info@payloadcms.com',
-  //   defaultFromName: 'Payload',
-  //   transportOptions: nodemailerSendgrid({
-  //     apiKey: process.env.SENDGRID_API_KEY,
-  //   }),
-  // }),
-
   email: resendAdapter({
     defaultFromAddress: 'dev@vtarikhi.com',
     defaultFromName: 'PoCMS',

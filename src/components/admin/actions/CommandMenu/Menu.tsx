@@ -3,9 +3,12 @@
 import { Dialog as DialogPrimitive } from '@base-ui/react/dialog'
 import { toast, useAuth, useConfig, useEntityVisibility, useTheme } from '@payloadcms/ui'
 import {
+  ActivityIcon,
+  CalendarClockIcon,
   ClockIcon,
   ComponentIcon,
   CornerDownLeftIcon,
+  DatabaseIcon,
   ExternalLinkIcon,
   FileTextIcon,
   FolderIcon,
@@ -14,12 +17,14 @@ import {
   LayoutDashboardIcon,
   LoaderCircleIcon,
   LogOutIcon,
+  MailIcon,
   MoonIcon,
   PanelLeftIcon,
   PlusIcon,
   RefreshCwIcon,
   SearchIcon,
   SunIcon,
+  TerminalIcon,
   UserRoundIcon,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -207,6 +212,77 @@ export default function CommandMenu({
         icon: <UserRoundIcon aria-hidden />,
         run: () => go(`${admin}/account`),
       },
+      ...(hasCapability(user, 'viewSystem')
+        ? [
+            {
+              id: 'go:system',
+              group: 'Go to' as const,
+              label: 'System information',
+              keywords: ['versions', 'database', 'neon', 'postgres', 'health', 'environment'],
+              icon: <ActivityIcon aria-hidden />,
+              run: () => go(`${admin}/system`),
+            },
+          ]
+        : []),
+      ...(hasCapability(user, 'manageDatabase')
+        ? [
+            {
+              id: 'go:database',
+              group: 'Go to' as const,
+              label: 'Database manager',
+              keywords: [
+                'postgres',
+                'neon',
+                'backup',
+                'restore',
+                'repair',
+                'vacuum',
+                'snapshots',
+                'branches',
+                'supabase',
+                'prisma',
+              ],
+              icon: <DatabaseIcon aria-hidden />,
+              run: () => go(`${admin}/database`),
+            },
+          ]
+        : []),
+      ...(hasCapability(user, 'manageInbox')
+        ? [
+            {
+              id: 'go:inbox',
+              group: 'Go to' as const,
+              label: 'Mail inbox',
+              keywords: ['email', 'resend', 'inbox', 'messages', 'threads', 'compose', 'reply'],
+              icon: <MailIcon aria-hidden />,
+              run: () => go(`${admin}/inbox`),
+            },
+          ]
+        : []),
+      ...(hasCapability(user, 'manageJobs')
+        ? [
+            {
+              id: 'go:jobs',
+              group: 'Go to' as const,
+              label: 'Scheduled jobs',
+              keywords: ['queue', 'cron', 'tasks', 'background', 'run', 'cancel'],
+              icon: <CalendarClockIcon aria-hidden />,
+              run: () => go(`${admin}/jobs`),
+            },
+          ]
+        : []),
+      ...(process.env.NODE_ENV !== 'production' && hasCapability(user, 'useTerminal')
+        ? [
+            {
+              id: 'go:terminal',
+              group: 'Go to' as const,
+              label: 'Dev terminal',
+              keywords: ['shell', 'cli', 'bash', 'command', 'console'],
+              icon: <TerminalIcon aria-hidden />,
+              run: () => go(`${admin}/terminal`),
+            },
+          ]
+        : []),
       ...(hasCapability(user, 'useDeveloperTools')
         ? [
             {

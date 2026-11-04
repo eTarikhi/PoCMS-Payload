@@ -60,10 +60,28 @@ export const CAPABILITIES = [
     description: 'Versions, environment, database and configured integrations.',
   },
   {
+    name: 'manageDatabase',
+    label: 'Database management',
+    description:
+      'PostgreSQL health & bloat monitoring, portable backups, transactional restore, repair tools, and serverless provider snapshots/branches.',
+  },
+  {
+    name: 'manageInbox',
+    label: 'Mail inbox',
+    description:
+      'Read, triage, label, and send inbound/outbound emails and form-bridged threads in the Mail inbox.',
+  },
+  {
     name: 'useDeveloperTools',
     label: 'Developer tools',
     description:
       'The header developer menu (generators, migrations, caches, GraphQL) and the component gallery.',
+  },
+  {
+    name: 'manageCustomCode',
+    label: 'Custom head, CSS & script injection',
+    description:
+      'Inject custom <head> meta/link tags, site-wide CSS styles, after-footer widgets, and body scripts.',
   },
   {
     name: 'useTerminal',
@@ -141,6 +159,14 @@ export function hasCapability(user: unknown, capability: Capability): boolean {
   return Boolean(
     permissions && (permissions.fullAccess || permissions.capabilities.includes(capability)),
   )
+}
+
+/**
+ * Editing raw HTML/CSS/JS injection requires either Administrator (`fullAccess`) or BOTH
+ * `edit` access on `custom-code` AND the explicit `manageCustomCode` capability.
+ */
+export function canManageCustomCode(user: unknown): boolean {
+  return can(user, 'custom-code', 'update') && hasCapability(user, 'manageCustomCode')
 }
 
 /* -------------------------------------------------------------------------------------------- */

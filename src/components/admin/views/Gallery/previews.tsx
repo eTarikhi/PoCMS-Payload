@@ -247,6 +247,7 @@ export function ListPreview({
             <li key={slug}>
               <Link
                 href={`${admin}/collections/${slug}`}
+                prefetch={false}
                 className={buttonVariants({
                   variant: 'outline',
                   size: 'sm',

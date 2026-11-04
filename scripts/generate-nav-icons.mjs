@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Writes src/styles/admin/nav-icons.css: one Lucide icon per sidebar link, as a CSS mask keyed to
  * Payload's stable nav ids (#nav-<slug>, #nav-global-<slug>). Payload's nav markup stays untouched.
@@ -21,18 +20,30 @@ import { renderToStaticMarkup } from 'react-dom/server'
 const NAV_ICONS = {
   'nav-articles': ['FileText', 'amber'],
   'nav-projects': ['FolderKanban', 'blue'],
+  'nav-forms': ['ClipboardList', 'teal'],
+  'nav-form-submissions': ['Inbox', 'green'],
   'nav-services': ['Wrench', 'teal'],
   'nav-media': ['Images', 'violet'],
-  'nav-header': ['PanelTop', 'slate'],
   'nav-about': ['UserRound', 'rose'],
   'nav-experiences': ['BriefcaseBusiness', 'orange'],
   'nav-educations': ['GraduationCap', 'blue'],
   'nav-skills': ['Gauge', 'green'],
   'nav-certificates': ['Award', 'amber'],
+  'nav-global-header': ['PanelTop', 'slate'],
+  'nav-global-site-settings': ['SlidersHorizontal', 'violet'],
+  'nav-global-navigation': ['Compass', 'blue'],
   'nav-global-footer': ['PanelBottom', 'slate'],
+  'nav-global-custom-code': ['CodeXml', 'amber'],
+  'nav-redirects': ['ArrowRightLeft', 'teal'],
   'nav-users': ['Users', 'teal'],
   'nav-roles': ['KeyRound', 'orange'],
+  'nav-audit-logs': ['ScrollText', 'amber'],
+  'nav-inbox': ['Mail', 'blue'],
   'nav-view-site': ['ExternalLink', 'slate'],
+  'nav-system': ['Activity', 'teal'],
+  'nav-database': ['Database', 'green'],
+  'nav-jobs': ['CalendarClock', 'blue'],
+  'nav-terminal': ['Terminal', 'amber'],
   'nav-gallery': ['Component', 'rose'],
 }
 /** Sidebar group (admin.group label) -> [Lucide component name, tone]; matched by Payload's group id. */

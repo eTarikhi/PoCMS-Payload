@@ -10,6 +10,11 @@ import {
   keepAnAdministrator,
   keepAnAdministratorOnDelete,
 } from '../access/roles'
+import {
+  clearRecentSessionAfterLogout,
+  recordRecentSessionAfterLogin,
+  resilientJwtStrategy,
+} from '../auth/resilientJwtStrategy'
 
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -22,7 +27,11 @@ export const Users: CollectionConfig = {
     // Everyone else manages their own account from the account menu; the list is for admins.
     hidden: ({ user }) => !isAdmin(user),
   },
-  auth: true,
+  auth: {
+    maxLoginAttempts: 5,
+    lockTime: 600_000, // 10-minute account lockout after 5 consecutive failed sign-in attempts
+    strategies: [resilientJwtStrategy],
+  },
   access: {
     // The admin panel needs at least one role (ADR 0011); REST and GraphQL logins still work.
     admin: ({ req }) => hasAnyRole(req.user),
@@ -35,6 +44,8 @@ export const Users: CollectionConfig = {
   hooks: {
     beforeChange: [assignRolesOnCreate, keepAnAdministrator],
     beforeDelete: [keepAnAdministratorOnDelete],
+    afterLogin: [recordRecentSessionAfterLogin],
+    afterLogout: [clearRecentSessionAfterLogout],
   },
   fields: [
     // Email is added by `auth: true`.
@@ -67,22 +78,6 @@ export const Users: CollectionConfig = {
       access: { create: () => false, update: () => false },
       admin: { hidden: true },
       hooks: { afterRead: [computePermissions] },
-    },
-    {
-      // The roles select of ADR 0008, kept on its old table (users_roles) only so `ensureRoles`
-      // can move its values to role documents once; cleared after the move. Drop it in a later
-      // migration.
-      name: 'legacyRoles',
-      type: 'select',
-      hasMany: true,
-      dbName: 'users_roles',
-      enumName: 'enum_users_roles',
-      options: [
-        { label: 'Admin', value: 'admin' },
-        { label: 'Editor', value: 'editor' },
-      ],
-      access: { read: adminsOnlyField, create: () => false, update: () => false },
-      admin: { hidden: true },
     },
   ],
 }

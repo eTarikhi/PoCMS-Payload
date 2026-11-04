@@ -1,22 +1,31 @@
 import Link from 'next/link'
 
-import type { ServiceItem as ServiceEntry, ServicesContent } from '@/app/(frontend)/lib/types'
+import { DEFAULT_SITE_SETTINGS } from '@/app/(frontend)/lib/mappers'
+import type {
+  ServiceItem as ServiceEntry,
+  ServicesContent,
+  SiteSettingsContent,
+} from '@/app/(frontend)/lib/types'
 import { getServiceIcon } from '../icons'
 
 // Ported from vTarikhi/components/sections/services.tsx. The hiring CTA comes from the footer (D-3).
 
 export type ServicesSectionProps = {
   services: ServicesContent
+  labels?: SiteSettingsContent['servicesSection']
 }
 
-export function ServicesSection({ services }: ServicesSectionProps) {
+export function ServicesSection({
+  services,
+  labels = DEFAULT_SITE_SETTINGS.servicesSection,
+}: ServicesSectionProps) {
   return (
     <section id="service" className="section-gray">
       <div className="container-fluid my-1 pb-5">
         <div className="container">
           <div className="row g-5 mb-5 wow fadeInUp" data-wow-delay="0.1s">
             <div className="col-lg-6">
-              <h2 className="display-5 mb-0">My Services</h2>
+              <h2 className="display-5 mb-0">{labels.heading}</h2>
             </div>
             <div className="col-lg-6 text-lg-end">
               {services.hiring && (

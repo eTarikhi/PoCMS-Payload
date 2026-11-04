@@ -1,5 +1,7 @@
 import type {
   Access,
+  CollectionAfterChangeHook,
+  CollectionAfterDeleteHook,
   CollectionBeforeChangeHook,
   CollectionBeforeDeleteHook,
   FieldAccess,
@@ -18,6 +20,7 @@ import {
   type GovernedEntity,
   type RoleLike,
   can,
+  canManageCustomCode,
   governedEntities,
   hasCapability,
   isAdmin,
@@ -42,6 +45,18 @@ const asRoleIds = (ids: ID[]) => ids as NonNullable<User['roles']>
 /* -------------------------------------------------------------------------------------------- */
 
 /**
+ * Backward-compatible published filter for draft-enabled collections (`Articles`, `Projects`):
+ * matches documents explicitly published (`_status: 'published'`) as well as legacy rows saved
+ * before `versions.drafts` was enabled (`_status` does not exist / null).
+ */
+export const PUBLISHED_OR_LEGACY_WHERE: Where = {
+  or: [
+    { _status: { equals: 'published' } },
+    { _status: { exists: false } },
+  ],
+}
+
+/**
  * Collections that hold site content: anyone may read (the public site and its REST/GraphQL
  * reads), writes follow the user's access level. Moving to the trash is an edit: Payload passes
  * `data.deletedAt` to delete access when it trashes. Deleting permanently needs "full".
@@ -57,11 +72,42 @@ export const contentAccess = (slug: string) => ({
   }) satisfies Access,
 })
 
+/**
+ * Access rules for versioned & draft-enabled content collections (`Articles`, `Projects`):
+ * - Signed-in users with `read` access on `slug` can read drafts and version history.
+ * - Anonymous visitors only receive published (or legacy pre-draft) documents and cannot read versions.
+ */
+export const draftContentAccess = (slug: string) => ({
+  ...contentAccess(slug),
+  read: (({ req }) => {
+    if (can(req.user, slug, 'read')) return true
+    return PUBLISHED_OR_LEGACY_WHERE
+  }) satisfies Access,
+  readVersions: (({ req }) => can(req.user, slug, 'read')) satisfies Access,
+})
+
 /** Globals that hold site content: public read, updates need "edit". */
 export const globalAccess = (slug: string) => ({
   read: (() => true) satisfies Access,
   update: (({ req }) => can(req.user, slug, 'update')) satisfies Access,
 })
+
+/**
+ * High-privilege Global access for `custom-code`:
+ * - REST/GraphQL `read` & `readVersions` require `read` access on `custom-code` (Next.js SSR reads via Local API).
+ * - `update` requires Administrator (`fullAccess`) or BOTH `custom-code: edit` AND `manageCustomCode`.
+ */
+export const customCodeGlobalAccess = {
+  read: (({ req }) => can(req.user, 'custom-code', 'read')) satisfies Access,
+  readVersions: (({ req }) => can(req.user, 'custom-code', 'read')) satisfies Access,
+  update: (({ req }) => canManageCustomCode(req.user)) satisfies Access,
+}
+
+/** Field-level defense-in-depth for raw HTML/CSS/JS code fields (`docs/access-control/fields.mdx`). */
+export const customCodeFieldAccess = {
+  create: (({ req }) => canManageCustomCode(req.user)) satisfies FieldAccess,
+  update: (({ req }) => canManageCustomCode(req.user)) satisfies FieldAccess,
+}
 
 /**
  * `admin.hidden` for governed collections and globals: without read access the entry leaves the
@@ -119,25 +165,98 @@ export const roleIdsOf = (user: unknown): ID[] => idsOf((user as { roles?: unkno
 
 type RoleDoc = RoleLike & { id: ID; system?: boolean | null; isDefault?: boolean | null }
 
-/** Role documents by ID, cached on `req.context` so one request loads each role once. */
-async function loadRoles(req: PayloadRequest, ids: ID[]): Promise<RoleDoc[]> {
-  const context = req.context as { rolesById?: Map<ID, RoleDoc> }
-  const cache = (context.rolesById ??= new Map())
-  const missing = ids.filter((id) => !cache.has(id))
-  if (missing.length > 0) {
-    const { docs } = await req.payload.find({
-      collection: 'roles',
-      where: { id: { in: missing } },
-      depth: 0,
-      joins: false,
-      limit: missing.length,
-      pagination: false,
-      overrideAccess: true,
-      req,
-    })
-    for (const doc of docs as RoleDoc[]) cache.set(doc.id, doc)
+const ROLE_CACHE_TTL_MS = 15_000
+type CachedRoleEntry = { doc: RoleDoc; expiresAt: number }
+const payloadRolesCache = new WeakMap<object, Map<string, CachedRoleEntry>>()
+
+function getPayloadRoleMap(payload: Payload): Map<string, CachedRoleEntry> {
+  let map = payloadRolesCache.get(payload)
+  if (!map) {
+    map = new Map()
+    payloadRolesCache.set(payload, map)
   }
-  return ids.map((id) => cache.get(id)).filter((doc): doc is RoleDoc => Boolean(doc))
+  return map
+}
+
+export function invalidateRolesCache(payload: Payload | null | undefined): void {
+  if (!payload) return
+  payloadRolesCache.get(payload)?.clear()
+}
+
+export const invalidateRolesOnChange: CollectionAfterChangeHook = ({ doc, req }) => {
+  invalidateRolesCache(req.payload)
+  return doc
+}
+
+export const invalidateRolesOnDelete: CollectionAfterDeleteHook = ({ doc, req }) => {
+  invalidateRolesCache(req.payload)
+  return doc
+}
+
+/**
+ * Role documents by ID, cached per-request on `req.context` and short-TTL (`15s`) per `Payload`
+ * instance (invalidated immediately on `Roles` `afterChange`/`afterDelete`), with stale-on-error
+ * fallback so a transient Neon pool hiccup during `initReq` `applyUserReadAccess` never throws and
+ * wipes `req.user = null`.
+ */
+async function loadRoles(req: PayloadRequest, ids: ID[]): Promise<RoleDoc[]> {
+  const context = (req.context ??= {}) as { rolesById?: Map<string, RoleDoc> }
+  const cache = (context.rolesById ??= new Map())
+  const shared = getPayloadRoleMap(req.payload)
+  const now = Date.now()
+  const inTransaction = Boolean(req.transactionID)
+
+  if (!inTransaction) {
+    for (const id of ids) {
+      const key = String(id)
+      if (cache.has(key)) continue
+      const entry = shared.get(key)
+      if (entry && entry.expiresAt > now) {
+        cache.set(key, entry.doc)
+      }
+    }
+  }
+
+  const missing = ids.filter((id) => !cache.has(String(id)))
+  if (missing.length > 0) {
+    try {
+      const { docs } = await req.payload.find({
+        collection: 'roles',
+        where: { id: { in: missing } },
+        depth: 0,
+        joins: false,
+        limit: missing.length,
+        pagination: false,
+        overrideAccess: true,
+        req,
+      })
+      const expiresAt = Date.now() + ROLE_CACHE_TTL_MS
+      for (const doc of docs as RoleDoc[]) {
+        const key = String(doc.id)
+        cache.set(key, doc)
+        if (!inTransaction) {
+          shared.set(key, { doc, expiresAt })
+        }
+      }
+    } catch (err) {
+      // Fall back to any previously observed role definitions on transient pool/WebSocket errors
+      // so `applyUserReadAccess` does not discard an already authenticated Admin session.
+      let recoveredAll = true
+      for (const id of missing) {
+        const key = String(id)
+        const stale = shared.get(key)
+        if (stale) {
+          cache.set(key, stale.doc)
+        } else {
+          recoveredAll = false
+        }
+      }
+      if (!recoveredAll) {
+        throw err
+      }
+    }
+  }
+  return ids.map((id) => cache.get(String(id))).filter((doc): doc is RoleDoc => Boolean(doc))
 }
 
 /** afterRead hook of the virtual `users.permissions` field. */
@@ -195,6 +314,7 @@ export async function ensureAdministratorRole(
       data: { fullAccess: true, system: true },
       depth: 0,
       overrideAccess: true,
+      context: { skipAuditLog: true },
       req,
     })) as RoleDoc
   }
@@ -203,6 +323,7 @@ export async function ensureAdministratorRole(
     data: { ...ADMINISTRATOR, fullAccess: true, system: true },
     depth: 0,
     overrideAccess: true,
+    context: { skipAuditLog: true },
     req,
   })) as RoleDoc
 }
@@ -358,8 +479,7 @@ export const protectRolesOnDelete: CollectionBeforeDeleteHook = async ({ id, req
 }
 
 /**
- * Runs from `onInit`. Makes sure the built-in roles exist, moves users from the old `roles` select
- * (ADR 0008: admin/editor, kept as the hidden `legacyRoles` field) to role documents once, and
+ * Runs from `onInit`. Makes sure the built-in Administrator and Editor roles exist and
  * guarantees at least one administrator: if nobody has full access, the oldest user gets the
  * Administrator role. Costs a few small queries when everything is in place.
  */
@@ -378,46 +498,19 @@ export async function ensureRoles(payload: Payload): Promise<void> {
         data: editorRole(entitiesFor(payload)),
         depth: 0,
         overrideAccess: true,
+        context: { skipAuditLog: true },
       })
       payload.logger.info('[roles] Created the Administrator and Editor roles.')
     }
 
-    // One-time move from the old select. legacyRoles is cleared afterwards, so a user whose roles
-    // an administrator removes later is not granted them again on the next start.
     const { docs: users } = await payload.find({
       collection: 'users',
       depth: 0,
       pagination: false,
       overrideAccess: true,
-      select: { email: true, legacyRoles: true, roles: true },
+      select: { email: true, roles: true },
       sort: 'createdAt',
     })
-    const legacy = users.filter(
-      (user) => idsOf(user.roles).length === 0 && (user.legacyRoles?.length ?? 0) > 0,
-    )
-    if (legacy.length > 0) {
-      const { docs: defaults } = await payload.find({
-        collection: 'roles',
-        where: { isDefault: { equals: true } },
-        depth: 0,
-        joins: false,
-        pagination: false,
-        overrideAccess: true,
-      })
-      for (const user of legacy) {
-        const roles = user.legacyRoles?.includes('admin')
-          ? [administrator.id]
-          : defaults.map((role) => role.id)
-        await payload.update({
-          collection: 'users',
-          id: user.id,
-          data: { roles: asRoleIds(roles), legacyRoles: [] },
-          depth: 0,
-          overrideAccess: true,
-        })
-      }
-      payload.logger.info(`[roles] Moved ${legacy.length} user(s) from the old roles field.`)
-    }
 
     const { docs: adminRoles } = await payload.find({
       collection: 'roles',
@@ -449,7 +542,7 @@ export async function ensureRoles(payload: Payload): Promise<void> {
     }
 
     const roleless = users.filter(
-      (user) => idsOf(user.roles).length === 0 && !legacy.includes(user) && user !== promoted,
+      (user) => idsOf(user.roles).length === 0 && user !== promoted,
     )
     if (roleless.length > 0) {
       payload.logger.warn(

@@ -1,40 +1,114 @@
-import { contentAccess, hiddenWithout } from '@/access/roles'
-import { articlePagePath, hasArticlePage } from '@/app/(frontend)/lib/article-page'
 import type { CollectionConfig } from 'payload'
+
+import { draftContentAccess, hiddenWithout } from '@/access/roles'
+import { articlePagePath, hasArticlePage } from '@/app/(frontend)/lib/article-page'
 import {
+  buildDetailMediaCollapsible,
+  buildHiddenLegacyArticleMediaFields,
+  buildPrimaryMediaCollapsible,
+} from '@/fields/contentMedia'
+import { contentLexicalEditor } from '@/fields/richText'
+import {
+  enrichArticleStaticImageMetaBeforeChange,
+  syncArticleMediaBlocksBeforeValidate,
+} from '@/lib/staticImageMeta'
+import { DEFAULT_MAX_VERSIONS_PER_DOC } from '@/lib/versionRetentionShared'
+
+import {
+  articleAfterChange,
+  articleAfterDelete,
   articleSlugBeforeValidate,
-  portfolioAfterChange,
-  portfolioAfterDelete,
+  computeReadTimeBeforeChange,
 } from '../app/(frontend)/lib/hooks'
 
 export const Articles: CollectionConfig = {
   slug: 'articles',
+  versions: {
+    maxPerDoc: DEFAULT_MAX_VERSIONS_PER_DOC,
+    drafts: {
+      autosave: { interval: 1000 },
+      schedulePublish: true,
+    },
+  },
   hooks: {
-    beforeValidate: [articleSlugBeforeValidate],
-    afterChange: [portfolioAfterChange],
-    afterDelete: [portfolioAfterDelete],
+    beforeValidate: [articleSlugBeforeValidate, syncArticleMediaBlocksBeforeValidate],
+    beforeChange: [computeReadTimeBeforeChange, enrichArticleStaticImageMetaBeforeChange],
+    afterChange: [articleAfterChange],
+    afterDelete: [articleAfterDelete],
   },
   admin: {
     hidden: hiddenWithout('articles'),
     group: 'Content',
-    description: 'Blog posts, listed under /articles.',
+    description: 'Blog posts and technical articles, listed on the home page and under /articles.',
     useAsTitle: 'title',
-    defaultColumns: ['title', 'category', 'publishedAt', 'featured'],
+    defaultColumns: ['title', 'category', '_status', 'publishedAt', 'readTime', 'featured'],
     // Live Preview and the Preview button open the article page; only articles with a slug and a
-    // body have one (see hasArticlePage), so the others get no preview.
+    // body have one (see hasArticlePage), so link-out entries without a body get no preview.
     livePreview: {
       url: ({ data }) => (hasArticlePage(data) ? articlePagePath(String(data.slug)) : null),
     },
-    preview: (doc) => (hasArticlePage(doc) ? articlePagePath(String(doc.slug)) : null),
+    preview: (doc) =>
+      hasArticlePage(doc)
+        ? `/api/draft?collection=articles&slug=${encodeURIComponent(String(doc.slug))}`
+        : null,
   },
-  defaultSort: 'publishedAt',
+  defaultSort: '-publishedAt',
   // Deleting moves documents to the trash (restorable); deleting for good needs the Full level.
   trash: true,
-  // Levels from the user's roles (ADR 0011): public read, edit and trash, full to delete for good.
-  access: contentAccess('articles'),
+  // Public visitors read published (or legacy pre-draft) posts; signed-in editors also read drafts & versions.
+  access: draftContentAccess('articles'),
   fields: [
-    { name: 'title', type: 'text', required: true },
-    { name: 'excerpt', type: 'textarea', required: true },
+    {
+      type: 'tabs',
+      tabs: [
+        {
+          label: 'Content',
+          fields: [
+            { name: 'title', type: 'text', required: true },
+            { name: 'excerpt', type: 'textarea', required: true },
+            buildPrimaryMediaCollapsible({
+              entityLabel: 'article',
+              urlPlaceholder: '/images/articles/1735708966846.webp',
+            }),
+            buildDetailMediaCollapsible({
+              slugRouteExample: '/articles/[slug]',
+              urlPlaceholder: '/images/articles/1735708966846.webp',
+            }),
+            ...buildHiddenLegacyArticleMediaFields(),
+            {
+              name: 'content',
+              type: 'richText',
+              label: 'Article Body',
+              editor: contentLexicalEditor,
+              admin: {
+                description:
+                  'Rich-text article body with headings (drives Table of Contents), Code, Callout, and resizable Media blocks. Leave empty if the article only links out externally.',
+              },
+            },
+            {
+              name: 'description',
+              type: 'textarea',
+              label: 'Legacy Plain-Text Body',
+              admin: {
+                condition: (_, siblingData) =>
+                  Boolean(
+                    typeof siblingData?.description === 'string' && siblingData.description.trim(),
+                  ),
+                description:
+                  'Legacy plain-text body preserved from earlier versions. Prefer the Rich Text Article Body above.',
+              },
+            },
+            {
+              name: 'link',
+              type: 'text',
+              admin: {
+                description: 'Optional external publication URL (LinkedIn, Medium, Dev.to, ...).',
+              },
+            },
+          ],
+        },
+      ],
+    },
     {
       name: 'slug',
       type: 'text',
@@ -46,25 +120,20 @@ export const Articles: CollectionConfig = {
       },
     },
     {
-      name: 'description',
-      type: 'textarea',
-      admin: {
-        description:
-          'Article body, as plain text. Separate paragraphs with a blank line. Leave empty and the article links out only (no page).',
-      },
-    },
-    {
       name: 'featured',
       type: 'checkbox',
+      defaultValue: false,
       admin: {
         position: 'sidebar',
-        description: 'Show this article in the featured slot on the home page.',
+        description:
+          'Highlight this article in the featured spotlight on the home page and /articles.',
       },
     },
     {
       name: 'category',
       type: 'select',
       index: true,
+      defaultValue: 'articles',
       options: [
         { label: 'Articles', value: 'articles' },
         { label: 'Others', value: 'others' },
@@ -85,15 +154,21 @@ export const Articles: CollectionConfig = {
       name: 'readTime',
       type: 'number',
       min: 1,
-      admin: { position: 'sidebar', description: 'Minutes. Shown as "{n} min" on the site.' },
+      admin: {
+        position: 'sidebar',
+        description:
+          'Minutes ("{n} min"). Auto-calculated on save from the article body (~200 words/min); enter manually only for external link-out articles.',
+      },
     },
-    { name: 'image', type: 'upload', relationTo: 'media' },
-    { name: 'imageUrl', type: 'text' },
     {
-      name: 'link',
-      type: 'text',
-      required: true,
-      admin: { description: 'Where the article is published (LinkedIn, Medium, ...).' },
+      name: 'versionRetentionSidebar',
+      type: 'ui',
+      admin: {
+        position: 'sidebar',
+        components: {
+          Field: '/components/admin/fields/DocumentVersionRetention#DocumentVersionRetention',
+        },
+      },
     },
   ],
 }

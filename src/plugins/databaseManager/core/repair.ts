@@ -1,0 +1,273 @@
+import type { Payload } from 'payload'
+
+import { ensureOrderable } from '@/access/orderable'
+import { applyPhase1DatabaseOptimizations } from '@/lib/phase1SqlOptimizations'
+import { applyPhase2And3DatabaseOptimizations } from '@/lib/phase2And3SqlOptimizations'
+
+import type { RepairActionKind, RepairOperationResult } from '../shared'
+
+import { findMissingForeignKeyIndexes } from './advisor'
+import {
+  createPayloadSqlExecutor,
+  quoteIdent,
+  withDirectPostgresClient,
+  type DirectClientRunner,
+  type SqlExecutor,
+} from './connection'
+import { inspectSequences } from './monitor'
+
+async function listPublicBaseTables(executor: SqlExecutor): Promise<string[]> {
+  const res = await executor.query<{ table_name: string }>(`
+    SELECT table_name
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
+      AND table_type = 'BASE TABLE'
+    ORDER BY table_name ASC
+  `)
+  return res.rows.map((r) => r.table_name)
+}
+
+/**
+ * Executes a Tier-1 PostgreSQL repair or maintenance action (`sync-sequences`, `analyze-all`,
+ * `vacuum-analyze`, `reindex-public`, `clear-stale-locks`, `repair-order-ranks`).
+ */
+export async function runDatabaseRepairAction(
+  payload: Payload,
+  action: RepairActionKind,
+  options: {
+    env?: NodeJS.ProcessEnv
+    executor?: SqlExecutor | null
+    directRunner?: DirectClientRunner
+    tableName?: string
+    forceAllLocks?: boolean
+  } = {},
+): Promise<RepairOperationResult> {
+  const startedAt = Date.now()
+  const env = options.env ?? process.env
+  const directRunner = options.directRunner ?? withDirectPostgresClient
+
+  if (action === 'repair-order-ranks') {
+    await ensureOrderable(payload)
+    return {
+      action,
+      ok: true,
+      usedUnpooledConnection: false,
+      durationMs: Date.now() - startedAt,
+      summary: 'Verified and backfilled fractional _order ranks across all orderable collections.',
+      details: {
+        orderableCollections: payload.config.collections
+          .filter((c) => Boolean((c as { orderable?: boolean }).orderable))
+          .map((c) => c.slug),
+      },
+    }
+  }
+
+  if (action === 'apply-neon-optimizations') {
+    return directRunner(
+      async (directExec, { usedUnpooledConnection }) => {
+        const phase2And3 = await applyPhase2And3DatabaseOptimizations(directExec, {
+          schemaName: 'public',
+        })
+        const summary = await applyPhase1DatabaseOptimizations(directExec, {
+          schemaName: 'public',
+          concurrent: usedUnpooledConnection,
+        })
+        return {
+          action,
+          ok: true,
+          usedUnpooledConnection,
+          durationMs: Date.now() - startedAt,
+          summary: `Applied Neon database optimizations (${summary.concurrent ? 'CONCURRENTLY' : 'transactional-safe'}): ${summary.createdIndexes.length} index(es) ensured, ${summary.droppedIndexes.length} legacy index(es) pruned, forms JSONB=${phase2And3.formsBlocks.formsTableExists ? 'ready' : 'n/a'}, mail_message_bodies=${phase2And3.mailBodies.sidecarEnsured ? 'ready' : 'n/a'}, seq CACHE 64=${phase2And3.sequenceCache.tunedSequences.length + phase2And3.sequenceCache.alreadyTunedSequences.length}, audit_logs=${phase2And3.auditLogsHeap.restoredFromPartitioned ? 'restored-heap' : 'heap'}.`,
+          details: {
+            fkIntegrityApplied: summary.fkIntegrityApplied,
+            createdCount: summary.createdIndexes.length,
+            droppedCount: summary.droppedIndexes.length,
+            skippedCount: summary.skippedMissingTables.length,
+            formsBackfilledCount: phase2And3.formsBlocks.backfilledFormsCount,
+            formsLegacyTablesDropped: phase2And3.formsBlocks.droppedLegacyTables.length,
+            mailBodiesBackfilledCount: phase2And3.mailBodies.backfilledBodiesCount,
+            legacyUsersRolesDropped: phase2And3.taxonomyAndLegacyRoles.droppedUsersRolesArtifacts,
+            projectSkillsBackfilledCount:
+              phase2And3.taxonomyAndLegacyRoles.backfilledProjectSkillLinksCount,
+            sequencesTunedCount: phase2And3.sequenceCache.tunedSequences.length,
+            auditLogsRestoredFromPartitioned: phase2And3.auditLogsHeap.restoredFromPartitioned,
+          },
+        }
+      },
+      { env, preferUnpooled: true, statementTimeoutMs: 180_000 },
+    )
+  }
+
+  // Maintenance commands that cannot run inside PgBouncer transaction blocks (`VACUUM`, `REINDEX`)
+  // always use the direct runner (preferring `POSTGRES_URL_NON_POOLING`).
+  if (action === 'vacuum-analyze' || action === 'reindex-public') {
+    return directRunner(
+      async (executor, { usedUnpooledConnection }) => {
+        const publicTables = await listPublicBaseTables(executor)
+        const targets = options.tableName
+          ? publicTables.filter((t) => t === options.tableName)
+          : publicTables
+
+        if (options.tableName && targets.length === 0) {
+          throw new Error(`Table "${options.tableName}" does not exist in schema public.`)
+        }
+
+        if (action === 'vacuum-analyze') {
+          for (const tbl of targets) {
+            // VACUUM must run outside a transaction block as an individual top-level query.
+            await executor.query(`VACUUM (ANALYZE) public.${quoteIdent(tbl)}`)
+          }
+          return {
+            action,
+            ok: true,
+            usedUnpooledConnection,
+            durationMs: Date.now() - startedAt,
+            summary: `Executed VACUUM (ANALYZE) across ${targets.length} public table(s).`,
+            details: {
+              tablesProcessed: targets.length,
+              targetTable: options.tableName ?? 'all',
+            },
+          }
+        }
+
+        for (const tbl of targets) {
+          await executor.query(`REINDEX TABLE public.${quoteIdent(tbl)}`)
+        }
+        return {
+          action,
+          ok: true,
+          usedUnpooledConnection,
+          durationMs: Date.now() - startedAt,
+          summary: `Rebuilt indexes across ${targets.length} public table(s).`,
+          details: {
+            tablesProcessed: targets.length,
+            targetTable: options.tableName ?? 'all',
+          },
+        }
+      },
+      { env, preferUnpooled: true, statementTimeoutMs: 120_000 },
+    )
+  }
+
+  const executor =
+    options.executor !== undefined ? options.executor : createPayloadSqlExecutor(payload, env)
+  if (!executor) {
+    throw new Error('POSTGRES_URL is not configured.')
+  }
+
+  if (action === 'sync-sequences') {
+    const sequences = await inspectSequences(executor)
+    const fixed: Array<{ table: string; sequence: string; previous: number; next: number }> = []
+    for (const seq of sequences) {
+      const nextVal = Math.max(seq.maxId, 1)
+      const isCalled = seq.maxId > 0
+      if (!seq.inSync) {
+        await executor.query(`SELECT setval($1, $2::bigint, $3)`, [
+          `public.${quoteIdent(seq.sequenceName)}`,
+          nextVal,
+          isCalled,
+        ])
+        fixed.push({
+          table: seq.tableName,
+          sequence: seq.sequenceName,
+          previous: seq.lastValue,
+          next: nextVal,
+        })
+      }
+    }
+    return {
+      action,
+      ok: true,
+      usedUnpooledConnection: false,
+      durationMs: Date.now() - startedAt,
+      summary:
+        fixed.length > 0
+          ? `Resynchronized ${fixed.length} out-of-sync sequence(s) across ${sequences.length} inspected table(s).`
+          : `All ${sequences.length} primary-key sequence(s) are already in sync with MAX(id).`,
+      details: {
+        inspected: sequences.length,
+        fixedCount: fixed.length,
+        fixed,
+      },
+    }
+  }
+
+  if (action === 'analyze-all') {
+    if (options.tableName) {
+      await executor.query(`ANALYZE public.${quoteIdent(options.tableName)}`)
+    } else {
+      await executor.query('ANALYZE')
+    }
+    return {
+      action,
+      ok: true,
+      usedUnpooledConnection: false,
+      durationMs: Date.now() - startedAt,
+      summary: options.tableName
+        ? `Refreshed PostgreSQL planner statistics for "${options.tableName}".`
+        : 'Refreshed PostgreSQL query planner statistics across the database.',
+      details: { targetTable: options.tableName ?? 'all' },
+    }
+  }
+
+  if (action === 'clear-stale-locks') {
+    const tables = await listPublicBaseTables(executor)
+    if (!tables.includes('payload_locked_documents')) {
+      return {
+        action,
+        ok: true,
+        usedUnpooledConnection: false,
+        durationMs: Date.now() - startedAt,
+        summary: 'No payload_locked_documents table present; 0 locks cleared.',
+        details: { cleared: 0 },
+      }
+    }
+
+    const delRes = options.forceAllLocks
+      ? await executor.query<{ id: number | string }>(
+          `DELETE FROM public."payload_locked_documents" RETURNING id`,
+        )
+      : await executor.query<{ id: number | string }>(
+          `DELETE FROM public."payload_locked_documents" WHERE updated_at < NOW() - INTERVAL '2 hours' RETURNING id`,
+        )
+    const cleared = delRes.rows.length
+    return {
+      action,
+      ok: true,
+      usedUnpooledConnection: false,
+      durationMs: Date.now() - startedAt,
+      summary: `Cleared ${cleared} ${options.forceAllLocks ? '' : 'stale '}document lock(s).`,
+      details: { cleared, forceAllLocks: Boolean(options.forceAllLocks) },
+    }
+  }
+
+  if (action === 'create-missing-fk-indexes') {
+    const missing = await findMissingForeignKeyIndexes(executor)
+    const targets = options.tableName
+      ? missing.filter((m) => m.tableName === options.tableName)
+      : missing
+
+    const created: string[] = []
+    for (const item of targets) {
+      await executor.query(item.suggestedSql)
+      created.push(item.suggestedIndexName)
+    }
+
+    return {
+      action,
+      ok: true,
+      usedUnpooledConnection: false,
+      durationMs: Date.now() - startedAt,
+      summary:
+        created.length > 0
+          ? `Created ${created.length} missing foreign-key index(es) (${created.slice(0, 4).join(', ')}).`
+          : 'All foreign-key columns already have valid leading indexes.',
+      details: {
+        createdCount: created.length,
+        createdIndexes: created,
+      },
+    }
+  }
+
+  throw new Error(`Unsupported repair action: "${String(action)}"`)
+}

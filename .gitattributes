@@ -1,0 +1,17 @@
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.js text eol=lf
+*.mts text eol=lf
+*.cts text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.sh text eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary

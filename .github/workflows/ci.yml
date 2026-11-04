@@ -1,0 +1,274 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+      - admin-ui
+      - 'arena/**'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: '1'
+  PAYLOAD_SECRET: ci-verification-payload-secret-key-at-least-32-chars
+  NEXT_PUBLIC_SITE_URL: http://localhost:3000
+
+jobs:
+  validate:
+    name: Typecheck, Lint, Integration & Build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Payload types, importMap, DB schema & nav icons
+        run: pnpm run generate:all
+
+      - name: Run TypeScript type check
+        run: pnpm exec tsc --noEmit
+
+      - name: Run ESLint
+        run: pnpm run lint
+
+      - name: Run Vitest integration suite
+        env:
+          POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/pocms
+        run: pnpm run test:int
+
+      - name: Verify Playwright E2E spec graph
+        run: pnpm exec playwright test --list
+
+      - name: Compile Next.js + Payload production bundle
+        env:
+          POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/pocms
+          NODE_OPTIONS: '--no-deprecation --max-old-space-size=4096'
+        run: pnpm exec next build --experimental-build-mode compile
+
+  e2e:
+    name: Playwright E2E & Accessibility
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pocms
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d pocms"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      CI: 'true'
+      POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/pocms
+      POSTGRES_URL_NON_POOLING: postgres://postgres:postgres@127.0.0.1:5432/pocms
+      PLAYWRIGHT_BASE_URL: http://localhost:3000
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Payload artifacts
+        run: pnpm run generate:all
+
+      - name: Install Playwright Chromium browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Bootstrap PostgreSQL schema & seed portfolio content
+        env:
+          NODE_ENV: development
+        run: pnpm run seed
+
+      - name: Run Playwright E2E & WCAG accessibility tests
+        run: pnpm run test:e2e
+
+      - name: Verify Payload 3 Drizzle push compliance, CONCURRENTLY indexes, mail_message_bodies sidecar & audit_logs heap restoration
+        run: |
+          pnpm run db:optimize
+          pnpm run db:optimize-indexes
+          node -e '
+            const pg = require("pg");
+            (async () => {
+              const client = new pg.Client({ connectionString: process.env.POSTGRES_URL });
+              await client.connect();
+
+              // R-07 compliance: dev push sentinel (batch = -1) is preserved untouched
+              const mig = await client.query("SELECT name, batch FROM payload_migrations WHERE batch = -1");
+              if (mig.rowCount !== 1) throw new Error("Expected Payload dev push sentinel (batch = -1) in payload_migrations");
+
+              const idx = await client.query("SELECT indexname FROM pg_indexes WHERE schemaname = \x27public\x27 AND indexname = ANY($1)", [[
+                "header_texts_parent_path_order_idx",
+                "_articles_v_parent_updated_idx",
+                "mail_threads_counts_cover_idx",
+                "mail_threads_folder_last_msg_idx",
+                "payload_jobs_queue_wait_created_idx",
+                "payload_locked_documents_rels_articles_id_idx",
+                "payload_locked_documents_rels_audit_logs_id_idx"
+              ]]);
+              if (idx.rowCount !== 7) throw new Error("Expected all 7 verified Drizzle-aligned Phase 1 indexes in pg_indexes, got " + idx.rowCount);
+              const undoneIdx = await client.query("SELECT indexname FROM pg_indexes WHERE schemaname = \x27public\x27 AND indexname = ANY($1)", [[
+                "idx_articles_public_feed",
+                "idx_projects_public_feed",
+                "idx_mail_threads_search_trgm",
+                "idx_payload_jobs_runnable",
+                "idx_pld_rels_articles_nn",
+                "idx_pld_rels_audit_logs_nn"
+              ]]);
+              if (undoneIdx.rowCount !== 0) throw new Error("Expected 0 out-of-band R-08b/R-09b indexes in pg_indexes, got " + undoneIdx.rowCount);
+              const fk = await client.query("SELECT confdeltype FROM pg_constraint WHERE conname = \x27mail_messages_thread_id_mail_threads_id_fk\x27");
+              if (fk.rows[0]?.confdeltype !== "c") throw new Error("Expected ON DELETE CASCADE (c) on mail_messages.thread_id FK");
+
+              // R-10: forms.fields is populated jsonb and zero forms_blocks_* tables exist
+              const legacyBlocks = await client.query("SELECT table_name FROM information_schema.tables WHERE table_schema = \x27public\x27 AND table_name LIKE \x27forms_blocks_%\x27");
+              if (legacyBlocks.rowCount !== 0) throw new Error("Expected 0 forms_blocks_* tables, found " + legacyBlocks.rowCount);
+              const formsCheck = await client.query("SELECT COUNT(*)::int AS cnt FROM forms WHERE jsonb_typeof(fields) = \x27array\x27 AND jsonb_array_length(fields) > 0");
+              if ((formsCheck.rows[0]?.cnt ?? 0) < 1) throw new Error("Expected seeded forms.fields jsonb array to contain blocks");
+
+              // R-11a: users_roles & enum_users_roles are retired and projects_rels links seeded skills
+              const legacyUsersRoles = await client.query("SELECT table_name FROM information_schema.tables WHERE table_schema = \x27public\x27 AND table_name = \x27users_roles\x27");
+              if (legacyUsersRoles.rowCount !== 0) throw new Error("Expected users_roles table to be retired");
+              const projSkillLinks = await client.query("SELECT COUNT(*)::int AS cnt FROM projects_rels WHERE path = \x27relatedSkills\x27 AND skills_id IS NOT NULL");
+              if ((projSkillLinks.rows[0]?.cnt ?? 0) < 1) throw new Error("Expected seeded projects_rels relatedSkills rows");
+
+              // R-14b: all 6 high-write serial PK sequences are tuned to CACHE 64
+              const seqCheck = await client.query("SELECT sequencename, cache_size::int AS cache_size FROM pg_sequences WHERE schemaname = \x27public\x27 AND sequencename = ANY($1)", [[
+                "audit_logs_id_seq",
+                "payload_jobs_id_seq",
+                "_articles_v_id_seq",
+                "_projects_v_id_seq",
+                "mail_webhook_events_id_seq",
+                "mail_messages_id_seq"
+              ]]);
+              if (seqCheck.rowCount !== 6 || seqCheck.rows.some((r) => r.cache_size !== 64)) {
+                throw new Error("Expected all 6 high-write serial sequences at CACHE 64, got " + JSON.stringify(seqCheck.rows));
+              }
+
+              // R-13a: mail_message_bodies sidecar exists with ON DELETE CASCADE and mail_messages has zero cold MIME columns
+              const coldCols = await client.query("SELECT column_name FROM information_schema.columns WHERE table_schema = \x27public\x27 AND table_name = \x27mail_messages\x27 AND column_name IN (\x27sanitized_html\x27, \x27quoted_history_text\x27, \x27headers_snapshot\x27)");
+              if (coldCols.rowCount !== 0) throw new Error("Expected 0 cold MIME columns on mail_messages, found " + coldCols.rowCount);
+              const bodyFk = await client.query("SELECT confdeltype FROM pg_constraint WHERE conname = \x27mail_message_bodies_message_id_fk\x27");
+              if (bodyFk.rows[0]?.confdeltype !== "c") throw new Error("Expected ON DELETE CASCADE (c) on mail_message_bodies_message_id_fk");
+
+              // R-13b undo: audit_logs is a standard Payload 3 Drizzle heap table (relkind = r) with 0 child partitions
+              const auditRel = await client.query("SELECT c.relkind::text AS relkind FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = \x27public\x27 AND c.relname = \x27audit_logs\x27");
+              if (auditRel.rows[0]?.relkind !== "r") throw new Error("Expected audit_logs relkind = r (standard heap), got " + auditRel.rows[0]?.relkind);
+              const auditParts = await client.query("SELECT child.relname FROM pg_inherits inh JOIN pg_class parent ON parent.oid = inh.inhparent JOIN pg_class child ON child.oid = inh.inhrelid WHERE parent.relname = \x27audit_logs\x27");
+              if ((auditParts.rowCount ?? 0) !== 0) throw new Error("Expected 0 partitions attached to audit_logs, got " + auditParts.rowCount);
+
+              await client.end();
+              console.log("Verified Payload 3 Drizzle push compliance, CONCURRENTLY indexes, R-10 forms jsonb, R-13a mail_message_bodies sidecar, and standard heap audit_logs in PostgreSQL 16!");
+            })().catch((err) => { console.error(err); process.exit(1); });
+          '
+          # Simulate an environment that previously had R-13b partitioned audit_logs + R-07 migration row,
+          # then verify `pnpm run db:optimize` restores heap `audit_logs` + `batch = -1` and `NODE_ENV=development` push succeeds cleanly
+          node -e '
+            const pg = require("pg");
+            (async () => {
+              const client = new pg.Client({ connectionString: process.env.POSTGRES_URL });
+              await client.connect();
+              const beforeCnt = Number((await client.query("SELECT COUNT(*)::int AS cnt FROM audit_logs")).rows[0].cnt);
+              await client.query("ALTER TABLE payload_locked_documents_rels DROP COLUMN IF EXISTS audit_logs_id CASCADE");
+              await client.query("ALTER TABLE audit_logs RENAME TO audit_logs__sim_heap");
+              await client.query("ALTER INDEX IF EXISTS audit_logs_pkey RENAME TO audit_logs_pkey__sim");
+              await client.query("CREATE TABLE audit_logs (LIKE audit_logs__sim_heap INCLUDING DEFAULTS, PRIMARY KEY (id, created_at)) PARTITION BY RANGE (created_at)");
+              await client.query("CREATE TABLE audit_logs_default PARTITION OF audit_logs DEFAULT");
+              await client.query("INSERT INTO audit_logs SELECT * FROM audit_logs__sim_heap");
+              await client.query("ALTER SEQUENCE audit_logs_id_seq OWNED BY audit_logs.id");
+              await client.query("DROP TABLE audit_logs__sim_heap");
+              await client.query("CREATE INDEX IF NOT EXISTS idx_articles_public_feed ON articles (published_at) WHERE deleted_at IS NULL");
+              await client.query("DROP INDEX IF EXISTS payload_locked_documents_rels_articles_id_idx");
+              await client.query("CREATE INDEX IF NOT EXISTS idx_pld_rels_articles_nn ON payload_locked_documents_rels (articles_id) WHERE articles_id IS NOT NULL");
+              await client.query("CREATE TYPE enum_users_roles AS ENUM (\x27admin\x27, \x27editor\x27)");
+              await client.query("CREATE TABLE users_roles (id serial PRIMARY KEY, \"order\" integer NOT NULL, parent_id integer NOT NULL, value enum_users_roles)");
+              await client.query("DELETE FROM payload_migrations WHERE batch = -1");
+              await client.query("INSERT INTO payload_migrations (name, batch) VALUES (\x2720261031_001_phase1_integrity_and_indexes\x27, 1)");
+              await client.end();
+              console.log("Simulated partitioned audit_logs + out-of-band indexes with " + beforeCnt + " row(s).");
+            })().catch((err) => { console.error(err); process.exit(1); });
+          '
+          pnpm run db:optimize
+          NODE_ENV=development pnpm run seed
+          node -e '
+            const pg = require("pg");
+            (async () => {
+              const client = new pg.Client({ connectionString: process.env.POSTGRES_URL });
+              await client.connect();
+              const auditRel = await client.query("SELECT c.relkind::text AS relkind FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = \x27public\x27 AND c.relname = \x27audit_logs\x27");
+              if (auditRel.rows[0]?.relkind !== "r") throw new Error("Expected restored audit_logs relkind = r, got " + auditRel.rows[0]?.relkind);
+              const devRow = await client.query("SELECT batch FROM payload_migrations WHERE batch = -1");
+              if (devRow.rowCount !== 1) throw new Error("Expected restored dev sentinel batch = -1");
+              const restoredIdx = await client.query("SELECT indexname FROM pg_indexes WHERE schemaname = \x27public\x27 AND indexname = \x27payload_locked_documents_rels_articles_id_idx\x27");
+              if (restoredIdx.rowCount !== 1) throw new Error("Expected restored payload_locked_documents_rels_articles_id_idx");
+              const leftoverOutOfBand = await client.query("SELECT indexname FROM pg_indexes WHERE schemaname = \x27public\x27 AND indexname IN (\x27idx_articles_public_feed\x27, \x27idx_pld_rels_articles_nn\x27)");
+              if (leftoverOutOfBand.rowCount !== 0) throw new Error("Expected 0 leftover out-of-band indexes, got " + leftoverOutOfBand.rowCount);
+              const leftoverUsersRoles = await client.query("SELECT to_regclass(\x27public.users_roles\x27) IS NOT NULL AS tbl, EXISTS (SELECT 1 FROM pg_type WHERE typname = \x27enum_users_roles\x27) AS typ");
+              if (leftoverUsersRoles.rows[0]?.tbl || leftoverUsersRoles.rows[0]?.typ) throw new Error("Expected users_roles + enum_users_roles to be retired cleanly");
+              const seqAfterPush = await client.query("SELECT sequencename, cache_size::int AS cache_size FROM pg_sequences WHERE schemaname = \x27public\x27 AND sequencename = ANY($1)", [[
+                "audit_logs_id_seq",
+                "payload_jobs_id_seq",
+                "_articles_v_id_seq",
+                "_projects_v_id_seq",
+                "mail_webhook_events_id_seq",
+                "mail_messages_id_seq"
+              ]]);
+              if (seqAfterPush.rowCount !== 6 || seqAfterPush.rows.some((r) => r.cache_size !== 64)) {
+                throw new Error("Expected CACHE 64 preserved across Drizzle pushDevSchema, got " + JSON.stringify(seqAfterPush.rows));
+              }
+              await client.end();
+              console.log("Verified lossless partitioned -> heap restoration, out-of-band index cleanup, + clean Drizzle pushDevSchema!");
+            })().catch((err) => { console.error(err); process.exit(1); });
+          '
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

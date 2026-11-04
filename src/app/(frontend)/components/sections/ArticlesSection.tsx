@@ -1,15 +1,26 @@
 import Link from 'next/link'
 
-import type { ArticleItem } from '@/app/(frontend)/lib/types'
+import { DEFAULT_SITE_SETTINGS } from '@/app/(frontend)/lib/mappers'
+import type { ArticleItem, SiteSettingsContent } from '@/app/(frontend)/lib/types'
 import { CoverImage } from '../ui/CoverImage'
 
-// Ported from vTarikhi/components/sections/articles.tsx. All articles are shown (D-12).
+// Ported from vTarikhi/components/sections/articles.tsx. All articles are shown in the 3-column grid (D-12);
+// articles marked `featured` appear first in the grid while preserving the original home-page card layout.
 
 export type ArticlesSectionProps = {
   articles: ArticleItem[]
+  labels?: SiteSettingsContent['articlesSection']
 }
 
-export function ArticlesSection({ articles }: ArticlesSectionProps) {
+export function ArticlesSection({
+  articles,
+  labels = DEFAULT_SITE_SETTINGS.articlesSection,
+}: ArticlesSectionProps) {
+  const orderedArticles = [...articles].sort(
+    (a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)),
+  )
+  const ctaIsInternal = Boolean(labels.cta?.url.startsWith('/'))
+
   return (
     <section id="article">
       <div className="container-xxl py-5">
@@ -17,21 +28,27 @@ export function ArticlesSection({ articles }: ArticlesSectionProps) {
           <div className="col-12 wow fadeInUp" data-wow-delay="0.1s">
             <div className="row g-5 mb-5 wow fadeInUp" data-wow-delay="0.1s">
               <div className="col-lg-6">
-                <h2 className="display-6 mb-0">Latest Articles</h2>
+                <h2 className="display-6 mb-0">{labels.heading}</h2>
               </div>
               <div className="col-lg-6 text-lg-end">
-                <Link
-                  className="btn btn-primary py-3 px-5"
-                  target="_blank"
-                  href="https://www.linkedin.com/in/etarikhi/recent-activity/articles/"
-                >
-                  All Articles &gt;
-                </Link>
+                {labels.cta ? (
+                  <Link
+                    className="btn btn-primary py-3 px-5"
+                    href={labels.cta.url}
+                    {...(ctaIsInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+                  >
+                    {labels.cta.label}
+                  </Link>
+                ) : null}
               </div>
             </div>
             <div className="row gy-1 gx-4 align-items-center">
-              {articles.map((article) => (
-                <ArticleCard key={article.id} article={article} />
+              {orderedArticles.map((article) => (
+                <ArticleCard
+                  key={article.id}
+                  article={article}
+                  readOnSiteLabel={labels.readOnSiteLabel}
+                />
               ))}
             </div>
           </div>
@@ -41,11 +58,27 @@ export function ArticlesSection({ articles }: ArticlesSectionProps) {
   )
 }
 
-function ArticleCard({ article }: { article: ArticleItem }) {
+function ArticleCard({
+  article,
+  readOnSiteLabel,
+}: {
+  article: ArticleItem
+  readOnSiteLabel: string
+}) {
+  const primaryHref = article.link || article.pagePath || '#'
+  const isInternal = primaryHref.startsWith('/')
+
   return (
-    <article className="col-lg-4 col-md-6">
+    <article
+      className="col-lg-4 col-md-6"
+      data-featured={article.featured ? 'true' : undefined}
+    >
       <div className="service-item rounded h-100 p-1 my-2 wow fadeInUp">
-        <Link href={article.link} target="_blank" rel="noopener noreferrer" className="">
+        <Link
+          href={primaryHref}
+          {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+          className=""
+        >
           <div className="rounded overflow-hidden">
             <CoverImage
               src={article.imageUrl}
@@ -68,7 +101,7 @@ function ArticleCard({ article }: { article: ArticleItem }) {
           </p>
           {article.pagePath ? (
             <Link href={article.pagePath} className="small">
-              Read on this site
+              {readOnSiteLabel}
             </Link>
           ) : null}
         </div>

@@ -1,28 +1,26 @@
 import { contentAccess, hiddenWithout } from '@/access/roles'
 import type { CollectionConfig } from 'payload'
-import { portfolioAfterChange, portfolioAfterDelete } from '../app/(frontend)/lib/hooks'
-import { orderField } from '../fields/order'
+import { homeSectionAfterChange, homeSectionAfterDelete } from '../app/(frontend)/lib/hooks'
 
 export const Skills: CollectionConfig = {
   slug: 'skills',
+  orderable: true,
   hooks: {
-    afterChange: [portfolioAfterChange],
-    afterDelete: [portfolioAfterDelete],
+    afterChange: [homeSectionAfterChange],
+    afterDelete: [homeSectionAfterDelete],
   },
   admin: {
     hidden: hiddenWithout('skills'),
     group: 'Profile',
-    description: 'Skill bars in the résumé section, grouped by category.',
+    description: 'Skill bars in the résumé section, grouped by category. Drag rows to reorder.',
     useAsTitle: 'label',
-    defaultColumns: ['label', 'group', 'value', 'color', 'order'],
+    defaultColumns: ['label', 'group', 'value', 'color'],
   },
-  defaultSort: 'order',
   // Deleting moves documents to the trash (restorable); deleting for good needs the Full level.
   trash: true,
   // Levels from the user's roles (ADR 0011): public read, edit and trash, full to delete for good.
   access: contentAccess('skills'),
   fields: [
-    orderField,
     { name: 'label', type: 'text', required: true },
     {
       name: 'group',
@@ -59,6 +57,17 @@ export const Skills: CollectionConfig = {
           Field: '/components/admin/fields/ContextColor/Field#ContextColorField',
           Cell: '/components/admin/fields/ContextColor/Cell#ContextColorCell',
         },
+      },
+    },
+    {
+      name: 'relatedProjects',
+      label: 'Projects Using This Skill',
+      type: 'join',
+      collection: 'projects',
+      on: 'relatedSkills',
+      defaultLimit: 10,
+      admin: {
+        description: 'Projects linked to this skill via Linked Skills.',
       },
     },
   ],

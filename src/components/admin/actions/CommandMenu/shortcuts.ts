@@ -11,6 +11,7 @@ export const GO_SHORTCUTS: { key: string; label: string; target: CollectionSlug 
   { key: 'k', label: 'Skills', target: 'skills' },
   { key: 'c', label: 'Certificates', target: 'certificates' },
   { key: 'u', label: 'Users', target: 'users' },
+  { key: 'l', label: 'Audit logs', target: 'audit-logs' },
 ]
 
 const KEY = 'pocms-key-shortcuts'

@@ -11,21 +11,32 @@ export interface LoginOptions {
 }
 
 /**
- * Logs the user into the admin panel via the login page.
+ * Signs in to the Payload Admin Panel via `/admin/login` and waits for the governed sidebar.
+ * Uses generous timeouts so cold on-demand Next.js dev compilation of `/admin` on Windows
+ * completes before form interaction.
  */
 export async function login({
   page,
-  serverURL = 'http://localhost:3000',
+  serverURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
   user,
 }: LoginOptions): Promise<void> {
-  await page.goto(`${serverURL}/admin/login`)
+  const base = serverURL.replace(/\/+$/, '')
+  await page.goto(`${base}/admin/login`, {
+    waitUntil: 'domcontentloaded',
+    timeout: 120_000,
+  })
 
-  await page.fill('#field-email', user.email)
-  await page.fill('#field-password', user.password)
-  await page.click('button[type="submit"]')
+  const emailField = page.locator('#field-email')
+  await expect(emailField).toBeVisible({ timeout: 120_000 })
+  await emailField.fill(user.email)
 
-  await page.waitForURL(`${serverURL}/admin`)
+  await page.locator('#field-password').fill(user.password)
+  await page.locator('button[type="submit"]').click()
 
-  const dashboardArtifact = page.locator('span[title="Dashboard"]')
-  await expect(dashboardArtifact).toBeVisible()
+  await page.waitForURL(
+    (url) => url.pathname.startsWith('/admin') && !url.pathname.endsWith('/login'),
+    { timeout: 60_000 },
+  )
+
+  await expect(page.locator('#nav-articles')).toBeVisible({ timeout: 60_000 })
 }

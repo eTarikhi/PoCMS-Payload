@@ -13,20 +13,25 @@ export type CoverImageProps = {
   alt: string
   /** Shown when `src` is empty or fails to load. */
   fallbackSrc: string
+  /** Optional tiny base64 WebP placeholder generated via `sharp`. */
+  blurDataURL?: string | null
   width: number
   height: number
   sizes?: string
   className?: string
+  objectPosition?: string
 }
 
 export function CoverImage({
   src,
   alt,
   fallbackSrc,
+  blurDataURL,
   width,
   height,
   sizes,
   className,
+  objectPosition,
 }: CoverImageProps) {
   const handleError = (event: SyntheticEvent<HTMLImageElement, Event>) => {
     // Stop once the fallback itself has failed, so an error cannot loop.
@@ -34,6 +39,8 @@ export function CoverImage({
       event.currentTarget.src = fallbackSrc
     }
   }
+
+  const hasBlur = Boolean(src && blurDataURL?.startsWith('data:image/'))
 
   return (
     <Image
@@ -43,6 +50,9 @@ export function CoverImage({
       width={width}
       height={height}
       loading="lazy"
+      placeholder={hasBlur ? 'blur' : 'empty'}
+      blurDataURL={hasBlur ? (blurDataURL as string) : undefined}
+      style={objectPosition ? { objectPosition } : undefined}
       className={className}
       onError={handleError}
     />

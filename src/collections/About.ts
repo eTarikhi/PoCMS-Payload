@@ -1,13 +1,13 @@
 import type { CollectionConfig } from 'payload'
-import { portfolioAfterChange, portfolioAfterDelete } from '../app/(frontend)/lib/hooks'
+import { homeSectionAfterChange, homeSectionAfterDelete } from '../app/(frontend)/lib/hooks'
 import { contentAccess, hiddenWithout } from '../access/roles'
 import { createWhileEmpty } from '../access/singleton'
 
 export const About: CollectionConfig = {
   slug: 'about',
   hooks: {
-    afterChange: [portfolioAfterChange],
-    afterDelete: [portfolioAfterDelete],
+    afterChange: [homeSectionAfterChange],
+    afterDelete: [homeSectionAfterDelete],
   },
   labels: {
     singular: 'About',

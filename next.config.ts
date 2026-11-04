@@ -3,17 +3,57 @@ import type { NextConfig } from 'next'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
+import {
+  installCompressionDrainFix,
+  installEarlyStreamCloseFilter,
+} from './src/lib/fixCompressionDrainListeners'
+import { SECURITY_HEADERS } from './src/lib/security'
+
+installCompressionDrainFix()
+installEarlyStreamCloseFilter()
+
 const __filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(__filename)
 
 const nextConfig: NextConfig = {
-    // Dev-only indicator: bottom right, so it doesn't cover the admin sidebar's account controls.
+  // Keep `ws` external in `next build` so `@vercel/postgres` -> `@neondatabase/serverless` shares
+  // the `node_modules` `ws` prototype patched by `installNeonWebSocketErrorEventFix()` (and optional
+  // native addons) instead of bundling unpatched private `ws` `ErrorEvent` copies into server chunks.
+  serverExternalPackages: ['ws'],
+  // Enable `.next/standalone` bundle when building container images (`DOCKER_BUILD=true` in Dockerfile).
+  ...(process.env.DOCKER_BUILD === 'true' ? { output: 'standalone' as const } : {}),
+  // Skip redundant zlib gzip compression on local dev bundles/HMR streams while keeping it in `next start`.
+  compress: process.env.NODE_ENV !== 'development',
+  // Dev-only indicator: bottom right, so it doesn't cover the admin sidebar's account controls.
   devIndicators: { position: 'bottom-right' },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [...SECURITY_HEADERS],
+      },
+    ]
+  },
   images: {
-    dangerouslyAllowLocalIP: true,
+    formats: ['image/webp'],
+    deviceSizes: [640, 768, 1080, 1200, 1600],
+    imageSizes: [256, 400, 520, 800],
+    dangerouslyAllowLocalIP: process.env.NODE_ENV === 'development',
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '*.public.blob.vercel-storage.com',
+      },
+    ],
     localPatterns: [
       {
         pathname: '/api/media/file/**',
+      },
+      {
+        pathname: '/api/media-frame',
+      },
+      {
+        pathname: '/og',
       },
       {
         // Static assets from public/images (vTarikhi portfolio). Without this entry,

@@ -1,18 +1,33 @@
 import Link from 'next/link'
 
-// Back link and the original publication link (article page spec §5.2). A div, not a nav,
-// so the page keeps one navigation (the shared one in SiteChrome).
-type ArticleFooterNavProps = {
-  externalLink: string | null
+import { ARTICLES_HUB_PATH } from '@/app/(frontend)/lib/article-page'
+import { DEFAULT_SITE_SETTINGS } from '@/app/(frontend)/lib/mappers'
+
+export type ArticleFooterNavLabels = {
+  backToArticlesLabel: string
+  externalPublicationLabel: string
 }
 
-export function ArticleFooterNav({ externalLink }: ArticleFooterNavProps) {
+type ArticleFooterNavProps = {
+  externalLink: string | null
+  labels?: ArticleFooterNavLabels
+}
+
+const DEFAULT_FOOTER_NAV_LABELS: ArticleFooterNavLabels = {
+  backToArticlesLabel: DEFAULT_SITE_SETTINGS.articlesSection.backToArticlesLabel,
+  externalPublicationLabel: DEFAULT_SITE_SETTINGS.articlesSection.externalPublicationLabel,
+}
+
+export function ArticleFooterNav({
+  externalLink,
+  labels = DEFAULT_FOOTER_NAV_LABELS,
+}: ArticleFooterNavProps) {
   return (
     <div className="article-footer-nav">
-      <Link href="/#article">Back to articles</Link>
+      <Link href={ARTICLES_HUB_PATH}>{labels.backToArticlesLabel}</Link>
       {externalLink ? (
         <a href={externalLink} target="_blank" rel="noopener noreferrer">
-          Originally published at
+          {labels.externalPublicationLabel}
         </a>
       ) : null}
     </div>

@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Payload CMS Custom Bin Script: Database Seeding
  * 

@@ -1,10 +1,17 @@
-// Plain-text body (D-A2 revised, §5.3). Paragraphs arrive already split by lib/article-page.ts.
-// They are rendered as React text, so any markup in the source is escaped and shown as text.
+import type { Article } from '@/payload-types'
+import { hasLexicalContent } from '@/app/(frontend)/lib/lexical'
+import { RichTextContent } from '../richtext/RichTextContent'
+
 type ArticleBodyProps = {
-  paragraphs: string[]
+  content?: Article['content']
+  paragraphs?: string[]
 }
 
-export function ArticleBody({ paragraphs }: ArticleBodyProps) {
+export function ArticleBody({ content, paragraphs = [] }: ArticleBodyProps) {
+  if (content && hasLexicalContent(content)) {
+    return <RichTextContent data={content} className="article-body" />
+  }
+
   const visible = paragraphs.filter((paragraph) => paragraph.trim().length > 0)
 
   return (

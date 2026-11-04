@@ -1,19 +1,31 @@
+import { hasLexicalContent } from './lexical'
+
 /**
- * Pure helpers for the article page (article page spec §3 and §5.3). No Payload or Next imports,
- * so `mappers.ts` and `article-mappers.ts` can both use them without an import cycle.
+ * Pure helpers for article pages and the `/articles` hub. No Payload or Next runtime imports,
+ * so `mappers.ts`, `article-mappers.ts`, and Payload collection configs can share them cleanly.
  */
 
-type ArticleBodyFields = { slug?: string | null; description?: string | null }
+export type ArticleBodyFields = {
+  slug?: string | null
+  content?: unknown
+  description?: string | null
+}
 
-/** An article has a page when it has a slug and a non-empty body (`description`). D-A1, D-A10. */
+/**
+ * An article has an on-site page when it has a slug and either non-empty Lexical `content`
+ * or a non-empty legacy plain-text `description`.
+ */
 export const hasArticlePage = (doc: ArticleBodyFields): boolean =>
-  Boolean(doc.slug) && (doc.description ?? '').trim().length > 0
+  Boolean(doc.slug) &&
+  (hasLexicalContent(doc.content) || (doc.description ?? '').trim().length > 0)
 
 export const articlePagePath = (slug: string): string => `/articles/${slug}`
 
+export const ARTICLES_HUB_PATH = '/articles'
+
 /**
- * Splits a plain-text body into paragraphs. Paragraphs are separated by a blank line. Single line breaks
- * inside a paragraph become spaces. Empty chunks are dropped. No HTML is parsed (D-A2 revised).
+ * Splits a legacy plain-text body into paragraphs. Paragraphs are separated by a blank line.
+ * Single line breaks inside a paragraph become spaces. Empty chunks are dropped.
  */
 export const splitArticleBody = (text: string): string[] =>
   text
