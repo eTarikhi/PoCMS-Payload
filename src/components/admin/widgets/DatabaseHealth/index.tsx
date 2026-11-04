@@ -54,6 +54,7 @@ export function DatabaseHealthSummaryView({
       action={
         <Link
           href={`${adminRoute}/database`}
+          prefetch={false}
           className="acn:text-xs acn:font-medium acn:text-muted-foreground acn:underline-offset-4 acn:hover:text-foreground acn:hover:underline"
         >
           Manage →

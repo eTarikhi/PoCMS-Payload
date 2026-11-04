@@ -142,6 +142,7 @@ export function DocumentVersionRetention() {
         </span>
         <Link
           href={`/admin/collections/${validCollection}/${String(id)}/versions`}
+          prefetch={false}
           style={{
             fontSize: '0.74rem',
             color: 'var(--theme-elevation-650)',

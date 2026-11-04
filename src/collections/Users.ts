@@ -10,6 +10,11 @@ import {
   keepAnAdministrator,
   keepAnAdministratorOnDelete,
 } from '../access/roles'
+import {
+  clearRecentSessionAfterLogout,
+  recordRecentSessionAfterLogin,
+  resilientJwtStrategy,
+} from '../auth/resilientJwtStrategy'
 
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -25,6 +30,7 @@ export const Users: CollectionConfig = {
   auth: {
     maxLoginAttempts: 5,
     lockTime: 600_000, // 10-minute account lockout after 5 consecutive failed sign-in attempts
+    strategies: [resilientJwtStrategy],
   },
   access: {
     // The admin panel needs at least one role (ADR 0011); REST and GraphQL logins still work.
@@ -38,6 +44,8 @@ export const Users: CollectionConfig = {
   hooks: {
     beforeChange: [assignRolesOnCreate, keepAnAdministrator],
     beforeDelete: [keepAnAdministratorOnDelete],
+    afterLogin: [recordRecentSessionAfterLogin],
+    afterLogout: [clearRecentSessionAfterLogout],
   },
   fields: [
     // Email is added by `auth: true`.

@@ -1106,6 +1106,7 @@ export function InboxClient({
                     {threadDetail.sourceFormSubmissionId ? (
                       <Link
                         href={`${adminRoute}/collections/form-submissions/${String(threadDetail.sourceFormSubmissionId)}`}
+                        prefetch={false}
                         className="acn:inline-flex acn:items-center acn:gap-1 acn:rounded-md acn:bg-emerald-500/12 acn:px-2 acn:py-0.5 acn:text-xs acn:font-medium acn:text-emerald-700 acn:no-underline acn:hover:underline acn:dark:text-emerald-400"
                       >
                         Form submission #{String(threadDetail.sourceFormSubmissionId)}

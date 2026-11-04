@@ -74,14 +74,44 @@ export async function inspectSequences(executor: SqlExecutor): Promise<SequenceH
     ORDER BY cols.table_name, cols.column_name
   `)
 
-  const results: SequenceHealthRow[] = []
-  for (const row of candidatesRes.rows) {
-    const tableIdent = quoteIdent(row.table_name)
-    const colIdent = quoteIdent(row.column_name)
-    const maxRes = await executor.query<{ max_id: string | number | null }>(
-      `SELECT COALESCE(MAX(${colIdent}), 0)::bigint AS max_id FROM public.${tableIdent}`,
+  if (candidatesRes.rows.length === 0) {
+    return []
+  }
+
+  // Batch all `MAX(column)` checks into a single SQL round-trip (`UNION ALL` over indexed PK/serial
+  // columns uses B-tree backward index top-1 lookups) instead of 50+ sequential queries per
+  // Dashboard / `/admin/database` render over high-latency Neon WebSocket connections.
+  const maxByIndex = new Map<number, number>()
+  let batchedOk = false
+  try {
+    const unionArms = candidatesRes.rows.map((row, idx) => {
+      const tableIdent = quoteIdent(row.table_name)
+      const colIdent = quoteIdent(row.column_name)
+      return `SELECT ${idx}::int AS idx, COALESCE((SELECT MAX(${colIdent}) FROM public.${tableIdent}), 0)::bigint AS max_id`
+    })
+    const batchRes = await executor.query<{ idx: number | string; max_id: string | number | null }>(
+      unionArms.join('\nUNION ALL\n'),
     )
-    const maxId = toNum(maxRes.rows[0]?.max_id, 0)
+    for (const r of batchRes.rows) {
+      maxByIndex.set(toNum(r.idx, -1), toNum(r.max_id, 0))
+    }
+    batchedOk = batchRes.rows.length === candidatesRes.rows.length
+  } catch {
+    batchedOk = false
+  }
+
+  const results: SequenceHealthRow[] = []
+  for (let idx = 0; idx < candidatesRes.rows.length; idx++) {
+    const row = candidatesRes.rows[idx]
+    let maxId = maxByIndex.get(idx)
+    if (!batchedOk || maxId === undefined) {
+      const tableIdent = quoteIdent(row.table_name)
+      const colIdent = quoteIdent(row.column_name)
+      const maxRes = await executor.query<{ max_id: string | number | null }>(
+        `SELECT COALESCE(MAX(${colIdent}), 0)::bigint AS max_id FROM public.${tableIdent}`,
+      )
+      maxId = toNum(maxRes.rows[0]?.max_id, 0)
+    }
     const lastValue = toNum(row.last_value, 0)
     const inSync = maxId === 0 || lastValue >= maxId
 

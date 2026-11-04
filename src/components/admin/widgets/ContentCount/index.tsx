@@ -58,6 +58,7 @@ export async function ContentCountWidget({ req, widgetData }: WidgetServerProps)
       data-dashboard-widget=""
       data-stat-widget=""
       href={adminURL(req, slug)}
+      prefetch={false}
       className="acn:group acn:flex acn:h-full acn:flex-col acn:justify-between acn:gap-3 acn:rounded-xl acn:bg-card acn:p-5 acn:text-card-foreground acn:no-underline acn:ring-1 acn:ring-border acn:transition-colors acn:hover:bg-muted/60 acn:focus-visible:ring-3 acn:focus-visible:ring-ring/50 acn:focus-visible:outline-none"
     >
       <div className="acn:flex acn:items-center acn:justify-between acn:text-sm acn:text-muted-foreground">

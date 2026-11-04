@@ -60,6 +60,7 @@ export function MailInboxSummaryView({
       action={
         <Link
           href={`${adminRoute}/inbox`}
+          prefetch={false}
           className="acn:text-xs acn:font-medium acn:text-muted-foreground acn:underline-offset-4 acn:hover:text-foreground acn:hover:underline"
         >
           Open inbox →

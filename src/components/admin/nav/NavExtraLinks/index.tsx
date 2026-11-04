@@ -20,7 +20,7 @@ export function NavExtraLinks({ payload, user }: ServerProps) {
   return (
     <div className="nav-extra acn:mt-5 acn:flex acn:flex-col acn:self-stretch acn:border-t acn:border-border acn:pt-4">
       {hasCapability(user, 'manageInbox') ? (
-        <Link className="nav__link" href={`${adminRoute}/inbox`} id="nav-inbox">
+        <Link className="nav__link" href={`${adminRoute}/inbox`} id="nav-inbox" prefetch={false}>
           <span className="nav__link-label">Mail inbox</span>
           <InboxUnreadBadge apiRoute={apiRoute} />
         </Link>
@@ -37,27 +37,27 @@ export function NavExtraLinks({ payload, user }: ServerProps) {
         </span>
       </a>
       {hasCapability(user, 'viewSystem') ? (
-        <Link className="nav__link" href={`${adminRoute}/system`} id="nav-system">
+        <Link className="nav__link" href={`${adminRoute}/system`} id="nav-system" prefetch={false}>
           <span className="nav__link-label">System info</span>
         </Link>
       ) : null}
       {hasCapability(user, 'manageDatabase') ? (
-        <Link className="nav__link" href={`${adminRoute}/database`} id="nav-database">
+        <Link className="nav__link" href={`${adminRoute}/database`} id="nav-database" prefetch={false}>
           <span className="nav__link-label">Database</span>
         </Link>
       ) : null}
       {hasCapability(user, 'manageJobs') ? (
-        <Link className="nav__link" href={`${adminRoute}/jobs`} id="nav-jobs">
+        <Link className="nav__link" href={`${adminRoute}/jobs`} id="nav-jobs" prefetch={false}>
           <span className="nav__link-label">Scheduled jobs</span>
         </Link>
       ) : null}
       {isDev && hasCapability(user, 'useTerminal') ? (
-        <Link className="nav__link" href={`${adminRoute}/terminal`} id="nav-terminal">
+        <Link className="nav__link" href={`${adminRoute}/terminal`} id="nav-terminal" prefetch={false}>
           <span className="nav__link-label">Terminal</span>
         </Link>
       ) : null}
       {hasCapability(user, 'useDeveloperTools') ? (
-        <Link className="nav__link" href={`${adminRoute}/gallery`} id="nav-gallery">
+        <Link className="nav__link" href={`${adminRoute}/gallery`} id="nav-gallery" prefetch={false}>
           <span className="nav__link-label">Components</span>
         </Link>
       ) : null}

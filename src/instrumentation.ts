@@ -1,6 +1,12 @@
 export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
-    const { installCompressionDrainFix } = await import('./lib/fixCompressionDrainListeners')
+    const [{ installNodeDnsFallback }, { installCompressionDrainFix, installEarlyStreamCloseFilter }] =
+      await Promise.all([
+        import('./lib/nodeDnsFallback'),
+        import('./lib/fixCompressionDrainListeners'),
+      ])
+    installNodeDnsFallback()
     installCompressionDrainFix()
+    installEarlyStreamCloseFilter()
   }
 }

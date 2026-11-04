@@ -54,6 +54,7 @@ export function ScheduledJobsSummaryView({
       action={
         <Link
           href={`${adminRoute}/jobs`}
+          prefetch={false}
           className="acn:text-xs acn:font-medium acn:text-muted-foreground acn:underline-offset-4 acn:hover:text-foreground acn:hover:underline"
         >
           Manage →
@@ -63,7 +64,7 @@ export function ScheduledJobsSummaryView({
       {snapshot.jobs.length === 0 ? (
         <p className="acn:m-0 acn:text-sm acn:text-muted-foreground">
           No jobs in the queue yet. Queue or schedule a task from{' '}
-          <Link href={`${adminRoute}/jobs`} className="acn:underline">
+          <Link href={`${adminRoute}/jobs`} prefetch={false} className="acn:underline">
             Scheduled jobs
           </Link>
           .

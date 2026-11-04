@@ -9,7 +9,14 @@ import {
   type GovernedEntity,
   isAdmin,
 } from '../access/permissions'
-import { adminsOnly, protectRoles, protectRolesOnDelete, roleIdsOf } from '../access/roles'
+import {
+  adminsOnly,
+  invalidateRolesOnChange,
+  invalidateRolesOnDelete,
+  protectRoles,
+  protectRolesOnDelete,
+  roleIdsOf,
+} from '../access/roles'
 
 const withoutFullAccess = (data: Partial<{ fullAccess?: boolean | null }> | undefined) =>
   !data?.fullAccess
@@ -76,7 +83,9 @@ export const createRoles = (entities: GovernedEntity[]): CollectionConfig => ({
   },
   hooks: {
     beforeChange: [protectRoles],
+    afterChange: [invalidateRolesOnChange],
     beforeDelete: [protectRolesOnDelete],
+    afterDelete: [invalidateRolesOnDelete],
   },
   fields: [
     {

@@ -3,6 +3,8 @@ import http from 'node:http'
 import { Duplex } from 'node:stream'
 
 const PATCHED_SYMBOL = Symbol.for('pocms.serverResponseOnceDrainPatched')
+const EARLY_CLOSE_PATCHED_SYMBOL = Symbol.for('pocms.earlyDestinationStreamCloseFiltered')
+const EARLY_DESTINATION_STREAM_CLOSE_MSG = 'The destination stream closed early.'
 
 type DrainListener = (...args: unknown[]) => void
 
@@ -111,3 +113,55 @@ export function installCompressionDrainFix(): boolean {
 
   return true
 }
+
+export function isEarlyDestinationStreamCloseError(arg: unknown): boolean {
+  if (typeof arg === 'string') {
+    return arg.includes(EARLY_DESTINATION_STREAM_CLOSE_MSG)
+  }
+  if (!arg || typeof arg !== 'object') return false
+  const err = arg as { message?: unknown; cause?: unknown }
+  if (typeof err.message === 'string' && err.message.includes(EARLY_DESTINATION_STREAM_CLOSE_MSG)) {
+    return true
+  }
+  if (err.cause && err.cause !== arg && isEarlyDestinationStreamCloseError(err.cause)) {
+    return true
+  }
+  return false
+}
+
+/**
+ * Suppresses Next.js 16.3.8's false-positive `console.error` log when a client closes an
+ * in-flight React 19 Flight/Fizz `PassThrough` stream early (e.g. Chromium `Critical-CH`
+ * client-hint handshake retry or SPA route transition cancellation). Next.js's own
+ * `create-error-handler` intends to ignore closed-response aborts via `isAbortError()`,
+ * which only checks `AbortError` / `ResponseAborted` and misses React 19's
+ * `Error("The destination stream closed early.")`.
+ */
+export function installEarlyStreamCloseFilter(
+  targetConsole: Pick<Console, 'error'> = console,
+): boolean {
+  const marked = targetConsole as Pick<Console, 'error'> & {
+    [EARLY_CLOSE_PATCHED_SYMBOL]?: boolean
+  }
+  if (!marked || typeof marked.error !== 'function') return false
+  if (marked[EARLY_CLOSE_PATCHED_SYMBOL]) return false
+
+  const origError = marked.error.bind(marked)
+  const filteredError: typeof console.error = (...args: unknown[]) => {
+    if (args.some(isEarlyDestinationStreamCloseError)) {
+      return
+    }
+    origError(...args)
+  }
+
+  marked.error = filteredError
+  Object.defineProperty(marked, EARLY_CLOSE_PATCHED_SYMBOL, {
+    value: true,
+    enumerable: false,
+    configurable: true,
+    writable: false,
+  })
+
+  return true
+}
+

@@ -163,6 +163,7 @@ export async function RecentChangesWidget({ req }: WidgetServerProps) {
         canViewAuditLog ? (
           <Link
             href={adminURL(req, 'audit-logs')}
+            prefetch={false}
             className="acn:text-xs acn:font-medium acn:text-muted-foreground acn:no-underline acn:hover:text-foreground acn:hover:underline"
           >
             Audit log →
@@ -182,6 +183,7 @@ export async function RecentChangesWidget({ req }: WidgetServerProps) {
               <div className="acn:min-w-0 acn:flex-1">
                 <Link
                   href={adminURL(req, row.slug, row.id)}
+                  prefetch={false}
                   className="acn:block acn:truncate acn:text-sm acn:font-medium acn:text-foreground acn:no-underline acn:hover:underline acn:pointer-coarse:-my-2 acn:pointer-coarse:py-2"
                 >
                   {row.title}

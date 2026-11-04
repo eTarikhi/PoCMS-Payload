@@ -1,5 +1,7 @@
 import type {
   Access,
+  CollectionAfterChangeHook,
+  CollectionAfterDeleteHook,
   CollectionBeforeChangeHook,
   CollectionBeforeDeleteHook,
   FieldAccess,
@@ -163,25 +165,98 @@ export const roleIdsOf = (user: unknown): ID[] => idsOf((user as { roles?: unkno
 
 type RoleDoc = RoleLike & { id: ID; system?: boolean | null; isDefault?: boolean | null }
 
-/** Role documents by ID, cached on `req.context` so one request loads each role once. */
-async function loadRoles(req: PayloadRequest, ids: ID[]): Promise<RoleDoc[]> {
-  const context = req.context as { rolesById?: Map<ID, RoleDoc> }
-  const cache = (context.rolesById ??= new Map())
-  const missing = ids.filter((id) => !cache.has(id))
-  if (missing.length > 0) {
-    const { docs } = await req.payload.find({
-      collection: 'roles',
-      where: { id: { in: missing } },
-      depth: 0,
-      joins: false,
-      limit: missing.length,
-      pagination: false,
-      overrideAccess: true,
-      req,
-    })
-    for (const doc of docs as RoleDoc[]) cache.set(doc.id, doc)
+const ROLE_CACHE_TTL_MS = 15_000
+type CachedRoleEntry = { doc: RoleDoc; expiresAt: number }
+const payloadRolesCache = new WeakMap<object, Map<string, CachedRoleEntry>>()
+
+function getPayloadRoleMap(payload: Payload): Map<string, CachedRoleEntry> {
+  let map = payloadRolesCache.get(payload)
+  if (!map) {
+    map = new Map()
+    payloadRolesCache.set(payload, map)
   }
-  return ids.map((id) => cache.get(id)).filter((doc): doc is RoleDoc => Boolean(doc))
+  return map
+}
+
+export function invalidateRolesCache(payload: Payload | null | undefined): void {
+  if (!payload) return
+  payloadRolesCache.get(payload)?.clear()
+}
+
+export const invalidateRolesOnChange: CollectionAfterChangeHook = ({ doc, req }) => {
+  invalidateRolesCache(req.payload)
+  return doc
+}
+
+export const invalidateRolesOnDelete: CollectionAfterDeleteHook = ({ doc, req }) => {
+  invalidateRolesCache(req.payload)
+  return doc
+}
+
+/**
+ * Role documents by ID, cached per-request on `req.context` and short-TTL (`15s`) per `Payload`
+ * instance (invalidated immediately on `Roles` `afterChange`/`afterDelete`), with stale-on-error
+ * fallback so a transient Neon pool hiccup during `initReq` `applyUserReadAccess` never throws and
+ * wipes `req.user = null`.
+ */
+async function loadRoles(req: PayloadRequest, ids: ID[]): Promise<RoleDoc[]> {
+  const context = (req.context ??= {}) as { rolesById?: Map<string, RoleDoc> }
+  const cache = (context.rolesById ??= new Map())
+  const shared = getPayloadRoleMap(req.payload)
+  const now = Date.now()
+  const inTransaction = Boolean(req.transactionID)
+
+  if (!inTransaction) {
+    for (const id of ids) {
+      const key = String(id)
+      if (cache.has(key)) continue
+      const entry = shared.get(key)
+      if (entry && entry.expiresAt > now) {
+        cache.set(key, entry.doc)
+      }
+    }
+  }
+
+  const missing = ids.filter((id) => !cache.has(String(id)))
+  if (missing.length > 0) {
+    try {
+      const { docs } = await req.payload.find({
+        collection: 'roles',
+        where: { id: { in: missing } },
+        depth: 0,
+        joins: false,
+        limit: missing.length,
+        pagination: false,
+        overrideAccess: true,
+        req,
+      })
+      const expiresAt = Date.now() + ROLE_CACHE_TTL_MS
+      for (const doc of docs as RoleDoc[]) {
+        const key = String(doc.id)
+        cache.set(key, doc)
+        if (!inTransaction) {
+          shared.set(key, { doc, expiresAt })
+        }
+      }
+    } catch (err) {
+      // Fall back to any previously observed role definitions on transient pool/WebSocket errors
+      // so `applyUserReadAccess` does not discard an already authenticated Admin session.
+      let recoveredAll = true
+      for (const id of missing) {
+        const key = String(id)
+        const stale = shared.get(key)
+        if (stale) {
+          cache.set(key, stale.doc)
+        } else {
+          recoveredAll = false
+        }
+      }
+      if (!recoveredAll) {
+        throw err
+      }
+    }
+  }
+  return ids.map((id) => cache.get(String(id))).filter((doc): doc is RoleDoc => Boolean(doc))
 }
 
 /** afterRead hook of the virtual `users.permissions` field. */

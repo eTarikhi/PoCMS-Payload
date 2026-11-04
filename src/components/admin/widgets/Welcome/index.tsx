@@ -40,6 +40,7 @@ export function WelcomeWidget({ req, user, permissions }: WidgetServerProps) {
         {canCreate('articles') ? (
           <Link
             href={`${adminURL(req, 'articles')}/create`}
+            prefetch={false}
             data-slot="button"
             className={buttonVariants()}
           >
@@ -50,6 +51,7 @@ export function WelcomeWidget({ req, user, permissions }: WidgetServerProps) {
         {canCreate('media') ? (
           <Link
             href={`${adminURL(req, 'media')}/create`}
+            prefetch={false}
             data-slot="button"
             className={buttonVariants({ variant: 'outline' })}
           >

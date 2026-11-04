@@ -161,6 +161,7 @@ export async function ContentHealthWidget({ req }: WidgetServerProps) {
               ) : (
                 <Link
                   href={check.href}
+                  prefetch={false}
                   className="acn:text-foreground acn:underline-offset-2 acn:hover:underline"
                 >
                   {check.todo}

@@ -144,6 +144,7 @@ export function TrafficReportView({
                         {article ? (
                           <Link
                             href={article.href}
+                            prefetch={false}
                             className="acn:truncate acn:text-foreground acn:underline-offset-4 acn:hover:underline"
                             title={page.path}
                           >

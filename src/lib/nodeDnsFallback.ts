@@ -80,6 +80,59 @@ export function installNeonWebSocketErrorEventFix(): void {
     // Non-fatal
   }
 
+  const patchWsClass = (WS: {
+    prototype?: {
+      __pocmsErrorEventPatched?: boolean
+      addEventListener?: (
+        type: string,
+        listener: (evt: unknown) => unknown,
+        options?: unknown,
+      ) => unknown
+    }
+  } | null | undefined) => {
+    if (!WS?.prototype || WS.prototype.__pocmsErrorEventPatched) return
+    Object.defineProperty(WS.prototype, '__pocmsErrorEventPatched', {
+      value: true,
+      configurable: true,
+      enumerable: false,
+    })
+
+    const origAddEventListener = WS.prototype.addEventListener
+    if (typeof origAddEventListener === 'function') {
+      WS.prototype.addEventListener = function patchedWsAddEventListener(
+        this: unknown,
+        type: string,
+        listener: (evt: unknown) => unknown,
+        options?: unknown,
+      ) {
+        if (type === 'error' && typeof listener === 'function') {
+          const wrapped = function (this: unknown, evt: unknown) {
+            if (evt && typeof evt === 'object' && !(evt instanceof Error)) {
+              const evtRec = evt as { error?: unknown; message?: unknown }
+              const inner = evtRec.error instanceof Error ? evtRec.error : null
+              const msg =
+                (typeof evtRec.message === 'string' && evtRec.message) ||
+                inner?.message ||
+                'WebSocket connection error'
+              const normalized: NodeJS.ErrnoException = new Error(msg)
+              const innerCode = (inner as NodeJS.ErrnoException | null)?.code
+              if (innerCode) {
+                normalized.code = innerCode
+              }
+              if (inner) {
+                normalized.cause = inner
+              }
+              return listener.call(this, normalized)
+            }
+            return listener.call(this, evt)
+          }
+          return origAddEventListener.call(this, type, wrapped, options)
+        }
+        return origAddEventListener.call(this, type, listener, options)
+      }
+    }
+  }
+
   try {
     // Anchor `createRequire` via `fs.realpathSync` on `node_modules/@payloadcms/db-vercel-postgres/package.json`
     // instead of calling CommonJS `require.resolve` on the pure-ESM `@payloadcms/db-vercel-postgres` specifier,
@@ -96,59 +149,17 @@ export function installNeonWebSocketErrorEventFix(): void {
     const dbReq = createRequire(dbPkgJsonPath)
     const vpPkgPath = dbReq.resolve('@vercel/postgres')
     const vpReq = createRequire(vpPkgPath)
-    const WS = vpReq('ws') as {
-      prototype?: {
-        __pocmsErrorEventPatched?: boolean
-        addEventListener?: (
-          type: string,
-          listener: (evt: unknown) => unknown,
-          options?: unknown,
-        ) => unknown
-      }
-    }
+    patchWsClass(vpReq('ws'))
+  } catch {
+    // Ignore when optional packages are unavailable
+  }
 
-    if (WS?.prototype && !WS.prototype.__pocmsErrorEventPatched) {
-      Object.defineProperty(WS.prototype, '__pocmsErrorEventPatched', {
-        value: true,
-        configurable: true,
-        enumerable: false,
-      })
-
-      const origAddEventListener = WS.prototype.addEventListener
-      if (typeof origAddEventListener === 'function') {
-        WS.prototype.addEventListener = function patchedWsAddEventListener(
-          this: unknown,
-          type: string,
-          listener: (evt: unknown) => unknown,
-          options?: unknown,
-        ) {
-          if (type === 'error' && typeof listener === 'function') {
-            const wrapped = function (this: unknown, evt: unknown) {
-              if (evt && typeof evt === 'object' && !(evt instanceof Error)) {
-                const evtRec = evt as { error?: unknown; message?: unknown }
-                const inner = evtRec.error instanceof Error ? evtRec.error : null
-                const msg =
-                  (typeof evtRec.message === 'string' && evtRec.message) ||
-                  inner?.message ||
-                  'WebSocket connection error'
-                const normalized: NodeJS.ErrnoException = new Error(msg)
-                const innerCode = (inner as NodeJS.ErrnoException | null)?.code
-                if (innerCode) {
-                  normalized.code = innerCode
-                }
-                if (inner) {
-                  normalized.cause = inner
-                }
-                return listener.call(this, normalized)
-              }
-              return listener.call(this, evt)
-            }
-            return origAddEventListener.call(this, type, wrapped, options)
-          }
-          return origAddEventListener.call(this, type, listener, options)
-        }
-      }
-    }
+  try {
+    const payloadPkgJsonPath = fs.realpathSync(
+      path.join(process.cwd(), 'node_modules', 'payload', 'package.json'),
+    )
+    const payloadReq = createRequire(payloadPkgJsonPath)
+    patchWsClass(payloadReq('ws'))
   } catch {
     // Ignore when optional packages are unavailable
   }
