@@ -28,16 +28,20 @@ type GraphQLResponse = {
   errors?: Array<{ message: string }>
 }
 
-const createPayloadGraphQLHandler = (maxComplexity = 1000) => {
+const createPayloadGraphQLHandler = (maxComplexity = 1000, trackValueComplexity = false) => {
   const rootResolver = vi.fn(() => ({
     next: { next: null, value: 'nested' },
     value: 'root',
   }))
+  const valueComplexityEstimator = vi.fn(() => 1)
   const nodeType: GraphQLObjectTypeInstance = new GraphQLObjectType({
     name: 'GraphQLComplexityNode',
     fields: () => ({
       next: { type: nodeType },
-      value: { type: GraphQLString },
+      value: {
+        type: GraphQLString,
+        ...(trackValueComplexity ? { extensions: { complexity: valueComplexityEstimator } } : {}),
+      },
     }),
   })
 
@@ -73,7 +77,7 @@ const createPayloadGraphQLHandler = (maxComplexity = 1000) => {
     ) => defaultRules.concat(payloadValidationRules(args)),
   })
 
-  return { handler, rootResolver }
+  return { handler, rootResolver, valueComplexityEstimator }
 }
 
 const sendQuery = async (
@@ -171,6 +175,50 @@ describe('Payload GraphQL complexity and fragment-cycle contract', () => {
     expect(rootResolver).toHaveBeenCalledTimes(1)
   })
 
+  it('memoizes acyclic fragment costs but charges every spread toward the existing threshold', async () => {
+    const { handler, rootResolver, valueComplexityEstimator } = createPayloadGraphQLHandler(
+      1000,
+      true,
+    )
+    const doublingLevels = 15
+    const fragments = Array.from({ length: doublingLevels + 1 }, (_, level) => {
+      const selections = level === 0 ? 'value' : `...Fragment${level - 1} ...Fragment${level - 1}`
+      return `fragment Fragment${level} on GraphQLComplexityNode { ${selections} }`
+    })
+    const query = `
+      query RepeatedAcyclicFragments { root { ...Fragment${doublingLevels} } }
+      ${fragments.join(' ')}
+    `
+
+    const response = await sendQuery(handler, query)
+    const body = (await response.json()) as GraphQLResponse
+    const errorMessages = body.errors?.map(({ message }) => message).join(' ')
+
+    expect(response.status).toBe(400)
+    expect(errorMessages).toContain('maximum complexity of 1000')
+    expect(errorMessages).toContain('Actual complexity is 32769')
+    expect(valueComplexityEstimator).toHaveBeenCalledTimes(1)
+    expect(rootResolver).not.toHaveBeenCalled()
+  })
+
+  it('recomputes memoized fragment costs for each operation variable set', async () => {
+    const { handler, rootResolver } = createPayloadGraphQLHandler(3)
+    const query = `
+      query IncludeValue($include: Boolean! = true) { root { ...SharedValue } }
+      query SkipValue($include: Boolean! = false) { root { ...SharedValue } }
+      fragment SharedValue on GraphQLComplexityNode {
+        value @include(if: $include)
+      }
+    `
+
+    const response = await sendQuery(handler, query, 'IncludeValue')
+    const body = (await response.json()) as GraphQLResponse
+
+    expect(response.status).toBe(200)
+    expect(body).toEqual({ data: { root: { value: 'root' } } })
+    expect(rootResolver).toHaveBeenCalledTimes(1)
+  })
+
   it('keeps the 1000 complexity threshold inclusive and rejects the next unit before execution', async () => {
     const { handler, rootResolver } = createPayloadGraphQLHandler(1000)
 
@@ -207,7 +255,7 @@ describe('Payload GraphQL complexity and fragment-cycle contract', () => {
     const body = (await response.json()) as GraphQLResponse
 
     // Payload 3.90.2 does not pass operationName into its complexity rule, so changing this
-    // behavior is intentionally outside the fragment-cycle fix.
+    // behavior is intentionally outside this fragment-complexity hardening increment.
     expect(response.status).toBe(400)
     expect(body.errors?.map(({ message }) => message).join('\n')).toContain(
       'maximum complexity of 1000',
