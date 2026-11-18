@@ -33,7 +33,7 @@
     "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" playwright test --config=playwright.config.ts",
     "test:e2e:install": "playwright install chromium",
     "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts",
-    "test:int:pg": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.pg.config.mts",
+    "test:int:neon": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.neon.config.mts",
     "report": "pnpm exec playwright show-report"
   },
   "dependencies": {
