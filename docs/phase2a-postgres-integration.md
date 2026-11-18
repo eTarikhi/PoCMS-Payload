@@ -8,6 +8,9 @@ plain `pg.Pool` are not supported application targets.
 Neon integration or empty-branch schema bootstrap is claimed; this checkout has no approved test
 branch credentials or target metadata. The Neon integration command fails closed without them.
 
+For the owner-side Windows 11 / PowerShell procedure—including isolated-project provisioning,
+metadata IDs, empty-database verification, and cleanup—see the [Phase 2A.2 owner runbook](phase2a-neon-owner-runbook.md).
+
 ## 1. Runtime and schema-push behavior
 
 ### Adapter
@@ -100,10 +103,12 @@ installed adapter and Payload runtime. After the verified adapter initializes, i
   through Payload's real REST catch-all route;
 - checks the persisted submission through the Local API and asserts anonymous reads stay forbidden;
 - suppresses Resend calls via the existing `PLAYWRIGHT_TEST` flag and `x-playwright-e2e` test header;
-- closes the adapter pool only. It does not delete test rows, truncate tables, drop/create a database,
-  or delete the branch.
+- calls `payload.db.destroy()` after the tests, but performs no data cleanup: it does not delete test
+  rows, truncate tables, drop/create a database, or delete the branch.
 
-Test rows are left on the approved branch. The owner discards that branch after review. No application
+Test rows (and any Payload startup records/schema) are left on the approved branch. The owner discards
+that branch after review. The installed adapter's `destroy()` resets adapter state; it is not a
+record cleanup or an explicit pool-close guarantee. No application
 GraphQL authorization route or role check, anonymous GraphQL behavior, public form-submission REST
 access, frontend behavior, or REST catch-all route was changed.
 
