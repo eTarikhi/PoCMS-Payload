@@ -147,7 +147,7 @@ The remote/serverless pool defaults in `src/lib/postgresAdapterConfig.ts` are `m
 
 1. A local PostgreSQL 16 database with a representative, disposable fixture dataset is required to capture actual Local API outputs, row counts, emitted SQL, latency, cache behavior, and end-to-end access enforcement. Those results must not be inferred from the schema test.
 2. The generated SDL is broad and includes internal roots and mutations. `Form.emails` being absent from the intended operation is necessary but not a substitute for testing Payload's field access through the real GraphQL route.
-3. The existing anonymous `createFormSubmission` access plus the un-gated `/api/graphql` handler is a potential public mutation surface. It was deliberately not changed because Phase 0 excludes GraphQL route authorization changes; it must be dealt with explicitly in route/security design before expanding public GraphQL use.
+3. The existing anonymous `createFormSubmission` access plus the un-gated `/api/graphql` handler is a potential public mutation surface. It was deliberately not changed because Phase 0 excludes GraphQL route authorization changes; it must be dealt with explicitly in route/security design before expanding public GraphQL use. **Phase 1 update:** `/api/graphql` is now Admin-gated for `POST`/Playground `GET`, and every other method is answered by Next.js with `405`; `createFormSubmission` remains reachable anonymously only through the unchanged REST form path. See `docs/phase1-graphql-security-status.md` for the full method matrix.
 4. A direct `GRAPHQL_POST(config)` mounted at `/api/fgql` is not sufficient: with Payload's configured `/api/graphql` path, request creation classifies `/api/fgql` as REST (`payloadAPI: 'REST'`, `isGraphQL: false`). Phase 1 needs a tested adapter that preserves GraphQL request context, auth, validation, DataLoader, and transaction behavior. Do not create a second Payload config/schema casually; Payload's GraphQL schema cache is global.
 5. No dedicated server-side depth/alias/cost limit or custom application IP rate limiter was established by the prior source audit. Any public persisted-query endpoint needs explicit query/variable bounds and an operational rate-limit decision; hosting/WAF behavior remains unverified.
 
@@ -176,3 +176,13 @@ Final focused verification:
 | `corepack pnpm@10 exec tsc --noEmit`                                                                                       |    0 | Passed after the ignored types/import map were generated. The first attempt returned 2 only because the ignored Admin import map had not yet been generated; generation followed by rerun passed. |
 
 The full `test:int` suite, E2E, build, live GraphQL request execution, PostgreSQL measurements, migrations, deployment, and remote CI were not run.
+
+## Phase 1 HTTP method audit status (appended)
+
+The Phase 1 audit that followed this Phase 0 report did not change the schema, generated artifacts, access rules, REST routes, or frontend readers. It closed the HTTP method question only:
+
+- **Verified by executable route-dispatch tests** (`tests/int/graphql-method-dispatch.int.spec.ts`, which mounts the real `route.ts` exports in Next.js's App Router route module and drives its real `handle()`): `POST` is the only method that can reach Payload's GraphQL handler, and only after the Admin gate; `GET`, `HEAD`, `PUT`, `PATCH`, and `DELETE` on `/api/graphql` are answered `405` by Next.js dispatch without invoking Payload; `OPTIONS` still delegates to `REST_OPTIONS(config)` and executes no GraphQL. The Playground route serves only the Admin-gated `GET`/`HEAD` and `405`s `PUT`/`PATCH`/`DELETE`.
+- **Unverified:** whether external, out-of-repository clients depend on `/api/graphql`. Vercel telemetry is inaccessible (connector disconnected, no telemetry credentials), and repository search cannot establish consumer inventory.
+- **Unverified:** the Payload 3.90.2 request-context adapter for any future public route. It remains unimplemented and untested because no PostgreSQL 16 instance is available.
+
+The full matrix, evidence, and remaining blockers live in `docs/phase1-graphql-security-status.md`. This audit authorizes no public GraphQL endpoint and no persisted-query endpoint.

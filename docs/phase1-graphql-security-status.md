@@ -1,6 +1,8 @@
 # Phase 1 — GraphQL security status
 
-**Status:** Partial; not production-ready. No public `/api/fgql` endpoint or persisted-query registry is enabled.
+**Status:** Partial; not production-ready. No public `/api/fgql` endpoint or persisted-query registry is enabled, and this audit authorizes none.
+
+This document separates what was **verified**, by which method, from what remains **unverified**. Do not promote an unverified item to a verified claim without a new executable check.
 
 ## Independently verified work
 
@@ -10,17 +12,63 @@
 - New route tests exercise unauthenticated rejection, roleless-user rejection, access for a non-Administrator user with an assigned role, Playground protection, and unchanged OPTIONS delegation. Test doubles are used for Payload authentication and the Payload route handlers; these tests do **not** prove real request authentication or GraphQL execution.
 - The existing anonymous-access/schema tests still characterize public reads, restricted fields, the form POST, and the `Mutation.createFormSubmission` surface. No mutation was issued, so form hooks, email, and other side effects were not triggered.
 
+## HTTP method matrix — `/api/graphql`
+
+**How this was verified (not assumed):** the real `src/app/(payload)/api/graphql/route.ts` module is mounted in Next.js's own App Router route module (`next/dist/server/route-modules/app-route/module`), and every request below is driven through that module's real `handle()` entry point. Next.js's `autoImplementMethods()` builds the dispatch table; it fills every method the route does not export with a 405 handler, and it only delegates HEAD to GET when a GET export exists. `tests/int/graphql-method-dispatch.int.spec.ts` asserts accordingly. The 405 statuses are produced by Next.js dispatch, not by the test.
+
+| Method    | Verified behavior                                                                                                              | GraphQL execution        |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------ |
+| `POST`    | Admin gate: `401` when unauthenticated, `403` when authenticated without an Admin-panel role, otherwise `GRAPHQL_POST(config)` | Only after authorization |
+| `GET`     | Next.js dispatch answers `405`; no `GET` export exists                                                                         | None                     |
+| `HEAD`    | Next.js dispatch answers `405`; HEAD delegation to GET does not apply because there is no `GET` export                         | None                     |
+| `OPTIONS` | Explicit `REST_OPTIONS(config)` export, delegated to Payload `handleEndpoints` for CORS preflight                              | None                     |
+| `PUT`     | Next.js dispatch answers `405`                                                                                                 | None                     |
+| `PATCH`   | Next.js dispatch answers `405`                                                                                                 | None                     |
+| `DELETE`  | Next.js dispatch answers `405`                                                                                                 | None                     |
+
+For the unsupported methods the tests also assert that Payload's `getPayload`/`auth` are never invoked and that neither the GraphQL handler nor the OPTIONS handler is called. In other words, no unsupported method reaches userland code at all.
+
+## HTTP method matrix — `/api/graphql-playground`
+
+| Method   | Verified behavior                                                                                                  | Playground served                                         |
+| -------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------- |
+| `GET`    | Admin gate: `401` anonymous, otherwise Payload's Playground handler, which still applies its own environment check | Only after authorization and only when Payload enables it |
+| `HEAD`   | Next.js delegates HEAD to the existing `GET` export, so the same Admin gate runs                                   | Only after authorization                                  |
+| `PUT`    | Next.js dispatch answers `405`                                                                                     | None                                                      |
+| `PATCH`  | Next.js dispatch answers `405`                                                                                     | None                                                      |
+| `DELETE` | Next.js dispatch answers `405`                                                                                     | None                                                      |
+
+### Coverage boundary of the matrix
+
+The matrix above is **route-dispatch** coverage. It proves that method routing cannot bypass the Admin gate and that unsupported methods produce Next.js's 405. It is **not** full HTTP integration coverage: no `next build`/`next start` smoke request, no deployed edge/proxy behavior, and no database-backed execution were exercised. Payload 3.90.2 request initialization, anonymous resolver access, and GraphQL execution remain untested against a real request and database (see blocker 2).
+
 ## Verification run
 
-- Vitest: 18 focused tests passed (5 route-gate, 8 schema-contract, 5 access-contract).
+- Vitest: 33 focused tests passed (15 method-dispatch, 5 route-gate, 8 schema-contract, 5 access-contract).
 - TypeScript: `tsc --noEmit` passed.
 - Targeted ESLint and Prettier checks passed; `git diff --check` passed.
-- These are unit/config/schema checks, not a database-backed GraphQL integration run.
+- These are unit/config/schema/route-dispatch checks, not a database-backed GraphQL integration run.
+
+## Unverified — external consumers
+
+**External `/api/graphql` consumer compatibility remains UNVERIFIED.**
+
+- Vercel telemetry and request logs are **inaccessible**: the Vercel connector is disconnected and no deployment telemetry credentials are present in this environment.
+- Repository inspection does **not** establish whether external clients depend on GraphQL. The only in-repository references are documentation (`README.md`, `docs/api.md`, `docs/getting-started.md`, `docs/project-structure.md`), the Admin GraphQL inspector and DevTools links, this session's tests, and lockfile dependency entries. Those references describe and consume the route from inside the product; they say nothing about third-party or out-of-repository clients.
+- The new Admin gate is therefore **incompatible with any anonymous client that may exist**. Absence of evidence is not evidence of absence: do not treat the repository search as proof that no external consumer exists.
+- Inventory and approval of external consumers must happen before deployment. This audit does not and cannot supply that approval.
 
 ## Blockers before public GraphQL or deployment
 
-1. **External `/api/graphql` consumers are unknown.** The repository's README and API documentation advertised the route, and the Admin inspector uses it. Vercel access telemetry could not be inspected because the Vercel connector is disconnected and the deployment telemetry credentials are absent. Do not infer that third-party clients are absent. The new Admin gate is incompatible with anonymous clients; inventory and approve that change before deployment.
-2. **No disposable PostgreSQL instance is available.** Docker, Podman, PostgreSQL tools, a listener on port 5432, and `POSTGRES_URL`/`DATABASE_URL` are unavailable. Payload 3.90.2 request initialization, anonymous resolver access, and GraphQL execution have not been tested against a real request/database.
-3. **Do not mount `GRAPHQL_POST(config)` directly at `/api/fgql`.** The installed Payload 3.90.2 request initializer classifies a request at that non-configured path as REST. The adapter and its request-context/execution tests remain unimplemented. Therefore `/api/fgql` is intentionally absent.
+1. **External `/api/graphql` consumers are unknown.** See the unverified section above; the gate must be reconciled with real consumer inventory before release.
+2. **No disposable PostgreSQL instance is available.** Docker, Podman, PostgreSQL tools, a listener on port 5432, and `POSTGRES_URL`/`DATABASE_URL` are unavailable. Payload 3.90.2 request initialization, anonymous resolver access, and GraphQL execution have not been tested against a real request/database. `docker-compose.yml` defines `postgres:16-alpine`, but it cannot be started in this environment, and no integration result is claimed.
+3. **Do not mount `GRAPHQL_POST(config)` directly at `/api/fgql`.** The installed Payload 3.90.2 request initializer classifies a request at that non-configured path as REST (`isGraphQL: false`, `payloadAPI: 'REST'`). The adapter and its request-context/execution tests remain unimplemented and **unverified**. Therefore `/api/fgql` is intentionally absent.
 4. **No public operation allowlist exists.** Do not accept public query text or enable a public route until the real request-context proof is complete and a server-controlled exact SHA-256 allowlist has executable rejection tests. `createFormSubmission` remains a potential anonymous side-effect mutation on the current broad GraphQL schema; it was inspected statically but never executed.
 5. **Shared rate limiting is unverified.** No shared rate-limit backend or supported gateway protection has been demonstrated. This is a release blocker for any future public endpoint; no distributed rate-limiting claim is made.
+
+## Scope explicitly authorized by this audit
+
+- Admin-gating the existing `POST /api/graphql` and `GET /api/graphql-playground` only.
+- Regression coverage proving unsupported methods cannot execute GraphQL and cannot bypass the gate.
+
+Nothing else. This audit does **not** authorize a public GraphQL endpoint, an anonymous persisted-query endpoint, an anonymous GraphQL route, or any change to REST, form-submission permissions, Payload access policies, the GraphQL schema, or generated artifacts.
