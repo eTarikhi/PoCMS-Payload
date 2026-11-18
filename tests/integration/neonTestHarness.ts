@@ -218,7 +218,7 @@ export function resolveNeonTestTarget(env: Environment): NeonTestTarget {
   const expectedEndpointId = requiredEnv(
     env,
     'NEON_TEST_ENDPOINT_ID',
-    'Copy the approved read-write endpoint ID independently from Neon metadata.',
+    'Copy the canonical approved read-write endpoint ID from Neon metadata; do not include the pooled hostname suffix "-pooler".',
   )
   const expectedDatabase = requiredEnv(
     env,
@@ -230,7 +230,9 @@ export function resolveNeonTestTarget(env: Environment): NeonTestTarget {
   assertIdentifier(expectedEndpointId, /^ep-[a-z0-9-]+$/i, 'NEON_TEST_ENDPOINT_ID')
 
   if (expectedEndpointId.toLowerCase() !== test.endpointId.toLowerCase()) {
-    fail('NEON_TEST_ENDPOINT_ID does not match the endpoint in POSTGRES_TEST_URL.')
+    fail(
+      'NEON_TEST_ENDPOINT_ID does not match the canonical endpoint ID in POSTGRES_TEST_URL (the pooled hostname suffix "-pooler" is not part of the endpoint ID).',
+    )
   }
   if (expectedDatabase !== test.database) {
     fail('NEON_TEST_DATABASE does not match the database in POSTGRES_TEST_URL.')

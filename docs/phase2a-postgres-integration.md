@@ -126,7 +126,7 @@ and endpoint metadata requests.
 | `NEON_TEST_PROJECT_ID`              | Project ID containing the approved test branch.                                                                                                                               |
 | `NEON_APP_PROJECT_ID`               | Project ID containing the endpoint in `POSTGRES_URL` (may equal the test project).                                                                                            |
 | `NEON_TEST_BRANCH_ID`               | Independently copied `br-...` ID for the approved branch.                                                                                                                     |
-| `NEON_TEST_ENDPOINT_ID`             | Independently copied `ep-...` read-write endpoint ID; must match both URL and Neon metadata.                                                                                  |
+| `NEON_TEST_ENDPOINT_ID`             | Canonical `ep-...` ID; omit pooled hostname suffix `-pooler`; match URL and metadata.                                                                                         |
 | `NEON_TEST_DATABASE`                | Exact existing database name in `POSTGRES_TEST_URL`; it is an identity check, not disposability evidence.                                                                     |
 | `NEON_TEST_BRANCH_DISPOSABLE`       | Must be `true`: explicit owner approval that this exact branch is disposable.                                                                                                 |
 | `PAYLOAD_TEST_DB_ALLOW_DESTRUCTIVE` | Must be `true`: explicit owner approval for schema push and synthetic test writes on that branch.                                                                             |

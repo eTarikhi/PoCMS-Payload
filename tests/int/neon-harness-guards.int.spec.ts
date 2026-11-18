@@ -27,6 +27,8 @@ const TEST_ENDPOINT_ID = 'ep-test-branch-123456'
 const APP_ENDPOINT_ID = 'ep-app-branch-654321'
 const TEST_BRANCH_ID = 'br-test-branch-123'
 const APP_BRANCH_ID = 'br-app-branch-321'
+const REPORTED_ENDPOINT_ID = 'ep-red-scene-b1ju5v4y'
+const REPORTED_POOLER_URL = `postgresql://u:p@${REPORTED_ENDPOINT_ID}-pooler.c-5.eu-central-1.aws.neon.tech/neondb?sslmode=require`
 const TEST_URL = `postgresql://u:p@${TEST_ENDPOINT_ID}-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require`
 const APP_URL = `postgresql://u:p@${APP_ENDPOINT_ID}-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require`
 
@@ -42,6 +44,14 @@ const baseEnv = (): Record<string, string | undefined> => ({
   NEON_TEST_DATABASE: 'neondb',
   [DISPOSABLE_BRANCH_OPT_IN_ENV]: 'true',
   [DESTRUCTIVE_OPT_IN_ENV]: 'true',
+})
+
+const reportedPoolerEnv = (
+  endpointId = REPORTED_ENDPOINT_ID,
+): Record<string, string | undefined> => ({
+  ...baseEnv(),
+  POSTGRES_TEST_URL: REPORTED_POOLER_URL,
+  NEON_TEST_ENDPOINT_ID: endpointId,
 })
 
 type MetadataOverrides = {
@@ -231,7 +241,7 @@ describe('Neon integration harness local guards', () => {
   it('requires the explicit approved endpoint and database to match the URL', () => {
     const wrongEndpoint = baseEnv()
     wrongEndpoint.NEON_TEST_ENDPOINT_ID = APP_ENDPOINT_ID
-    expect(() => resolveNeonTestTarget(wrongEndpoint)).toThrow(/does not match the endpoint/)
+    expect(() => resolveNeonTestTarget(wrongEndpoint)).toThrow(/canonical endpoint ID/)
 
     const wrongDatabase = baseEnv()
     wrongDatabase.NEON_TEST_DATABASE = 'another-db'
@@ -251,6 +261,51 @@ describe('Neon integration harness local guards', () => {
   it('refuses PAYLOAD_DROP_DATABASE=true before metadata lookup or connection setup', () => {
     const env = { ...baseEnv(), PAYLOAD_DROP_DATABASE: 'true' }
     expect(() => resolveNeonTestTarget(env)).toThrow(/PAYLOAD_DROP_DATABASE=true is prohibited/)
+  })
+})
+
+describe('Pooled Neon endpoint identity regression', () => {
+  it('binds the reported pooled hostname to the canonical endpoint ID in mocked API metadata', async () => {
+    const env = reportedPoolerEnv()
+    const hostname = new URL(env.POSTGRES_TEST_URL!).hostname
+
+    expect(hostname).toBe('ep-red-scene-b1ju5v4y-pooler.c-5.eu-central-1.aws.neon.tech')
+    expect(hostname.split('.')[0]).toBe(`${REPORTED_ENDPOINT_ID}-pooler`)
+    expect(detectNeonEndpointId(hostname)).toBe(REPORTED_ENDPOINT_ID)
+    expect(env.NEON_TEST_ENDPOINT_ID).toBe(REPORTED_ENDPOINT_ID)
+
+    const target = resolveNeonTestTarget(env)
+    const verified = await verifyNeonTestTargetMetadata(target, env, () =>
+      createMetadataClient({
+        testEndpoints: [
+          {
+            id: REPORTED_ENDPOINT_ID,
+            project_id: 'test-project-id',
+            branch_id: TEST_BRANCH_ID,
+            host: `${REPORTED_ENDPOINT_ID}.c-5.eu-central-1.aws.neon.tech`,
+            type: 'read_write',
+            disabled: false,
+          },
+        ],
+      }),
+    )
+
+    expect(target.endpointId).toBe(REPORTED_ENDPOINT_ID)
+    expect(verified.endpointId).toBe(REPORTED_ENDPOINT_ID)
+  })
+
+  it('rejects the pooled DNS label when supplied as the canonical endpoint ID', () => {
+    const env = reportedPoolerEnv(`${REPORTED_ENDPOINT_ID}-pooler`)
+
+    expect(() => resolveNeonTestTarget(env)).toThrow(
+      /canonical endpoint ID.*pooled hostname suffix "-pooler" is not part of the endpoint ID/,
+    )
+  })
+
+  it('continues rejecting a genuinely different canonical endpoint ID', () => {
+    const env = reportedPoolerEnv('ep-different-endpoint-987654')
+
+    expect(() => resolveNeonTestTarget(env)).toThrow(/canonical endpoint ID/)
   })
 })
 

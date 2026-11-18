@@ -60,9 +60,12 @@ not a proof supplied by Neon metadata.
    child branch—not the default branch—is the integration target. Do not copy a branch from another
    project. Confirm in branch details that the target branch is **not default** and **not protected**.
 4. Confirm the child branch has an enabled **read-write** endpoint. From the branch/compute endpoint
-   details, independently copy its **Endpoint ID** and record it as `NEON_TEST_ENDPOINT_ID`. Do not
-   derive this expected ID only from the connection URL. Also copy the child branch’s **Branch ID**
-   as `NEON_TEST_BRANCH_ID`.
+   details, independently copy its canonical **Endpoint ID** (`id`) and record it as
+   `NEON_TEST_ENDPOINT_ID`. Neon’s endpoint metadata uses an `ep-…` ID; `-pooler` is appended to
+   that ID only in a pooled connection-string hostname. For example, the hostname label
+   `ep-red-scene-b1ju5v4y-pooler` corresponds to endpoint ID `ep-red-scene-b1ju5v4y`. Copy the
+   endpoint ID field, not the pooled hostname label. Also copy the child branch’s **Branch ID** as
+   `NEON_TEST_BRANCH_ID`.
 5. In the Neon SQL Editor, explicitly select the **new test project**, the **child test branch**, and
    the intended database. Check the visible project, branch, and database selections before running
    this read-only query:
@@ -113,7 +116,7 @@ Do not put them in `.env`, `.env.example`, a tracked file, a script file, or a c
 | `NEON_TEST_PROJECT_ID`              | Project ID of the new isolated test project.                                                                                                                                                                 |
 | `NEON_APP_PROJECT_ID`               | Project ID that owns the endpoint in `POSTGRES_URL`; it may differ from `NEON_TEST_PROJECT_ID`.                                                                                                              |
 | `NEON_TEST_BRANCH_ID`               | Exact `br-…` ID of the child test branch, copied independently from Neon. Neon metadata must say it belongs to the test project and is not default or protected.                                             |
-| `NEON_TEST_ENDPOINT_ID`             | Exact `ep-…` ID of the test branch’s enabled read-write endpoint, copied independently from endpoint details. It must match the URL and Neon metadata.                                                       |
+| `NEON_TEST_ENDPOINT_ID`             | Canonical `ep-…` ID; omit the pooled hostname suffix `-pooler`.                                                                                                                                              |
 | `NEON_TEST_DATABASE`                | Exact, existing database name in the test URL. This is an identity comparison, not evidence that the target is disposable or empty.                                                                          |
 | `NEON_TEST_BRANCH_DISPOSABLE`       | Must be the exact lowercase string `true`. Owner approval that this exact child branch may be discarded; it is not independently proven by the API.                                                          |
 | `PAYLOAD_TEST_DB_ALLOW_DESTRUCTIVE` | Must be the exact lowercase string `true`. Explicit owner approval for schema push and synthetic test writes on the test branch. It does not authorize a database drop/create.                               |
