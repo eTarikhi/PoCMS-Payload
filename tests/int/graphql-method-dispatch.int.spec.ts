@@ -188,6 +188,7 @@ describe('Next.js App Route dispatch for the Admin-gated GraphQL route', () => {
     const allowed = await dispatch(graphql, 'POST')
 
     expect(allowed.status).toBe(200)
+    expect(allowed.headers.get('cache-control')).toBe('no-store')
     expect(await allowed.text()).toBe('GraphQL response')
     expect(graphqlHandlerMock).toHaveBeenCalledTimes(1)
   })

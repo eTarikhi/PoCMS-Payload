@@ -75,21 +75,47 @@ describe('Admin-authorized Payload GraphQL routes', () => {
     expect(graphqlHandlerMock).not.toHaveBeenCalled()
   })
 
-  it('allows a user with any assigned role, matching hasAnyRole rather than full Administrator access', async () => {
+  it('allows a user with any assigned role without caching or dropping Payload response headers', async () => {
     authMock.mockResolvedValue({ user: editor })
     const request = makePostRequest()
     const requestBody = await request.clone().text()
     graphqlHandlerMock.mockImplementation(async (forwardedRequest: Request) => {
       expect(await forwardedRequest.clone().text()).toBe(requestBody)
-      return new Response('Payload GraphQL result', { status: 200 })
+      return new Response('Payload GraphQL result', {
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': 'https://cms.example.test',
+          'Cache-Control': 'private, max-age=60',
+          Vary: 'Origin',
+        },
+      })
     })
 
     const response = await POST(request)
 
     expect(response.status).toBe(200)
+    expect(response.headers.get('cache-control')).toBe('no-store')
+    expect(response.headers.get('access-control-allow-origin')).toBe('https://cms.example.test')
+    expect(response.headers.get('vary')).toBe('Origin')
     expect(await response.text()).toBe('Payload GraphQL result')
     expect(graphqlHandlerMock).toHaveBeenCalledWith(request)
     expect(getPayloadMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('also disables caching on authorized GraphQL error responses', async () => {
+    authMock.mockResolvedValue({ user: editor })
+    graphqlHandlerMock.mockResolvedValue(
+      new Response('GraphQL error', {
+        status: 500,
+        headers: { 'Cache-Control': 'public, max-age=3600' },
+      }),
+    )
+
+    const response = await POST(makePostRequest())
+
+    expect(response.status).toBe(500)
+    expect(response.headers.get('cache-control')).toBe('no-store')
+    expect(await response.text()).toBe('GraphQL error')
   })
 
   it('uses the same Admin policy to protect the development GraphQL Playground', async () => {
@@ -103,6 +129,7 @@ describe('Admin-authorized Payload GraphQL routes', () => {
     const allowed = await playgroundGET(request)
 
     expect(allowed.status).toBe(200)
+    expect(allowed.headers.get('cache-control')).toBe('no-store')
     expect(await allowed.text()).toBe('Playground')
     expect(playgroundHandlerMock).toHaveBeenCalledWith(request)
   })
