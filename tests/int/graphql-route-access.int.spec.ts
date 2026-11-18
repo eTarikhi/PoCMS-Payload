@@ -22,6 +22,7 @@ vi.mock('@payloadcms/next/routes', () => ({
 }))
 
 import { NO_PERMISSIONS } from '@/access/permissions'
+import { MAX_GRAPHQL_REQUEST_BODY_BYTES } from '@/auth/graphqlRequestBodyLimit'
 import { OPTIONS, POST } from '@/app/(payload)/api/graphql/route'
 import { GET as playgroundGET } from '@/app/(payload)/api/graphql-playground/route'
 
@@ -40,6 +41,13 @@ const makePostRequest = () =>
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Cookie: 'payload-token=session' },
     body: JSON.stringify({ query: 'query { articles { docs { id } } }' }),
+  })
+
+const makeOversizedPostRequest = () =>
+  new Request('https://cms.example.test/api/graphql', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: 'payload-token=session' },
+    body: new Uint8Array(MAX_GRAPHQL_REQUEST_BODY_BYTES + 1),
   })
 
 beforeEach(() => {
@@ -65,13 +73,42 @@ describe('Admin-authorized Payload GraphQL routes', () => {
     expect(graphqlHandlerMock).not.toHaveBeenCalled()
   })
 
-  it('rejects authenticated users who do not satisfy Users.access.admin', async () => {
-    authMock.mockResolvedValue({ user: rolelessUser })
+  it.each([
+    {
+      name: 'unauthenticated requests',
+      status: 401,
+      user: null,
+      error: 'Authentication required.',
+    },
+    {
+      name: 'roleless requests',
+      status: 403,
+      user: rolelessUser,
+      error: 'Admin access required.',
+    },
+  ])(
+    'checks authorization before reading the body of oversized $name',
+    async ({ status, user, error }) => {
+      if (user) authMock.mockResolvedValue({ user })
+      const request = makeOversizedPostRequest()
 
-    const response = await POST(makePostRequest())
+      const response = await POST(request)
 
-    expect(response.status).toBe(403)
-    expect(await response.json()).toEqual({ error: 'Admin access required.' })
+      expect(response.status).toBe(status)
+      expect(response.headers.get('cache-control')).toBe('no-store')
+      expect(await response.json()).toEqual({ error })
+      expect(request.bodyUsed).toBe(false)
+      expect(graphqlHandlerMock).not.toHaveBeenCalled()
+    },
+  )
+
+  it('rejects an authorized oversized GraphQL POST before delegating to Payload', async () => {
+    authMock.mockResolvedValue({ user: editor })
+
+    const response = await POST(makeOversizedPostRequest())
+
+    expect(response.status).toBe(413)
+    expect(response.headers.get('cache-control')).toBe('no-store')
     expect(graphqlHandlerMock).not.toHaveBeenCalled()
   })
 
@@ -98,8 +135,53 @@ describe('Admin-authorized Payload GraphQL routes', () => {
     expect(response.headers.get('access-control-allow-origin')).toBe('https://cms.example.test')
     expect(response.headers.get('vary')).toBe('Origin')
     expect(await response.text()).toBe('Payload GraphQL result')
-    expect(graphqlHandlerMock).toHaveBeenCalledWith(request)
+    const forwardedRequest = graphqlHandlerMock.mock.calls[0]?.[0] as Request
+    expect(forwardedRequest).not.toBe(request)
+    expect(forwardedRequest.url).toBe(request.url)
+    expect(forwardedRequest.method).toBe(request.method)
+    expect(forwardedRequest.headers.get('cookie')).toBe(request.headers.get('cookie'))
+    expect(graphqlHandlerMock).toHaveBeenCalledTimes(1)
     expect(getPayloadMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('successfully delegates an authorized GraphQL request at the exact body-size limit', async () => {
+    authMock.mockResolvedValue({ user: editor })
+    const prefix = '{"query":"query { __typename }","padding":"'
+    const suffix = '"}'
+    const requestBody = `${prefix}${'x'.repeat(MAX_GRAPHQL_REQUEST_BODY_BYTES - prefix.length - suffix.length)}${suffix}`
+    const requestBytes = new TextEncoder().encode(requestBody)
+    expect(requestBytes.byteLength).toBe(MAX_GRAPHQL_REQUEST_BODY_BYTES)
+
+    const request = new Request('https://cms.example.test/api/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: 'payload-token=session',
+        Origin: 'https://cms.example.test',
+      },
+      body: requestBytes,
+    })
+    graphqlHandlerMock.mockImplementation(async (forwardedRequest: Request) => {
+      expect(await forwardedRequest.text()).toBe(requestBody)
+      return Response.json(
+        { data: { __typename: 'Query' } },
+        {
+          headers: {
+            'Access-Control-Allow-Origin': 'https://cms.example.test',
+            Vary: 'Origin',
+          },
+        },
+      )
+    })
+
+    const response = await POST(request)
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get('cache-control')).toBe('no-store')
+    expect(response.headers.get('access-control-allow-origin')).toBe('https://cms.example.test')
+    expect(response.headers.get('vary')).toBe('Origin')
+    expect(await response.json()).toEqual({ data: { __typename: 'Query' } })
+    expect(graphqlHandlerMock).toHaveBeenCalledTimes(1)
   })
 
   it('also disables caching on authorized GraphQL error responses', async () => {
