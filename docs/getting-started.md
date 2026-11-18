@@ -64,7 +64,7 @@ Open:
 - Public portfolio: `http://localhost:3000`
 - Payload Admin UI: `http://localhost:3000/admin`
 - REST API: `http://localhost:3000/api`
-- GraphQL API: `http://localhost:3000/api/graphql`
+- Admin GraphQL API (signed-in user with an Admin-panel role): `http://localhost:3000/api/graphql`
 
 ## Key Scripts (`package.json`)
 

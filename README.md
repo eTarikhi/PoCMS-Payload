@@ -28,7 +28,7 @@ This project documentation is split across multiple files for easier maintenance
 - Mail Inbox: `http://localhost:3000/admin/inbox`
 - Database Manager: `http://localhost:3000/admin/database`
 - REST API: `http://localhost:3000/api`
-- GraphQL API: `http://localhost:3000/api/graphql`
+- Admin GraphQL API (signed-in user with an Admin-panel role): `http://localhost:3000/api/graphql`
 
 ## Tech stack
 
@@ -50,7 +50,7 @@ This project documentation is split across multiple files for easier maintenance
 - Vercel Blob storage
 - Built-in authentication and RBAC
 - Rich media management
-- REST and GraphQL APIs
+- Payload REST and Admin-gated GraphQL APIs
 - Type-safe TypeScript codebase
 - Docker support
 

@@ -16,7 +16,7 @@ PoCMS-Payload/
 │   ├── access/                # Capability-based RBAC, role helpers, and orderable/draft hooks
 │   ├── app/
 │   │   ├── (frontend)/        # Public Next.js portfolio, /articles, /projects, /contact & styles
-│   │   ├── (payload)/         # Payload Admin UI (/admin/*), REST (/api/*) & GraphQL (/api/graphql)
+│   │   ├── (payload)/         # Payload Admin UI (/admin/*), REST (/api/*) & Admin-gated GraphQL (/api/graphql)
 │   │   ├── feed.xml/          # RSS 2.0 + Atom syndication route (/feed.xml)
 │   │   ├── og/                # Branded 1200x630 Dynamic Open Graph ImageResponse route (/og)
 │   │   ├── robots.ts          # Dynamic robots.txt route

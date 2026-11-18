@@ -9,12 +9,14 @@
 | `/feed.xml` | `GET` | Escaped RSS 2.0 + Atom feed of published on-site articles and project case studies |
 | `/og` | `GET` | Branded `1200×630` PNG Open Graph card generator (`?kind=article\|project\|hub&title=...`) |
 
-## Payload REST & GraphQL APIs
+## Payload REST & Admin GraphQL APIs
 
 - **REST Collections**: `GET /api/<collection>` and `GET /api/<collection>/:id` (e.g., `/api/articles`, `/api/projects`, `/api/media`).
 - **REST Globals**: `GET /api/globals/<slug>` (e.g., `/api/globals/site-settings`, `/api/globals/header`).
 - **Form Submissions**: `POST /api/form-submissions` (public visitor submission endpoint protected by honeypot validation and IP rate limiting).
-- **GraphQL Endpoint**: `POST /api/graphql` (interactive GraphQL Playground available at `/api/graphql-playground` in development; introspection disabled in production).
+- **Admin GraphQL Endpoint**: `POST /api/graphql` requires an authenticated user accepted by `Users.access.admin` (`hasAnyRole`). The Admin GraphQL inspector uses this route.
+- **GraphQL Playground**: `GET /api/graphql-playground` has the same authorization gate. This app serves it in development and disables it in production; production introspection remains disabled.
+- **Public GraphQL**: No anonymous public GraphQL API is enabled. No public persisted-query route is enabled while Payload 3.90.2 request-context integration and deployment controls remain unverified.
 
 ## Webhook & Custom Admin Endpoints
 
