@@ -116,6 +116,21 @@ const requiredEnv = (env: Environment, name: string, explanation: string): strin
 type ParsedPostgresTarget = {
   endpointId: string
   database: string
+  hostname: string
+}
+
+/** Normalizes only Neon's official pooler hostname variant; the rest of the hostname must match. */
+const normalizeNeonEndpointHostname = (hostname: string): string => {
+  const normalized = hostname.trim().toLowerCase()
+  const separator = normalized.indexOf('.')
+  if (separator < 0) return normalized
+
+  const endpointLabel = normalized.slice(0, separator)
+  const directEndpointLabel = endpointLabel.endsWith('-pooler')
+    ? endpointLabel.slice(0, -'-pooler'.length)
+    : endpointLabel
+
+  return `${directEndpointLabel}${normalized.slice(separator)}`
 }
 
 const parsePostgresTarget = (raw: string, variable: string): ParsedPostgresTarget => {
@@ -152,7 +167,7 @@ const parsePostgresTarget = (raw: string, variable: string): ParsedPostgresTarge
     return fail(`${variable} must name its database explicitly.`)
   }
 
-  return { endpointId, database }
+  return { endpointId, database, hostname: host }
 }
 
 const assertIdentifier = (value: string, pattern: RegExp, variable: string): void => {
@@ -272,6 +287,16 @@ export async function verifyNeonTestTargetMetadata(
   }
 
   try {
+    const testUrlTarget = parsePostgresTarget(target.connectionString, 'POSTGRES_TEST_URL')
+    const appUrlTarget = parsePostgresTarget(target.applicationConnectionString, 'POSTGRES_URL')
+    if (
+      testUrlTarget.endpointId !== target.endpointId ||
+      testUrlTarget.database !== target.database ||
+      appUrlTarget.endpointId !== target.appEndpointId
+    ) {
+      return metadataFailed()
+    }
+
     const neon = clientFactory(apiKey)
     const branchResult = await neon.branches.get({
       projectId: target.projectId,
@@ -302,6 +327,8 @@ export async function verifyNeonTestTargetMetadata(
       testEndpoint.project_id !== target.projectId ||
       testEndpoint.branch_id !== target.branchId ||
       detectNeonEndpointId(testEndpoint.host) !== target.endpointId ||
+      normalizeNeonEndpointHostname(testEndpoint.host) !==
+        normalizeNeonEndpointHostname(testUrlTarget.hostname) ||
       testEndpoint.type !== 'read_write' ||
       testEndpoint.disabled !== false
     ) {
@@ -320,6 +347,8 @@ export async function verifyNeonTestTargetMetadata(
       appEndpoint.project_id !== target.appProjectId ||
       appEndpoint.branch_id === target.branchId ||
       detectNeonEndpointId(appEndpoint.host) !== target.appEndpointId ||
+      normalizeNeonEndpointHostname(appEndpoint.host) !==
+        normalizeNeonEndpointHostname(appUrlTarget.hostname) ||
       appEndpoint.id === testEndpoint.id
     ) {
       return metadataFailed()

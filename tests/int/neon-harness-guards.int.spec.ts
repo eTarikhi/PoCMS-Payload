@@ -277,10 +277,25 @@ describe('Independent Neon metadata verification', () => {
     )
   })
 
-  it('refuses if the test endpoint is missing, belongs elsewhere, disabled, or read-only', async () => {
+  it('refuses if the test endpoint is missing, belongs elsewhere, disabled, read-only, or has a different hostname', async () => {
     await expect(verify(baseEnv(), { testEndpoints: [] })).rejects.toThrow(
       /Neon metadata could not independently confirm/,
     )
+
+    await expect(
+      verify(baseEnv(), {
+        testEndpoints: [
+          {
+            id: TEST_ENDPOINT_ID,
+            project_id: 'test-project-id',
+            branch_id: TEST_BRANCH_ID,
+            host: `${TEST_ENDPOINT_ID}.wrong-region.neon.tech`,
+            type: 'read_write',
+            disabled: false,
+          },
+        ],
+      }),
+    ).rejects.toThrow(/Neon metadata could not independently confirm/)
 
     await expect(
       verify(baseEnv(), {
@@ -328,7 +343,7 @@ describe('Independent Neon metadata verification', () => {
     ).rejects.toThrow(/Neon metadata could not independently confirm/)
   })
 
-  it('refuses a second endpoint when Neon metadata maps it to the normal app branch', async () => {
+  it('refuses an app endpoint on the test branch or a URL hostname that disagrees with metadata', async () => {
     await expect(
       verify(baseEnv(), {
         appEndpoint: {
@@ -336,6 +351,19 @@ describe('Independent Neon metadata verification', () => {
           project_id: 'app-project-id',
           branch_id: TEST_BRANCH_ID,
           host: `${APP_ENDPOINT_ID}.eu-central-1.aws.neon.tech`,
+          type: 'read_write',
+          disabled: false,
+        },
+      }),
+    ).rejects.toThrow(/Neon metadata could not independently confirm/)
+
+    await expect(
+      verify(baseEnv(), {
+        appEndpoint: {
+          id: APP_ENDPOINT_ID,
+          project_id: 'app-project-id',
+          branch_id: APP_BRANCH_ID,
+          host: `${APP_ENDPOINT_ID}.wrong-region.neon.tech`,
           type: 'read_write',
           disabled: false,
         },
