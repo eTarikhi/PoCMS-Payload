@@ -30,7 +30,7 @@ describe('Front-End Accessibility & Infrastructure Hygiene', () => {
     expect(collapseEl?.classList.contains('show')).toBe(false)
   })
 
-  it('keeps CI workflow, Docker Postgres 16 + standalone config, Open_Sans weights, and removed starter route aligned', () => {
+  it('keeps CI, Neon-backed Docker config, standalone output, Open_Sans weights, and starter route aligned', () => {
     const root = process.cwd()
 
     // Starter route removed (0 unused-var ESLint warnings)
@@ -43,10 +43,11 @@ describe('Front-End Accessibility & Infrastructure Hygiene', () => {
     expect(ciYaml).toContain('postgres:16-alpine')
     expect(ciYaml).toContain('pnpm run test:e2e')
 
-    // Docker Compose & Dockerfile aligned with PostgreSQL 16 + DOCKER_BUILD standalone output
+    // Docker Compose runs only the app and inherits its Neon URL from the untracked .env file.
     const composeYaml = fs.readFileSync(path.join(root, 'docker-compose.yml'), 'utf8')
-    expect(composeYaml).toContain('postgres:16-alpine')
-    expect(composeYaml).toContain('POSTGRES_URL')
+    expect(composeYaml).toContain('env_file:')
+    expect(composeYaml).not.toContain('postgres:16-alpine')
+    expect(composeYaml).not.toContain('POSTGRES_URL: postgres://')
     expect(composeYaml).not.toContain('mongo:')
 
     const dockerfile = fs.readFileSync(path.join(root, 'Dockerfile'), 'utf8')
@@ -69,8 +70,7 @@ describe('Front-End Accessibility & Infrastructure Hygiene', () => {
 
   it('auto-resolves local Chrome or Microsoft Edge on Windows when cdn.playwright.dev is geo-restricted', () => {
     // 1. Bundled ms-playwright + headless shell installed (GitHub Actions CI)
-    const ciBundled =
-      '/home/runner/.cache/ms-playwright/chromium-1208/chrome-linux64/chrome'
+    const ciBundled = '/home/runner/.cache/ms-playwright/chromium-1208/chrome-linux64/chrome'
     const ciShell =
       '/home/runner/.cache/ms-playwright/chromium_headless_shell-1208/chrome-headless-shell-linux64/chrome-headless-shell'
     expect(

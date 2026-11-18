@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { createRequire } from 'node:module'
+import { dirname, join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
@@ -49,6 +50,17 @@ describe('Supported runtime: Vercel/Neon PostgreSQL adapter', () => {
 
     // The Phase 2A local-driver escape hatch must not reappear on the required path.
     expect(source).not.toContain('forceUseVercelPostgres')
+  })
+
+  it('keeps local and Docker development connected to an explicitly configured Neon URL', () => {
+    const compose = readFileSync(join(process.cwd(), 'docker-compose.yml'), 'utf8')
+    const environmentTemplate = readFileSync(join(process.cwd(), '.env.example'), 'utf8')
+
+    expect(compose).toContain('env_file:')
+    expect(compose).not.toMatch(/^\s{2}postgres:\s*$/m)
+    expect(compose).not.toContain('POSTGRES_URL: postgres://')
+    expect(environmentTemplate).toContain('Neon PostgreSQL in every environment')
+    expect(environmentTemplate).not.toContain('postgres://postgres:postgres@127.0.0.1')
   })
 
   it('uses a driver whose installed implementation is the Neon/Vercel one', () => {
@@ -112,10 +124,33 @@ describe('Supported runtime: Vercel/Neon PostgreSQL adapter', () => {
   })
 
   it('disables schema push under NODE_ENV=test unless explicitly opted in', () => {
-    // This is why the integration suite must pre-push the schema; it must not be changed silently.
     expect(buildPostgresAdapterArgs({ NODE_ENV: 'test' }).push).toBe(false)
     expect(buildPostgresAdapterArgs({ NODE_ENV: 'test', PAYLOAD_DB_PUSH: 'true' }).push).toBe(true)
     expect(buildPostgresAdapterArgs({ NODE_ENV: 'production' }).push).toBeUndefined()
+  })
+
+  it('matches the installed adapter schema-push and database-creation behavior', () => {
+    const requireFromHere = createRequire(import.meta.url)
+    const adapterEntry = requireFromHere.resolve('@payloadcms/db-vercel-postgres')
+    const adapterRequire = createRequire(adapterEntry)
+    const drizzleEntry = adapterRequire.resolve('@payloadcms/drizzle')
+    const connectSource = readFileSync(join(dirname(adapterEntry), 'connect.js'), 'utf8')
+    const pushSource = readFileSync(
+      join(dirname(drizzleEntry), 'utilities', 'pushDevSchema.js'),
+      'utf8',
+    )
+
+    // In Payload 3.90.2 connect() calls pushDevSchema for a non-production process unless
+    // `push` is false. pushDevSchema delegates to Drizzle Kit, applies the generated plan, and
+    // records a dev-push migration marker. The live harness enables this only after Neon metadata
+    // approval and disables the adapter's automatic CREATE DATABASE fallback.
+    expect(connectSource).toContain('this.push !== false')
+    expect(connectSource).toContain('await pushDevSchema(this)')
+    expect(connectSource).toContain("process.env.PAYLOAD_DROP_DATABASE === 'true'")
+    expect(connectSource).toContain('!this.disableCreateDatabase')
+    expect(pushSource).toContain('pushSchema(adapter.schema, adapter.drizzle')
+    expect(pushSource).toContain('await apply()')
+    expect(pushSource).toContain("batch = '-1'")
   })
 
   it('exposes the Vercel/Neon adapter on the loaded config', async () => {

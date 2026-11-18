@@ -2,57 +2,113 @@
 /**
  * Neon-backed integration spec for Payload request handling.
  *
- * Runs only via `pnpm test:int:neon`, against a **separate disposable Neon branch**, using the
- * real installed `@payloadcms/db-vercel-postgres` adapter. It must never run against the owner's
- * application database, and it fails closed rather than skipping.
+ * Runs only via `pnpm test:int:neon`, against the explicitly approved disposable Neon branch. It
+ * uses the real installed `@payloadcms/db-vercel-postgres` adapter and a real Vercel/Neon pool; no
+ * database connection is mocked.
  *
- * What it verifies, all against real Neon:
- *
- *   - Payload boots through the Vercel/Neon adapter against the disposable branch;
- *   - the schema can be created there (schema push is disabled under NODE_ENV=test unless
- *     `PAYLOAD_DB_PUSH=true`, so the suite requires that opt-in explicitly);
- *   - real SQL executes (a Local API read);
- *   - the committed GraphQL route still denies a real anonymous request;
- *   - the anonymous REST form-submission collection is readable through real SQL.
- *
- * Scope note: this does not verify an alternate GraphQL mount (`/api/fgql`), which remains
- * unimplemented, and it makes no claim about request-context preservation.
+ * The setup has independently verified the Neon branch and endpoints before this file is imported,
+ * then enabled schema push in-process. This spec revalidates those checks immediately before
+ * Payload initialization, forbids database drop/create behavior, and disables read replicas.
  */
+import { randomUUID } from 'node:crypto'
+
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import type { Payload } from 'payload'
 
-import { DISPOSABLE_DB_MARKER, type NeonTestTarget } from './neonTestHarness'
+import {
+  assertDestructiveOptIn,
+  assertProcessPointsAtTestDatabase,
+  type VerifiedNeonTestTarget,
+  verifyNeonTestTargetMetadata,
+} from './neonTestHarness'
 
-let target: NeonTestTarget
+declare global {
+  var __NEON_TEST_TARGET__: VerifiedNeonTestTarget | undefined
+}
+
+let target: VerifiedNeonTestTarget
 let payload: Payload | null = null
+let formId: number | string
 
 beforeAll(async () => {
-  // Populated by neonFailClosedSetup.ts, which has already validated the target and re-pointed
-  // POSTGRES_URL at the disposable branch.
-  target = globalThis.__NEON_TEST_TARGET__ as NeonTestTarget
-  expect(target).toBeDefined()
+  target = globalThis.__NEON_TEST_TARGET__ as VerifiedNeonTestTarget
+  if (!target) {
+    throw new Error('The Neon setup did not publish an independently verified target.')
+  }
 
-  // Schema push must be enabled deliberately; payload.config.ts sets `push: false` when
-  // NODE_ENV === 'test' and this is not 'true'. Without it, an empty branch has no schema.
-  if (process.env.PAYLOAD_DB_PUSH !== 'true') {
+  if (process.env.NODE_ENV !== 'test' || process.env.PAYLOAD_DB_PUSH !== 'true') {
+    throw new Error('The validated Neon setup did not enable test-only schema push.')
+  }
+  if (process.env.PAYLOAD_DROP_DATABASE === 'true') {
+    throw new Error('PAYLOAD_DROP_DATABASE=true is prohibited by the Neon integration suite.')
+  }
+
+  const approvalEnvironment = {
+    ...process.env,
+    // The original application URL is retained only in memory to re-check endpoint separation.
+    POSTGRES_URL: target.applicationConnectionString,
+    PAYLOAD_DB_PUSH: undefined,
+  }
+  assertDestructiveOptIn(approvalEnvironment, target)
+  await verifyNeonTestTargetMetadata(target, process.env)
+  assertProcessPointsAtTestDatabase(target)
+
+  const { getPayload } = await import('payload')
+  const { default: configPromise } = await import('@/payload.config')
+  const config = await configPromise
+
+  const db = config.db as unknown as {
+    disableCreateDatabase?: boolean
+    packageName?: string
+    poolOptions?: { connectionString?: string }
+    push?: boolean
+    readReplicaOptions?: unknown[]
+  }
+
+  // Refuse to initialize if Payload's actual config does not point at the metadata-verified URL,
+  // uses another adapter, enables replicas, or has not enabled push under NODE_ENV=test.
+  if (
+    db.packageName !== '@payloadcms/db-vercel-postgres' ||
+    db.poolOptions?.connectionString !== target.connectionString ||
+    db.push !== true ||
+    (Array.isArray(db.readReplicaOptions) && db.readReplicaOptions.length > 0)
+  ) {
     throw new Error(
-      [
-        'PAYLOAD_DB_PUSH is not "true".',
-        '',
-        'Under NODE_ENV=test the adapter disables schema push, and this repository has no tracked',
-        'migrations (src/migrations does not exist). On an empty disposable branch there would be',
-        'no tables, so the suite refuses to run rather than reporting misleading failures.',
-        '',
-        'Re-run with PAYLOAD_DB_PUSH=true.',
-      ].join('\n'),
+      'Resolved Payload database configuration does not match the verified Neon test target.',
     )
   }
 
-  const { getPayload } = await import('payload')
-  const { default: config } = await import('@/payload.config')
+  // Payload 3.90.2 otherwise attempts CREATE DATABASE after a missing-database connection error.
+  // The approved database must already exist; this suite never creates or drops a database.
+  db.disableCreateDatabase = true
+  if (db.disableCreateDatabase !== true) {
+    throw new Error(
+      'Could not disable automatic database creation. Refusing to initialize Payload.',
+    )
+  }
 
   payload = await getPayload({ config })
+
+  // Seed one synthetic form on this disposable branch so the public REST submission path is tested
+  // even when the Neon branch has an empty Payload schema/data set. Email dispatch is blocked by
+  // PLAYWRIGHT_TEST and the x-playwright-e2e request header below.
+  const { formsData } = await import('@/seed/forms')
+  const formData = formsData()[0]
+  if (!formData) throw new Error('The form seed did not provide the synthetic integration form.')
+
+  const formSlug = `neon-integration-${randomUUID()}`
+  const form = await payload.create({
+    collection: 'forms',
+    context: { skipRevalidate: true },
+    data: {
+      ...formData,
+      title: 'Neon Integration Test Form',
+      slug: formSlug,
+    },
+    overrideAccess: true,
+  })
+  formId = form.id
 }, 180_000)
 
 afterAll(async () => {
@@ -60,14 +116,14 @@ afterAll(async () => {
     await payload.db.destroy().catch(() => undefined)
   }
   payload = null
-  // No drop, no truncate. The disposable branch is discarded by the operator, not by this suite.
+  // No DROP DATABASE, CREATE DATABASE, truncate, or cleanup delete. The operator discards the
+  // approved disposable Neon branch when finished.
 }, 60_000)
 
 describe('Neon + Payload request handling', () => {
-  it('boots Payload through the Vercel/Neon adapter and runs real SQL', async () => {
+  it('boots the installed Vercel/Neon adapter and runs real SQL', async () => {
     expect(payload).not.toBeNull()
-    // Target is proven disposable by the setup guard; the assertion documents intent.
-    expect(target.database).toContain(DISPOSABLE_DB_MARKER)
+    expect(target.endpointId).toBeTruthy()
 
     const users = await payload!.find({ collection: 'users', limit: 1 })
     expect(users).toBeDefined()
@@ -78,7 +134,7 @@ describe('Neon + Payload request handling', () => {
     const { POST } = await import('@/app/(payload)/api/graphql/route')
 
     const response = await POST(
-      new Request('http://127.0.0.1:3000/api/graphql', {
+      new Request('http://localhost/api/graphql', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: '{ Users { docs { id } } }' }),
@@ -90,8 +146,58 @@ describe('Neon + Payload request handling', () => {
     expect(await response.json()).toEqual({ error: 'Authentication required.' })
   }, 120_000)
 
-  it('reads the anonymous form-submission collection through real SQL', async () => {
-    const submissions = await payload!.find({ collection: 'form-submissions', limit: 1 })
-    expect(Array.isArray(submissions.docs)).toBe(true)
+  it('allows an anonymous REST form submission, persists it, and keeps reads private', async () => {
+    const { GET, POST } = await import('@/app/(payload)/api/[...slug]/route')
+    const submissionData = [
+      { field: 'name', value: 'Neon Integration Visitor' },
+      { field: 'email', value: 'neon-integration@example.invalid' },
+      { field: 'subject', value: 'Integration validation' },
+      { field: 'message', value: 'Synthetic submission for the disposable Neon branch.' },
+    ]
+
+    const createResponse = await POST(
+      new Request('http://localhost/api/form-submissions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-playwright-e2e': '1',
+        },
+        body: JSON.stringify({ form: formId, submissionData }),
+      }),
+      { params: Promise.resolve({ slug: ['form-submissions'] }) },
+    )
+
+    expect(createResponse.status).toBe(201)
+    const createBody = (await createResponse.json()) as {
+      doc?: { id?: number | string }
+    }
+    const submissionId = createBody.doc?.id
+    expect(submissionId).toBeDefined()
+
+    const persisted = await payload!.findByID({
+      collection: 'form-submissions',
+      depth: 0,
+      id: submissionId as number | string,
+      overrideAccess: true,
+    })
+    expect(persisted.submittedBySummary).toContain('Neon Integration Visitor')
+    expect(persisted.submissionData).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'name', value: 'Neon Integration Visitor' }),
+        expect.objectContaining({ field: 'email', value: 'neon-integration@example.invalid' }),
+      ]),
+    )
+
+    const readResponse = await GET(
+      new Request(`http://localhost/api/form-submissions/${String(submissionId)}`, {
+        method: 'GET',
+      }),
+      {
+        params: Promise.resolve({
+          slug: ['form-submissions', String(submissionId)],
+        }),
+      },
+    )
+    expect(readResponse.status).toBe(403)
   }, 120_000)
 })

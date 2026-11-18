@@ -1,215 +1,190 @@
-# Phase 2A — Neon integration foundation
+# Phase 2A.1 — Neon disposable-branch safety and integration validation
 
-**Status:** Foundation built and its guard rails verified. **Neon integration has NOT been executed.** No disposable Neon branch or credential is available in the environment where this was written, so nothing here claims a passing Neon run.
+**Architecture:** the app runs locally but connects to Neon. `src/payload.config.ts` uses
+`@payloadcms/db-vercel-postgres` in every environment; local PostgreSQL, Docker PostgreSQL, and a
+plain `pg.Pool` are not supported application targets.
 
-**Architecture correction:** an earlier revision of this document described a local PostgreSQL/Docker testing story and added a local `pg.Pool` escape hatch. That was wrong. The application uses **Vercel/Neon PostgreSQL in every environment, including local development**: the developer runs the app locally, the database is a Neon branch. A local PostgreSQL server, a Docker PostgreSQL service, and a plain `pg.Pool` are **not** part of the supported architecture. Everything local-only has been removed from the required path.
+**Validation status:** the safety harness and source-level adapter checks are implemented. No live
+Neon integration or empty-branch schema bootstrap is claimed; this checkout has no approved test
+branch credentials or target metadata. The Neon integration command fails closed without them.
 
----
+## 1. Runtime and schema-push behavior
 
-## 1. Verified architecture
+### Adapter
 
-### 1.1 Adapter wiring (source-verified)
+The configured adapter is `vercelPostgresAdapter` from `@payloadcms/db-vercel-postgres`. For remote
+Neon hosts, Payload 3.90.2's installed adapter uses `VercelPool` from `@vercel/postgres`, backed by
+the Neon serverless driver. The third-party adapter retains a loopback `pg.Pool` branch, but the
+supported app configuration does not use it. No local database driver selection or URL rewriting
+has been added to the app path.
 
-`src/payload.config.ts:308` constructs the database with `vercelPostgresAdapter` imported from `@payloadcms/db-vercel-postgres` (line 1). It is never `@payloadcms/db-postgres`.
+The app's Neon pool profile remains unchanged: `max: 4`, `idleTimeoutMillis: 5000`,
+`connectionTimeoutMillis: 30000`, and `maxUses: 7500`. Remote connection URLs pass through unchanged.
 
-The resolved config exposes a `db` object with `name: 'postgres'`, `defaultIDType: 'number'`, and an `init` function — confirmed by executing the real config.
+### `PAYLOAD_DB_PUSH=true`
 
-### 1.2 Which driver runs, and where
+The installed Payload 3.90.2 adapter source was inspected and is guarded by a local contract test:
 
-`node_modules/@payloadcms/db-vercel-postgres/dist/connect.js:13-24`:
+1. `connect.js` skips the adapter's `dropDatabase()` call unless `PAYLOAD_DROP_DATABASE=true`.
+2. On a missing database, the adapter's connection error handler may call `createDatabase()` unless
+   `disableCreateDatabase` is true.
+3. After `createExtensions()`, a non-production connection with `push !== false` calls
+   `pushDevSchema()` unless `PAYLOAD_MIGRATING=true`.
+4. The installed `pushDevSchema()` calls Drizzle Kit `pushSchema()`, applies the resulting plan,
+   and records/updates the dev-push entry in `payload_migrations` (`batch = -1`). This is schema
+   push, not execution of files from `src/migrations`.
 
-- **Production / any remote Neon host** → `VercelPool`, i.e. `@neondatabase/serverless`'s `Pool`, which tunnels over WebSocket (`wss://<endpoint>/v2`).
-- **`127.0.0.1` / `localhost`** → a plain `pg.Pool`.
+Under `NODE_ENV=test`, `src/payload.config.ts` sets `push: false` unless
+`PAYLOAD_DB_PUSH === 'true'`. The Neon setup clears any shell-provided push flag and only sets it
+after all local opt-ins and Neon metadata checks pass. It also:
 
-Because the supported database is always Neon, the effective production and local-development driver is the **Neon serverless driver**. The `pg.Pool` branch is reachable only for a loopback URL, which the supported architecture does not use. That branch is not tested or exercised by this repository's integration path, by design.
+- rejects `PAYLOAD_DROP_DATABASE=true`;
+- sets the resolved adapter's `disableCreateDatabase=true` before Payload initialization;
+- removes configured read-replica URLs so no query can be sent to another branch; and
+- verifies that the resolved adapter is `@payloadcms/db-vercel-postgres` and its primary
+  `poolOptions.connectionString` exactly matches the approved Neon test URL.
 
-> Correction of an earlier claim: the Phase 2A revision treated the loopback/`pg.Pool` branch as a defect to fix and added URL rewriting to force it. That was wrong on two counts — it is not the runtime path, and forcing it would have moved the app _off_ the supported Neon driver. The rewriting is removed. `src/lib/postgresAdapterConfig.ts` is back to its pre-Phase-2A state.
+The source-level path shows Drizzle Kit can generate/apply a schema on an empty database, but it is
+**not proof** that bootstrap succeeds on a real empty Neon branch. No live branch was available to
+verify that behavior. Schema push may warn about data loss on a non-empty schema and may prompt; do
+not approve that prompt on an owner/production branch.
 
-### 1.3 Pool semantics that must not change (verified by tests)
+## 2. Fail-closed safety model
 
-| Setting                   | Neon/remote value             | Notes                                          |
-| ------------------------- | ----------------------------- | ---------------------------------------------- |
-| `max`                     | `4`                           | keeps serverless isolates off PgBouncer limits |
-| `idleTimeoutMillis`       | `5_000`                       | releases WebSockets for scale-to-zero          |
-| `connectionTimeoutMillis` | `30_000`                      | accommodates cold wake-ups                     |
-| `maxUses`                 | `7_500`                       | —                                              |
-| `push`                    | `false` under `NODE_ENV=test` | unless `PAYLOAD_DB_PUSH=true`                  |
+`tests/integration/neonFailClosedSetup.ts` runs before the integration spec imports
+`payload.config.ts`. Local validation does not contact Neon. Only after it passes does the harness
+make read-only calls to the Neon control-plane API; Payload's database connection is attempted only
+after those metadata checks pass.
 
----
+| Check                  | Required evidence                                                                                                               | Failure behavior                                                |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Explicit target URL    | `POSTGRES_TEST_URL` is set and points to a Neon endpoint                                                                        | Fail; never fall back to `POSTGRES_URL`                         |
+| Normal app endpoint    | `POSTGRES_URL` is set and points to a Neon endpoint                                                                             | Fail if missing, invalid, or not Neon                           |
+| Different endpoint     | Test endpoint ID differs from the app endpoint ID                                                                               | Fail; a different database name is insufficient                 |
+| Independent approval   | `NEON_TEST_BRANCH_ID`, `NEON_TEST_ENDPOINT_ID`, `NEON_TEST_DATABASE`, project IDs, and `NEON_API_KEY` are explicitly configured | Fail if any item is missing or mismatched                       |
+| Disposable opt-in      | `NEON_TEST_BRANCH_DISPOSABLE=true`                                                                                              | Fail; names and host patterns are not evidence of disposability |
+| Schema-change opt-in   | `PAYLOAD_TEST_DB_ALLOW_DESTRUCTIVE=true`                                                                                        | Fail before enabling `PAYLOAD_DB_PUSH`                          |
+| Neon branch metadata   | Neon API confirms the requested branch/project IDs; branch is not default or protected                                          | Fail closed on any mismatch or API error                        |
+| Test endpoint metadata | Neon API confirms the URL endpoint ID and normalized host match the approved read-write endpoint on that branch                 | Fail closed on mismatch                                         |
+| App branch metadata    | Neon API maps the endpoint in `POSTGRES_URL` to a branch different from the approved test branch                                | Fail even if endpoint IDs differ but branch IDs match           |
+| Push activation        | Only after all checks, the process is redirected to the verified test URL and `PAYLOAD_DB_PUSH=true` is set                     | Fail if the target or opt-ins changed                           |
+| Database creation/drop | `PAYLOAD_DROP_DATABASE=true` is forbidden; Payload `disableCreateDatabase` is enabled                                           | No `DROP DATABASE` or `CREATE DATABASE` by this suite           |
 
-## 2. What changed in this correction
+The harness does not infer safety from the database name, a `test` substring, a hostname pattern,
+or a different endpoint alone. The owner must explicitly designate the branch as disposable and
+supply its branch/endpoint IDs independently; Neon API metadata must match those IDs and prove the
+app and test URLs map to different branches. If Neon metadata is unavailable, the suite fails before
+opening a database connection.
 
-### 2.1 Removed from the application path
+All errors are written without connection URLs, credentials, passwords, API keys, or query
+parameters. The approved URLs stay in process memory for target comparison and for the real Payload
+adapter only.
 
-| Removed                              | Why                                                                                       |
-| ------------------------------------ | ----------------------------------------------------------------------------------------- |
-| `usesDriftedLocalHost`               | Detects a local-vs-Neon hostname mismatch that cannot occur in the supported architecture |
-| `resolveLocalDriverConnectionString` | Rewrote URLs to `127.0.0.1` to force `pg.Pool` — the opposite of the supported driver     |
-| `resolvePoolOptions`                 | Applied that rewrite inside `buildPostgresAdapterArgs`                                    |
-| `forceUseVercelPostgres` wiring      | Belongs to the local escape hatch; must never appear on the required path                 |
+### Data isolation caveat
 
-`buildPostgresAdapterArgs` is back to calling `resolvePostgresPoolOptions` directly, exactly as before Phase 2A.
+A Neon branch is a snapshot of its parent. A branch can have a different endpoint and branch ID yet
+still contain copied production or development data. `NEON_TEST_BRANCH_DISPOSABLE=true` is an
+explicit owner assertion; the harness verifies branch identity and metadata but does not claim the
+branch has no inherited data. Create/approve a branch whose contents are safe for schema changes and
+synthetic test writes. Do not use the normal production/development branch.
 
-### 2.2 Tests removed
+## 3. Integration behavior
 
-| Removed                                                  | Why it did not belong                                                                        |
-| -------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `tests/int/postgres-driver-selection.int.spec.ts`        | Entirely about Compose-alias/`[::1]`/`localhost` → `pg.Pool` selection. That path is unused. |
-| `tests/int/postgres-harness-guards.int.spec.ts`          | Guarded a local-PostgreSQL harness (loopback-only hosts, `DROP DATABASE`)                    |
-| `tests/integration/postgresHarness.ts`                   | Created/dropped databases over a plain `pg` connection                                       |
-| `tests/integration/failClosedSetup.ts`                   | Setup for the local harness                                                                  |
-| `tests/integration/payloadRequestContext.pg.int.spec.ts` | Ran against a local disposable database                                                      |
-| `vitest.pg.config.mts`                                   | Config for the removed suite                                                                 |
+`tests/integration/neonPayloadRequestContext.neon.int.spec.ts` is prepared to exercise the real
+installed adapter and Payload runtime. After the verified adapter initializes, it:
 
-### 2.3 Tests retained / added
+- runs a Local API query against the real Neon database;
+- sends an anonymous request through the committed GraphQL route and asserts the existing `401`,
+  `cache-control: no-store`, and authorization error response;
+- creates one synthetic form on the disposable branch, then posts an anonymous form submission
+  through Payload's real REST catch-all route;
+- checks the persisted submission through the Local API and asserts anonymous reads stay forbidden;
+- suppresses Resend calls via the existing `PLAYWRIGHT_TEST` flag and `x-playwright-e2e` test header;
+- closes the adapter pool only. It does not delete test rows, truncate tables, drop/create a database,
+  or delete the branch.
 
-| File                                                           | Type          | What it protects                                                                                                                                                                                                      |
-| -------------------------------------------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tests/int/neon-adapter-config.int.spec.ts`                    | config, no DB | `payload.config.ts` imports `@payloadcms/db-vercel-postgres` and **not** `@payloadcms/db-postgres`; the installed adapter is the Neon one; Neon pool sizing; remote URLs pass through byte-for-byte; `push` semantics |
-| `tests/int/neon-harness-guards.int.spec.ts`                    | unit, no DB   | Every refusal in the Neon harness (see §3)                                                                                                                                                                            |
-| `tests/integration/neonTestHarness.ts`                         | harness       | Target validation and destructive opt-in                                                                                                                                                                              |
-| `tests/integration/neonTarget.ts`                              | helper        | Neon endpoint-id parsing                                                                                                                                                                                              |
-| `tests/integration/neonFailClosedSetup.ts`                     | setup         | Validates, then redirects `POSTGRES_URL`, then re-asserts                                                                                                                                                             |
-| `tests/integration/neonPayloadRequestContext.neon.int.spec.ts` | **real Neon** | Payload boots via the Neon adapter, real SQL, real anonymous GraphQL denial, REST form-submission read                                                                                                                |
-| `vitest.neon.config.mts`                                       | config        | `test:int:neon`                                                                                                                                                                                                       |
+Test rows are left on the approved branch. The owner discards that branch after review. No application
+GraphQL authorization route or role check, anonymous GraphQL behavior, public form-submission REST
+access, frontend behavior, or REST catch-all route was changed.
 
-The adapter guard is proven non-vacuous: swapping the import to `@payloadcms/db-postgres` makes it fail.
+## 4. Environment required to run locally
 
----
+Set these in the shell/process that runs `pnpm test:int:neon`. Do not print or paste any URL, token,
+password, or API key. The existing `NEON_API_KEY` is used by this preflight only for read-only branch
+and endpoint metadata requests.
 
-## 3. Safety model for the Neon integration suite
+| Variable                            | Required value / purpose                                                                                                                                                      |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POSTGRES_URL`                      | The normal application Neon URL. Required for endpoint and branch separation checks; the harness reads it, then replaces it with the approved test URL only after validation. |
+| `POSTGRES_TEST_URL`                 | The pooled URL for the approved test branch and its already-existing database. No fallback is used.                                                                           |
+| `NEON_API_KEY`                      | Neon API key available to the installed `@neon/sdk`; API errors are not printed.                                                                                              |
+| `NEON_TEST_PROJECT_ID`              | Project ID containing the approved test branch.                                                                                                                               |
+| `NEON_APP_PROJECT_ID`               | Project ID containing the endpoint in `POSTGRES_URL` (may equal the test project).                                                                                            |
+| `NEON_TEST_BRANCH_ID`               | Independently copied `br-...` ID for the approved branch.                                                                                                                     |
+| `NEON_TEST_ENDPOINT_ID`             | Independently copied `ep-...` read-write endpoint ID; must match both URL and Neon metadata.                                                                                  |
+| `NEON_TEST_DATABASE`                | Exact existing database name in `POSTGRES_TEST_URL`; it is an identity check, not disposability evidence.                                                                     |
+| `NEON_TEST_BRANCH_DISPOSABLE`       | Must be `true`: explicit owner approval that this exact branch is disposable.                                                                                                 |
+| `PAYLOAD_TEST_DB_ALLOW_DESTRUCTIVE` | Must be `true`: explicit owner approval for schema push and synthetic test writes on that branch.                                                                             |
+| `PAYLOAD_DB_PUSH`                   | **Do not set to `true` in the shell.** The harness clears it and enables it only after all safety checks; a pre-set `true` is refused.                                        |
+| `PAYLOAD_DROP_DATABASE`             | Must not be `true`; the harness rejects it.                                                                                                                                   |
+| `PAYLOAD_SECRET`                    | Optional; a random process-only secret is generated if absent.                                                                                                                |
 
-The dangerous case is specific and real. `payload.config.ts` builds its pool from `POSTGRES_URL`, which in a normal local dev environment points at the **owner's real Neon database**. Any integration suite that boots Payload without care would talk to production data.
+`NODE_ENV=test` is required and set by Vitest. Read-replica environment variables are cleared by the
+harness. Existing app variables such as `NEON_PROJECT_ID` and `NEON_BRANCH_ID` are for the admin
+provider integration; the test uses the separate `NEON_TEST_*` values above.
 
-`tests/integration/neonTestHarness.ts` therefore enforces, in order:
+### Run
 
-| #   | Guard                                                                                                                  | Refusal                                                                         |
-| --- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| 1   | `POSTGRES_TEST_URL` must be set; `POSTGRES_URL` is never used as a fallback                                            | "POSTGRES_TEST_URL is not set"                                                  |
-| 2   | Must not be byte-identical to `POSTGRES_URL`                                                                           | "identical to POSTGRES_URL"                                                     |
-| 3   | Host must be a Neon host (`*.neon.tech`)                                                                               | "not a Neon host" — localhost, Docker aliases and other hosts refused           |
-| 4   | Neon **endpoint id** must differ from the one in `POSTGRES_URL`                                                        | "same Neon endpoint" — a different database name on the same compute is refused |
-| 5   | Database name must differ from the application's                                                                       | "same database name"                                                            |
-| 6   | Database name must contain `pocms_test`                                                                                | name merely containing "test" is explicitly not accepted as proof               |
-| 7   | Destructive operations need `PAYLOAD_TEST_DB_ALLOW_DESTRUCTIVE=true` **and** re-validate the target immediately before | "not set to \"true\"" / "changed during the run"                                |
-| 8   | Before booting Payload, the process must be confirmed to point at the test database                                    | "would not use the disposable test database"                                    |
-
-`POSTGRES_URL` is overwritten **only after** guards 1–6 pass, and guard 8 re-checks the result. The order is deliberate: overwriting first would risk Payload reading the application URL.
-
-**The suite never drops, truncates or recreates a database.** The disposable branch is discarded by the operator. There is no `DROP DATABASE`, no `pg_terminate_backend`, and no plain-`pg` admin connection anywhere in the harness.
-
-Two guards are necessary but not sufficient, and are documented as such: the `pocms_test` marker, and a "test"-looking name. Only the endpoint-id comparison (guard 4) is treated as independent evidence that a different Neon compute is being used.
-
----
-
-## 4. Running the Neon integration suite
-
-### 4.1 Create a disposable Neon branch
-
-Use a branch, not a second database on the same branch. A branch gets its own endpoint id, which is what guard 4 checks. Create it in the Neon console, or:
+1. In Neon, create and review a separate, non-default branch that the owner explicitly considers
+   disposable. Use a parent whose copied data is safe for this test. Copy the branch ID, its read-write
+   endpoint ID, project ID, and the existing database name independently from Neon metadata.
+2. Configure the variables above locally. Keep the normal `POSTGRES_URL` present for comparison,
+   but do not echo it. Remove any manually-set `PAYLOAD_DB_PUSH=true` before starting.
+3. Run:
 
 ```bash
-neonctl branches create --name pocms-test --project-id <your-project-id>
-```
-
-Take the **pooled** connection string for that branch. Treat it as a secret: do not commit it, do not paste it into an issue, do not echo it into a shell history you share.
-
-### 4.2 Run
-
-```bash
-export POSTGRES_TEST_URL='postgresql://<user>:<pass>@ep-<branch-id>-<n>-pooler.<region>.aws.neon.tech/pocms_test'
-export PAYLOAD_TEST_DB_ALLOW_DESTRUCTIVE=true
-export PAYLOAD_DB_PUSH=true
-export PAYLOAD_SECRET="$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")"
 pnpm test:int:neon
 ```
 
-Notes:
+No database-create command is part of the procedure. The target database must already exist; the
+suite explicitly disables Payload's automatic database-create fallback. Schema push and the
+synthetic form/submission writes occur only after the independent Neon verification and both opt-ins.
 
-- The database name **must** contain `pocms_test`. Create it on the branch first: `CREATE DATABASE pocms_test;` on that branch only.
-- `PAYLOAD_DB_PUSH=true` is required: the adapter disables schema push under `NODE_ENV=test`, and this repository has no tracked migrations (`src/migrations` does not exist). Without it the branch has no tables and the spec refuses to run rather than reporting misleading failures.
-- The harness compares `POSTGRES_TEST_URL` against your `POSTGRES_URL`. For that comparison to be meaningful, have `POSTGRES_URL` set to the real application database in the same shell — that is how guard 4 proves the targets differ.
-- `PAYLOAD_TEST_DB_ALLOW_DESTRUCTIVE=true` is required because schema push mutates the branch.
+PowerShell uses the same environment-variable names; set them through your local secret/environment
+manager and run `pnpm test:int:neon`. Do not put connection strings or secrets in shell history or
+logs.
 
-### 4.3 Windows 11 (PowerShell)
+## 5. Verification status
 
-```powershell
-$env:POSTGRES_TEST_URL = 'postgresql://<user>:<pass>@ep-<branch-id>-<n>-pooler.<region>.aws.neon.tech/pocms_test'
-$env:PAYLOAD_TEST_DB_ALLOW_DESTRUCTIVE = 'true'
-$env:PAYLOAD_DB_PUSH = 'true'
-$env:PAYLOAD_SECRET = -join ((48..57) + (97..102) | Get-Random -Count 64 | ForEach-Object {[char]$_})
-pnpm test:int:neon
-```
+### Verified locally without a database
 
-With a Neon-native workflow, `neonctl` is available in PowerShell too:
+- The application config and installed adapter remain the Vercel/Neon path; remote Neon URLs and
+  pool settings are preserved.
+- Installed Payload 3.90.2 schema-push and automatic database creation/drop behavior are covered by
+  source-level contract assertions.
+- Harness guard tests use synthetic URLs and a fake Neon metadata client; they make no API or
+  database request.
+- Running `pnpm test:int:neon` with no configured test URL fails with a clear
+  `POSTGRES_TEST_URL is required` error. The Neon integration hooks do not proceed to metadata or a
+  database connection.
 
-```powershell
-neonctl branches create --name pocms-test --project-id <your-project-id>
-```
+### Pending owner-side validation
 
-### 4.4 Environment variables
+- Run against an approved disposable Neon branch with the exact variables above.
+- Confirm `PAYLOAD_DB_PUSH` successfully bootstraps an actually empty schema on that branch.
+- Exercise real adapter initialization, GraphQL authorization, and anonymous REST form-submission
+  behavior against Neon.
 
-| Variable                                            | Required              | Purpose                                                                                                     |
-| --------------------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `POSTGRES_TEST_URL`                                 | **Yes**               | Disposable Neon branch, database containing `pocms_test`. Never falls back to `POSTGRES_URL`.               |
-| `POSTGRES_URL`                                      | For safety comparison | The application database. Used **only** to prove the test target is a different endpoint. Never written to. |
-| `PAYLOAD_TEST_DB_ALLOW_DESTRUCTIVE`                 | Yes (`true`)          | Opt-in for schema-mutating operations.                                                                      |
-| `PAYLOAD_DB_PUSH`                                   | Yes (`true`)          | Enables schema push under `NODE_ENV=test`.                                                                  |
-| `PAYLOAD_SECRET`                                    | Yes (≥16 chars)       | Payload boot.                                                                                               |
-| `NEON_API_KEY`, `NEON_PROJECT_ID`, `NEON_BRANCH_ID` | No                    | Only for the `/admin/database` Tier-2 tooling; the suite does not use them.                                 |
+**No live Neon integration success or empty-branch bootstrap is claimed.** A disposable Neon branch,
+its read-write endpoint, and locally configured Neon API credentials are not available here.
 
-### 4.5 Cleanup
+## 6. Validation and boundaries
 
-The suite leaves the branch alone. When you are done:
+The no-database validation suite includes the Neon adapter configuration test, Neon harness guard
+tests, Phase 0/1 GraphQL contract tests, and the existing `pnpm test:int` suite. TypeScript,
+targeted ESLint/Prettier, and `git diff --check` are run locally for this Phase 2A.1 change. Exact
+results are recorded in the completion report.
 
-```bash
-neonctl branches delete pocms-test --project-id <your-project-id>
-```
-
-### 4.6 `docker-compose.yml`
-
-Unchanged. It remains an optional way to run the **application** container, and it is not a test fixture. It is not referenced by any test command, and no test requires Docker.
-
----
-
-## 5. Verified vs pending
-
-### Verified by execution in this environment
-
-| Item                                            | Evidence                                                                                                                      |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Config uses the Vercel/Neon adapter             | `neon-adapter-config` source + resolved-config assertions (7 tests)                                                           |
-| Adapter replacement is caught                   | Swapping to `@payloadcms/db-postgres` fails the guard                                                                         |
-| Neon pool sizing and remote URL pass-through    | 7 config tests                                                                                                                |
-| All 8 harness refusals                          | 15 guard tests                                                                                                                |
-| Neon suite fails closed                         | 5 live invocations: no URL, non-Neon host, identical to `POSTGRES_URL`, same endpoint, missing `PAYLOAD_DB_PUSH` — all exit 1 |
-| GraphQL Admin gate unchanged                    | 33 Phase 0/1 contract tests                                                                                                   |
-| No regression in the general suite              | 27 files, 180 passed, 1 pre-existing skip                                                                                     |
-| Typecheck, ESLint, Prettier, `git diff --check` | all clean                                                                                                                     |
-
-### Pending — requires a disposable Neon branch
-
-| Item                                                | Why it is pending                           |
-| --------------------------------------------------- | ------------------------------------------- |
-| Payload boots against Neon through the real adapter | No Neon branch or credential available here |
-| Schema push creates tables on an empty branch       | Same                                        |
-| Real anonymous GraphQL denial against Neon          | Same                                        |
-| REST form-submission read against Neon              | Same                                        |
-
-**No Neon integration run is claimed.** Until `pnpm test:int:neon` has been executed against a genuinely separate disposable branch, the Neon integration path is unproven.
-
----
-
-## 6. Remaining blockers
-
-1. **No Neon integration execution.** Needs a disposable Neon branch and its connection string. This is the single hard prerequisite to close Phase 2A.
-2. **Schema bootstrap on a fresh branch is unconfirmed.** `PAYLOAD_DB_PUSH=true` is the assumed path because no tracked migrations exist. Verify on a real branch.
-3. **The `pg.Pool` branch in the third-party adapter remains untested here** — intentional, since the supported architecture never reaches it. Anyone pointing `POSTGRES_URL` at a loopback host is outside the supported configuration and will hit the WebSocket-vs-TCP mismatch documented in the Phase 2 readiness assessment.
-4. **`me.js` / `refresh.js` request-context inconsistency** remains documented but undecided; it blocks a future `/api/fgql` proof, not this phase.
-5. **External `/api/graphql` consumer inventory and deployed commit SHA** remain unknown (Vercel connector disconnected).
-
----
-
-## 7. Boundaries held in this correction
-
-No change to GraphQL authorization routes or role checks. No anonymous GraphQL. No `/api/fgql`. No persisted-query feature. No change to public form-submission REST access. No test weakened, no failure converted to a skip, no timeout lowered. No production or owner Neon database contacted. No connection string, password, token or sensitive query parameter printed or committed. No CI triggered.
+No local PostgreSQL/Docker test infrastructure was restored. No GraphQL feature, role check, route,
+public REST behavior, or frontend behavior was changed. No remote CI, GitHub Actions, or hosted
+workflow was run. No owner/production Neon branch was connected to or modified during this work.

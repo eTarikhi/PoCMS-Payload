@@ -22,24 +22,31 @@
 
 ## Docker & Self-Hosted Deployment
 
-### Local Stack via Docker Compose
-`docker-compose.yml` orchestrates `postgres:16-alpine` + the `payload` app container:
+Docker packages the app; it does not provide its database. **Neon PostgreSQL remains the supported runtime in local development, Docker, and production.** Configure the container with a pooled `POSTGRES_URL` for the appropriate Neon branch. Do not use a local PostgreSQL service, Compose alias, or `host.docker.internal` database URL. Use a separate Neon branch for development; do not point a development container at a production branch because development schema push is enabled by Payload.
+
+### Development with Docker Compose
+
+The Compose app service reads `.env`; set `POSTGRES_URL` there to the dedicated Neon development branch before starting it:
 
 ```bash
 cp .env.example .env
+# Edit .env and configure POSTGRES_URL with the pooled URL for your Neon development branch.
 docker compose up -d
 ```
 
+The Compose stack does not start PostgreSQL. The Neon endpoint remains external to Docker.
+
 ### Standalone Production Container (`Dockerfile`)
-`Dockerfile` automatically sets `DOCKER_BUILD=true`, activating `output: 'standalone'` in `next.config.ts` and running `pnpm run generate:all` prior to `pnpm run build`:
+
+`Dockerfile` automatically sets `DOCKER_BUILD=true`, activating `output: 'standalone'` in `next.config.ts` and running `pnpm run generate:all` prior to `pnpm run build`. Supply secrets via your deployment environment or secret manager; do not put real connection URLs or credentials in shell history:
 
 ```bash
 docker build -t pocms-payload .
 docker run --rm -p 3000:3000 \
   -e NODE_ENV=production \
-  -e PAYLOAD_SECRET="$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")" \
-  -e POSTGRES_URL="postgres://postgres:postgres@host.docker.internal:5432/pocms" \
-  -e NEXT_PUBLIC_SITE_URL="http://localhost:3000" \
+  -e PAYLOAD_SECRET="$PAYLOAD_SECRET" \
+  -e POSTGRES_URL="$POSTGRES_URL" \
+  -e NEXT_PUBLIC_SITE_URL="https://your-domain.example" \
   pocms-payload
 ```
 

@@ -59,10 +59,11 @@ export type ResolvedPostgresPoolConfig = NonNullable<VercelPostgresAdapterArgs['
 
 /**
  * Computes host-aware PostgreSQL pool sizing for `@payloadcms/db-vercel-postgres`:
- * - Remote / Neon serverless hosts default to `max: 4` and `idleTimeoutMillis: 5_000` so concurrent
- *   serverless isolates never exhaust PgBouncer / Neon compute slots and release idle WebSocket
- *   connections promptly for `suspend_timeout_seconds` scale-to-zero.
- * - Local development (`localhost` / `127.0.0.1` / `postgres`) defaults to `max: 10` and `30_000` ms.
+ * - Supported remote / Neon serverless hosts default to `max: 4` and `idleTimeoutMillis: 5_000` so
+ *   concurrent isolates do not exhaust PgBouncer / Neon compute slots and release idle WebSockets
+ *   promptly for `suspend_timeout_seconds` scale-to-zero.
+ * - Other hosts retain the adapter's legacy fallback sizing, but local PostgreSQL is not a supported
+ *   application runtime target. Driver selection remains the responsibility of the installed adapter.
  */
 export function resolvePostgresPoolOptions(
   env: Record<string, string | undefined> = process.env,
