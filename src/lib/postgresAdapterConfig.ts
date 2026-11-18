@@ -36,6 +36,82 @@ export function isServerlessAutoscalingPostgresUrl(connectionString?: string | n
   return SERVERLESS_AUTOSCALING_HOST_PATTERNS.some((suffix) => host.includes(suffix))
 }
 
+/**
+ * Hostnames `@payloadcms/db-vercel-postgres` itself recognises as local.
+ *
+ * Kept separate from `LOCAL_POSTGRES_HOSTS` on purpose. `connect.js` hardcodes exactly
+ * `['127.0.0.1', 'localhost']` when choosing between node-postgres and the Neon serverless
+ * driver, while `LOCAL_POSTGRES_HOSTS` is our wider notion of "local" used for pool sizing. That
+ * wider set must stay wider; the gap between them is the drift this module already contained.
+ */
+const ADAPTER_NATIVE_LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost'])
+
+/**
+ * Detects the driver-selection drift between this repository and
+ * `@payloadcms/db-vercel-postgres`.
+ *
+ * `connect.js` only builds a `pg.Pool` when the hostname is `127.0.0.1` or `localhost`. Every other
+ * hostname — including the Docker Compose service alias `postgres` — is handed to `VercelPool`,
+ * which is `@neondatabase/serverless`'s `Pool` and tunnels over a WebSocket to `wss://<host>/v2`
+ * instead of opening plain TCP 5432. A stock PostgreSQL container is therefore unreachable under
+ * the `postgres` alias even though `isLocalPostgresUrl()` correctly reports it as local.
+ *
+ * @returns `true` when the URL is local by our definition but the adapter would not treat it as
+ *          local.
+ */
+export function usesDriftedLocalHost(connectionString?: string | null): boolean {
+  const trimmed = (connectionString ?? '').trim()
+  if (!trimmed || !isLocalPostgresUrl(trimmed)) return false
+  const host = parseHostname(trimmed)
+  if (!host) return false
+  return !ADAPTER_NATIVE_LOCAL_HOSTS.has(host)
+}
+
+/**
+ * Rewrites a drifted local URL so the adapter's own hostname check recognises it as local.
+ *
+ * Only the hostname is substituted: `127.0.0.1` replaces the alias, and a non-default port is
+ * carried over as a query parameter. This works because `pg.Pool` honours
+ * `options.port ?? options.connectionString.port` (see `pg/lib/connection-parameters.js`), so
+ * `postgres://user:pass@127.0.0.1:5432/db?port=5433` still connects over plain TCP to port 5433.
+ *
+ * `connect.js` takes its connection string from `poolOptions.connectionString`, so the adapter
+ * must be given this rewritten value in `pool`. The adapter's top-level `connectionString` argument
+ * is never read, and `forceUseVercelPostgres: true` has the *opposite* effect to the one this bug
+ * needs (it forces the serverless driver).
+ *
+ * @returns the rewritten URL, or `undefined` when no rewrite is needed or possible.
+ */
+export function resolveLocalDriverConnectionString(
+  connectionString?: string | null,
+): string | undefined {
+  const trimmed = (connectionString ?? '').trim()
+  if (!trimmed || !usesDriftedLocalHost(trimmed)) return undefined
+
+  let parsed: URL
+  try {
+    parsed = new URL(trimmed.replace(/^postgres(ql)?:\/\//i, 'https://'))
+  } catch {
+    return undefined
+  }
+
+  const nonDefaultPort = parsed.port && parsed.port !== '5432' ? parsed.port : undefined
+  const search = new URLSearchParams(parsed.search)
+  if (nonDefaultPort) {
+    if (!search.has('port')) search.set('port', nonDefaultPort)
+  } else {
+    search.delete('port')
+  }
+
+  const scheme = trimmed.slice(0, trimmed.indexOf('://'))
+  const credentials = parsed.username
+    ? `${decodeURIComponent(parsed.username)}${parsed.password ? `:${decodeURIComponent(parsed.password)}` : ''}@`
+    : ''
+  const query = search.toString()
+
+  return `${scheme}://${credentials}127.0.0.1:5432${parsed.pathname}` + (query ? `?${query}` : '')
+}
+
 function parseBoundedInt(
   raw: string | undefined,
   fallback: number,
@@ -50,6 +126,10 @@ function parseBoundedInt(
 }
 
 export type ResolvedPostgresPoolConfig = NonNullable<VercelPostgresAdapterArgs['pool']> & {
+  /**
+   * Always present at runtime: `resolvePostgresPoolOptions` sets it from `POSTGRES_URL`, which may
+   * legitimately be an empty string. The adapter's own type marks it optional.
+   */
   connectionString: string
   max: number
   idleTimeoutMillis: number
@@ -112,6 +192,23 @@ export function resolveReadReplicaUrls(
   return unique.length > 0 ? unique : undefined
 }
 
+/**
+ * Pool options for the adapter, with the local driver drift closed.
+ *
+ * `connect.js` reads `poolOptions.connectionString` and will only build a plain `pg.Pool` for
+ * `127.0.0.1`/`localhost`. For drifted local hosts (notably the Compose alias `postgres`) the
+ * connection string is rewritten to loopback so the plain driver is selected. For every other host —
+ * all remote/Vercel URLs — the resolved options are returned unchanged, so production behaviour is
+ * byte-identical to before.
+ */
+export function resolvePoolOptions(
+  env: Record<string, string | undefined> = process.env,
+): ResolvedPostgresPoolConfig {
+  const pool = resolvePostgresPoolOptions(env)
+  const localDriverUrl = resolveLocalDriverConnectionString(pool.connectionString)
+  return localDriverUrl ? { ...pool, connectionString: localDriverUrl } : pool
+}
+
 export function buildPostgresAdapterArgs(
   env: Record<string, string | undefined> = process.env,
 ): VercelPostgresAdapterArgs {
@@ -124,7 +221,7 @@ export function buildPostgresAdapterArgs(
     // (`NODE_ENV === 'test'`) unless explicitly requested via `PAYLOAD_DB_PUSH=true`.
     push: env.NODE_ENV === 'test' ? env.PAYLOAD_DB_PUSH === 'true' : undefined,
     beforeSchemaInit: [phase1BeforeSchemaInit],
-    pool: resolvePostgresPoolOptions(env),
+    pool: resolvePoolOptions(env),
     ...(readReplicas ? { readReplicas } : {}),
   }
 }
