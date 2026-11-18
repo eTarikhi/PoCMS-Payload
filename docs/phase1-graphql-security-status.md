@@ -63,6 +63,7 @@ Payload 3.90.2 already applies `graphQL.maxComplexity`, whose default is **1000*
 
 The AST rule is a useful coarse selection-size check, but it is not a reliable resolver-work budget:
 
+- No dedicated maximum-depth validation rule is configured. Nested selections add to the complexity score, but `maxComplexity` is not a strict depth cap; the Admin's depth-5 generator setting applies only to its own documents.
 - Each alias is visited and charged separately; repeated acyclic fragment spreads are expanded and charged at each spread. Variables are supplied to the rule for coercion and `@include`/`@skip`, but the installed estimators do not use list arguments such as `limit` to multiply cost.
 - Relationship/join weights are static (normally 10) and are not multiplied by parent list cardinality. Payload's collection `find` resolver passes a client-supplied `limit` through; `pagination: false` can result in a zero limit, which the installed Postgres adapter treats as unbounded. The fallback field cost therefore does not account for result count, nested resolver fan-out, access hooks, collection hooks, database selectivity, or arbitrary custom resolver work.
 - The rule receives variables but not the selected `operationName`. Its implementation visits and accumulates complexity for every operation definition in a document, so an unused expensive operation can cause a selected cheap operation to be rejected (a compatibility false positive), though this behavior does not provide a limit bypass.
