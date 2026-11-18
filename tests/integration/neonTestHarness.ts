@@ -1,25 +1,68 @@
 /**
  * Fail-closed harness for Neon integration testing.
  *
- * The supported runtime is Vercel/Neon PostgreSQL in **every** environment, including local
- * development: the developer runs the app locally, the database is a Neon branch. The real
- * `@payloadcms/db-vercel-postgres` adapter is always used; no local PostgreSQL server or plain
- * `pg.Pool` is involved.
+ * The supported runtime is Vercel/Neon PostgreSQL in every environment, including local
+ * development. This harness never uses a local PostgreSQL service or a plain `pg.Pool`.
  *
- * The single most dangerous thing an integration suite can do here is connect to — or destroy —
- * the owner's real Neon database. `payload.config.ts` builds its pool from `process.env.POSTGRES_URL`,
- * which in a normal local dev environment points at that real database. This harness therefore:
+ * The normal application `POSTGRES_URL` is often the owner's production/development branch. Before
+ * Payload is imported or booted, this harness requires an explicitly approved disposable Neon
+ * branch, verifies that approval against Neon control-plane metadata, confirms the app and test
+ * URLs resolve to different branches, and only then enables schema push in the test process.
  *
- *   1. reads only `POSTGRES_TEST_URL`, never `POSTGRES_URL`;
- *   2. proves the test target is a *different* Neon endpoint from the application's, by compare;
- *   3. requires an explicit destructive-operation opt-in;
- *   4. refuses (never skips, never falls back) when any check fails.
- *
- * Nothing here prints a connection string. Only the Neon endpoint id and database name, which are
- * non-secret identifiers, are ever surfaced in messages.
+ * Never include a URL, password, API key, query parameter, database name, or connection error in an
+ * error message. Connection strings are held only in memory so the real adapter can use the
+ * verified test target.
  */
+import { createNeonClient } from '@neon/sdk'
 
-import { detectNeonEndpointId } from './neonTarget'
+import { detectNeonEndpointId, isNeonHost } from './neonTarget'
+
+type Environment = Record<string, string | undefined>
+
+type MetadataOutcome<T> = {
+  data?: T
+  error?: unknown
+}
+
+type NeonBranchMetadata = {
+  id: string
+  project_id: string
+  default: boolean
+  protected: boolean
+}
+
+type NeonEndpointMetadata = {
+  id: string
+  project_id: string
+  branch_id: string
+  host: string
+  type: 'read_only' | 'read_write'
+  disabled: boolean
+}
+
+/** Small read-only subset of the Neon SDK used for branch/endpoint identity verification. */
+export type NeonMetadataClient = {
+  branches: {
+    get: (params: {
+      projectId: string
+      branchId: string
+    }) => Promise<MetadataOutcome<NeonBranchMetadata>>
+  }
+  postgres: {
+    endpoints: {
+      get: (params: {
+        projectId: string
+        endpointId: string
+      }) => Promise<MetadataOutcome<NeonEndpointMetadata>>
+      listByBranch: (params: {
+        projectId: string
+        branchId: string
+      }) => Promise<MetadataOutcome<NeonEndpointMetadata[]>>
+    }
+  }
+}
+
+export type NeonMetadataClientFactory = (apiKey: string) => NeonMetadataClient
 
 export class NeonIntegrationEnvironmentError extends Error {
   constructor(message: string) {
@@ -28,197 +71,344 @@ export class NeonIntegrationEnvironmentError extends Error {
   }
 }
 
+/** Required operator assertion that the approved test branch may be discarded. */
+export const DISPOSABLE_BRANCH_OPT_IN_ENV = 'NEON_TEST_BRANCH_DISPOSABLE'
+
+/** Required opt-in before schema-changing operations are enabled. */
+export const DESTRUCTIVE_OPT_IN_ENV = 'PAYLOAD_TEST_DB_ALLOW_DESTRUCTIVE'
+
+/**
+ * A target is not returned until the independent Neon API check verifies its branch and endpoint.
+ * The private symbol makes activation reject a merely parsed/unverified target at runtime.
+ */
+const VERIFIED_TARGET = Symbol('verifiedNeonTestTarget')
+
 export type NeonTestTarget = {
-  /** Neon endpoint id of the disposable test database, e.g. `ep-cool-morning-a2bc`. */
   endpointId: string
-  /** Database name on that endpoint. */
+  branchId: string
+  projectId: string
   database: string
-  /** The validated test connection string. Never print this. */
+  appEndpointId: string
+  appProjectId: string
+  /** The normal application URL, retained only in memory for a last pre-push comparison. */
+  applicationConnectionString: string
+  /** The validated test URL, never printed. */
   connectionString: string
 }
 
-/** Required opt-in before any destructive operation (drop/truncate/recreate). */
-export const DESTRUCTIVE_OPT_IN_ENV = 'PAYLOAD_TEST_DB_ALLOW_DESTRUCTIVE'
+export type VerifiedNeonTestTarget = NeonTestTarget & {
+  readonly [VERIFIED_TARGET]: true
+}
 
-/** Required marker in the test database name. Necessary, never sufficient, evidence. */
-export const DISPOSABLE_DB_MARKER = 'pocms_test'
+const defaultMetadataClientFactory: NeonMetadataClientFactory = (apiKey) =>
+  createNeonClient({ apiKey, retries: 0, requestTimeoutMs: 15_000 })
 
-const isNeonHost = (host: string): boolean => host.endsWith('.neon.tech')
+const fail = (message: string): never => {
+  throw new NeonIntegrationEnvironmentError(message)
+}
 
-const describeTarget = (endpointId: string, database: string): string =>
-  `endpoint ${endpointId} / database ${database}`
+const requiredEnv = (env: Environment, name: string, explanation: string): string => {
+  const value = env[name]?.trim()
+  if (!value) return fail(`${name} is required. ${explanation}`)
+  return value
+}
 
-/**
- * Validates the Neon integration target.
- *
- * @throws NeonIntegrationEnvironmentError when the environment is not a safe disposable target.
- */
-export function resolveNeonTestTarget(env: Record<string, string | undefined>): NeonTestTarget {
-  const raw = (env.POSTGRES_TEST_URL ?? '').trim()
+type ParsedPostgresTarget = {
+  endpointId: string
+  database: string
+}
 
-  if (!raw) {
-    throw new NeonIntegrationEnvironmentError(
-      [
-        'POSTGRES_TEST_URL is not set.',
-        '',
-        'The Neon integration suite is fail-closed: it will not run and will not skip without an',
-        'explicit disposable Neon database. It never falls back to POSTGRES_URL, because that is',
-        'the application database.',
-        '',
-        'Create a disposable Neon branch and point the suite at it, for example:',
-        '  POSTGRES_TEST_URL=postgresql://user:pass@ep-<branch>-123456-pooler.<region>.aws.neon.tech/neondb',
-        '  PAYLOAD_TEST_DB_ALLOW_DESTRUCTIVE=true',
-        '  PAYLOAD_DB_PUSH=true',
-        '',
-        'See docs/phase2a-postgres-integration.md for the branch procedure.',
-      ].join('\n'),
-    )
-  }
-
-  // Refuse the application database outright, before anything else touches it.
-  const appUrl = (env.POSTGRES_URL ?? '').trim()
-  if (appUrl && appUrl === raw) {
-    throw new NeonIntegrationEnvironmentError(
-      'POSTGRES_TEST_URL is identical to POSTGRES_URL. Refusing to run: the test suite must never ' +
-        'target the application database.',
-    )
+const parsePostgresTarget = (raw: string, variable: string): ParsedPostgresTarget => {
+  if (!/^postgres(?:ql)?:\/\//i.test(raw)) {
+    fail(`${variable} must be a PostgreSQL connection URL. Refusing to guess.`)
   }
 
   let parsed: URL
   try {
-    parsed = new URL(raw.replace(/^postgres(ql)?:\/\//i, 'https://'))
+    parsed = new URL(raw)
   } catch {
-    throw new NeonIntegrationEnvironmentError(
-      'POSTGRES_TEST_URL is not a valid PostgreSQL connection string.',
-    )
+    return fail(`${variable} is not a valid PostgreSQL connection URL.`)
   }
 
   const host = parsed.hostname.toLowerCase()
-
   if (!isNeonHost(host)) {
-    throw new NeonIntegrationEnvironmentError(
-      [
-        `POSTGRES_TEST_URL points at host "${host}", which is not a Neon host.`,
-        '',
-        'The supported runtime is Vercel/Neon PostgreSQL. This harness deliberately does not',
-        'support local PostgreSQL, Docker PostgreSQL, or plain pg.Pool targets, because those are',
-        'not part of the application architecture and would test a code path that is never used.',
-      ].join('\n'),
+    fail(
+      `${variable} must point to a Neon host. Local PostgreSQL and other providers are unsupported.`,
     )
   }
 
   const endpointId = detectNeonEndpointId(host)
   if (!endpointId) {
-    throw new NeonIntegrationEnvironmentError(
-      'Could not derive a Neon endpoint id (ep-...) from POSTGRES_TEST_URL. Refusing to guess.',
-    )
+    return fail(`${variable} does not contain a recognizable Neon endpoint ID.`)
   }
 
-  const database = parsed.pathname.replace(/^\//, '')
-  if (!database) {
-    throw new NeonIntegrationEnvironmentError(
-      'POSTGRES_TEST_URL does not name a database. Refusing to rely on a default.',
-    )
-  }
-
-  // Independent disposability evidence #1: the endpoint must differ from the application's.
-  const appEndpointId = appUrl ? detectNeonEndpointId(safeHostname(appUrl)) : null
-  if (appEndpointId && appEndpointId === endpointId) {
-    throw new NeonIntegrationEnvironmentError(
-      [
-        `POSTGRES_TEST_URL targets the same Neon endpoint as POSTGRES_URL (${endpointId}).`,
-        '',
-        'A different database name on the same endpoint is NOT sufficient: it is the same Neon',
-        'compute and the same project. Use a separate disposable branch, which gets its own',
-        'endpoint id.',
-      ].join('\n'),
-    )
-  }
-
-  // Independent disposability evidence #2: the database name must not equal the app database.
-  if (appUrl) {
-    const appDatabase = new URL(
-      appUrl.replace(/^postgres(ql)?:\/\//i, 'https://'),
-    ).pathname.replace(/^\//, '')
-    if (appDatabase && appDatabase === database) {
-      throw new NeonIntegrationEnvironmentError(
-        `POSTGRES_TEST_URL uses the same database name as POSTGRES_URL ("${database}"). ` +
-          'Refusing to run against the application database.',
-      )
-    }
-  }
-
-  // Evidence #3: the operator must have marked the database as disposable. Necessary only.
-  if (!database.includes(DISPOSABLE_DB_MARKER)) {
-    throw new NeonIntegrationEnvironmentError(
-      [
-        `POSTGRES_TEST_URL targets database "${database}", which does not contain the required`,
-        `marker "${DISPOSABLE_DB_MARKER}".`,
-        '',
-        'A name containing "test" is not accepted as proof of disposability on its own; the marker',
-        'is required in addition to the endpoint-id and database-name checks above.',
-      ].join('\n'),
-    )
-  }
-
-  return { endpointId, database, connectionString: raw }
-}
-
-const safeHostname = (connectionString: string): string => {
+  let database: string
   try {
-    return new URL(connectionString.replace(/^postgres(ql)?:\/\//i, 'https://')).hostname
+    database = decodeURIComponent(parsed.pathname.replace(/^\/+/, ''))
   } catch {
-    return ''
+    return fail(`${variable} contains an invalid database path.`)
+  }
+  if (!database) {
+    return fail(`${variable} must name its database explicitly.`)
+  }
+
+  return { endpointId, database }
+}
+
+const assertIdentifier = (value: string, pattern: RegExp, variable: string): void => {
+  if (!pattern.test(value)) {
+    fail(`${variable} is not a valid Neon resource identifier.`)
   }
 }
 
 /**
- * Must be called immediately before any destructive operation.
- *
- * Re-asserts the explicit opt-in and re-runs the target validation, so a destructive operation
- * can never proceed on an unverified target, even if the environment changed mid-run.
+ * Performs local, non-network safety checks and returns the exact target that must be verified
+ * against Neon metadata before any database connection is made.
  */
-export function assertDestructiveOptIn(
-  env: Record<string, string | undefined>,
-  target: NeonTestTarget,
-): void {
-  if (env[DESTRUCTIVE_OPT_IN_ENV] !== 'true') {
-    throw new NeonIntegrationEnvironmentError(
-      [
-        `${DESTRUCTIVE_OPT_IN_ENV} is not set to "true".`,
-        '',
-        `Refusing to run a destructive operation against ${describeTarget(target.endpointId, target.database)}.`,
-        '',
-        "Destructive integration setup is opt-in by design. The owner's real Neon database must",
-        'never be dropped or recreated automatically.',
-      ].join('\n'),
+export function resolveNeonTestTarget(env: Environment): NeonTestTarget {
+  const testUrl = requiredEnv(
+    env,
+    'POSTGRES_TEST_URL',
+    'Set it to the connection URL for the approved disposable Neon branch; it never falls back.',
+  )
+  const appUrl = requiredEnv(
+    env,
+    'POSTGRES_URL',
+    'The normal application URL is required so the harness can identify and reject its branch.',
+  )
+  const test = parsePostgresTarget(testUrl, 'POSTGRES_TEST_URL')
+  const app = parsePostgresTarget(appUrl, 'POSTGRES_URL')
+
+  if (test.endpointId === app.endpointId) {
+    fail(
+      'POSTGRES_TEST_URL and POSTGRES_URL use the same Neon endpoint. A different database name or URL is not sufficient.',
     )
   }
 
-  // Re-validate rather than trusting a value captured earlier.
+  const projectId = requiredEnv(
+    env,
+    'NEON_TEST_PROJECT_ID',
+    'Set the Neon project that owns the approved test branch.',
+  )
+  const appProjectId = requiredEnv(
+    env,
+    'NEON_APP_PROJECT_ID',
+    'Set the Neon project that owns the normal application endpoint.',
+  )
+  const branchId = requiredEnv(
+    env,
+    'NEON_TEST_BRANCH_ID',
+    'Copy the approved branch ID independently from Neon; the URL hostname alone is not approval.',
+  )
+  const expectedEndpointId = requiredEnv(
+    env,
+    'NEON_TEST_ENDPOINT_ID',
+    'Copy the approved read-write endpoint ID independently from Neon metadata.',
+  )
+  const expectedDatabase = requiredEnv(
+    env,
+    'NEON_TEST_DATABASE',
+    'Set the exact database name approved for this test branch.',
+  )
+
+  assertIdentifier(branchId, /^br-[a-z0-9-]+$/i, 'NEON_TEST_BRANCH_ID')
+  assertIdentifier(expectedEndpointId, /^ep-[a-z0-9-]+$/i, 'NEON_TEST_ENDPOINT_ID')
+
+  if (expectedEndpointId.toLowerCase() !== test.endpointId.toLowerCase()) {
+    fail('NEON_TEST_ENDPOINT_ID does not match the endpoint in POSTGRES_TEST_URL.')
+  }
+  if (expectedDatabase !== test.database) {
+    fail('NEON_TEST_DATABASE does not match the database in POSTGRES_TEST_URL.')
+  }
+  if (env[DISPOSABLE_BRANCH_OPT_IN_ENV] !== 'true') {
+    fail(
+      `${DISPOSABLE_BRANCH_OPT_IN_ENV} must be "true" to explicitly designate this approved Neon branch as disposable.`,
+    )
+  }
+  if (env[DESTRUCTIVE_OPT_IN_ENV] !== 'true') {
+    fail(
+      `${DESTRUCTIVE_OPT_IN_ENV} must be "true" to authorize schema-changing test setup on the approved disposable branch.`,
+    )
+  }
+  if (!env.NEON_API_KEY?.trim()) {
+    fail(
+      'NEON_API_KEY is required so the harness can independently verify branch and endpoint metadata.',
+    )
+  }
+  if (env.PAYLOAD_DROP_DATABASE === 'true') {
+    fail('PAYLOAD_DROP_DATABASE=true is prohibited by the Neon integration harness.')
+  }
+
+  return {
+    endpointId: test.endpointId,
+    branchId,
+    projectId,
+    database: test.database,
+    appEndpointId: app.endpointId,
+    appProjectId,
+    applicationConnectionString: appUrl,
+    connectionString: testUrl,
+  }
+}
+
+const metadataFailed = (): never =>
+  fail(
+    'Neon metadata could not independently confirm the approved test branch and endpoint. Check the Neon API key and project/branch/endpoint IDs; no database connection was attempted.',
+  )
+
+/**
+ * Uses read-only Neon control-plane metadata to bind the supplied connection URL to the explicitly
+ * approved branch ID, verifies the app endpoint belongs to a different branch, and returns a
+ * branded target. No database URL is sent to the Neon API and API error bodies are never surfaced.
+ */
+export async function verifyNeonTestTargetMetadata(
+  target: NeonTestTarget,
+  env: Environment,
+  clientFactory: NeonMetadataClientFactory = defaultMetadataClientFactory,
+): Promise<VerifiedNeonTestTarget> {
+  const apiKey = env.NEON_API_KEY?.trim()
+  if (!apiKey) {
+    return fail('NEON_API_KEY is required to independently verify the approved Neon target.')
+  }
+
+  try {
+    const neon = clientFactory(apiKey)
+    const branchResult = await neon.branches.get({
+      projectId: target.projectId,
+      branchId: target.branchId,
+    })
+    const branch = branchResult.error ? undefined : branchResult.data
+
+    if (!branch) return metadataFailed()
+    if (
+      branch.id !== target.branchId ||
+      branch.project_id !== target.projectId ||
+      branch.default !== false ||
+      branch.protected !== false
+    ) {
+      return metadataFailed()
+    }
+
+    const testEndpointsResult = await neon.postgres.endpoints.listByBranch({
+      projectId: target.projectId,
+      branchId: target.branchId,
+    })
+    const testEndpoints = testEndpointsResult.error ? undefined : testEndpointsResult.data
+    const testEndpoint = testEndpoints?.find((endpoint) => endpoint.id === target.endpointId)
+
+    if (!testEndpoint) return metadataFailed()
+    if (
+      testEndpoint.id !== target.endpointId ||
+      testEndpoint.project_id !== target.projectId ||
+      testEndpoint.branch_id !== target.branchId ||
+      detectNeonEndpointId(testEndpoint.host) !== target.endpointId ||
+      testEndpoint.type !== 'read_write' ||
+      testEndpoint.disabled !== false
+    ) {
+      return metadataFailed()
+    }
+
+    const appEndpointResult = await neon.postgres.endpoints.get({
+      projectId: target.appProjectId,
+      endpointId: target.appEndpointId,
+    })
+    const appEndpoint = appEndpointResult.error ? undefined : appEndpointResult.data
+
+    if (!appEndpoint) return metadataFailed()
+    if (
+      appEndpoint.id !== target.appEndpointId ||
+      appEndpoint.project_id !== target.appProjectId ||
+      appEndpoint.branch_id === target.branchId ||
+      detectNeonEndpointId(appEndpoint.host) !== target.appEndpointId ||
+      appEndpoint.id === testEndpoint.id
+    ) {
+      return metadataFailed()
+    }
+
+    return { ...target, [VERIFIED_TARGET]: true }
+  } catch (error) {
+    if (error instanceof NeonIntegrationEnvironmentError) throw error
+    return metadataFailed()
+  }
+}
+
+const targetMatches = (left: NeonTestTarget, right: NeonTestTarget): boolean =>
+  left.endpointId === right.endpointId &&
+  left.branchId === right.branchId &&
+  left.projectId === right.projectId &&
+  left.database === right.database &&
+  left.appEndpointId === right.appEndpointId &&
+  left.appProjectId === right.appProjectId &&
+  left.applicationConnectionString === right.applicationConnectionString &&
+  left.connectionString === right.connectionString
+
+/** Revalidates operator opt-ins and the parsed URLs immediately before enabling schema push. */
+export function assertDestructiveOptIn(env: Environment, target: NeonTestTarget): void {
+  if (env[DISPOSABLE_BRANCH_OPT_IN_ENV] !== 'true') {
+    fail(`${DISPOSABLE_BRANCH_OPT_IN_ENV} is not "true". Refusing schema-changing setup.`)
+  }
+  if (env[DESTRUCTIVE_OPT_IN_ENV] !== 'true') {
+    fail(`${DESTRUCTIVE_OPT_IN_ENV} is not "true". Refusing schema-changing setup.`)
+  }
+
   const revalidated = resolveNeonTestTarget(env)
-  if (revalidated.endpointId !== target.endpointId || revalidated.database !== target.database) {
-    throw new NeonIntegrationEnvironmentError(
-      'POSTGRES_TEST_URL changed during the run. Refusing to perform a destructive operation.',
+  if (!targetMatches(revalidated, target)) {
+    fail(
+      'The approved Neon test target or application endpoint changed during setup. Refusing schema push.',
     )
   }
 }
 
+/** Clears an externally supplied schema-push flag before any test module can import payload.config. */
+export function suppressExternalSchemaPush(env: Environment): boolean {
+  const wasEnabledBeforeValidation = env.PAYLOAD_DB_PUSH === 'true'
+  delete env.PAYLOAD_DB_PUSH
+  return wasEnabledBeforeValidation
+}
+
 /**
- * Verifies the process is pointed at the test database, not the application database.
- *
- * `payload.config.ts` builds its pool from `process.env.POSTGRES_URL`. Overwriting it in the test
- * process is what makes the suite safe, and it must only happen after `resolveNeonTestTarget`
- * has proven the two differ.
+ * Points the test process at the verified target and sets PAYLOAD_DB_PUSH only after all local and
+ * Neon metadata checks have passed. Read replicas are disabled so they cannot reach another branch.
+ */
+export function activateVerifiedNeonSchemaPush(
+  env: Environment,
+  target: VerifiedNeonTestTarget,
+): void {
+  if (target[VERIFIED_TARGET] !== true) {
+    fail('The Neon target was not independently verified. Refusing to enable schema push.')
+  }
+  if (env.NODE_ENV !== 'test') {
+    fail('NODE_ENV must be "test" before the Neon harness can enable schema push.')
+  }
+  if (env.PAYLOAD_DB_PUSH === 'true') {
+    fail('PAYLOAD_DB_PUSH was enabled before the target checks. Do not set it in the shell.')
+  }
+
+  assertDestructiveOptIn(env, target)
+  env.POSTGRES_URL = target.connectionString
+  delete env.POSTGRES_READ_REPLICA_URL
+  delete env.POSTGRES_READ_REPLICA_URLS
+  assertProcessPointsAtTestDatabase(target, env)
+
+  // This is intentionally the final step. payload.config.ts reads this flag when it is imported.
+  env.PAYLOAD_DB_PUSH = 'true'
+}
+
+/**
+ * Must pass immediately before Payload config is imported/initialized. The installed adapter takes
+ * its primary connection from POSTGRES_URL; this verifies that value is the independently checked
+ * test URL, never the normal application URL.
  */
 export function assertProcessPointsAtTestDatabase(
   target: NeonTestTarget,
-  env: Record<string, string | undefined> = process.env,
+  env: Environment = process.env,
 ): void {
-  if (env.POSTGRES_URL !== target.connectionString) {
-    throw new NeonIntegrationEnvironmentError(
-      'The Payload config would not use the disposable test database. ' +
-        'Refusing to boot Payload, because it could connect to the application database.',
+  if (
+    env.POSTGRES_URL !== target.connectionString ||
+    env.POSTGRES_TEST_URL?.trim() !== target.connectionString
+  ) {
+    fail(
+      'The Payload config would not use the independently verified disposable Neon target. Refusing to boot Payload.',
     )
   }
 }
