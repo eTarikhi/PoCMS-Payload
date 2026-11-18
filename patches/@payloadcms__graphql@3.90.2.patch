@@ -1,0 +1,59 @@
+diff --git a/dist/packages/graphql-query-complexity/QueryComplexity.js b/dist/packages/graphql-query-complexity/QueryComplexity.js
+index 201d658165aaad26237890a823fe97dac2dae6f0..85f039dd01c62abf08f09cd6e813417083045be8 100644
+--- a/dist/packages/graphql-query-complexity/QueryComplexity.js
++++ b/dist/packages/graphql-query-complexity/QueryComplexity.js
+@@ -57,7 +57,7 @@ export class QueryComplexity {
+         }
+         return new GraphQLError(queryComplexityMessage(this.options.maximumComplexity, this.complexity));
+     }
+-    nodeComplexity(node, typeDef) {
++    nodeComplexity(node, typeDef, activeFragments = new Set()) {
+         if (node.selectionSet) {
+             let fields = {};
+             if (typeDef instanceof GraphQLObjectType || typeDef instanceof GraphQLInterfaceType) {
+@@ -122,7 +122,7 @@ export class QueryComplexity {
+                             // Check if we have child complexity
+                             let childComplexity = 0;
+                             if (isCompositeType(fieldType)) {
+-                                childComplexity = this.nodeComplexity(childNode, fieldType);
++                                childComplexity = this.nodeComplexity(childNode, fieldType, activeFragments);
+                             }
+                             // Run estimators one after another and return first valid complexity
+                             // score
+@@ -160,7 +160,17 @@ export class QueryComplexity {
+                             if (!isCompositeType(fragmentType)) {
+                                 break;
+                             }
+-                            const nodeComplexity = this.nodeComplexity(fragment, fragmentType);
++                            const fragmentName = childNode.name.value;
++                            if (activeFragments.has(fragmentName)) {
++                                break;
++                            }
++                            activeFragments.add(fragmentName);
++                            let nodeComplexity;
++                            try {
++                                nodeComplexity = this.nodeComplexity(fragment, fragmentType, activeFragments);
++                            } finally {
++                                activeFragments.delete(fragmentName);
++                            }
+                             if (isAbstractType(fragmentType)) {
+                                 // Add fragment complexity for all possible types
+                                 innerComplexities = addComplexities(nodeComplexity, complexities, this.context.getSchema().getPossibleTypes(fragmentType).map((t)=>t.name));
+@@ -181,7 +191,7 @@ export class QueryComplexity {
+                                     break;
+                                 }
+                             }
+-                            const nodeComplexity = this.nodeComplexity(childNode, inlineFragmentType);
++                            const nodeComplexity = this.nodeComplexity(childNode, inlineFragmentType, activeFragments);
+                             if (isAbstractType(inlineFragmentType)) {
+                                 // Add fragment complexity for all possible types
+                                 innerComplexities = addComplexities(nodeComplexity, complexities, this.context.getSchema().getPossibleTypes(inlineFragmentType).map((t)=>t.name));
+@@ -195,7 +205,7 @@ export class QueryComplexity {
+                         }
+                     default:
+                         {
+-                            innerComplexities = addComplexities(this.nodeComplexity(childNode, typeDef), complexities, possibleTypeNames);
++                            innerComplexities = addComplexities(this.nodeComplexity(childNode, typeDef, activeFragments), complexities, possibleTypeNames);
+                             break;
+                         }
+                 }

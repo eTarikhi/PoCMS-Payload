@@ -12,3 +12,5 @@ onlyBuiltDependencies:
 
 minimumReleaseAgeExclude:
   - '@axe-core/playwright@4.14.0'
+patchedDependencies:
+  '@payloadcms/graphql@3.90.2': patches/@payloadcms__graphql@3.90.2.patch
