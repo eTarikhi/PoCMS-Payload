@@ -21,5 +21,32 @@ export const POST = withPayloadAdminPanelAuthorization(
   { passAuthenticatedUser: true },
 )
 
-// Keep Payload's CORS preflight behavior unchanged; it does not execute GraphQL operations.
-export const OPTIONS = REST_OPTIONS(config)
+const addNoStoreHeader = (response: Response): Response => {
+  const headers = new Headers(response.headers)
+  headers.set('Cache-Control', 'no-store')
+
+  return new Response(response.body, {
+    headers,
+    status: response.status,
+    statusText: response.statusText,
+  })
+}
+
+// Keep Payload's CORS preflight behavior unchanged while preventing intermediary caching.
+const payloadOptions = REST_OPTIONS(config)
+export const OPTIONS: typeof payloadOptions = async (...args) =>
+  addNoStoreHeader(await payloadOptions(...args))
+
+// Make unsupported standard App Router methods explicit so their 405 responses also disable
+// caching instead of being synthesized by Next.js without route-level response headers.
+const methodNotAllowed = (): Response =>
+  new Response(null, {
+    headers: { 'Cache-Control': 'no-store' },
+    status: 405,
+  })
+
+export const GET = methodNotAllowed
+export const HEAD = methodNotAllowed
+export const PUT = methodNotAllowed
+export const PATCH = methodNotAllowed
+export const DELETE = methodNotAllowed

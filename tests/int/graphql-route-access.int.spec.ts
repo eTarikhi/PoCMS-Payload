@@ -256,12 +256,26 @@ describe('Admin-authorized Payload GraphQL routes', () => {
     expect(playgroundHandlerMock).toHaveBeenCalledWith(request)
   })
 
-  it('leaves Payload GraphQL CORS preflight on the existing REST_OPTIONS handler', async () => {
+  it('preserves Payload GraphQL CORS preflight headers while disabling caching', async () => {
+    optionsHandlerMock.mockResolvedValueOnce(
+      new Response(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Origin': 'https://cms.example.test',
+          Vary: 'Origin',
+        },
+      }),
+    )
     const request = new Request('https://cms.example.test/api/graphql', { method: 'OPTIONS' })
     const routeContext = { params: Promise.resolve({}) }
     const response = await OPTIONS(request, routeContext)
 
     expect(response.status).toBe(204)
+    expect(response.headers.get('cache-control')).toBe('no-store')
+    expect(response.headers.get('access-control-allow-methods')).toBe('POST, OPTIONS')
+    expect(response.headers.get('access-control-allow-origin')).toBe('https://cms.example.test')
+    expect(response.headers.get('vary')).toBe('Origin')
     expect(optionsHandlerMock).toHaveBeenCalledWith(request, routeContext)
     expect(getPayloadMock).not.toHaveBeenCalled()
   })

@@ -4,17 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 /**
  * HTTP method regression coverage for the Payload GraphQL route handlers.
  *
- * These tests do not assert on the shape of the route module's exports. They load the real
- * `route.ts` modules and hand them to Next.js's own App Router route module
- * (`next/dist/server/route-modules/app-route/module`), then drive its real `handle()` entry
- * point. That `handle()` implementation is what turns a request method into a handler:
- * `resolveHandler(method)` reads the table produced by `autoImplementMethods()`, which fills
- * every unimplemented method with a 405 response and only delegates HEAD to GET when a GET
- * export exists.
- *
- * So the 405 responses asserted below are produced by Next.js's dispatch code, not by this
- * test. Payload authentication and the Payload route handlers are still test doubles, so this
- * is route-dispatch coverage, not database-backed GraphQL integration coverage.
+ * These tests load the real `route.ts` modules into Next.js's App Router route module
+ * (`next/dist/server/route-modules/app-route/module`) and drive its real `handle()` entry point.
+ * The GraphQL route explicitly exports no-store 405 handlers for unsupported standard methods,
+ * while OPTIONS remains delegated to Payload's CORS handler. Next.js dispatches to those real
+ * exports; authentication and Payload handlers are test doubles, so this is route-dispatch
+ * coverage rather than database-backed GraphQL integration coverage.
  */
 
 const { authMock, getPayloadMock, graphqlHandlerMock, optionsHandlerMock, playgroundHandlerMock } =
@@ -132,28 +127,28 @@ beforeEach(() => {
 })
 
 describe('Next.js App Route dispatch for the Admin-gated GraphQL route', () => {
-  it('mounts the real route exports, so dispatch sees only POST and OPTIONS', async () => {
+  it('mounts explicit no-store handlers for unsupported methods and Payload handlers for POST/OPTIONS', async () => {
     const routeModule = await mountRouteModule(graphql)
-
-    // Sanity check that this test is exercising the production route file rather than a
-    // reconstructed handler map. If a GET export were ever added, this assertion fails and the
-    // 405 expectations below must be re-audited.
     const userland = routeModule.userland as Record<string, unknown>
     const methodExports = Object.keys(userland)
       .filter((name) => ['GET', 'HEAD', 'OPTIONS', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(name))
       .sort()
-    expect(methodExports).toEqual(['OPTIONS', 'POST'])
+
+    expect(methodExports).toEqual(['DELETE', 'GET', 'HEAD', 'OPTIONS', 'PATCH', 'POST', 'PUT'])
     expect(userland.runtime).toBe('nodejs')
+    expect(userland.GET).toBe(userland.HEAD)
+    expect(userland.GET).toBeDefined()
     expect(userland.POST).toBe(graphqlRoute.POST)
     expect(userland.OPTIONS).toBe(graphqlRoute.OPTIONS)
   })
 
   it.each(UNSUPPORTED_METHODS)(
-    'answers %s /api/graphql with the Next.js 405 response and never reaches Payload',
+    'answers %s /api/graphql with a no-store 405 before reaching Payload',
     async (method) => {
       const response = await dispatch(graphql, method)
 
       expect(response.status).toBe(405)
+      expect(response.headers.get('cache-control')).toBe('no-store')
       expect(graphqlHandlerMock).not.toHaveBeenCalled()
       expect(optionsHandlerMock).not.toHaveBeenCalled()
       // Next.js must not even authenticate, because it resolves the 405 handler before running
@@ -163,18 +158,40 @@ describe('Next.js App Route dispatch for the Admin-gated GraphQL route', () => {
     },
   )
 
-  it('does not delegate HEAD to a GET handler because the route has no GET export', async () => {
+  it('keeps GET and HEAD unavailable for GraphQL through explicit no-store 405 exports', async () => {
     const routeModule = await mountRouteModule(graphql)
-    const allowed = (routeModule.userland as Record<string, unknown>).GET
+    const userland = routeModule.userland as Record<string, unknown>
 
-    expect(allowed).toBeUndefined()
-    await expect(dispatch(graphql, 'HEAD')).resolves.toMatchObject({ status: 405 })
+    expect(userland.GET).toBeDefined()
+    expect(userland.HEAD).toBe(userland.GET)
+
+    const getResponse = await dispatch(graphql, 'GET')
+    const headResponse = await dispatch(graphql, 'HEAD')
+    expect(getResponse.status).toBe(405)
+    expect(headResponse.status).toBe(405)
+    expect(getResponse.headers.get('cache-control')).toBe('no-store')
+    expect(headResponse.headers.get('cache-control')).toBe('no-store')
+    expect(graphqlHandlerMock).not.toHaveBeenCalled()
   })
 
-  it('keeps OPTIONS on the existing Payload REST_OPTIONS delegation', async () => {
+  it('keeps OPTIONS on Payload REST_OPTIONS, preserves CORS headers, and disables caching', async () => {
+    optionsHandlerMock.mockResolvedValueOnce(
+      new Response(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Origin': ORIGIN,
+          Vary: 'Origin',
+        },
+      }),
+    )
     const response = await dispatch(graphql, 'OPTIONS')
 
     expect(response.status).toBe(204)
+    expect(response.headers.get('cache-control')).toBe('no-store')
+    expect(response.headers.get('access-control-allow-methods')).toBe('POST, OPTIONS')
+    expect(response.headers.get('access-control-allow-origin')).toBe(ORIGIN)
+    expect(response.headers.get('vary')).toBe('Origin')
     expect(optionsHandlerMock).toHaveBeenCalledTimes(1)
     expect(optionsHandlerMock.mock.calls[0]?.[0]).toBeInstanceOf(NextRequest)
     expect(getPayloadMock).not.toHaveBeenCalled()
