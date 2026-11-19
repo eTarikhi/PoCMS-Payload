@@ -139,7 +139,11 @@ describe('Next.js App Route dispatch for the Admin-gated GraphQL route', () => {
     // reconstructed handler map. If a GET export were ever added, this assertion fails and the
     // 405 expectations below must be re-audited.
     const userland = routeModule.userland as Record<string, unknown>
-    expect(Object.keys(userland).sort()).toEqual(['OPTIONS', 'POST'])
+    const methodExports = Object.keys(userland)
+      .filter((name) => ['GET', 'HEAD', 'OPTIONS', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(name))
+      .sort()
+    expect(methodExports).toEqual(['OPTIONS', 'POST'])
+    expect(userland.runtime).toBe('nodejs')
     expect(userland.POST).toBe(graphqlRoute.POST)
     expect(userland.OPTIONS).toBe(graphqlRoute.OPTIONS)
   })

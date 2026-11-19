@@ -83,6 +83,22 @@ describe('Admin-authorized Payload GraphQL routes', () => {
     expect(graphqlHandlerMock).not.toHaveBeenCalled()
   })
 
+  it('fails closed for an authorized principal without a stable rate-limit identity', async () => {
+    authMock.mockResolvedValue({
+      user: { permissions: { ...NO_PERMISSIONS, roles: ['Content editor'] } },
+    })
+    const request = makePostRequest()
+
+    const response = await POST(request)
+
+    expect(response.status).toBe(503)
+    expect(response.headers.get('cache-control')).toBe('no-store')
+    expect(await response.json()).toEqual({ error: 'GraphQL request identity is unavailable.' })
+    expect(request.bodyUsed).toBe(false)
+    expect(authMock).toHaveBeenCalledWith({ headers: request.headers })
+    expect(graphqlHandlerMock).not.toHaveBeenCalled()
+  })
+
   it.each([
     {
       name: 'unauthenticated requests',

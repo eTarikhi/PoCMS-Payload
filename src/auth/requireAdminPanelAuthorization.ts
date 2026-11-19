@@ -2,8 +2,9 @@ import { getPayload, type SanitizedConfig } from 'payload'
 
 import { hasAnyRole } from '@/access/permissions'
 
-type RouteHandler = (request: Request) => Promise<Response>
+type RouteHandler = (request: Request, authenticatedUser?: unknown) => Promise<Response>
 type RequestAuthenticator = (request: Request) => Promise<unknown>
+type AdminAuthorizationOptions = { passAuthenticatedUser?: boolean }
 
 const authorizationError = (status: 401 | 403, message: string): Response =>
   Response.json({ error: message }, { status, headers: { 'Cache-Control': 'no-store' } })
@@ -27,6 +28,7 @@ const withoutCaching = (response: Response): Response => {
 export function withAdminPanelAuthorization(
   authenticate: RequestAuthenticator,
   handler: RouteHandler,
+  options: AdminAuthorizationOptions = {},
 ): RouteHandler {
   return async (request) => {
     const user = await authenticate(request)
@@ -39,7 +41,9 @@ export function withAdminPanelAuthorization(
       return authorizationError(403, 'Admin access required.')
     }
 
-    return withoutCaching(await handler(request))
+    return withoutCaching(
+      await (options.passAuthenticatedUser ? handler(request, user) : handler(request)),
+    )
   }
 }
 
@@ -47,10 +51,15 @@ export function withAdminPanelAuthorization(
 export function withPayloadAdminPanelAuthorization(
   config: Promise<SanitizedConfig> | SanitizedConfig,
   handler: RouteHandler,
+  options: AdminAuthorizationOptions = {},
 ): RouteHandler {
-  return withAdminPanelAuthorization(async (request) => {
-    const payload = await getPayload({ config })
-    const { user } = await payload.auth({ headers: request.headers })
-    return user
-  }, handler)
+  return withAdminPanelAuthorization(
+    async (request) => {
+      const payload = await getPayload({ config })
+      const { user } = await payload.auth({ headers: request.headers })
+      return user
+    },
+    handler,
+    options,
+  )
 }
