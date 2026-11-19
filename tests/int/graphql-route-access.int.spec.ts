@@ -22,6 +22,7 @@ vi.mock('@payloadcms/next/routes', () => ({
 }))
 
 import { NO_PERMISSIONS } from '@/access/permissions'
+import { MAX_GRAPHQL_QUERY_NESTING } from '@/auth/graphqlQueryNestingLimit'
 import { MAX_GRAPHQL_REQUEST_BODY_BYTES } from '@/auth/graphqlRequestBodyLimit'
 import { OPTIONS, POST } from '@/app/(payload)/api/graphql/route'
 import { GET as playgroundGET } from '@/app/(payload)/api/graphql-playground/route'
@@ -48,6 +49,15 @@ const makeOversizedPostRequest = () =>
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Cookie: 'payload-token=session' },
     body: new Uint8Array(MAX_GRAPHQL_REQUEST_BODY_BYTES + 1),
+  })
+
+const makeDeepPostRequest = (depth: number) =>
+  new Request('https://cms.example.test/api/graphql', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: 'payload-token=session' },
+    body: JSON.stringify({
+      query: `query Deep { root { ${'next {'.repeat(depth)}value${' }'.repeat(depth)} } }`,
+    }),
   })
 
 beforeEach(() => {
@@ -110,6 +120,20 @@ describe('Admin-authorized Payload GraphQL routes', () => {
     expect(response.status).toBe(413)
     expect(response.headers.get('cache-control')).toBe('no-store')
     expect(graphqlHandlerMock).not.toHaveBeenCalled()
+  })
+
+  it('rejects an authorized deeply nested query before Payload parses it', async () => {
+    authMock.mockResolvedValue({ user: editor })
+    const request = makeDeepPostRequest(MAX_GRAPHQL_QUERY_NESTING + 1500)
+
+    const response = await POST(request)
+    const body = (await response.json()) as { errors?: Array<{ message: string }> }
+
+    expect(response.status).toBe(400)
+    expect(body.errors?.[0]?.message).toContain('maximum supported nesting')
+    expect(response.headers.get('cache-control')).toBe('no-store')
+    expect(graphqlHandlerMock).not.toHaveBeenCalled()
+    expect(authMock).toHaveBeenCalledWith({ headers: request.headers })
   })
 
   it('allows a user with any assigned role without caching or dropping Payload response headers', async () => {
