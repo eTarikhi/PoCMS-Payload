@@ -1,9 +1,10 @@
 // @vitest-environment node
 import { buildSchema, graphql } from 'graphql'
 import type { SanitizedConfig } from 'payload'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  GRAPHQL_REQUEST_BODY_DEADLINE_MS,
   MAX_GRAPHQL_REQUEST_BODY_BYTES,
   withGraphQLRequestBodyLimit,
 } from '@/auth/graphqlRequestBodyLimit'
@@ -19,6 +20,22 @@ const requestWithBody = (body: BodyInit, headers?: HeadersInit) =>
     }),
     body,
   })
+
+const requestWithStream = (body: ReadableStream<Uint8Array>, signal?: AbortSignal) =>
+  new Request('https://cms.example.test/api/graphql', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Origin: 'https://cms.example.test',
+    },
+    body,
+    signal,
+    duplex: 'half',
+  } as RequestInit & { duplex: 'half' })
+
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 const handlerThatReadsBytes = async (request: Request) => {
   const body = await request.arrayBuffer()
@@ -172,6 +189,154 @@ describe('authenticated GraphQL request body limit', () => {
     expect(response.status).toBe(413)
     expect(cancel).toHaveBeenCalledTimes(1)
     expect(pulls).toBe(2)
+    expect(request.body?.locked).toBe(false)
+    expect(handler).not.toHaveBeenCalled()
+  })
+
+  it('returns a CORS-enabled 408 for a never-completing upload without waiting for cancel', async () => {
+    vi.useFakeTimers()
+    const cancel = vi.fn(() => new Promise<void>(() => undefined))
+    const source = new ReadableStream<Uint8Array>({ pull() {}, cancel }, { highWaterMark: 0 })
+    const request = requestWithStream(source)
+    const schema = buildSchema('type Query { ping: String! }')
+    const resolver = vi.fn(() => 'pong')
+    const handler = vi.fn(async () => {
+      const result = await graphql({ schema, source: '{ ping }', rootValue: { ping: resolver } })
+      return Response.json(result)
+    })
+    const limitedHandler = withGraphQLRequestBodyLimit(
+      { cors: ['https://cms.example.test'] } as unknown as SanitizedConfig,
+      handler,
+    )
+    const pendingResponse = limitedHandler(request)
+
+    await vi.advanceTimersByTimeAsync(GRAPHQL_REQUEST_BODY_DEADLINE_MS)
+    const response = await pendingResponse
+
+    expect(response.status).toBe(408)
+    expect(response.headers.get('cache-control')).toBe('no-store')
+    expect(response.headers.get('access-control-allow-origin')).toBe('https://cms.example.test')
+    expect(response.headers.get('access-control-allow-credentials')).toBe('true')
+    expect(response.headers.get('vary')).toContain('Origin')
+    expect(await response.json()).toEqual({
+      error: `GraphQL request body exceeded its ${GRAPHQL_REQUEST_BODY_DEADLINE_MS}-millisecond deadline.`,
+    })
+    expect(cancel).toHaveBeenCalledTimes(1)
+    expect(request.body?.locked).toBe(false)
+    expect(handler).not.toHaveBeenCalled()
+    expect(resolver).not.toHaveBeenCalled()
+  })
+
+  it('uses one total deadline across a slow trickle instead of resetting it per chunk', async () => {
+    vi.useFakeTimers()
+    let cancelled = false
+    let chunksSent = 0
+    let pendingPullTimer: ReturnType<typeof setTimeout> | undefined
+    let resolvePendingPull: (() => void) | undefined
+    const cancel = vi.fn(() => {
+      cancelled = true
+      if (pendingPullTimer !== undefined) clearTimeout(pendingPullTimer)
+      resolvePendingPull?.()
+    })
+    const source = new ReadableStream<Uint8Array>(
+      {
+        pull(controller) {
+          return new Promise<void>((resolve) => {
+            resolvePendingPull = resolve
+            pendingPullTimer = setTimeout(() => {
+              pendingPullTimer = undefined
+              if (!cancelled) {
+                controller.enqueue(new Uint8Array([0x61]))
+                chunksSent += 1
+              }
+              resolve()
+            }, 6000)
+          })
+        },
+        cancel,
+      },
+      { highWaterMark: 0 },
+    )
+    const request = requestWithStream(source)
+    const handler = vi.fn(handlerThatReadsBytes)
+    const limitedHandler = withGraphQLRequestBodyLimit(
+      { cors: ['https://cms.example.test'] } as unknown as SanitizedConfig,
+      handler,
+    )
+    const pendingResponse = limitedHandler(request)
+
+    await vi.advanceTimersByTimeAsync(GRAPHQL_REQUEST_BODY_DEADLINE_MS)
+    const response = await pendingResponse
+
+    expect(chunksSent).toBe(2)
+    expect(response.status).toBe(408)
+    expect(cancel).toHaveBeenCalledTimes(1)
+    expect(request.body?.locked).toBe(false)
+    expect(handler).not.toHaveBeenCalled()
+  })
+
+  it('treats request disconnects and AbortError stream failures as client timeouts', async () => {
+    const controller = new AbortController()
+    const cancel = vi.fn()
+    const source = new ReadableStream<Uint8Array>({ pull() {}, cancel }, { highWaterMark: 0 })
+    const request = requestWithStream(source, controller.signal)
+    const handler = vi.fn(handlerThatReadsBytes)
+    const limitedHandler = withGraphQLRequestBodyLimit(
+      { cors: ['https://cms.example.test'] } as unknown as SanitizedConfig,
+      handler,
+    )
+    const pendingResponse = limitedHandler(request)
+    controller.abort()
+    const disconnected = await pendingResponse
+
+    expect(disconnected.status).toBe(408)
+    expect(await disconnected.json()).toEqual({ error: 'GraphQL request body was interrupted.' })
+    expect(cancel).toHaveBeenCalledTimes(1)
+    expect(request.body?.locked).toBe(false)
+    expect(handler).not.toHaveBeenCalled()
+
+    const abortingSource = new ReadableStream<Uint8Array>(
+      {
+        pull(streamController) {
+          streamController.error(new DOMException('Client disconnected', 'AbortError'))
+        },
+      },
+      { highWaterMark: 0 },
+    )
+    const abortingRequest = requestWithStream(abortingSource)
+    const abortingResponse = await limitedHandler(abortingRequest)
+
+    expect(abortingResponse.status).toBe(408)
+    expect(await abortingResponse.json()).toEqual({
+      error: 'GraphQL request body was interrupted.',
+    })
+    expect(abortingRequest.body?.locked).toBe(false)
+    expect(handler).not.toHaveBeenCalled()
+  })
+
+  it('returns a controlled 400 when the body stream fails for a non-abort reason', async () => {
+    const failedSource = new ReadableStream<Uint8Array>(
+      {
+        pull(streamController) {
+          streamController.error(new Error('client body stream failure'))
+        },
+      },
+      { highWaterMark: 0 },
+    )
+    const request = requestWithStream(failedSource)
+    const handler = vi.fn(handlerThatReadsBytes)
+    const limitedHandler = withGraphQLRequestBodyLimit(
+      { cors: ['https://cms.example.test'] } as unknown as SanitizedConfig,
+      handler,
+    )
+
+    const response = await limitedHandler(request)
+
+    expect(response.status).toBe(400)
+    expect(response.headers.get('cache-control')).toBe('no-store')
+    expect(response.headers.get('access-control-allow-origin')).toBe('https://cms.example.test')
+    expect(await response.json()).toEqual({ error: 'Unable to read GraphQL request body.' })
+    expect(request.body?.locked).toBe(false)
     expect(handler).not.toHaveBeenCalled()
   })
 })
