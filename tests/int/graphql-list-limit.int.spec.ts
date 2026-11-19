@@ -306,6 +306,19 @@ describe('GraphQL collection list limit contract', () => {
   })
 
   it.each([
+    ['omitted limit', '(pagination: false)'],
+    ['null limit', '(pagination: false, limit: null)'],
+    ['zero limit', '(pagination: false, limit: 0)'],
+  ])('rejects unbounded pagination-disabled Version lists with %s', async (_name, args) => {
+    const response = await sendQuery(createHandler(), `{ versionsArticles${args} { docs { id } } }`)
+    const body = (await response.json()) as { errors?: Array<{ message: string }> }
+
+    expect(response.status).toBe(400)
+    expect(body.errors?.some(({ message }) => /limit|pagination/i.test(message))).toBe(true)
+    expect(versionsResolver).not.toHaveBeenCalled()
+  })
+
+  it.each([
     ['zero', '{ Articles(limit: 0) { docs { id } } }'],
     ['negative', '{ Articles(limit: -1) { docs { id } } }'],
     ['above the maximum', `{ Articles(limit: ${MAX_GRAPHQL_LIST_LIMIT + 1}) { docs { id } } }`],
