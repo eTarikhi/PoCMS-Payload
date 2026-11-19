@@ -78,6 +78,7 @@ let schema: GraphQLSchema
 let payloadValidationRules: PayloadValidationRules
 let articlesResolver: Mock<CollectionFieldResolver>
 let skillsResolver: Mock<CollectionFieldResolver>
+let versionsResolver: Mock<CollectionFieldResolver>
 
 const pageResult = (docs: PaginatedResult['docs'] = []): PaginatedResult => ({
   docs,
@@ -210,19 +211,22 @@ beforeAll(async () => {
   payloadValidationRules = result.validationRules as PayloadValidationRules
 
   const queryFields = schema.getQueryType()?.getFields()
-  if (!queryFields?.Articles || !queryFields.Skills) {
-    throw new Error('Expected generated Articles and Skills collection queries')
+  if (!queryFields?.Articles || !queryFields.Skills || !queryFields.versionsArticles) {
+    throw new Error('Expected generated Articles, Skills, and versionsArticles collection queries')
   }
 
   articlesResolver = vi.fn<CollectionFieldResolver>(() => pageResult())
   skillsResolver = vi.fn<CollectionFieldResolver>(() => pageResult([{ id: 1 }]))
+  versionsResolver = vi.fn<CollectionFieldResolver>(() => pageResult())
   queryFields.Articles.resolve = articlesResolver
   queryFields.Skills.resolve = skillsResolver
+  queryFields.versionsArticles.resolve = versionsResolver
 })
 
 beforeEach(() => {
   articlesResolver.mockReset().mockImplementation(() => pageResult())
   skillsResolver.mockReset().mockImplementation(() => pageResult([{ id: 1 }]))
+  versionsResolver.mockReset().mockImplementation(() => pageResult())
 })
 
 describe('GraphQL collection list limit contract', () => {
@@ -234,6 +238,11 @@ describe('GraphQL collection list limit contract', () => {
     {
       name: 'omitted limit (Payload default)',
       query: '{ Articles { docs { id } } }',
+      limit: undefined,
+    },
+    {
+      name: 'pagination enabled with an omitted limit',
+      query: '{ Articles(pagination: true) { docs { id } } }',
       limit: undefined,
     },
     {
@@ -275,6 +284,28 @@ describe('GraphQL collection list limit contract', () => {
   })
 
   it.each([
+    ['omitted pagination and limit', '', undefined, undefined],
+    ['pagination:true with an omitted limit', '(pagination: true)', undefined, true],
+    ['pagination:false with a positive limit', '(pagination: false, limit: 25)', 25, false],
+  ])('preserves Version-list behavior for %s', async (_name, args, limit, pagination) => {
+    const response = await sendQuery(createHandler(), `{ versionsArticles${args} { docs { id } } }`)
+
+    expect(response.status).toBe(200)
+    expect(versionsResolver).toHaveBeenCalledTimes(1)
+    const resolverArgs = versionsResolver.mock.calls[0]?.[1]
+    if (limit === undefined) {
+      expect(Object.hasOwn(resolverArgs ?? {}, 'limit')).toBe(false)
+    } else {
+      expect(resolverArgs?.limit).toBe(limit)
+    }
+    if (pagination === undefined) {
+      expect(Object.hasOwn(resolverArgs ?? {}, 'pagination')).toBe(false)
+    } else {
+      expect(resolverArgs?.pagination).toBe(pagination)
+    }
+  })
+
+  it.each([
     ['zero', '{ Articles(limit: 0) { docs { id } } }'],
     ['negative', '{ Articles(limit: -1) { docs { id } } }'],
     ['above the maximum', `{ Articles(limit: ${MAX_GRAPHQL_LIST_LIMIT + 1}) { docs { id } } }`],
@@ -307,6 +338,113 @@ describe('GraphQL collection list limit contract', () => {
     )
 
     expect(response.status).toBe(400)
+    expect(articlesResolver).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    { rootName: 'Collection', fieldName: 'Articles', resolver: () => articlesResolver },
+    { rootName: 'Version', fieldName: 'versionsArticles', resolver: () => versionsResolver },
+  ])(
+    'rejects explicit null pagination for $rootName roots with omitted, null, and positive limits',
+    async ({ fieldName, resolver }) => {
+      const cases = [
+        ['omitted limit', 'pagination: null'],
+        ['null limit', 'pagination: null, limit: null'],
+        ['positive limit', 'pagination: null, limit: 25'],
+      ] as const
+
+      for (const [caseName, args] of cases) {
+        const response = await sendQuery(
+          createHandler(),
+          `{ ${fieldName}(${args}) { docs { id } } }`,
+        )
+        const body = (await response.json()) as { errors?: Array<{ message: string }> }
+
+        expect(response.status, `${fieldName} with ${caseName}`).toBe(400)
+        expect(
+          body.errors?.some(({ message }) => message.includes('explicit null is not allowed')),
+          `${fieldName} with ${caseName}`,
+        ).toBe(true)
+        expect(resolver(), `${fieldName} with ${caseName}`).not.toHaveBeenCalled()
+      }
+    },
+  )
+
+  it.each([
+    { rootName: 'Collection', fieldName: 'Articles', resolver: () => articlesResolver },
+    { rootName: 'Version', fieldName: 'versionsArticles', resolver: () => versionsResolver },
+  ])(
+    'rejects runtime-null variables and null defaults for $rootName pagination',
+    async ({ fieldName, resolver }) => {
+      const runtimeNullQuery = `query RuntimeNull($pagination: Boolean) {
+        ${fieldName}(pagination: $pagination) { docs { id } }
+      }`
+      const runtimeNull = await sendQuery(createHandler(), runtimeNullQuery, { pagination: null })
+      const runtimeNullBody = (await runtimeNull.json()) as {
+        errors?: Array<{ message: string }>
+      }
+
+      expect(runtimeNull.status).toBe(400)
+      expect(runtimeNullBody.errors?.[0]?.message).toContain('explicit null is not allowed')
+      expect(resolver()).not.toHaveBeenCalled()
+
+      const nullDefaultQuery = `query NullDefault($pagination: Boolean = null) {
+        ${fieldName}(pagination: $pagination) { docs { id } }
+      }`
+      const nullDefault = await sendQuery(createHandler(), nullDefaultQuery)
+      const nullDefaultBody = (await nullDefault.json()) as {
+        errors?: Array<{ message: string }>
+      }
+
+      expect(nullDefault.status).toBe(400)
+      expect(nullDefaultBody.errors?.[0]?.message).toContain('explicit null is not allowed')
+      expect(resolver()).not.toHaveBeenCalled()
+    },
+  )
+
+  it('rejects explicit null pagination through aliases and reachable fragments', async () => {
+    const handler = createHandler()
+    const aliased = await sendQuery(
+      handler,
+      '{ unsafe: Articles(pagination: null) { docs { id } } }',
+    )
+    const aliasBody = (await aliased.json()) as { errors?: Array<{ message: string }> }
+    expect(aliased.status).toBe(400)
+    expect(aliasBody.errors?.[0]?.message).toContain('explicit null is not allowed')
+    expect(articlesResolver).not.toHaveBeenCalled()
+
+    const fragmented = await sendQuery(
+      handler,
+      `query FragmentedNull { ...UnsafePagination }
+       fragment UnsafePagination on Query {
+         Articles(pagination: null) { docs { id } }
+       }`,
+    )
+    const fragmentBody = (await fragmented.json()) as { errors?: Array<{ message: string }> }
+    expect(fragmented.status).toBe(400)
+    expect(fragmentBody.errors?.[0]?.message).toContain('explicit null is not allowed')
+    expect(articlesResolver).not.toHaveBeenCalled()
+  })
+
+  it('scopes explicit-null pagination validation to the selected operation and its fragments', async () => {
+    const handler = createHandler()
+    const query = `
+      query Safe { Articles { docs { id } } }
+      query NullPagination { ...UnsafePagination }
+      fragment UnsafePagination on Query {
+        Articles(pagination: null) { docs { id } }
+      }
+    `
+
+    const safe = await sendQuery(handler, query, undefined, 'Safe')
+    expect(safe.status).toBe(200)
+    expect(articlesResolver).toHaveBeenCalledTimes(1)
+    articlesResolver.mockClear()
+
+    const unsafe = await sendQuery(handler, query, undefined, 'NullPagination')
+    const unsafeBody = (await unsafe.json()) as { errors?: Array<{ message: string }> }
+    expect(unsafe.status).toBe(400)
+    expect(unsafeBody.errors?.[0]?.message).toContain('explicit null is not allowed')
     expect(articlesResolver).not.toHaveBeenCalled()
   })
 
@@ -384,6 +522,10 @@ describe('GraphQL collection list limit contract', () => {
         `${fieldName} has a bounded limit arg`,
       ).toBe(true)
       expect(
+        field.args.some(({ name }) => name === 'pagination'),
+        `${fieldName} exposes pagination`,
+      ).toBe(true)
+      expect(
         field.args.some(({ name }) =>
           ['first', 'last', 'offset', 'perPage', 'pageSize', 'take'].includes(name),
         ),
@@ -406,6 +548,15 @@ describe('GraphQL collection list limit contract', () => {
       expect(
         limitErrors,
         `${fieldName} must reject a limit over ${MAX_GRAPHQL_LIST_LIMIT}`,
+      ).not.toHaveLength(0)
+
+      const nullPaginationQuery = `query NullPagination${index} { ${fieldName}(pagination: null) { docs { __typename } } }`
+      const nullPaginationErrors = validateWithListLimit(nullPaginationQuery).filter(
+        ({ message }) => message.includes('explicit null is not allowed'),
+      )
+      expect(
+        nullPaginationErrors,
+        `${fieldName} must reject explicit null pagination`,
       ).not.toHaveLength(0)
     }
   })

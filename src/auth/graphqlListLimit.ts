@@ -97,6 +97,17 @@ export function createGraphQLListLimitRule(args: ExecutionArgs): ValidationRule 
       const count = valueForArgument(node, 'count', variables)
       const isJoin = (field.extensions?.field as { type?: unknown } | undefined)?.type === 'join'
 
+      // Payload 3.90.2 uses `pagination && limit !== 0`; null therefore disables its default page.
+      if (field.args.some((argument) => argument.name === 'pagination') && pagination === null) {
+        context.reportError(
+          listLimitError(
+            'GraphQL pagination must be true or false; explicit null is not allowed.',
+            node,
+          ),
+        )
+        return
+      }
+
       if (typeof limit === 'number') {
         if (!Number.isInteger(limit) || limit < 0 || limit > MAX_GRAPHQL_LIST_LIMIT) {
           context.reportError(
