@@ -1,42 +1,150 @@
 diff --git a/dist/packages/graphql-query-complexity/QueryComplexity.js b/dist/packages/graphql-query-complexity/QueryComplexity.js
-index 201d658165aaad26237890a823fe97dac2dae6f0..15bd6b10af92b768fdcdd0f3295b80579e9fa3a3 100644
+index 201d658165aaad26237890a823fe97dac2dae6f0..5c80c0823fd176169db7cca0a5133baf1cf9f32d 100644
 --- a/dist/packages/graphql-query-complexity/QueryComplexity.js
 +++ b/dist/packages/graphql-query-complexity/QueryComplexity.js
-@@ -34,6 +34,7 @@ export class QueryComplexity {
+@@ -5,6 +5,11 @@ import { getArgumentValues, getDirectiveValues, getVariableValues } from 'graphq
+ function queryComplexityMessage(max, actual) {
+     return `The query exceeds the maximum complexity of ${max}. ` + `Actual complexity is ${actual}`;
+ }
++// Keep recursive complexity traversal below the JavaScript call-stack limit, and cap the
++// reachable selection nodes considered for one request independently of the complexity score.
++const MAX_FRAGMENT_EXPANSION_DEPTH = 64;
++const MAX_SELECTION_TRAVERSAL_DEPTH = 1024;
++const MAX_SELECTION_TRAVERSAL_WORK = 4096;
+ export function getComplexity(options) {
+     const typeInfo = new TypeInfo(options.schema);
+     const errors = [];
+@@ -34,6 +39,11 @@ export class QueryComplexity {
      requestContext;
      skipDirectiveDef;
      variableValues;
 +    fragmentComplexityCache;
++    fragmentExpansionDepthCache;
++    fragmentExpansionFrames;
++    selectionTraversalWork;
++    traversalLimitExceeded;
      constructor(context, options){
          if (!(typeof options.maximumComplexity === 'number' && options.maximumComplexity > 0)) {
              throw new Error('Maximum query complexity must be a positive number');
-@@ -46,6 +47,7 @@ export class QueryComplexity {
+@@ -46,6 +56,11 @@ export class QueryComplexity {
          this.estimators = options.estimators;
          this.variableValues = {};
          this.requestContext = options.context;
 +        this.fragmentComplexityCache = new Map();
++        this.fragmentExpansionDepthCache = new Map();
++        this.fragmentExpansionFrames = [];
++        this.selectionTraversalWork = 0;
++        this.traversalLimitExceeded = false;
          this.OperationDefinition = {
              enter: this.onOperationDefinitionEnter,
              leave: this.onOperationDefinitionLeave
-@@ -57,7 +59,7 @@ export class QueryComplexity {
+@@ -57,7 +72,35 @@ export class QueryComplexity {
          }
          return new GraphQLError(queryComplexityMessage(this.options.maximumComplexity, this.complexity));
      }
 -    nodeComplexity(node, typeDef) {
-+    nodeComplexity(node, typeDef, activeFragments = new Set()) {
++    reportTraversalLimit(message) {
++        if (this.traversalLimitExceeded) {
++            return;
++        }
++        this.traversalLimitExceeded = true;
++        this.context.reportError(new GraphQLError(message));
++    }
++    consumeSelectionTraversalWork() {
++        if (this.selectionTraversalWork >= MAX_SELECTION_TRAVERSAL_WORK) {
++            this.reportTraversalLimit(`GraphQL selection traversal exceeds the maximum work of ${MAX_SELECTION_TRAVERSAL_WORK} reachable selection nodes.`);
++            return false;
++        }
++        this.selectionTraversalWork += 1;
++        return true;
++    }
++    recordFragmentExpansionDepth(depth) {
++        const parentFrame = this.fragmentExpansionFrames[this.fragmentExpansionFrames.length - 1];
++        if (parentFrame) {
++            parentFrame.maxChildDepth = Math.max(parentFrame.maxChildDepth, depth);
++        }
++    }
++    nodeComplexity(node, typeDef, activeFragments = new Set(), recursionDepth = 1) {
++        if (this.traversalLimitExceeded) {
++            return 0;
++        }
++        if (recursionDepth > MAX_SELECTION_TRAVERSAL_DEPTH) {
++            this.reportTraversalLimit(`GraphQL selection traversal exceeds the maximum depth of ${MAX_SELECTION_TRAVERSAL_DEPTH} selection sets.`);
++            return 0;
++        }
          if (node.selectionSet) {
              let fields = {};
              if (typeDef instanceof GraphQLObjectType || typeDef instanceof GraphQLInterfaceType) {
-@@ -122,7 +124,7 @@ export class QueryComplexity {
+@@ -73,9 +116,12 @@ export class QueryComplexity {
+                 ];
+             }
+             // Collect complexities for all possible types individually
+-            const selectionSetComplexities = node.selectionSet.selections.reduce((complexities, childNode)=>{
+-                // let nodeComplexity = 0;
+-                let innerComplexities = complexities;
++            let selectionSetComplexities = {};
++            for (const childNode of node.selectionSet.selections){
++                if (this.traversalLimitExceeded || !this.consumeSelectionTraversalWork()) {
++                    break;
++                }
++                let innerComplexities = selectionSetComplexities;
+                 let includeNode = true;
+                 let skipNode = false;
+                 for (const directive of childNode.directives ?? []){
+@@ -100,7 +146,7 @@ export class QueryComplexity {
+                     }
+                 }
+                 if (!includeNode || skipNode) {
+-                    return complexities;
++                    continue;
+                 }
+                 switch(childNode.kind){
+                     case Kind.FIELD:
+@@ -108,7 +154,7 @@ export class QueryComplexity {
+                             const field = fields[childNode.name.value];
+                             // Invalid field, should be caught by other validation rules
+                             if (!field) {
+-                                break;
++                                continue;
+                             }
+                             const fieldType = getNamedType(field.type);
+                             // Get arguments
+@@ -117,12 +163,15 @@ export class QueryComplexity {
+                                 args = getArgumentValues(field, childNode, this.variableValues || {});
+                             } catch (e) {
+                                 this.context.reportError(e);
+-                                return complexities;
++                                continue;
+                             }
                              // Check if we have child complexity
                              let childComplexity = 0;
                              if (isCompositeType(fieldType)) {
 -                                childComplexity = this.nodeComplexity(childNode, fieldType);
-+                                childComplexity = this.nodeComplexity(childNode, fieldType, activeFragments);
++                                childComplexity = this.nodeComplexity(childNode, fieldType, activeFragments, recursionDepth + 1);
++                                if (this.traversalLimitExceeded) {
++                                    break;
++                                }
                              }
                              // Run estimators one after another and return first valid complexity
                              // score
-@@ -160,7 +162,22 @@ export class QueryComplexity {
+@@ -137,14 +186,14 @@ export class QueryComplexity {
+                             const validScore = this.estimators.find((estimator)=>{
+                                 const tmpComplexity = estimator(estimatorArgs);
+                                 if (typeof tmpComplexity === 'number' && !isNaN(tmpComplexity)) {
+-                                    innerComplexities = addComplexities(tmpComplexity, complexities, possibleTypeNames);
++                                    innerComplexities = addComplexities(tmpComplexity, selectionSetComplexities, possibleTypeNames);
+                                     return true;
+                                 }
+                                 return false;
+                             });
+                             if (!validScore) {
+                                 this.context.reportError(new GraphQLError(`No complexity could be calculated for field ${typeDef.name}.${field.name}. ` + 'At least one complexity estimator has to return a complexity score.'));
+-                                return complexities;
++                                continue;
+                             }
+                             break;
+                         }
+@@ -160,13 +209,51 @@ export class QueryComplexity {
                              if (!isCompositeType(fragmentType)) {
                                  break;
                              }
@@ -46,48 +154,122 @@ index 201d658165aaad26237890a823fe97dac2dae6f0..15bd6b10af92b768fdcdd0f3295b8057
 +                                break;
 +                            }
 +                            let nodeComplexity;
++                            let fragmentDepth;
 +                            if (this.fragmentComplexityCache.has(fragmentName)) {
 +                                nodeComplexity = this.fragmentComplexityCache.get(fragmentName);
++                                fragmentDepth = this.fragmentExpansionDepthCache.get(fragmentName) ?? 1;
++                                if (activeFragments.size + fragmentDepth > MAX_FRAGMENT_EXPANSION_DEPTH) {
++                                    this.reportTraversalLimit(`GraphQL fragment expansion exceeds the maximum depth of ${MAX_FRAGMENT_EXPANSION_DEPTH} spreads.`);
++                                    break;
++                                }
 +                            } else {
++                                if (activeFragments.size + 1 > MAX_FRAGMENT_EXPANSION_DEPTH) {
++                                    this.reportTraversalLimit(`GraphQL fragment expansion exceeds the maximum depth of ${MAX_FRAGMENT_EXPANSION_DEPTH} spreads.`);
++                                    break;
++                                }
 +                                activeFragments.add(fragmentName);
++                                const fragmentFrame = { maxChildDepth: 0 };
++                                this.fragmentExpansionFrames.push(fragmentFrame);
 +                                try {
-+                                    nodeComplexity = this.nodeComplexity(fragment, fragmentType, activeFragments);
++                                    nodeComplexity = this.nodeComplexity(fragment, fragmentType, activeFragments, recursionDepth + 1);
 +                                } finally {
++                                    this.fragmentExpansionFrames.pop();
 +                                    activeFragments.delete(fragmentName);
 +                                }
++                                if (this.traversalLimitExceeded) {
++                                    break;
++                                }
++                                fragmentDepth = 1 + fragmentFrame.maxChildDepth;
++                                if (activeFragments.size + fragmentDepth > MAX_FRAGMENT_EXPANSION_DEPTH) {
++                                    this.reportTraversalLimit(`GraphQL fragment expansion exceeds the maximum depth of ${MAX_FRAGMENT_EXPANSION_DEPTH} spreads.`);
++                                    break;
++                                }
 +                                this.fragmentComplexityCache.set(fragmentName, nodeComplexity);
++                                this.fragmentExpansionDepthCache.set(fragmentName, fragmentDepth);
 +                            }
++                            this.recordFragmentExpansionDepth(fragmentDepth);
                              if (isAbstractType(fragmentType)) {
                                  // Add fragment complexity for all possible types
-                                 innerComplexities = addComplexities(nodeComplexity, complexities, this.context.getSchema().getPossibleTypes(fragmentType).map((t)=>t.name));
-@@ -181,7 +198,7 @@ export class QueryComplexity {
-                                     break;
+-                                innerComplexities = addComplexities(nodeComplexity, complexities, this.context.getSchema().getPossibleTypes(fragmentType).map((t)=>t.name));
++                                innerComplexities = addComplexities(nodeComplexity, selectionSetComplexities, this.context.getSchema().getPossibleTypes(fragmentType).map((t)=>t.name));
+                             } else {
+                                 // Add complexity for object type
+-                                innerComplexities = addComplexities(nodeComplexity, complexities, [
++                                innerComplexities = addComplexities(nodeComplexity, selectionSetComplexities, [
+                                     fragmentType.name
+                                 ]);
+                             }
+@@ -178,16 +265,19 @@ export class QueryComplexity {
+                             if (childNode.typeCondition && childNode.typeCondition.name) {
+                                 inlineFragmentType = this.context.getSchema().getType(childNode.typeCondition.name.value);
+                                 if (!isCompositeType(inlineFragmentType)) {
+-                                    break;
++                                    continue;
                                  }
                              }
 -                            const nodeComplexity = this.nodeComplexity(childNode, inlineFragmentType);
-+                            const nodeComplexity = this.nodeComplexity(childNode, inlineFragmentType, activeFragments);
++                            const nodeComplexity = this.nodeComplexity(childNode, inlineFragmentType, activeFragments, recursionDepth + 1);
++                            if (this.traversalLimitExceeded) {
++                                break;
++                            }
                              if (isAbstractType(inlineFragmentType)) {
                                  // Add fragment complexity for all possible types
-                                 innerComplexities = addComplexities(nodeComplexity, complexities, this.context.getSchema().getPossibleTypes(inlineFragmentType).map((t)=>t.name));
-@@ -195,7 +212,7 @@ export class QueryComplexity {
+-                                innerComplexities = addComplexities(nodeComplexity, complexities, this.context.getSchema().getPossibleTypes(inlineFragmentType).map((t)=>t.name));
++                                innerComplexities = addComplexities(nodeComplexity, selectionSetComplexities, this.context.getSchema().getPossibleTypes(inlineFragmentType).map((t)=>t.name));
+                             } else {
+                                 // Add complexity for object type
+-                                innerComplexities = addComplexities(nodeComplexity, complexities, [
++                                innerComplexities = addComplexities(nodeComplexity, selectionSetComplexities, [
+                                     inlineFragmentType.name
+                                 ]);
+                             }
+@@ -195,12 +285,15 @@ export class QueryComplexity {
                          }
                      default:
                          {
 -                            innerComplexities = addComplexities(this.nodeComplexity(childNode, typeDef), complexities, possibleTypeNames);
-+                            innerComplexities = addComplexities(this.nodeComplexity(childNode, typeDef, activeFragments), complexities, possibleTypeNames);
++                            innerComplexities = addComplexities(this.nodeComplexity(childNode, typeDef, activeFragments, recursionDepth + 1), selectionSetComplexities, possibleTypeNames);
                              break;
                          }
                  }
-@@ -210,6 +227,7 @@ export class QueryComplexity {
+-                return innerComplexities;
+-            }, {});
++                if (this.traversalLimitExceeded) {
++                    break;
++                }
++                selectionSetComplexities = innerComplexities;
++            }
+             // Only return max complexity of all possible types
+             if (!selectionSetComplexities) {
+                 return NaN;
+@@ -210,9 +303,15 @@ export class QueryComplexity {
          return 0;
      }
      onOperationDefinitionEnter(operation) {
 +        this.fragmentComplexityCache.clear();
++        this.fragmentExpansionDepthCache.clear();
++        this.fragmentExpansionFrames.length = 0;
          if (typeof this.options.operationName === 'string' && this.options.operationName !== operation.name.value) {
              return;
          }
++        if (this.traversalLimitExceeded) {
++            return;
++        }
+         // Get variable values from variables that are passed from options, merged
+         // with default values defined in the operation
+         const { coerced, errors } = getVariableValues(this.context.getSchema(), // We have to create a new array here because input argument is not readonly in graphql ~14.6.0
+@@ -243,6 +342,9 @@ export class QueryComplexity {
+         if (typeof this.options.operationName === 'string' && this.options.operationName !== operation.name.value) {
+             return;
+         }
++        if (this.traversalLimitExceeded) {
++            return;
++        }
+         if (this.options.onComplete) {
+             this.options.onComplete(this.complexity);
+         }
 diff --git a/dist/schema/fieldToSchemaMap.js b/dist/schema/fieldToSchemaMap.js
-index 1ebe12b..38eac5d 100644
+index 1ebe12b03d5a26312bfaea1c3d908ad3ca92ddfb..38eac5d9b94be4d9c703c418aa3a967bbf43c61c 100644
 --- a/dist/schema/fieldToSchemaMap.js
 +++ b/dist/schema/fieldToSchemaMap.js
 @@ -10,6 +10,8 @@ import { resolveSelect } from '../utilities/select.js';

@@ -28,14 +28,18 @@ type GraphQLResponse = {
   errors?: Array<{ message: string }>
 }
 
-const createPayloadGraphQLHandler = (maxComplexity = 1000, trackValueComplexity = false) => {
+const createPayloadGraphQLHandler = (
+  maxComplexity = 1000,
+  trackValueComplexity = false,
+  typeName = 'GraphQLComplexityNode',
+) => {
   const rootResolver = vi.fn(() => ({
     next: { next: null, value: 'nested' },
     value: 'root',
   }))
   const valueComplexityEstimator = vi.fn(() => 1)
   const nodeType: GraphQLObjectTypeInstance = new GraphQLObjectType({
-    name: 'GraphQLComplexityNode',
+    name: typeName,
     fields: () => ({
       next: { type: nodeType },
       value: {
@@ -98,6 +102,18 @@ const sendQuery = async (
 
 const repeatedValueSelection = (count: number): string => Array(count).fill('value').join(' ')
 
+const fragmentChainQuery = (
+  fragmentCount: number,
+  typeName = 'GraphQLComplexityNode',
+  operationName = 'FragmentChain',
+): string => {
+  const fragments = Array.from({ length: fragmentCount }, (_, index) => {
+    const selection = index === fragmentCount - 1 ? 'value' : `...F${index + 1}`
+    return `fragment F${index} on ${typeName} { ${selection} }`
+  })
+  return `query ${operationName} { root { ...F0 } }\n${fragments.join('\n')}`
+}
+
 const cyclicDocuments = [
   {
     label: 'direct',
@@ -153,6 +169,7 @@ describe('Payload GraphQL complexity and fragment-cycle contract', () => {
           ...Nested
           ...Reusable
           ...Reusable
+          ... on GraphQLComplexityNode { value }
         }
       }
       fragment Nested on GraphQLComplexityNode { next { ...Leaf } }
@@ -173,6 +190,103 @@ describe('Payload GraphQL complexity and fragment-cycle contract', () => {
       },
     })
     expect(rootResolver).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([63, 64])(
+    'accepts a reachable fragment chain of %i spreads without changing complexity or resolution',
+    async (fragmentDepth) => {
+      const { handler, rootResolver } = createPayloadGraphQLHandler()
+      const response = await sendQuery(handler, fragmentChainQuery(fragmentDepth))
+      const body = (await response.json()) as GraphQLResponse
+
+      expect(response.status).toBe(200)
+      expect(body).toEqual({ data: { root: { value: 'root' } } })
+      expect(rootResolver).toHaveBeenCalledTimes(1)
+    },
+  )
+
+  it('rejects an acyclic fragment chain above the independent depth bound before resolution', async () => {
+    const { handler, rootResolver } = createPayloadGraphQLHandler()
+    const response = await sendQuery(handler, fragmentChainQuery(65))
+    const body = (await response.json()) as GraphQLResponse
+    const errorMessages = body.errors?.map(({ message }) => message).join(' ')
+
+    expect(response.status).toBe(400)
+    expect(errorMessages).toContain('maximum depth of 64 spreads')
+    expect(errorMessages).not.toContain('Maximum call stack size')
+    expect(rootResolver).not.toHaveBeenCalled()
+  })
+
+  it('applies the depth bound to a previously memoized fragment reused under a deeper parent', async () => {
+    const { handler, rootResolver } = createPayloadGraphQLHandler()
+    const query = `${fragmentChainQuery(64).replace(
+      'root { ...F0 }',
+      'root { ...F0 ...Wrapper }',
+    )}\nfragment Wrapper on GraphQLComplexityNode { ...F0 }`
+
+    const response = await sendQuery(handler, query)
+    const body = (await response.json()) as GraphQLResponse
+
+    expect(response.status).toBe(400)
+    expect(body.errors?.map(({ message }) => message).join(' ')).toContain(
+      'maximum depth of 64 spreads',
+    )
+    expect(rootResolver).not.toHaveBeenCalled()
+  })
+
+  it('returns a controlled validation error for the 1,500-fragment, roughly 53 KB chain', async () => {
+    const { handler, rootResolver } = createPayloadGraphQLHandler(1000, false, 'Node')
+    const query = fragmentChainQuery(1500, 'Node', 'Q')
+    const requestBodyBytes = Buffer.byteLength(JSON.stringify({ query }))
+
+    expect(requestBodyBytes).toBe(53_318)
+
+    const response = await sendQuery(handler, query)
+    const body = (await response.json()) as GraphQLResponse
+    const errorMessages = body.errors?.map(({ message }) => message).join(' ')
+
+    expect(response.status).toBe(400)
+    expect(errorMessages).toContain('maximum depth of 64 spreads')
+    expect(errorMessages).not.toContain('Maximum call stack size')
+    expect(rootResolver).not.toHaveBeenCalled()
+  })
+
+  it('caps total reachable selection traversal work independently of depth and complexity', async () => {
+    const { handler, rootResolver } = createPayloadGraphQLHandler(1000, false, 'Node')
+    const fragmentCount = 2048
+    const spreadSelections = Array.from(
+      { length: fragmentCount },
+      (_, index) => `...F${index}`,
+    ).join(' ')
+    const fragments = Array.from(
+      { length: fragmentCount },
+      (_, index) => `fragment F${index} on Node { value${index}: value @skip(if: true) }`,
+    ).join('\n')
+    const query = `query WideTraversal { root { ${spreadSelections} } }\n${fragments}`
+
+    const response = await sendQuery(handler, query)
+    const body = (await response.json()) as GraphQLResponse
+    const errorMessages = body.errors?.map(({ message }) => message).join(' ')
+
+    expect(response.status).toBe(400)
+    expect(errorMessages).toContain('maximum work of 4096 reachable selection nodes')
+    expect(errorMessages).not.toContain('maximum complexity of 1000')
+    expect(rootResolver).not.toHaveBeenCalled()
+  })
+
+  it('bounds deep field recursion even when the fragment and traversal-work limits are not reached', async () => {
+    const { handler, rootResolver } = createPayloadGraphQLHandler()
+    const depth = 1024
+    const query = `query DeepFields { root { ${'next { '.repeat(depth)}value${' }'.repeat(depth)} } }`
+
+    const response = await sendQuery(handler, query)
+    const body = (await response.json()) as GraphQLResponse
+
+    expect(response.status).toBe(400)
+    expect(body.errors?.map(({ message }) => message).join(' ')).toContain(
+      'maximum depth of 1024 selection sets',
+    )
+    expect(rootResolver).not.toHaveBeenCalled()
   })
 
   it('memoizes acyclic fragment costs but charges every spread toward the existing threshold', async () => {
@@ -204,10 +318,14 @@ describe('Payload GraphQL complexity and fragment-cycle contract', () => {
   it('recomputes memoized fragment costs for each operation variable set', async () => {
     const { handler, rootResolver } = createPayloadGraphQLHandler(3)
     const query = `
-      query IncludeValue($include: Boolean! = true) { root { ...SharedValue } }
-      query SkipValue($include: Boolean! = false) { root { ...SharedValue } }
+      query IncludeValue($include: Boolean! = true, $skip: Boolean! = false) {
+        root { ...SharedValue }
+      }
+      query SkipValue($include: Boolean! = false, $skip: Boolean! = true) {
+        root { ...SharedValue }
+      }
       fragment SharedValue on GraphQLComplexityNode {
-        value @include(if: $include)
+        value @include(if: $include) @skip(if: $skip)
       }
     `
 
