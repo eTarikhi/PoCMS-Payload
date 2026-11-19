@@ -4,7 +4,6 @@ import {
   CheckboxField,
   Form,
   Gutter,
-  NumberField,
   SelectField,
   SetDocumentStepNav,
   useConfig,
@@ -18,13 +17,13 @@ import React, { useEffect, useMemo, useState, useSyncExternalStore } from 'react
 import { Button } from '@/components/admin/elements/Button'
 import { cn } from '@/components/admin/utilities/cn'
 
+import { defaultSelectableDepth } from './depth'
 import type { GraphQLDocumentQuery } from './query'
 
 type Props = {
   defaultDepth: number
   endpoint: string
   localeOptions: { label: string; value: string }[] | null
-  maxDepth: number
   playground: string | null
   query: GraphQLDocumentQuery | null
 }
@@ -102,7 +101,6 @@ function GraphQLInspector({
   defaultDepth,
   endpoint,
   localeOptions,
-  maxDepth,
   playground,
   query,
 }: Props & { query: GraphQLDocumentQuery }) {
@@ -119,7 +117,12 @@ function GraphQLInspector({
   const [draft, setDraft] = useState(false)
   const [authenticated, setAuthenticated] = useState(true)
   const [locale, setLocale] = useState(code)
-  const [depth, setDepth] = useState(defaultDepth)
+  const initialDepth = defaultSelectableDepth(query.selectableDepths, defaultDepth) ?? 0
+  const [depth, setDepth] = useState(initialDepth)
+  const selectedDepth = query.selectableDepths.includes(depth)
+    ? depth
+    : (query.selectableDepths[0] ?? initialDepth)
+  const unavailableDepths = query.depthValidation.filter(({ valid }) => !valid)
   // The origin is read on the client only, as Payload's API tab does, so hydration matches.
   const origin = useSyncExternalStore(
     noSubscription,
@@ -128,7 +131,7 @@ function GraphQLInspector({
   )
   const [response, setResponse] = useState<{ key: string; result: Result } | null>(null)
 
-  const text = query.queries[Math.max(0, Math.min(depth, maxDepth))]
+  const text = query.queries[selectedDepth]
   const trashed = Boolean(isTrashed ?? typeof initialData?.deletedAt === 'string')
   const variables = useMemo(
     () => ({
@@ -228,7 +231,7 @@ function GraphQLInspector({
         <Form
           initialState={{
             authenticated: { initialValue: authenticated, valid: true, value: authenticated },
-            depth: { initialValue: depth, valid: true, value: depth },
+            depth: { initialValue: String(depth), valid: true, value: String(depth) },
             draft: { initialValue: draft, valid: true, value: draft },
             locale: { initialValue: locale, valid: true, value: locale },
           }}
@@ -255,23 +258,39 @@ function GraphQLInspector({
                 path="locale"
               />
             ) : null}
-            <NumberField
-              // Payload's client field type wants every admin key; its API tab passes these same ones.
-              field={
-                {
-                  name: 'depth',
-                  admin: { step: 1 },
-                  label: t('general:depth'),
-                  max: maxDepth,
-                  min: 0,
-                } as React.ComponentProps<typeof NumberField>['field']
-              }
-              onChange={(value) => setDepth(Number(value ?? 0))}
+            <SelectField
+              field={{
+                name: 'depth',
+                label: t('general:depth'),
+                options: query.selectableDepths.map((value) => ({
+                  label: String(value),
+                  value: String(value),
+                })),
+              }}
+              onChange={(value) => {
+                const nextDepth = Number(value)
+                if (query.selectableDepths.includes(nextDepth)) setDepth(nextDepth)
+              }}
               path="depth"
             />
           </div>
         </Form>
       </div>
+      {unavailableDepths.length > 0 ? (
+        <div className="acn:mt-3 acn:text-sm acn:text-muted-foreground" role="note">
+          <p className="acn:mb-1">
+            Depths not offered below were rejected by the production GraphQL validation rules:
+          </p>
+          <ul className="acn:my-0 acn:pl-5">
+            {unavailableDepths.map(({ depth: unavailableDepth, errors }) => (
+              <li key={unavailableDepth}>
+                Depth {unavailableDepth}:{' '}
+                {errors.join('; ') || 'GraphQL validation rejected this query.'}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {/* The results column of Payload's query inspector (configuration left, results right). */}
       <div className="acn:mt-10 acn:grid acn:w-full acn:min-w-0 acn:gap-6 acn:pr-(--gutter-h) acn:pb-10 acn:2xl:grid-cols-2">
@@ -341,6 +360,22 @@ export function GraphQLViewClient(props: Props) {
         <p className="acn:text-sm acn:text-muted-foreground">
           GraphQL is turned off for this collection or global, so there is no query to show.
         </p>
+      </Gutter>
+    )
+  }
+  if (props.query.selectableDepths.length === 0) {
+    return (
+      <Gutter>
+        <p className="acn:text-sm acn:text-muted-foreground" role="status">
+          No generated GraphQL query depth passes the production validation rules.
+        </p>
+        <ul className="acn:my-2 acn:pl-5">
+          {props.query.depthValidation.map(({ depth, errors }) => (
+            <li key={depth}>
+              Depth {depth}: {errors.join('; ') || 'GraphQL validation rejected this query.'}
+            </li>
+          ))}
+        </ul>
       </Gutter>
     )
   }

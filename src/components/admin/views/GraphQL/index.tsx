@@ -31,7 +31,6 @@ export function GraphQLDocumentView({ initPageResult, payload }: DocumentViewSer
       defaultDepth={Math.min(defaultDepth ?? 2, MAX_GRAPHQL_DEPTH)}
       endpoint={`${routes.api}${routes.graphQL}`}
       localeOptions={localeOptions}
-      maxDepth={MAX_GRAPHQL_DEPTH}
       playground={playground}
       query={query}
     />
