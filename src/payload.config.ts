@@ -15,6 +15,7 @@ import sharp from 'sharp'
 
 import { ensureDraftVersions } from './access/draftMigration'
 import { ensureOrderable } from './access/orderable'
+import { createGraphQLListLimitRule } from './auth/graphqlListLimit'
 import { governedEntities } from './access/permissions'
 import { ensureRoles } from './access/roles'
 import {
@@ -382,7 +383,7 @@ export default buildConfig({
     adminUIPlugin(),
   ],
   graphQL: {
-    validationRules: () => [NoProductionIntrospection],
+    validationRules: (args) => [NoProductionIntrospection, createGraphQLListLimitRule(args)],
     disablePlaygroundInProduction: true,
   },
   email: resendAdapter({

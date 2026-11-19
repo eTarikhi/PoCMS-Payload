@@ -86,3 +86,74 @@ index 201d658165aaad26237890a823fe97dac2dae6f0..15bd6b10af92b768fdcdd0f3295b8057
          if (typeof this.options.operationName === 'string' && this.options.operationName !== operation.name.value) {
              return;
          }
+diff --git a/dist/schema/fieldToSchemaMap.js b/dist/schema/fieldToSchemaMap.js
+index 1ebe12b..38eac5d 100644
+--- a/dist/schema/fieldToSchemaMap.js
++++ b/dist/schema/fieldToSchemaMap.js
+@@ -10,6 +10,8 @@ import { resolveSelect } from '../utilities/select.js';
+ import { buildObjectType } from './buildObjectType.js';
+ import { isFieldNullable } from './isFieldNullable.js';
+ import { withNullableType } from './withNullableType.js';
++const DEFAULT_GRAPHQL_LIST_LIMIT = 10;
++const MAX_GRAPHQL_LIST_LIMIT = 100;
+ function formattedNameResolver({ field, ...rest }) {
+     if ('name' in field) {
+         if (formatName(field.name) !== field.name) {
+@@ -288,6 +290,10 @@ export const fieldToSchemaMap = {
+                 const draft = Boolean(args.draft ?? context.req.query?.draft);
+                 const select = resolveSelect(info, context.select);
+                 const targetField = field.targetField;
++                const configuredDefaultLimit = field.defaultLimit;
++                const defaultLimit = Number.isInteger(configuredDefaultLimit) && configuredDefaultLimit > 0 ? Math.min(configuredDefaultLimit, MAX_GRAPHQL_LIST_LIMIT) : DEFAULT_GRAPHQL_LIST_LIMIT;
++                const requestedLimit = limit ?? defaultLimit;
++                const effectiveLimit = Number.isInteger(requestedLimit) && requestedLimit > 0 ? Math.min(requestedLimit, MAX_GRAPHQL_LIST_LIMIT) : defaultLimit;
+                 const fullWhere = combineQueries(where, Array.isArray(targetField.relationTo) ? {
+                     [field.on]: {
+                         equals: {
+@@ -303,13 +309,18 @@ export const fieldToSchemaMap = {
+                 if (Array.isArray(collection)) {
+                     throw new Error('GraphQL with array of join.field.collection is not implemented');
+                 }
+-                if (count && limit === 0) {
+-                    return await req.payload.count({
++                if (count && requestedLimit === 0) {
++                    const { totalDocs } = await req.payload.count({
+                         collection,
+                         overrideAccess: false,
+                         req,
+                         where: fullWhere
+                     });
++                    return {
++                        docs: [],
++                        hasNextPage: false,
++                        totalDocs
++                    };
+                 }
+                 const { docs, totalDocs } = await req.payload.find({
+                     collection,
+@@ -317,7 +328,7 @@ export const fieldToSchemaMap = {
+                     draft,
+                     fallbackLocale: req.fallbackLocale,
+                     // Fetch one extra document to determine if there are more documents beyond the requested limit (used for hasNextPage calculation).
+-                    limit: typeof limit === 'number' && limit > 0 ? limit + 1 : 0,
++                    limit: effectiveLimit + 1,
+                     locale: req.locale,
+                     overrideAccess: false,
+                     page,
+@@ -327,13 +338,10 @@ export const fieldToSchemaMap = {
+                     sort,
+                     where: fullWhere
+                 });
+-                let shouldSlice = false;
+-                if (typeof limit === 'number' && limit !== 0 && limit < docs.length) {
+-                    shouldSlice = true;
+-                }
++                const shouldSlice = effectiveLimit < docs.length;
+                 return {
+-                    docs: shouldSlice ? docs.slice(0, -1) : docs,
+-                    hasNextPage: limit === 0 ? false : limit < docs.length,
++                    docs: shouldSlice ? docs.slice(0, effectiveLimit) : docs,
++                    hasNextPage: shouldSlice,
+                     ...count ? {
+                         totalDocs
+                     } : {}

@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   '@payloadcms/graphql@3.90.2':
-    hash: 1f725550f3d44c6763f1795400c2028ec149c4354d6508a41e0583f7f3e87573
+    hash: ccd1731dd535c0ba28cfbcb616590799bc582f2d514020b1dc9b1566eb2a2b97
     path: patches/@payloadcms__graphql@3.90.2.patch
 
 importers:
@@ -54,7 +54,7 @@ importers:
         version: 3.90.2(payload@3.90.2(bufferutil@4.1.0)(graphql@16.14.2)(supports-color@7.2.0)(typescript@5.7.3))
       '@payloadcms/graphql':
         specifier: ^3.90.2
-        version: 3.90.2(patch_hash=1f725550f3d44c6763f1795400c2028ec149c4354d6508a41e0583f7f3e87573)(graphql@16.14.2)(payload@3.90.2(bufferutil@4.1.0)(graphql@16.14.2)(supports-color@7.2.0)(typescript@5.7.3))(typescript@5.7.3)
+        version: 3.90.2(patch_hash=ccd1731dd535c0ba28cfbcb616590799bc582f2d514020b1dc9b1566eb2a2b97)(graphql@16.14.2)(payload@3.90.2(bufferutil@4.1.0)(graphql@16.14.2)(supports-color@7.2.0)(typescript@5.7.3))(typescript@5.7.3)
       '@payloadcms/live-preview-react':
         specifier: 3.90.2
         version: 3.90.2(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -7096,7 +7096,7 @@ snapshots:
     dependencies:
       payload: 3.90.2(bufferutil@4.1.0)(graphql@16.14.2)(supports-color@7.2.0)(typescript@5.7.3)
 
-  '@payloadcms/graphql@3.90.2(patch_hash=1f725550f3d44c6763f1795400c2028ec149c4354d6508a41e0583f7f3e87573)(graphql@16.14.2)(payload@3.90.2(bufferutil@4.1.0)(graphql@16.14.2)(supports-color@7.2.0)(typescript@5.7.3))(typescript@5.7.3)':
+  '@payloadcms/graphql@3.90.2(patch_hash=ccd1731dd535c0ba28cfbcb616590799bc582f2d514020b1dc9b1566eb2a2b97)(graphql@16.14.2)(payload@3.90.2(bufferutil@4.1.0)(graphql@16.14.2)(supports-color@7.2.0)(typescript@5.7.3))(typescript@5.7.3)':
     dependencies:
       graphql: 16.14.2
       graphql-scalars: 1.22.2(graphql@16.14.2)
@@ -7120,7 +7120,7 @@ snapshots:
       '@dnd-kit/core': 6.3.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       '@dnd-kit/modifiers': 9.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react@19.2.6)
       '@dnd-kit/sortable': 10.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react@19.2.6)
-      '@payloadcms/graphql': 3.90.2(patch_hash=1f725550f3d44c6763f1795400c2028ec149c4354d6508a41e0583f7f3e87573)(graphql@16.14.2)(payload@3.90.2(bufferutil@4.1.0)(graphql@16.14.2)(supports-color@7.2.0)(typescript@5.7.3))(typescript@5.7.3)
+      '@payloadcms/graphql': 3.90.2(patch_hash=ccd1731dd535c0ba28cfbcb616590799bc582f2d514020b1dc9b1566eb2a2b97)(graphql@16.14.2)(payload@3.90.2(bufferutil@4.1.0)(graphql@16.14.2)(supports-color@7.2.0)(typescript@5.7.3))(typescript@5.7.3)
       '@payloadcms/translations': 3.90.2
       '@payloadcms/ui': 3.90.2(@types/react@19.2.14)(monaco-editor@0.57.0)(next@16.3.8(@babel/core@7.29.7(supports-color@7.2.0))(@playwright/test@1.58.2)(@types/node@22.19.9)(babel-plugin-macros@3.1.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.77.4))(payload@3.90.2(bufferutil@4.1.0)(graphql@16.14.2)(supports-color@7.2.0)(typescript@5.7.3))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(supports-color@7.2.0)(typescript@5.7.3)
       busboy: 1.6.0
