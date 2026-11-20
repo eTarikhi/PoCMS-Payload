@@ -1,15 +1,26 @@
 /**
  * Payload data source for the portfolio site.
  *
- * This is the only module in `src/app/(frontend)/lib` that talks to Payload at runtime.
- * Every RSC query uses explicit `select` and `populate` projections so PostgreSQL only transfers
- * the exact columns consumed by each mapper.
+ * Public published content reads dispatch fixed server-owned persisted GraphQL operations first and
+ * fall back cleanly to authorized Local API projections (`overrideAccess: false`) on error or list
+ * truncation. Draft preview reads (`{ draft: true }`) and the restricted `CustomCode` global read
+ * intentionally remain on Payload's Local API. Media/document binary delivery stays on Payload's
+ * existing REST/static file routes.
  */
 
 import configPromise from '@payload-config'
-import { getPayload, type Where } from 'payload'
+import { getPayload } from 'payload'
 
 import { PUBLISHED_OR_LEGACY_WHERE } from '@/access/roles'
+import { executePersistedQuery } from '@/fgql/executePersistedQuery'
+import type { PersistedQueryId } from '@/fgql/persistedQueryRegistry'
+import {
+  logPersistedQueryFallback,
+  logPersistedQueryFallbackFailure,
+  readCompleteGraphQLList,
+  readGraphQLList,
+  readGraphQLObject,
+} from '@/fgql/response'
 import type {
   About,
   AboutSelect,
@@ -67,12 +78,14 @@ import type {
 } from './types'
 
 /**
- * Populate projection for `media` relations — fetches URL, dimensions, focal point, WebP sizes,
- * and `blurDataURL` while skipping folder/audit/file-system columns.
+ * Populate projection for `media` relations — fetches URL, `filename` (required by Payload's
+ * upload `afterRead` hook to compute REST `/api/media/file/<filename>` URLs), dimensions, focal
+ * point, WebP sizes, and `blurDataURL` while skipping folder/audit/file-system columns.
  */
 export const MEDIA_PUBLIC_POPULATE = {
   media: {
     url: true,
+    filename: true,
     alt: true,
     width: true,
     height: true,
@@ -316,6 +329,7 @@ export const PROJECT_FEED_SELECT = {
 export const REDIRECT_SELECT = {
   from: true,
   to: true,
+  type: true,
 } satisfies RedirectsSelect
 
 export const CUSTOM_CODE_GLOBAL_SELECT = {
@@ -348,44 +362,98 @@ export type HomeProfileRawDocs = {
   services: Service[]
 }
 
+const withAuthorizedLocalApiFallback = async <T>(
+  operationId: PersistedQueryId,
+  runPersisted: () => Promise<T>,
+  runFallback: () => Promise<T>,
+): Promise<T> => {
+  try {
+    return await runPersisted()
+  } catch (primaryError) {
+    logPersistedQueryFallback(operationId, primaryError)
+    try {
+      return await runFallback()
+    } catch (fallbackError) {
+      logPersistedQueryFallbackFailure(operationId, fallbackError)
+      throw fallbackError
+    }
+  }
+}
+
 /** Fine-grained per-global loaders so `cache.ts` can tag each global independently. */
-export const fetchSiteSettingsGlobal = async (): Promise<SiteSetting> => {
-  const payload = await getPayload({ config: configPromise })
-  return (await payload.findGlobal({
-    slug: 'site-settings',
-    depth: 1,
-    select: SITE_SETTINGS_GLOBAL_SELECT,
-    populate: MEDIA_PUBLIC_POPULATE,
-  })) as SiteSetting
-}
+export const fetchSiteSettingsGlobal = async (): Promise<SiteSetting> =>
+  withAuthorizedLocalApiFallback(
+    'public.site-settings.v1',
+    async () => {
+      const data = await executePersistedQuery('public.site-settings.v1')
+      return readGraphQLObject<SiteSetting>(data, 'SiteSetting')
+    },
+    async () => {
+      const payload = await getPayload({ config: configPromise })
+      return (await payload.findGlobal({
+        slug: 'site-settings',
+        depth: 1,
+        overrideAccess: false,
+        select: SITE_SETTINGS_GLOBAL_SELECT,
+        populate: MEDIA_PUBLIC_POPULATE,
+      })) as SiteSetting
+    },
+  )
 
-export const fetchNavigationGlobal = async (): Promise<Navigation> => {
-  const payload = await getPayload({ config: configPromise })
-  return (await payload.findGlobal({
-    slug: 'navigation',
-    depth: 0,
-    select: NAVIGATION_GLOBAL_SELECT,
-  })) as Navigation
-}
+export const fetchNavigationGlobal = async (): Promise<Navigation> =>
+  withAuthorizedLocalApiFallback(
+    'public.navigation.v1',
+    async () => {
+      const data = await executePersistedQuery('public.navigation.v1')
+      return readGraphQLObject<Navigation>(data, 'Navigation')
+    },
+    async () => {
+      const payload = await getPayload({ config: configPromise })
+      return (await payload.findGlobal({
+        slug: 'navigation',
+        depth: 0,
+        overrideAccess: false,
+        select: NAVIGATION_GLOBAL_SELECT,
+      })) as Navigation
+    },
+  )
 
-export const fetchHeaderGlobal = async (): Promise<Header> => {
-  const payload = await getPayload({ config: configPromise })
-  return (await payload.findGlobal({
-    slug: 'header',
-    depth: 1,
-    select: HEADER_GLOBAL_SELECT,
-    populate: MEDIA_PUBLIC_POPULATE,
-  })) as Header
-}
+export const fetchHeaderGlobal = async (): Promise<Header> =>
+  withAuthorizedLocalApiFallback(
+    'public.header.v1',
+    async () => {
+      const data = await executePersistedQuery('public.header.v1')
+      return readGraphQLObject<Header>(data, 'Header')
+    },
+    async () => {
+      const payload = await getPayload({ config: configPromise })
+      return (await payload.findGlobal({
+        slug: 'header',
+        depth: 1,
+        overrideAccess: false,
+        select: HEADER_GLOBAL_SELECT,
+        populate: MEDIA_PUBLIC_POPULATE,
+      })) as Header
+    },
+  )
 
-export const fetchFooterGlobal = async (): Promise<Footer> => {
-  const payload = await getPayload({ config: configPromise })
-  return (await payload.findGlobal({
-    slug: 'footer',
-    depth: 0,
-    select: FOOTER_GLOBAL_SELECT,
-  })) as Footer
-}
+export const fetchFooterGlobal = async (): Promise<Footer> =>
+  withAuthorizedLocalApiFallback(
+    'public.footer.v1',
+    async () => {
+      const data = await executePersistedQuery('public.footer.v1')
+      return readGraphQLObject<Footer>(data, 'Footer')
+    },
+    async () => {
+      const payload = await getPayload({ config: configPromise })
+      return (await payload.findGlobal({
+        slug: 'footer',
+        depth: 0,
+        overrideAccess: false,
+        select: FOOTER_GLOBAL_SELECT,
+      })) as Footer
+    },
+  )
 
 export const fetchCustomCodeGlobal = async (): Promise<CustomCode | null> => {
   const payload = await getPayload({ config: configPromise })
@@ -399,99 +467,157 @@ export const fetchCustomCodeGlobal = async (): Promise<CustomCode | null> => {
 }
 
 /** Fetches the Home-only profile collections (`about`, `skills`, `experiences`, `educations`, `certificates`, `services`). */
-export const fetchHomeProfileRawDocs = async (): Promise<HomeProfileRawDocs> => {
-  const payload = await getPayload({ config: configPromise })
-  const [about, skills, experiences, educations, certificates, services] = await Promise.all([
-    payload
-      .find({
-        collection: 'about',
-        limit: 1,
-        depth: 1,
-        select: ABOUT_SELECT,
-        populate: MEDIA_PUBLIC_POPULATE,
-      })
-      .then((res) => (res.docs[0] as About | undefined) ?? null),
-    payload
-      .find({
-        collection: 'skills',
-        pagination: false,
-        sort: '_order',
-        depth: 0,
-        joins: false,
-        select: SKILL_SELECT,
-      })
-      .then((res) => res.docs as Skill[]),
-    payload
-      .find({
-        collection: 'experiences',
-        pagination: false,
-        sort: '_order',
-        depth: 0,
-        select: EXPERIENCE_SELECT,
-      })
-      .then((res) => res.docs as Experience[]),
-    payload
-      .find({
-        collection: 'educations',
-        pagination: false,
-        sort: '_order',
-        depth: 0,
-        select: EDUCATION_SELECT,
-      })
-      .then((res) => res.docs as Education[]),
-    payload
-      .find({
-        collection: 'certificates',
-        pagination: false,
-        sort: 'issuedAt',
-        depth: 1,
-        select: CERTIFICATE_SELECT,
-        populate: MEDIA_PUBLIC_POPULATE,
-      })
-      .then((res) => res.docs as Certificate[]),
-    payload
-      .find({
-        collection: 'services',
-        pagination: false,
-        sort: '_order',
-        depth: 0,
-        select: SERVICE_SELECT,
-      })
-      .then((res) => res.docs as Service[]),
-  ])
+export const fetchHomeProfileRawDocs = async (): Promise<HomeProfileRawDocs> =>
+  withAuthorizedLocalApiFallback(
+    'public.home-profile.v1',
+    async () => {
+      const data = await executePersistedQuery('public.home-profile.v1')
+      const aboutList = readGraphQLList<About>(data, 'Abouts')
+      return {
+        about: aboutList.docs[0] ?? null,
+        skills: readCompleteGraphQLList<Skill>(data, 'Skills'),
+        experiences: readCompleteGraphQLList<Experience>(data, 'Experiences'),
+        educations: readCompleteGraphQLList<Education>(data, 'Educations'),
+        certificates: readCompleteGraphQLList<Certificate>(data, 'Certificates'),
+        services: readCompleteGraphQLList<Service>(data, 'Services'),
+      }
+    },
+    async () => {
+      const payload = await getPayload({ config: configPromise })
+      const [about, skills, experiences, educations, certificates, services] = await Promise.all([
+        payload
+          .find({
+            collection: 'about',
+            limit: 1,
+            depth: 1,
+            overrideAccess: false,
+            select: ABOUT_SELECT,
+            populate: MEDIA_PUBLIC_POPULATE,
+          })
+          .then((res) => (res.docs[0] as About | undefined) ?? null),
+        payload
+          .find({
+            collection: 'skills',
+            pagination: false,
+            sort: '_order',
+            depth: 0,
+            joins: false,
+            overrideAccess: false,
+            select: SKILL_SELECT,
+          })
+          .then((res) => res.docs as Skill[]),
+        payload
+          .find({
+            collection: 'experiences',
+            pagination: false,
+            sort: '_order',
+            depth: 0,
+            overrideAccess: false,
+            select: EXPERIENCE_SELECT,
+          })
+          .then((res) => res.docs as Experience[]),
+        payload
+          .find({
+            collection: 'educations',
+            pagination: false,
+            sort: '_order',
+            depth: 0,
+            overrideAccess: false,
+            select: EDUCATION_SELECT,
+          })
+          .then((res) => res.docs as Education[]),
+        payload
+          .find({
+            collection: 'certificates',
+            pagination: false,
+            sort: 'issuedAt',
+            depth: 1,
+            overrideAccess: false,
+            select: CERTIFICATE_SELECT,
+            populate: MEDIA_PUBLIC_POPULATE,
+          })
+          .then((res) => res.docs as Certificate[]),
+        payload
+          .find({
+            collection: 'services',
+            pagination: false,
+            sort: '_order',
+            depth: 0,
+            overrideAccess: false,
+            select: SERVICE_SELECT,
+          })
+          .then((res) => res.docs as Service[]),
+      ])
 
-  return { about, skills, experiences, educations, certificates, services }
-}
+      return { about, skills, experiences, educations, certificates, services }
+    },
+  )
 
 /** Fetches raw published `Article` card rows with `ARTICLE_CARD_SELECT`. */
-export const fetchPublishedArticleCardDocs = async (): Promise<Article[]> => {
-  const payload = await getPayload({ config: configPromise })
-  const res = await payload.find({
-    collection: 'articles',
-    where: PUBLISHED_OR_LEGACY_WHERE,
-    pagination: false,
-    sort: '-publishedAt',
-    depth: 1,
-    select: ARTICLE_CARD_SELECT,
-    populate: MEDIA_PUBLIC_POPULATE,
-  })
-  return res.docs as Article[]
-}
+export const fetchPublishedArticleCardDocs = async (): Promise<Article[]> =>
+  withAuthorizedLocalApiFallback(
+    'public.article-cards.v1',
+    async () => {
+      const data = await executePersistedQuery('public.article-cards.v1')
+      return readCompleteGraphQLList<Article>(data, 'Articles')
+    },
+    async () => {
+      const payload = await getPayload({ config: configPromise })
+      const res = await payload.find({
+        collection: 'articles',
+        where: PUBLISHED_OR_LEGACY_WHERE,
+        pagination: false,
+        sort: '-publishedAt',
+        depth: 1,
+        overrideAccess: false,
+        select: ARTICLE_CARD_SELECT,
+        populate: MEDIA_PUBLIC_POPULATE,
+      })
+      return res.docs as Article[]
+    },
+  )
 
 /** Fetches raw published `Project` card rows with `PROJECT_CARD_SELECT`. */
-export const fetchPublishedProjectCardDocs = async (): Promise<Project[]> => {
-  const payload = await getPayload({ config: configPromise })
-  const res = await payload.find({
-    collection: 'projects',
-    where: PUBLISHED_OR_LEGACY_WHERE,
-    pagination: false,
-    sort: '_order',
-    depth: 1,
-    select: PROJECT_CARD_SELECT,
-    populate: MEDIA_PUBLIC_POPULATE,
-  })
-  return res.docs as Project[]
-}
+export const fetchPublishedProjectCardDocs = async (): Promise<Project[]> =>
+  withAuthorizedLocalApiFallback(
+    'public.project-cards.v1',
+    async () => {
+      const data = await executePersistedQuery('public.project-cards.v1')
+      return readCompleteGraphQLList<Project>(data, 'Projects')
+    },
+    async () => {
+      const payload = await getPayload({ config: configPromise })
+      const res = await payload.find({
+        collection: 'projects',
+        where: PUBLISHED_OR_LEGACY_WHERE,
+        pagination: false,
+        sort: '_order',
+        depth: 1,
+        overrideAccess: false,
+        select: PROJECT_CARD_SELECT,
+        populate: MEDIA_PUBLIC_POPULATE,
+      })
+      return res.docs as Project[]
+    },
+  )
+
+const fetchProjectsSectionSiteSettings = async (): Promise<Partial<SiteSetting> | null> =>
+  withAuthorizedLocalApiFallback<Partial<SiteSetting> | null>(
+    'public.projects-section.v1',
+    async () => {
+      const data = await executePersistedQuery('public.projects-section.v1')
+      return readGraphQLObject<Partial<SiteSetting>>(data, 'SiteSetting')
+    },
+    async () => {
+      const payload = await getPayload({ config: configPromise })
+      return (await payload.findGlobal({
+        slug: 'site-settings',
+        depth: 0,
+        overrideAccess: false,
+        select: SITE_SETTINGS_PROJECTS_SELECT,
+      })) as Partial<SiteSetting>
+    },
+  ).catch(() => null)
 
 /**
  * Fetches only the site-wide chrome (`site-settings`, `navigation`, `header`, `footer`, `custom-code`)
@@ -523,18 +649,11 @@ export const getPublishedArticlesList = async (): Promise<ArticleItem[]> => {
 
 /** Fetches only published projects mapped to `ProjectsContent` (projects + `projectsSection` labels only). */
 export const getPublishedProjectsList = async (): Promise<ProjectsContent> => {
-  const payload = await getPayload({ config: configPromise })
   const [projectDocs, siteSettingsDoc] = await Promise.all([
     fetchPublishedProjectCardDocs(),
-    payload
-      .findGlobal({
-        slug: 'site-settings',
-        depth: 0,
-        select: SITE_SETTINGS_PROJECTS_SELECT,
-      })
-      .catch(() => null),
+    fetchProjectsSectionSiteSettings(),
   ])
-  const siteSettings = mapSiteSettings(siteSettingsDoc as Partial<SiteSetting> | null)
+  const siteSettings = mapSiteSettings(siteSettingsDoc)
   return mapProjects(projectDocs, siteSettings.projectsSection)
 }
 
@@ -576,105 +695,180 @@ export const getPortfolioContent = async (): Promise<PortfolioContent> => {
 
 /**
  * Fetches one article by slug (`depth: 2` populates cover image, Media blocks, and internal doc links).
- * When `options.draft` is `true`, returns the latest draft version; otherwise enforces `PUBLISHED_OR_LEGACY_WHERE`.
+ * When `options.draft` is `true`, returns the latest draft version via Local API; otherwise dispatches
+ * `public.article-detail.v1` with authorized Local API fallback.
  */
 export const fetchArticleBySlug = async (
   slug: string,
   options?: { draft?: boolean },
 ): Promise<Article | null> => {
-  const payload = await getPayload({ config: configPromise })
   const isDraft = Boolean(options?.draft)
-  const where: Where = isDraft
-    ? { slug: { equals: slug } }
-    : { and: [{ slug: { equals: slug } }, PUBLISHED_OR_LEGACY_WHERE] }
+  if (isDraft) {
+    const payload = await getPayload({ config: configPromise })
+    const res = await payload.find({
+      collection: 'articles',
+      where: { slug: { equals: slug } },
+      draft: true,
+      limit: 1,
+      depth: 2,
+      select: ARTICLE_DETAIL_SELECT,
+      populate: DETAIL_POPULATE,
+    })
+    return (res.docs[0] as Article | undefined) ?? null
+  }
 
-  const res = await payload.find({
-    collection: 'articles',
-    where,
-    draft: isDraft,
-    limit: 1,
-    depth: 2,
-    select: ARTICLE_DETAIL_SELECT,
-    populate: DETAIL_POPULATE,
-  })
-  return (res.docs[0] as Article | undefined) ?? null
+  return withAuthorizedLocalApiFallback(
+    'public.article-detail.v1',
+    async () => {
+      const data = await executePersistedQuery('public.article-detail.v1', { slug })
+      const list = readGraphQLList<Article>(data, 'Articles')
+      return list.docs[0] ?? null
+    },
+    async () => {
+      const payload = await getPayload({ config: configPromise })
+      const res = await payload.find({
+        collection: 'articles',
+        where: { and: [{ slug: { equals: slug } }, PUBLISHED_OR_LEGACY_WHERE] },
+        draft: false,
+        limit: 1,
+        depth: 2,
+        overrideAccess: false,
+        select: ARTICLE_DETAIL_SELECT,
+        populate: DETAIL_POPULATE,
+      })
+      return (res.docs[0] as Article | undefined) ?? null
+    },
+  )
 }
 
 /**
  * Returns the slugs of published articles that have an on-site page (`hasArticlePage`).
  */
 export const fetchPublishedArticleSlugs = async (): Promise<string[]> => {
-  const payload = await getPayload({ config: configPromise })
-  const res = await payload.find({
-    collection: 'articles',
-    where: PUBLISHED_OR_LEGACY_WHERE,
-    pagination: false,
-    depth: 0,
-    sort: '-publishedAt',
-    select: ARTICLE_SLUG_SELECT,
-  })
-  return res.docs.filter((doc) => hasArticlePage(doc)).map((doc) => doc.slug as string)
+  const docs = await withAuthorizedLocalApiFallback(
+    'public.article-slugs.v1',
+    async () => {
+      const data = await executePersistedQuery('public.article-slugs.v1')
+      return readCompleteGraphQLList<Article>(data, 'Articles')
+    },
+    async () => {
+      const payload = await getPayload({ config: configPromise })
+      const res = await payload.find({
+        collection: 'articles',
+        where: PUBLISHED_OR_LEGACY_WHERE,
+        pagination: false,
+        depth: 0,
+        sort: '-publishedAt',
+        overrideAccess: false,
+        select: ARTICLE_SLUG_SELECT,
+      })
+      return res.docs as Article[]
+    },
+  )
+  return docs.filter((doc) => hasArticlePage(doc)).map((doc) => doc.slug as string)
 }
 
 /**
  * Fetches one project by slug (`depth: 2` populates cover image, Media blocks, and internal doc links).
- * When `options.draft` is `true`, returns the latest draft version; otherwise enforces `PUBLISHED_OR_LEGACY_WHERE`.
+ * When `options.draft` is `true`, returns the latest draft version via Local API; otherwise dispatches
+ * `public.project-detail.v1` with authorized Local API fallback.
  */
 export const fetchProjectBySlug = async (
   slug: string,
   options?: { draft?: boolean },
 ): Promise<Project | null> => {
-  const payload = await getPayload({ config: configPromise })
   const isDraft = Boolean(options?.draft)
-  const where: Where = isDraft
-    ? { slug: { equals: slug } }
-    : { and: [{ slug: { equals: slug } }, PUBLISHED_OR_LEGACY_WHERE] }
+  if (isDraft) {
+    const payload = await getPayload({ config: configPromise })
+    const res = await payload.find({
+      collection: 'projects',
+      where: { slug: { equals: slug } },
+      draft: true,
+      limit: 1,
+      depth: 2,
+      select: PROJECT_DETAIL_SELECT,
+      populate: DETAIL_POPULATE,
+    })
+    return (res.docs[0] as Project | undefined) ?? null
+  }
 
-  const res = await payload.find({
-    collection: 'projects',
-    where,
-    draft: isDraft,
-    limit: 1,
-    depth: 2,
-    select: PROJECT_DETAIL_SELECT,
-    populate: DETAIL_POPULATE,
-  })
-  return (res.docs[0] as Project | undefined) ?? null
+  return withAuthorizedLocalApiFallback(
+    'public.project-detail.v1',
+    async () => {
+      const data = await executePersistedQuery('public.project-detail.v1', { slug })
+      const list = readGraphQLList<Project>(data, 'Projects')
+      return list.docs[0] ?? null
+    },
+    async () => {
+      const payload = await getPayload({ config: configPromise })
+      const res = await payload.find({
+        collection: 'projects',
+        where: { and: [{ slug: { equals: slug } }, PUBLISHED_OR_LEGACY_WHERE] },
+        draft: false,
+        limit: 1,
+        depth: 2,
+        overrideAccess: false,
+        select: PROJECT_DETAIL_SELECT,
+        populate: DETAIL_POPULATE,
+      })
+      return (res.docs[0] as Project | undefined) ?? null
+    },
+  )
 }
 
 /**
  * Returns the slugs of published projects that have an on-site case-study page (`hasProjectPage`).
  */
 export const fetchPublishedProjectSlugs = async (): Promise<string[]> => {
-  const payload = await getPayload({ config: configPromise })
-  const res = await payload.find({
-    collection: 'projects',
-    where: PUBLISHED_OR_LEGACY_WHERE,
-    pagination: false,
-    depth: 0,
-    sort: '_order',
-    select: PROJECT_SLUG_SELECT,
-  })
-  return res.docs.filter((doc) => hasProjectPage(doc)).map((doc) => doc.slug as string)
+  const docs = await withAuthorizedLocalApiFallback(
+    'public.project-slugs.v1',
+    async () => {
+      const data = await executePersistedQuery('public.project-slugs.v1')
+      return readCompleteGraphQLList<Project>(data, 'Projects')
+    },
+    async () => {
+      const payload = await getPayload({ config: configPromise })
+      const res = await payload.find({
+        collection: 'projects',
+        where: PUBLISHED_OR_LEGACY_WHERE,
+        pagination: false,
+        depth: 0,
+        sort: '_order',
+        overrideAccess: false,
+        select: PROJECT_SLUG_SELECT,
+      })
+      return res.docs as Project[]
+    },
+  )
+  return docs.filter((doc) => hasProjectPage(doc)).map((doc) => doc.slug as string)
 }
 
 /**
  * Fetches all CMS-configured URL redirects (`depth: 1` populates internal `articles`/`projects` references).
  */
-export const fetchRedirects = async (): Promise<Redirect[]> => {
-  const payload = await getPayload({ config: configPromise })
-  const res = await payload.find({
-    collection: 'redirects',
-    pagination: false,
-    depth: 1,
-    select: REDIRECT_SELECT,
-    populate: {
-      articles: { slug: true },
-      projects: { slug: true },
+export const fetchRedirects = async (): Promise<Redirect[]> =>
+  withAuthorizedLocalApiFallback(
+    'public.redirects.v1',
+    async () => {
+      const data = await executePersistedQuery('public.redirects.v1')
+      return readCompleteGraphQLList<Redirect>(data, 'Redirects')
     },
-  })
-  return res.docs as Redirect[]
-}
+    async () => {
+      const payload = await getPayload({ config: configPromise })
+      const res = await payload.find({
+        collection: 'redirects',
+        pagination: false,
+        depth: 1,
+        overrideAccess: false,
+        select: REDIRECT_SELECT,
+        populate: {
+          articles: { slug: true },
+          projects: { slug: true },
+        },
+      })
+      return res.docs as Redirect[]
+    },
+  )
 
 /**
  * Fetches projected published articles, published projects, and site settings for `/sitemap.xml` and `/feed.xml`.
@@ -684,43 +878,54 @@ export const fetchFeedSourceDocs = async (): Promise<{
   projects: Project[]
   siteSettings: SiteSetting | null
 }> => {
-  const payload = await getPayload({ config: configPromise })
   const [articles, projects, siteSettings] = await Promise.all([
-    payload
-      .find({
-        collection: 'articles',
-        where: PUBLISHED_OR_LEGACY_WHERE,
-        pagination: false,
-        sort: '-publishedAt',
-        depth: 0,
-        select: ARTICLE_FEED_SELECT,
-      })
-      .then((res) => res.docs as Article[]),
-    payload
-      .find({
-        collection: 'projects',
-        where: PUBLISHED_OR_LEGACY_WHERE,
-        pagination: false,
-        sort: '_order',
-        depth: 1,
-        select: PROJECT_FEED_SELECT,
-        populate: {
-          skills: {
-            label: true,
-            deletedAt: true,
+    withAuthorizedLocalApiFallback(
+      'public.article-feed.v1',
+      async () => {
+        const data = await executePersistedQuery('public.article-feed.v1')
+        return readCompleteGraphQLList<Article>(data, 'Articles')
+      },
+      async () => {
+        const payload = await getPayload({ config: configPromise })
+        const res = await payload.find({
+          collection: 'articles',
+          where: PUBLISHED_OR_LEGACY_WHERE,
+          pagination: false,
+          sort: '-publishedAt',
+          depth: 0,
+          overrideAccess: false,
+          select: ARTICLE_FEED_SELECT,
+        })
+        return res.docs as Article[]
+      },
+    ),
+    withAuthorizedLocalApiFallback(
+      'public.project-feed.v1',
+      async () => {
+        const data = await executePersistedQuery('public.project-feed.v1')
+        return readCompleteGraphQLList<Project>(data, 'Projects')
+      },
+      async () => {
+        const payload = await getPayload({ config: configPromise })
+        const res = await payload.find({
+          collection: 'projects',
+          where: PUBLISHED_OR_LEGACY_WHERE,
+          pagination: false,
+          sort: '_order',
+          depth: 1,
+          overrideAccess: false,
+          select: PROJECT_FEED_SELECT,
+          populate: {
+            skills: {
+              label: true,
+              deletedAt: true,
+            },
           },
-        },
-      })
-      .then((res) => res.docs as Project[]),
-    payload
-      .findGlobal({
-        slug: 'site-settings',
-        depth: 1,
-        select: SITE_SETTINGS_GLOBAL_SELECT,
-        populate: MEDIA_PUBLIC_POPULATE,
-      })
-      .then((doc) => doc as SiteSetting)
-      .catch(() => null),
+        })
+        return res.docs as Project[]
+      },
+    ),
+    fetchSiteSettingsGlobal().catch(() => null),
   ])
   return { articles, projects, siteSettings }
 }

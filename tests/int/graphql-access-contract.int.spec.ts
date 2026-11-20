@@ -252,10 +252,13 @@ describe('public GraphQL access contract', () => {
       payloadSource.indexOf('/** Fetches the Home-only profile collections'),
     )
 
-    expect(articleDraftReader).toContain('draft: isDraft')
-    expect(projectDraftReader).toContain('draft: isDraft')
-    expect(articleDraftReader).not.toContain('overrideAccess')
-    expect(projectDraftReader).not.toContain('overrideAccess')
+    expect(articleDraftReader).toContain('draft: true')
+    expect(projectDraftReader).toContain('draft: true')
+    // Draft preview branch uses Local API without overrideAccess; only the published fallback sets overrideAccess: false.
+    expect(articleDraftReader).not.toContain('overrideAccess: true')
+    expect(projectDraftReader).not.toContain('overrideAccess: true')
+    expect(articleDraftReader).toContain('overrideAccess: false')
+    expect(projectDraftReader).toContain('overrideAccess: false')
     expect(customCodeReader).not.toContain('overrideAccess')
   })
 })

@@ -1515,7 +1515,7 @@ export const mapHeaderStudio = (doc?: Partial<Header> | null): HeaderStudioConfi
 export const mapHeader = (doc: Partial<Header> | null | undefined): HeaderContent | null => {
   if (!doc || !doc.sureName?.trim()) return null
   return {
-    id: doc.id !== undefined ? idToString(doc.id) : 'header',
+    id: 'header',
     sureName: doc.sureName,
     imageUrl: resolveMediaUrl(doc.profileImage) ?? withFallback(doc.imageUrl, ''),
     requestCV: withFallback(doc.requestCV, '#'),

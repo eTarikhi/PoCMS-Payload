@@ -2,6 +2,12 @@ import { unstable_cache } from 'next/cache'
 import { getPayload } from 'payload'
 
 import configPromise from '@payload-config'
+import { executePersistedQuery } from '@/fgql/executePersistedQuery'
+import {
+  logPersistedQueryFallback,
+  logPersistedQueryFallbackFailure,
+  readCompleteGraphQLList,
+} from '@/fgql/response'
 import type { Form, FormsSelect } from '@/payload-types'
 import { FORMS_COLLECTION } from '@/plugins/formBuilder'
 
@@ -24,26 +30,31 @@ export const PUBLIC_FORM_SELECT = {
 
 export const fetchPublishedForms = async (): Promise<PublicCmsForm[]> => {
   try {
-    const payload = await getPayload({ config: configPromise })
-    const result = await payload.find({
-      collection: FORMS_COLLECTION,
-      pagination: false,
-      depth: 1,
-      sort: 'id',
-      select: PUBLIC_FORM_SELECT,
-    })
-
-    return (result.docs as Partial<Form>[])
+    const data = await executePersistedQuery('public.forms.v1')
+    const docs = readCompleteGraphQLList<Partial<Form>>(data, 'Forms')
+    return docs
       .map((doc) => mapPublicForm(doc))
       .filter((form): form is PublicCmsForm => form !== null)
-  } catch (error) {
-    if (process.env.NODE_ENV !== 'test') {
-      console.error(
-        '[portfolio] Failed to fetch CMS forms:',
-        error instanceof Error ? error.message : error,
-      )
+  } catch (primaryError) {
+    logPersistedQueryFallback('public.forms.v1', primaryError)
+    try {
+      const payload = await getPayload({ config: configPromise })
+      const result = await payload.find({
+        collection: FORMS_COLLECTION,
+        pagination: false,
+        depth: 1,
+        sort: 'id',
+        overrideAccess: false,
+        select: PUBLIC_FORM_SELECT,
+      })
+
+      return (result.docs as Partial<Form>[])
+        .map((doc) => mapPublicForm(doc))
+        .filter((form): form is PublicCmsForm => form !== null)
+    } catch (fallbackError) {
+      logPersistedQueryFallbackFailure('public.forms.v1', fallbackError)
+      return []
     }
-    return []
   }
 }
 

@@ -16,7 +16,7 @@
 - **Form Submissions**: `POST /api/form-submissions` (public visitor submission endpoint protected by honeypot validation and IP rate limiting).
 - **Admin GraphQL Endpoint**: `POST /api/graphql` requires an authenticated user accepted by `Users.access.admin` (`hasAnyRole`). The Admin GraphQL inspector uses this route.
 - **GraphQL Playground**: `GET /api/graphql-playground` has the same authorization gate. This app serves it in development and disables it in production; production introspection remains disabled.
-- **Public GraphQL**: No anonymous public GraphQL API is enabled. No public persisted-query route is enabled while Payload 3.90.2 request-context integration and deployment controls remain unverified.
+- **Public persisted GraphQL**: `POST /api/fgql` exposes a fixed 16-operation server-owned read registry for public content; arbitrary query text, batching, introspection, and mutations are rejected, and authentication headers are stripped. Documents, images, and uploaded files continue to be served via REST (`GET /api/media/file/:filename`), and `Folder` / `Media` are excluded as GraphQL data sources. Verified against Payload 3.90.2 on an isolated loopback PostgreSQL instance (`pnpm test:int:postgres`); rate limiting in-app is process-local (not a distributed/global limiter) unless paired with edge rate limiting. See [Public persisted GraphQL status](./public-persisted-graphql.md).
 
 ## Webhook & Custom Admin Endpoints
 

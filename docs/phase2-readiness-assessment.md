@@ -1,6 +1,6 @@
 # Phase 2 — Readiness assessment
 
-**Status:** Assessment only. No application route, access policy, schema, authentication behavior, or frontend code was changed to produce this document. No public GraphQL endpoint, anonymous GraphQL endpoint, or persisted-query endpoint is enabled or authorized by it.
+**Status:** Historical, point-in-time assessment. No application route, access policy, schema, authentication behavior, or frontend code was changed to produce this document. Since that snapshot, the public persisted-query route (`POST /api/fgql`), fixed 16-operation read registry for public content (keeping documents/images on REST and excluding `Folder`/`Media` as GraphQL data sources), frontend-reader wiring, and loopback PostgreSQL HTTP verification (`pnpm test:int:postgres`) have been completed; current status and scope notes are tracked in [docs/public-persisted-graphql.md](./public-persisted-graphql.md). Statements below that the route does not exist or that no code was implemented refer to this assessment's original snapshot.
 
 **Evidence labels used throughout:**
 
